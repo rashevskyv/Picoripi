@@ -21,6 +21,7 @@ Usage (run from the repository root):
 from __future__ import annotations
 
 import argparse
+import bisect
 import hashlib
 import json
 import re
@@ -228,6 +229,7 @@ def tally(found: Counter, residue: Optional[List[Dict[str, object]]], key: str, 
 
 
 REGION_JSON = "src/data/region_map/region_map_sections.json"
+ITEMS_JSON = "src/data/items.json"
 
 
 def region_names(decomp: Path) -> List[str]:
@@ -261,7 +263,21 @@ def source_texts(decomp: Path) -> List[Tuple[str, str, str]]:
              for name in region_names(decomp)]
     if lines:
         found.append((REGION_JSON, "region_map_sections", "\n".join(lines) + "\n"))
+    items = item_descriptions(decomp)
+    if items:
+        found.append((ITEMS_JSON, "items", "\n".join(items) + "\n"))
     return found
+
+
+def item_descriptions(decomp: Path) -> List[str]:
+    """The item descriptions of items.json as C strings: the decomp builds each one as ``gItemDescription_<itemId>``."""
+    path = decomp / ITEMS_JSON
+    if not path.is_file():
+        return []
+    items = json.loads(path.read_text(encoding="utf-8")).get("items", [])
+    return ['static const u8 gItemDescription_%s[] = _("%s");' % (item["itemId"], item["description_english"]
+                                                                  .replace('"', '\\"'))
+            for item in items if item.get("itemId") and item.get("description_english")]
 
 
 def scan(decomp: Path, rom: bytes, charmap: rom_text.Charmap, symbols: Dict[str, int],
@@ -324,9 +340,12 @@ def scan(decomp: Path, rom: bytes, charmap: rom_text.Charmap, symbols: Dict[str,
                 # A start is a byte after a terminator, or a place a pointer names: a text may follow data.
                 starts = [h for h in hits if h == 0 or rom[h - 1] in (0x00, TERMINATOR)
                           or BASE + h in pointers]
-                if not starts:
-                    # One place in the image, after data: a text the code reads by its address (an inline field).
-                    if len(hits) != 1 or len(expected) <= 2:
+                inline = not starts
+                if inline:
+                    # A text after data, read by its address: a name field of a struct (a trainer, a decoration). Every
+                    # place the bytes hold is a field of one unit, so one edit writes them all. Such units go to their own
+                    # table file (``<source>.fields``): a project unpacked before them keeps its files.
+                    if len(expected) <= 2:
                         tally(found, residue, key, text, match, shown, "not_a_start")
                         continue
                     starts = hits
@@ -334,6 +353,7 @@ def scan(decomp: Path, rom: bytes, charmap: rom_text.Charmap, symbols: Dict[str,
                     # A short piece of code output (a control code, a space): not text, not opened.
                     tally(found, residue, key, text, match, shown, "fragment")
                     continue
+                target = key + ".fields" if inline else key
                 if len(starts) > 1:
                     # the same text in several places: one unit holds every place the code has not claimed (the
                     # first free place is the unit, the others are its places: one edit writes them all)
@@ -342,8 +362,8 @@ def scan(decomp: Path, rom: bytes, charmap: rom_text.Charmap, symbols: Dict[str,
                     if not free:
                         tally(found, residue, key, text, match, shown, "covered")
                         continue
-                    label = f"{stem}_L{line}_{len(units.get(key, []))}"
-                    units.setdefault(key, []).append([label, free[0], len(expected), "", free[1:]])
+                    label = f"{stem}_L{line}_{len(units.get(target, []))}"
+                    units.setdefault(target, []).append([label, free[0], len(expected), "", free[1:]])
                     for spot in free:
                         claimed.update(range(spot, spot + len(expected)))
                     tally(found, residue, key, text, match, shown, "duplicate")
@@ -353,10 +373,107 @@ def scan(decomp: Path, rom: bytes, charmap: rom_text.Charmap, symbols: Dict[str,
                 tally(found, residue, key, text, match, shown, "covered")
                 continue
             label = name if how == "symbol" else f"{stem}_L{text.count(chr(10), 0, match.start()) + 1}"
-            units.setdefault(key, []).append([label, at, len(expected)])
+            units.setdefault(target if how != "symbol" else key, []).append([label, at, len(expected)])
             claimed.update(range(at, at + len(expected)))
             found[how] += 1
         counts[key] = found
+    return units, counts
+
+
+# The ROM's own English messages that no source literal names: the strings of the embedded multiboot programs, and any
+# other text the code keeps as bytes. Found in the image: printable English with real words, read to the 0xFF terminator.
+ROM_OBJECT_SKIP = re.compile(r"^(graphics/|sound/|data/sound_data\.o|data/songs|data/tilesets|data/maps|data/layouts)")
+BIGRAMS = frozenset(
+    "th he in er an re on at en nd ti es or te of ed is it al ar st to nt ng se ha as ou io le ve co me de hi ri ro "
+    "ic ne ea ra ce li ch ll be ma si om ur sh pe ta ly ka nd ac ok ss wa el ie pr us ow ny ni ge fe ca ho pl mo fo ay "
+    "ov ir ai ee ad oo ui ty".split())
+ENGLISH_CHAR = re.compile(r"[A-Za-z0-9 .,!?'\-:;\"&/’é…]")
+UPPER_NAME = re.compile(r"[A-Z][A-Z .'\-’]*[A-Z.]")
+ROM_SIZE_LIMIT = BASE + 0x02000000
+# A symbol that names picture, palette, animation, font or sound data: its bytes are not a message, unless the
+# symbol also names a text.
+DATA_SYMBOL = re.compile(r"Pic|Icon|Gfx|Tiles|Pal|Anim|Frame|Outline|Sprite|Image|Glyph|Font|Cry|DirectSound|Music|"
+                         r"Song|Sound|Wave|Weather|Fog|Tileset|Metatile|Blob|Bitmap|Logo|Emblem|Cursor|Shadow", re.I)
+TEXT_SYMBOL = re.compile(r"Text|Str|Name|Desc|Msg|Message|Label|Option|Title", re.I)
+
+
+def english_message(text: str) -> bool:
+    """A message a player reads: printable English after the control codes are taken out, with real words in it."""
+    plain = CONTROL.sub(" ", text).replace("\\n", " ").strip()
+    if sum(ch.isalpha() for ch in plain) < 3:
+        return False
+    if sum(1 for ch in plain if ENGLISH_CHAR.fullmatch(ch)) < 0.95 * len(plain):
+        return False
+    if UPPER_NAME.fullmatch(plain) and re.search(r"[AEIOUY]", plain):
+        return True                                  # a name or a menu word in capitals
+    total = good = 0
+    for word in re.findall(r"[a-zé]+", plain.lower()):
+        for pair in zip(word, word[1:]):
+            total += 1
+            good += (pair[0] + pair[1]) in BIGRAMS
+    return total >= 4 and good >= 0.6 * total      # a two-letter repeat ("riri") is not a word
+
+
+def code_sections(map_path: Path) -> List[Tuple[int, int, str]]:
+    """The ``.rodata`` input sections of the ROM: (ROM address, size, object file) from the link map."""
+    found: List[Tuple[int, int, str]] = []
+    lines = map_path.read_text(encoding="utf-8", errors="replace").split("\n")
+    section = re.compile(r"^ \.rodata\s+0x([0-9a-f]+)\s+0x([0-9a-f]+)\s+(\S+\.o)\s*$")
+    name_only = re.compile(r"^ \.rodata\s*$")
+    address = re.compile(r"^\s+0x([0-9a-f]+)\s+0x([0-9a-f]+)\s+(\S+\.o)\s*$")
+    for index, line in enumerate(lines):
+        match = section.match(line)
+        if match:
+            found.append((int(match.group(1), 16), int(match.group(2), 16), match.group(3)))
+        elif name_only.match(line) and index + 1 < len(lines):
+            second = address.match(lines[index + 1])
+            if second:
+                found.append((int(second.group(1), 16), int(second.group(2), 16), second.group(3)))
+    return sorted(item for item in found if BASE <= item[0] < ROM_SIZE_LIMIT and item[1] > 0)
+
+
+def rom_messages(rom: bytes, charmap: rom_text.Charmap, covered: bytearray, sections: List[Tuple[int, int, str]],
+                 symbols: Dict[str, int]) -> Tuple[List[List[object]], Counter]:
+    """The English messages of the code's read-only data that no unit covers: [label, offset, size] per message.
+
+    A message runs from its first character to the next 0xFF. A label is the nearest symbol before it, with its offset.
+    ``covered`` is updated: the messages found are covered from then on.
+    """
+    chars = {code for code, key in charmap.char_of.items() if len(key) == 1 and (key.isascii() or key == "é")}
+    chars.discard(TERMINATOR)
+    ordered = sorted((addr, name) for name, addr in symbols.items() if BASE <= addr < ROM_SIZE_LIMIT)
+    addresses = [addr for addr, _ in ordered]
+    units: List[List[object]] = []
+    counts: Counter = Counter()
+    for start_addr, size, obj in sections:
+        if ROM_OBJECT_SKIP.match(obj):
+            counts["skipped_object"] += 1
+            continue
+        end = start_addr - BASE + size
+        at = start_addr - BASE
+        while at < end:
+            term = rom.find(bytes([TERMINATOR]), at, end)
+            if term < 0:
+                break
+            first = at
+            while first < term and rom[first] not in chars:
+                first += 1          # bytes before the first character are not text
+            at = term + 1
+            if term - first < 3 or covered.find(b"\x01", first, term + 1) >= 0:
+                counts["covered_or_short"] += 1
+                continue
+            text = charmap.decode(rom[first:term])
+            if "{0x" in text or not english_message(text):
+                counts["not_english"] += 1
+                continue
+            spot = bisect.bisect_right(addresses, BASE + first) - 1
+            owner = ordered[spot][1] if spot >= 0 else "rom"
+            if DATA_SYMBOL.search(owner) and not TEXT_SYMBOL.search(owner):
+                counts["data_symbol"] += 1         # the bytes of a picture, a palette, a font or a sound
+                continue
+            units.append([f"{owner}_{first:x}", first, term - first + 1])
+            covered[first:term + 1] = b"\x01" * (term - first + 1)
+            counts["english"] += 1
     return units, counts
 
 
@@ -383,6 +500,18 @@ def main() -> None:
     revision = int(rev.group(1)) if rev else 0
     variant = next((name for name in VARIANTS if name.lower() in game.lower().replace(" ", "")), "")
     units, counts = scan(args.decomp, rom, charmap, symbols, covered_offsets(facts), variant, None, revision)
+    # the messages the sources do not name: read from the image, outside every unit (the facts' own and the new ones)
+    covered = bytearray(len(rom))
+    for unit in rom_text.load_units(args.facts)[0] + rom_text.load_tables(args.facts):
+        for spot in (unit.offset, *unit.places):
+            covered[spot:spot + unit.size] = b"\x01" * unit.size
+    for rows in units.values():
+        for row in rows:
+            for spot in [row[1], *(row[4] if len(row) > 4 else [])]:
+                covered[spot:spot + row[2]] = b"\x01" * row[2]
+    found, found_counts = rom_messages(rom, charmap, covered, code_sections(args.map), symbols)
+    units.setdefault("rom_messages.rom", []).extend(found)
+    counts["rom_messages.rom"] = found_counts
     total: Counter = Counter()
     for file_counts in counts.values():
         total.update(file_counts)

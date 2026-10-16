@@ -1,4 +1,7 @@
 """The C-text scanner of the Generation III facts: which source lines the image builds, and why a missing literal is missing."""
+import json
+
+from plugins.pokemon_fr import rom_text
 from tools import pokemon_fr_c_texts as scan
 
 
@@ -54,3 +57,43 @@ def test_missing_literals_are_classed_by_their_cause():
     assert scan.missing_class("revision", "This can't be used") == "other_revision"
     assert scan.missing_class("", "{COLOR WHITE}{HIGHLIGHT TRANSPARENT}      ") == "fill"
     assert scan.missing_class("", "CHERRY") == "missing"
+
+
+def test_english_messages_are_text_and_graphics_bytes_are_not():
+    assert scan.english_message("Hits the foe hard.\\nThe user is safe.")
+    assert scan.english_message("SEND OUT")
+    assert not scan.english_message("iAA:igA:YiC ")
+    assert not scan.english_message("zjAURh\u00e9")
+
+
+def test_item_descriptions_are_c_strings_named_by_their_item(tmp_path):
+    (tmp_path / "src" / "data").mkdir(parents=True)
+    (tmp_path / scan.ITEMS_JSON).write_text(json.dumps({"items": [
+        {"itemId": "ITEM_TM01", "description_english": 'A "hit".\\nfoe.'}]}), encoding="utf-8")
+    assert scan.item_descriptions(tmp_path) == [
+        'static const u8 gItemDescription_ITEM_TM01[] = _("A \\"hit\\".\\nfoe.");']
+
+
+def test_a_message_in_code_data_is_a_unit_and_graphics_data_is_not():
+    charmap = rom_text.Charmap.load(rom_text.FACTS_DIR / "charmap_gen3.json")
+    text = charmap.encode("Hits the foe hard.")
+    rom = bytearray(b"\xff" * 0x200)
+    rom[0x10:0x10 + len(text)] = text
+    covered = bytearray(len(rom))
+    sections = [(scan.BASE, 0x100, "src/item.o"), (scan.BASE + 0x100, 0x100, "graphics/x.o")]
+    units, counts = scan.rom_messages(bytes(rom), charmap, covered, sections, {})
+    assert units == [["rom_10", 0x10, len(text)]]
+    assert counts["skipped_object"] == 1
+    assert covered[0x10] == 1
+
+
+def test_a_message_under_a_picture_symbol_is_not_a_unit():
+    charmap = rom_text.Charmap.load(rom_text.FACTS_DIR / "charmap_gen3.json")
+    text = charmap.encode("Hits the foe hard.")
+    rom = bytearray(b"\xff" * 0x200)
+    rom[0x10:0x10 + len(text)] = text
+    sections = [(scan.BASE, 0x100, "src/graphics.o")]
+    units, counts = scan.rom_messages(bytes(rom), charmap, bytearray(len(rom)), sections,
+                                      {"gMonIcon_Espeon": scan.BASE})
+    assert units == []
+    assert counts["data_symbol"] == 1
