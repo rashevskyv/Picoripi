@@ -77,6 +77,11 @@ class GameRules(BaseGameRules):
     def get_display_name(self) -> str:
         return self.game_name
 
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """The message box in the game's own font (plugins/pokemon_gsc/preview_panel.py)."""
+        from .preview_panel import MessageWindowPreview
+        return MessageWindowPreview(main_window)
+
     def get_file_formats(self) -> list:
         from core.formats import FileFormat
         return [FileFormat((".asm",), "text", "pret decompilation asm")]

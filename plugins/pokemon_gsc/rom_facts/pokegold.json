@@ -38171,5 +38171,27 @@
    2080768,
    0
   ]
- ]
+ ],
+ "font": {
+  "kind": "gb",
+  "tiles_1bpp": {
+   "at": 1016562,
+   "count": 128,
+   "code": 128
+  },
+  "tiles_2bpp": {
+   "at": 1016050,
+   "count": 32,
+   "code": 96
+  },
+  "window": {
+   "text_x": 8,
+   "text_width": 144,
+   "lines": 2,
+   "line_height": 16,
+   "box_width": 160,
+   "box_height": 48,
+   "text_top": 16
+  }
+ }
 }

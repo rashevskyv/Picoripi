@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Pokémon Game Boy ROM mode (Red, Blue, Yellow, Gold, Silver, Crystal): the message-box preview draws the selected text in the game's own font, read from the ROM (font tiles found by their bytes, `tools/pokemon_gb_font_facts.py`), two rows with the game's scroll and clear, the box frame from the font tiles; the Oak line matches the mGBA frame of each game.
 - Pokémon Generation III ROM mode: the item descriptions of `items.json`, the trainer and decoration name fields (each place of a name is a field of one unit, in a new table file named after the source, e.g. `c_trainers_h.inc`), and the ROM's own English messages that no source names (for example the multiboot programs' strings, in `c_rom_messages.inc`) unpack as texts; picture, palette, font and sound bytes are not opened
 - Pokémon Generation III ROM mode: a text the image holds in more places opens as one unit with its other places (`places` in the facts, from `tools/pokemon_fr_copies.py`); the wiki (EN and UK) names the argument aliases and the byte budget
 - Pokémon Generation III ROM mode: a message no pointer reaches keeps its length in the editor (byte budget warning, the build refuses a longer text); the relocator also follows Thumb pointers (address + 1); 15 more default tag aliases for the argument codes (`{COLOR:Red}`, `{HIGHLIGHT:Red}`, `{SHADOW:DarkGray}`, `{Pause}`, `{PlaySE:Select}`, `{PlayBGM:LevelUp}`, `{FONT:Normal}`), each tested to build the bytes of its raw tag
