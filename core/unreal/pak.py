@@ -1,16 +1,22 @@
-"""Unreal Engine ``.pak`` files, version 8 (Unreal Engine 4): read the index and the entries, write an unencrypted pak.
+"""Unreal Engine ``.pak`` files, versions 8 to 11: read the index and the entries, write an unencrypted version 8 pak.
 
 Layout (little-endian): entries (each a record header followed by its data, compressed blocks when the method is not
-0), the index (mount point, entry count, then per entry: name, the record header fields), the footer: encryption
-key guid (16), encrypted-index flag (1), magic 0x5A6F12E1, version (4), index offset (8), index size (8), SHA-1 of
-the index (20), then five compression method names (32 bytes each; method n is the n-th name, 1-based, 0 = none).
+0), the index, the footer: encryption key guid (16), encrypted-index flag (1), magic 0x5A6F12E1, version (4), index
+offset (8), index size (8), SHA-1 of the index (20), then five compression method names (32 bytes each; method n is
+the n-th name, 1-based, 0 = none).
+
+Version 8 and 9 index: mount point, entry count, then per entry: name and the record header fields.
+Version 10 and 11 index: mount point, entry count, path hash seed, the path hash index (skipped), the full directory
+index (a separate blob: directory -> file -> location), the encoded entries (bit-packed records at a location), then a
+count of non-encoded entries (refused when not 0). Names come from the directory index.
 
 Record header: offset (8, 0 in the index copy), size (8), uncompressed size (8), method (4), SHA-1 (20); when the
 method is not 0: block count (4) and the (start, end) of each block (8 + 8, relative to the record's offset); then
 the encrypted flag (1) and the compression block size (4). Uncompressed data follows the 53-byte header.
 
-Zstd comes from the standard library (``compression.zstd``, Python 3.14+); zlib from ``zlib``. Encrypted indexes and
-entries are refused (the keys are the game's; none is needed for the games read so far).
+Zstd comes from the standard library (``compression.zstd``, Python 3.14+); zlib from ``zlib``; Oodle from the caller's
+``core.unreal.oodle.Oodle``. Encrypted indexes and entries are refused (the keys are the game's; none is needed for the
+games read so far).
 """
 from __future__ import annotations
 
@@ -22,6 +28,7 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
 from core import zstd_frame
+from core.unreal.oodle import Oodle, OodleError
 
 MAGIC = 0x5A6F12E1
 FOOTER_SIZE_V8 = 16 + 1 + 4 + 4 + 8 + 8 + 20 + 5 * 32
@@ -56,6 +63,7 @@ class Pak:
     entries: List[Entry]
     methods: List[str]
     closer: Optional[Callable[[], None]] = field(default=None, repr=False)  # closes the file of open_path
+    oodle: Optional[Oodle] = field(default=None, repr=False)  # decodes Oodle blocks; the caller passes it
 
     def close(self) -> None:
         """Release the pak file, when ``open_path`` opened one. Safe to call twice."""
@@ -82,18 +90,45 @@ class Pak:
         else:
             name = self.methods[entry.method - 1] if 0 < entry.method <= len(self.methods) else ""
             parts = []
-            for start, end in entry.blocks:
+            for (start, end), raw_size in zip(entry.blocks, _block_raw_sizes(entry)):
                 raw = self.read(base + start, end - start)
                 if name == "Zstd":
                     parts.append(_zstd_decompress(raw, entry.name))
                 elif name in ("Zlib", "Gzip"):
                     parts.append(zlib.decompress(raw, 47 if name == "Gzip" else 15))
+                elif name == "Oodle":
+                    parts.append(self._oodle_block(raw, raw_size, entry.name))
                 else:
                     raise PakError(f"{entry.name}: compression {name or entry.method!r} is not read")
             out = b"".join(parts)
         if len(out) != entry.usize:
             raise PakError(f"{entry.name}: {len(out)} bytes, the index says {entry.usize}")
         return out
+
+    def _oodle_block(self, packed: bytes, raw_size: int, name: str) -> bytes:
+        """One Oodle block. A block stored without compression has the raw size, so it is copied."""
+        if len(packed) == raw_size:
+            return packed
+        if self.oodle is None:
+            raise PakError(f"{name}: Oodle blocks need the Oodle library (open the pak with oodle=...)")
+        try:
+            return self.oodle.decompress(packed, raw_size)
+        except OodleError as exc:
+            raise PakError(f"{name}: {exc}") from None
+
+
+def _block_raw_sizes(entry: Entry) -> List[int]:
+    """The uncompressed size of each block: the block size, the last block takes the rest."""
+    count = len(entry.blocks)
+    if count == 0:
+        return []
+    if count == 1:
+        return [entry.usize]
+    if entry.block_size <= 0:
+        raise PakError(f"{entry.name}: {count} blocks and no block size")
+    sizes = [entry.block_size] * count
+    sizes[-1] = entry.usize - entry.block_size * (count - 1)
+    return sizes
 
 
 def _zstd_decompress(raw: bytes, name: str) -> bytes:
@@ -115,8 +150,8 @@ def _fstring(index: bytes, pos: int):
     return index[pos:pos + n - 1].decode("ascii", "replace"), pos + n
 
 
-def open_pak(read: Callable[[int, int], bytes], size: int) -> Pak:
-    """Parse a pak of ``size`` bytes; ``read(offset, length)`` returns its bytes."""
+def open_pak(read: Callable[[int, int], bytes], size: int, oodle: Optional[Oodle] = None) -> Pak:
+    """Parse a pak of ``size`` bytes; ``read(offset, length)`` returns its bytes. ``oodle`` decodes Oodle blocks."""
     tail = read(size - FOOTER_SIZE_V8, FOOTER_SIZE_V8)
     if struct.unpack_from("<I", tail, 17)[0] != MAGIC:
         raise PakError("not an Unreal pak (no footer magic)")
@@ -124,7 +159,7 @@ def open_pak(read: Callable[[int, int], bytes], size: int) -> Pak:
     version = struct.unpack_from("<I", tail, 21)[0]
     index_offset, index_size = struct.unpack_from("<QQ", tail, 25)
     if version < 8:
-        raise PakError(f"pak version {version} is not read (version 8 and later are)")
+        raise PakError(f"pak version {version} is not read (version 8 to 11 are)")
     names_at = FOOTER_SIZE_V8 - 5 * NAME_SIZE
     methods = [tail[names_at + i * NAME_SIZE:names_at + (i + 1) * NAME_SIZE].split(b"\0", 1)[0].decode("ascii", "replace")
                for i in range(5)]
@@ -132,6 +167,15 @@ def open_pak(read: Callable[[int, int], bytes], size: int) -> Pak:
     if encrypted_index:
         raise PakError("encrypted index: needs the game's AES key")
     index = read(index_offset, index_size)
+    if version >= 10:
+        mount, entries = _read_index_v10(read, index)
+    else:
+        mount, entries = _read_index_flat(index)
+    return Pak(read, size, version, mount, entries, methods, oodle=oodle)
+
+
+def _read_index_flat(index: bytes):
+    """Version 8 and 9 index: every entry is a name and a full record header."""
     mount, pos = _fstring(index, 0)
     count = struct.unpack_from("<I", index, pos)[0]
     pos += 4
@@ -149,10 +193,106 @@ def open_pak(read: Callable[[int, int], bytes], size: int) -> Pak:
         encrypted, block_size = struct.unpack_from("<BI", index, pos)
         pos += 5
         entries.append(Entry(name, offset, size_, usize, method, blocks, block_size, encrypted))
-    return Pak(read, size, version, mount, entries, methods)
+    return mount, entries
 
 
-def open_path(path: Path) -> Pak:
+def _read_index_v10(read: Callable[[int, int], bytes], index: bytes):
+    """Version 10 and 11 index: the names are in the full directory index, the records in the encoded entries."""
+    mount, pos = _fstring(index, 0)
+    count = struct.unpack_from("<i", index, pos)[0]
+    pos += 4 + 8                                             # entry count, path hash seed
+    if struct.unpack_from("<I", index, pos)[0]:              # path hash index: skipped, names come from directories
+        pos += 4 + 16 + 20
+    else:
+        pos += 4
+    if not struct.unpack_from("<I", index, pos)[0]:
+        raise PakError("pak has no full directory index")
+    pos += 4
+    directory_offset, directory_size = struct.unpack_from("<qq", index, pos)
+    pos += 16 + 20
+    encoded_size = struct.unpack_from("<i", index, pos)[0]
+    pos += 4
+    encoded = index[pos:pos + encoded_size]
+    pos += encoded_size
+    non_encoded = struct.unpack_from("<i", index, pos)[0]
+    if non_encoded:
+        raise PakError(f"{non_encoded} non-encoded entries: not read")
+    entries: List[Entry] = []
+    for dir_name, files in _read_directory_index(read(directory_offset, directory_size)):
+        folder = dir_name.lstrip("/")
+        for file_name, location in files:
+            if not 0 <= location < len(encoded):
+                raise PakError(f"entry location {location} is outside the encoded entries")
+            entry = _decode_encoded_entry(encoded, location)
+            entry.name = mount + folder + file_name
+            entries.append(entry)
+    if len(entries) != count:
+        raise PakError(f"the directory index has {len(entries)} files, the index says {count}")
+    return mount, entries
+
+
+def _read_directory_index(blob: bytes):
+    """Yield ``(directory, [(file name, location), ...])`` from the full directory index."""
+    (dir_count,) = struct.unpack_from("<i", blob, 0)
+    pos = 4
+    out = []
+    for _ in range(dir_count):
+        dir_name, pos = _fstring(blob, pos)
+        (file_count,) = struct.unpack_from("<i", blob, pos)
+        pos += 4
+        files = []
+        for _ in range(file_count):
+            file_name, pos = _fstring(blob, pos)
+            (location,) = struct.unpack_from("<i", blob, pos)
+            pos += 4
+            files.append((file_name, location))
+        out.append((dir_name, files))
+    return out
+
+
+def _decode_encoded_entry(blob: bytes, pos: int) -> Entry:
+    """One bit-packed record. Flags: bits 31, 30, 29 = offset, uncompressed size, size fit in 32 bits (else 64);
+    bits 23-28 = method; bit 22 = encrypted; bits 6-21 = block count; bits 0-5 = block size / 2048 (0x3F: a u32)."""
+    (flags,) = struct.unpack_from("<I", blob, pos)
+    pos += 4
+    method = (flags >> 23) & 0x3F
+    block_count = (flags >> 6) & 0xFFFF
+    encrypted = (flags >> 22) & 1
+    if encrypted:
+        raise PakError("encrypted entries are not read")
+    block_size = flags & 0x3F
+    if block_size == 0x3F:
+        (block_size,) = struct.unpack_from("<I", blob, pos)
+        pos += 4
+    else:
+        block_size <<= 11
+
+    def wide(bit: int, pos: int):
+        if (flags >> bit) & 1:
+            return struct.unpack_from("<I", blob, pos)[0], pos + 4
+        return struct.unpack_from("<Q", blob, pos)[0], pos + 8
+
+    offset, pos = wide(31, pos)
+    usize, pos = wide(30, pos)
+    size = usize
+    if method:
+        size, pos = wide(29, pos)
+    blocks: List[tuple] = []
+    if method and block_count:
+        header = 57 + 16 * block_count                       # the record header in the file (see the module doc)
+        if block_count == 1:
+            blocks = [(header, header + size)]
+        else:
+            start = header
+            for _ in range(block_count):
+                (block_len,) = struct.unpack_from("<I", blob, pos)
+                pos += 4
+                blocks.append((start, start + block_len))
+                start += block_len
+    return Entry("", offset, size, usize, method, blocks, block_size, 0)
+
+
+def open_path(path: Path, oodle: Optional[Oodle] = None) -> Pak:
     """Open a pak file. Close the returned pak (``close()`` or ``with``) to release the file."""
     stream = open(path, "rb")
     try:
@@ -161,7 +301,7 @@ def open_path(path: Path) -> Pak:
         def read(offset: int, length: int) -> bytes:
             stream.seek(offset)
             return stream.read(length)
-        opened = open_pak(read, size)
+        opened = open_pak(read, size, oodle)
     except BaseException:
         stream.close()
         raise
