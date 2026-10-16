@@ -2361,5 +2361,10 @@
   "Switch: Atmosphere LayeredFS mod": "Switch: мод LayeredFS для Atmosphere",
   "Tag group {0}": "Група тегів {0}",
   "The Wii row of this label: translate it for the Wii wording.": "Рядок Wii цієї мітки: перекладіть його за формулюванням Wii.",
-  "The {0} row of this label; the Wii row has its own English.": "Рядок {0} цієї мітки; рядок Wii має власний англійський текст."
+  "The {0} row of this label; the Wii row has its own English.": "Рядок {0} цієї мітки; рядок Wii має власний англійський текст.",
+  "Small text": "Малий текст",
+  "Large text": "Великий текст",
+  "Sections": "Розділи",
+  "Contents": "Зміст",
+  "Page {0}": "Сторінка {0}"
 }

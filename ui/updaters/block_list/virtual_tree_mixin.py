@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QTreeWidgetItem, QStyle
+from PyQt6.QtWidgets import QTreeWidgetItem, QTreeWidgetItemIterator, QStyle
 from utils.utils import natural_sort_key
 from pathlib import Path
 from core.mempalace.story_timeline import (
@@ -11,7 +11,17 @@ from core.mempalace.story_timeline import (
     StoryVirtualProjection,
 )
 from core.i18n import tr
-from utils.logging_utils import log_debug
+from utils.logging_utils import log_debug, log_error
+
+
+def _row_pairs(values) -> list:
+    """Game rows from a plugin's list of (block, string) pairs; anything else is dropped."""
+    rows = []
+    for value in values or ():
+        if isinstance(value, (tuple, list)) and len(value) == 2:
+            rows.append((int(value[0]), int(value[1])))
+    return rows
+
 
 class VirtualTreeMixin:
     """Build virtual projection roots and related tree helpers."""
@@ -388,6 +398,92 @@ class VirtualTreeMixin:
         self._set_virtual_folder_mappings(windows_root)
         parent.addChild(windows_root)
         return windows_root
+
+    # Plugin folders: GameRules.get_virtual_folders gives nodes under a physical block. A folder is an
+    # "aggregate" virtual item (UserRole -2), so selecting it reaches _handle_aggregate_virtual_selection.
+
+    def _block_text_of(self, block_idx: int):
+        """``text_of`` for get_virtual_folders: the editor's current text, or the original when that is blank."""
+
+        def text_of(string_idx: int) -> str:
+            text = ""
+            processor = getattr(self.mw, "data_processor", None)
+            if processor is not None:
+                text = processor.get_current_string_text(block_idx, string_idx)[0]
+            if not str(text or "").strip():
+                data = getattr(self.mw.data_store, "data", None)
+                if isinstance(data, list) and 0 <= block_idx < len(data):
+                    lines = data[block_idx]
+                    if isinstance(lines, list) and 0 <= string_idx < len(lines) and isinstance(lines[string_idx], str):
+                        text = lines[string_idx]
+            return str(text or "")
+
+        return text_of
+
+    def _add_plugin_folders(self, block_item: QTreeWidgetItem, block_idx: int) -> None:
+        """Add the folders a plugin gives for one physical block, below the block."""
+        rules = getattr(self.mw, "current_game_rules", None)
+        getter = getattr(rules, "get_virtual_folders", None)
+        if not callable(getter):
+            return
+        try:
+            nodes = getter(block_idx, self._block_text_of(block_idx))
+        except Exception as exc:
+            log_error(f"get_virtual_folders failed for block {block_idx}: {exc}", exc_info=True)
+            return
+        if not isinstance(nodes, list):
+            return
+        for index, node in enumerate(nodes):
+            if not isinstance(node, dict):
+                continue
+            item = self._plugin_folder_item(node, (block_idx, (index,)))
+            block_item.addChild(item)
+            if item.childCount():
+                self._set_virtual_folder_mappings(item)
+
+    def _plugin_folder_item(self, node: dict, key: tuple) -> QTreeWidgetItem:
+        """One plugin folder and its subtree. ``key`` (block, index path) finds it again after a rebuild."""
+        title = str(node.get("title") or "")
+        children = [child for child in node.get("children") or () if isinstance(child, dict)]
+        item = QTreeWidgetItem([title])
+        icon = QStyle.StandardPixmap.SP_DirIcon if children else QStyle.StandardPixmap.SP_FileDialogDetailedView
+        self._set_item_style_icon(item, 0, icon)
+        item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        item.setData(0, Qt.ItemDataRole.UserRole, -2)
+        item.setData(0, Qt.ItemDataRole.UserRole + 4, title)
+        item.setData(0, Qt.ItemDataRole.UserRole + 18, "aggregate")
+        item.setData(0, Qt.ItemDataRole.UserRole + 23, key)
+        if children:
+            block_idx, path = key
+            for index, child in enumerate(children):
+                item.addChild(self._plugin_folder_item(child, (block_idx, path + (index,))))
+        else:
+            rows = _row_pairs(node.get("rows"))
+            item.setData(0, Qt.ItemDataRole.UserRole + 13, rows)
+            item.setToolTip(0, f"{len(rows)} game strings")
+            self._apply_virtual_issue_indicators(item)
+        return item
+
+    def _selected_plugin_folder_key(self):
+        """Key of the selected plugin folder, or None when another item is selected."""
+        item = self.mw.block_list_widget.currentItem()
+        return item.data(0, Qt.ItemDataRole.UserRole + 23) if item is not None else None
+
+    def _select_plugin_folder(self, key) -> None:
+        """Select again the plugin folder with this key after a rebuild (the caller blocks the tree's signals)."""
+        if not isinstance(key, tuple):
+            return
+        iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
+        while iterator.value():
+            item = iterator.value()
+            if item.data(0, Qt.ItemDataRole.UserRole + 23) == key:
+                ancestor = item.parent()
+                while ancestor is not None:
+                    ancestor.setExpanded(True)
+                    ancestor = ancestor.parent()
+                self.mw.block_list_widget.setCurrentItem(item)
+                return
+            iterator += 1
 
     def _set_item_style_icon(self, item: QTreeWidgetItem, column: int, standard_icon_enum) -> None:
         """Internal helper to set the item style icon."""

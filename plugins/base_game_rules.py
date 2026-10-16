@@ -772,6 +772,22 @@ class BaseGameRules:
         """
         return {}
 
+    def get_virtual_folders(self, block_idx: int, text_of: Callable[[int], str]) -> List[Dict[str, Any]]:
+        """Plugin folders under one physical block in the block tree.
+
+        Returns nodes shown in order under the block. Each node is
+        ``{"title": str, "rows": [(block_idx, string_idx), ...], "children": [...]}``.
+        A node with ``children`` gets its rows from them (their union, in order);
+        a node without children lists its own ``rows``. A row may sit in several
+        folders. Selecting a folder shows its rows in the strings list, in the
+        order given. ``text_of(string_idx)`` returns the current text of a string
+        of this block (its original text when the translation is blank), so a
+        title the translator edits shows after the tree next rebuilds. Build the
+        nodes from data already in memory: this runs on the UI thread.
+        Default: no folders.
+        """
+        return []
+
     def get_syntax_highlighting_rules(self) -> List[Tuple[str, QTextCharFormat]]:
         """Get the syntax highlighting rules."""
         tag_manager = getattr(self, "tag_manager", None)

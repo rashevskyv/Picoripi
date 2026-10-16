@@ -158,6 +158,11 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
         Hook("get_default_script_name", "Default file name of the game script.", call=(), **_STR_OR_NONE),
         Hook("parse_walkthrough_transcript", "Parse a walkthrough or script file into dialogue cues."),
     )),
+    ('Block tree', (
+        Hook("get_virtual_folders", "Plugin folders under a block in the block tree: nodes of title, rows and children; "
+             "selecting one shows its rows. Gets text_of(string) for the current text of a string. Default: none.",
+             call=None, returns=list),
+    )),
     ('Message windows (capability message_window_preview)', (
         Hook("get_window_presets", "Window kinds the preview can be forced to show; None (first) follows the message.",
              call=(), returns=list),

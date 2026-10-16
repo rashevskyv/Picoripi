@@ -54,6 +54,7 @@ class PopulateMixin:
         self.mw.block_list_widget.setUpdatesEnabled(False)
 
         try:
+            plugin_folder_key = self._selected_plugin_folder_key()
             self.mw.block_list_widget.clear()
             self._block_items_cache.clear()
             if not self.mw.data_store.data:
@@ -89,6 +90,9 @@ class PopulateMixin:
                 self._add_speakers_and_projection_roots(selected_block_idx)
             except Exception as e:
                 log_error(f"Error populating Speakers folder: {e}", exc_info=True)
+
+            # 5. Select again the plugin folder that was selected: the strings list keeps its rows.
+            self._select_plugin_folder(plugin_folder_key)
         finally:
             self._cache_story_overrides = False
             self._story_context_overrides_cache = None

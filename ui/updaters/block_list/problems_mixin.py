@@ -216,6 +216,7 @@ class ProblemsMixin:
 
                     item.addChild(cat_item)
 
+        self._add_plugin_folders(item, block_idx)
         return item
 
     def _data_blocks_of(self, project_block_idx: int) -> list:

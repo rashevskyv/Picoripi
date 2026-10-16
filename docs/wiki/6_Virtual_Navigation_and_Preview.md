@@ -49,6 +49,10 @@ Dropping strings onto a virtual leaf assigns that facet (speaker, chapter, …).
 
 ---
 
+## Plugin folders
+
+A plugin can add folders under a physical block (`get_virtual_folders`). They sit below the block, and their item has `UserRole == -2` with the `aggregate` marker, so a click fills the strings list with the folder's rows, as for the derived roots. The 3DS manuals use them: under each manual **Small text** and **Large text** (one subfolder per page), **Sections** (per page: its small and large strings) and **Contents** (the section titles). A string sits in two places. A page's name is its index entry's current translation, or the original when that is blank, or "Page N". The names refresh when the tree rebuilds (after a save, or a project change), not on each keystroke. Selecting a folder keeps its place across a rebuild.
+
 ## Strings list vs editor
 
 - Click a line in **Strings in block** to bind Original + Editable.
