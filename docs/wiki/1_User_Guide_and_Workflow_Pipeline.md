@@ -735,7 +735,10 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      (their lengths are written again on save), `{CHAR E305}` a button icon.
      The text fonts lack Ґ Є І Ї ґ є і ї: `translation_map.json` writes І і Ї ї as Latin I i Ï ï and Є є Ґ ґ as
      Э э Ъ ъ, whose glyphs are redrawn in the Font Editor. Sword and Shield share one romfs: `2_build.bat` writes
-     the mod for both title ids.
+     the mod for both title ids. The Project Manager wizard unpacks Sword / Shield itself: it takes the base game and
+     the update (the update's patch is applied) with Picoripi's Switch reader, and gives the same `source` as
+     `1_unpack.bat`. Legends: Arceus still unpacks with `1_unpack.bat` (Oodle packs). Default tag aliases (Settings →
+     Tag Aliases): `[PAGE]`, `[SCROLL]`, `[POKEMON]`, `[MOVE]`, `[ITEM]`, `[LEVEL]`, `[NAME1]`, colours `[COLOR6]`.
    - `pokemon_gen6` — Pokémon X / Y and Omega Ruby / Alpha Sapphire (3DS), one project per pair (X and Y share
      every text, font and picture file; so do Omega Ruby and Alpha Sapphire). **Source:** the workspace's
      `source` (`1_unpack.bat` takes the English members out of the GARC archives): `romfs\a\0\7\4\NNN.dat`

@@ -2366,5 +2366,8 @@
   "Large text": "Великий текст",
   "Sections": "Розділи",
   "Contents": "Зміст",
-  "Page {0}": "Сторінка {0}"
+  "Page {0}": "Сторінка {0}",
+  "Base game": "Базова гра",
+  "Choose the update file too: the English text is in the update.": "Виберіть також файл оновлення: англійський текст є в оновленні.",
+  "Writing {0} files": "Записую файлів: {0}"
 }

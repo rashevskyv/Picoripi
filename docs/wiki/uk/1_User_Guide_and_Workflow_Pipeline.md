@@ -732,7 +732,11 @@ tokens: 63.6k
      `M{GENDER 00FF|aster|iss}` форми слова (їхні довжини записуються заново під час збереження), `{CHAR E305}` —
      значок кнопки. У шрифтах тексту немає Ґ Є І Ї ґ є і ї: `translation_map.json` пише І і Ї ї як латинські I i Ï ï,
      а Є є Ґ ґ — як Э э Ъ ъ, чиї гліфи перемальовують у Редакторі шрифтів. Sword і Shield мають спільний romfs:
-     `2_build.bat` пише мод для обох title id.
+     `2_build.bat` пише мод для обох title id. Майстер проєкту сам розпаковує Sword / Shield: бере базову гру й
+     оновлення (патч оновлення застосовується) читачем Switch з Picoripi і дає той самий `source`, що й
+     `1_unpack.bat`. Legends: Arceus досі розпаковується через `1_unpack.bat` (паки Oodle). Типові теги-псевдоніми
+     (Налаштування → Псевдоніми тегів): `[PAGE]`, `[SCROLL]`, `[POKEMON]`, `[MOVE]`, `[ITEM]`, `[LEVEL]`, `[NAME1]`,
+     кольори `[COLOR6]`.
    - `pokemon_gen6` — Pokémon X / Y і Omega Ruby / Alpha Sapphire (3DS), один проєкт на пару (X і Y мають
      однакові файли тексту, шрифтів і картинок; так само Omega Ruby і Alpha Sapphire). **Source:** тека `source`
      робочої теки (`1_unpack.bat` дістає англійські файли з архівів GARC): `romfs\a\0\7\4\NNN.dat` ігровий

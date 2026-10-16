@@ -1,6 +1,22 @@
 {
     "display_name": "Pokémon Brilliant Diamond / Shining Pearl",
-    "default_tag_mappings": {},
+    "default_tag_mappings": {
+        "[SCROLL]": "{scroll}",
+        "[PAGE]": "{clear}",
+        "[POKEMON]": "{tag:0:1:2}",
+        "[POKEMON2]": "{tag:0:1:1}",
+        "[TRAINER]": "{tag:10:1:0}",
+        "[NAME]": "{tag:0:1:0}",
+        "[ITEM]": "{tag:0:1:9}",
+        "[ITEM2]": "{tag:1:1:9}",
+        "[MOVE]": "{tag:0:1:7}",
+        "[PLACE]": "{tag:0:1:5}",
+        "[ITEM3]": "{tag:0:1:14}",
+        "[/COLOR]": "</color>",
+        "[COLOR1]": "<color=#F01E1EFF>",
+        "[COLOR2]": "<color=#0064FFFF>",
+        "[COLOR3]": "<color=#FF5000FF>"
+    },
     "block_names": {},
     "block_color_markers": {},
     "newline_display_symbol": "↵",

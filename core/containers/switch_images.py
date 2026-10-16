@@ -16,6 +16,7 @@ from typing import Any, BinaryIO, Callable, Dict, List, NamedTuple, Optional, Tu
 
 from core.containers.console_crypto import PlainView, RangeView, wrong_key_error
 from core.containers.image_files import ImageError, ImageFile, ImageReader, check_name
+from core.containers.switch_bktr import PatchedRomFs, PatchSection
 from core.containers.switch_crypto import HEADER_SIZE, NcaHeader, SwitchKeys, content_key, open_section
 from core.containers.switch_nsz import NCA_HEADER_SIZE, decompress_ncz, read_ncz
 
@@ -206,6 +207,7 @@ class SwitchImage(ImageReader):
         self._progress = progress or (lambda percent, text: None)
         self._cache: Optional[Tuple[BinaryIO, str]] = None
         self._ncz_body: Optional[_Body] = None
+        self._program: Optional[Tuple[_Body, NcaHeader, bytes]] = None
         self.romfs_is_patch = False
 
     def close(self) -> None:
@@ -224,6 +226,26 @@ class SwitchImage(ImageReader):
         except BaseException:
             self.close()
             raise
+
+    def patched_romfs_entries(self, base: "SwitchImage") -> List[ImageFile]:
+        """The RomFS files of this update as the game reads them: ``base``'s RomFS with this package's BKTR patch.
+
+        ``base`` is the base package of the same title, read with its own keys and tickets. The paths are RomFS
+        paths (``/bin/...``). Raises ImageError when this package's RomFS is not a patch or a package is not read.
+        """
+        self.entries()
+        base.entries()
+        if not self.romfs_is_patch or self._program is None or base._program is None:
+            raise ImageError("this package has no RomFS patch to apply to the base RomFS")
+        body, header, key = self._program
+        base_body, base_header, base_key = base._program
+        base_view, _base_fsh = base._section(base_body, base_header, base_key, 1)
+        start, end, fsh = header.sections[1]
+        patch = PatchSection(body.stream, body.base, start, key, fsh, body.plain)
+        # The RomFS image is the IVFC data level: its offset at 0x90 and its size at 0x98 of the section header.
+        level, data_size = struct.unpack_from("<QQ", fsh, 0x90)
+        romfs = PatchedRomFs(base_view, patch, fsh, level + data_size)
+        return _romfs_files(RangeView(romfs, level, data_size))
 
     def _entries(self) -> List[ImageFile]:
         self.romfs_is_patch = False
@@ -254,6 +276,7 @@ class SwitchImage(ImageReader):
         body = self._program_body(item)
         if body is None:   # cancelled while the .ncz was decompressed
             return []
+        self._program = (body, header, key)
         exefs_view, fsh = self._section(body, header, key, 0)
         if fsh[2] != 1:
             raise ImageError("section 0 of the program NCA is not an ExeFS")
