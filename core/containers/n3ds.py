@@ -12,8 +12,10 @@ folder. Key bytes live only in memory, for one job.
 from __future__ import annotations
 
 import glob
+import hashlib
 import os
 import struct
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from core.containers.console_crypto import (CbcView, CtrView, PlainView, RangeView, encrypted_error,
@@ -33,6 +35,7 @@ CODE_PACKED_BIT = 0x01
 NCCH_FLAGS7 = 0x188 + 7      # NCCH flags byte 7: bit 0 fixed key, bit 2 no crypto
 FIXED_KEY_BIT = 0x01
 NO_CRYPTO_BIT = 0x04
+SEED_CRYPTO_BIT = 0x20       # NCCH flags byte 7: the secondary key takes a 9.6 seed (see Keys3ds.seeds)
 METHOD_AT = 0x188 + 3        # NCCH crypto method: selects the secondary key slot
 METHOD_SLOTS = {0x00: 0x2C, 0x01: 0x25, 0x0A: 0x18, 0x0B: 0x1B}
 PRIMARY_SLOT = 0x2C
@@ -73,9 +76,10 @@ def scramble(keyx: bytes, keyy: bytes) -> bytes:
 class Keys3ds:
     """KeyX per slot and the common KeyY values (CIA titles), read from a key file. Held in memory for one job."""
 
-    def __init__(self, keyx: Dict[int, bytes], common: Dict[int, bytes]) -> None:
+    def __init__(self, keyx: Dict[int, bytes], common: Dict[int, bytes], seeds: Optional[Dict[bytes, bytes]] = None) -> None:
         self._keyx = keyx
         self._common = common
+        self.seeds: Dict[bytes, bytes] = seeds or {}     # program id (little-endian bytes) -> the 16-byte seed
 
     @classmethod
     def load(cls, path: str) -> "Keys3ds":
@@ -107,7 +111,7 @@ class Keys3ds:
                     continue
             elif name.startswith("common") and name[6:].isdigit():
                 common[int(name[6:])] = key
-        return cls(keyx, common)
+        return cls(keyx, common, _seeds(os.path.dirname(path)))
 
     def normal(self, slot: int, keyy: bytes) -> bytes:
         """The normal key of ``slot`` for the KeyY ``keyy`` (16 bytes)."""
@@ -307,7 +311,10 @@ class N3dsImage(ImageReader):
             if slot is None:
                 raise ImageError("the 3DS program uses an unknown crypto method")
         assert self.keys is not None   # an encrypted program always has keys (see __init__)
-        return self.keys.normal(slot, bytes(head[:16]))
+        key_y = bytes(head[:16])
+        if secondary and head[NCCH_FLAGS7] & SEED_CRYPTO_BIT:
+            key_y = _seeded_key_y(self.keys, head, key_y)
+        return self.keys.normal(slot, key_y)
 
     def _counter(self, offset: int, kind: int) -> int:
         """The 128-bit CTR counter of a region at ``offset`` (NCCH-relative). Version 0 and version 1 differ."""
@@ -369,6 +376,38 @@ class N3dsImage(ImageReader):
             if self.program["encrypted"]:
                 raise wrong_key_error(tr(LABEL)) from None
             raise
+
+
+def _seeds(folder: str) -> Dict[bytes, bytes]:
+    """The 9.6 seeds next to the key file: ``seeds/<TitleID>.dat`` (FBI) and ``seeddb.bin`` (GodMode9). A bad
+    seed database is skipped: a title that needs its seed then reports that it has none."""
+    seeds: Dict[bytes, bytes] = {}
+    for dat in sorted(glob.glob(os.path.join(glob.escape(folder), "seeds", "*.dat"))):
+        try:
+            seeds[bytes.fromhex(os.path.basename(dat)[:16])[::-1]] = Path(dat).read_bytes()[:16]
+        except (OSError, ValueError):
+            continue
+    db = os.path.join(folder, "seeddb.bin")
+    if os.path.isfile(db):
+        data = Path(db).read_bytes()
+        count = _u32(data, 0) if len(data) >= 4 else 0
+        for i in range(count):
+            entry = data[16 + i * 32:48 + i * 32]
+            if len(entry) == 32:
+                seeds[bytes(entry[:8])] = bytes(entry[8:24])
+    return seeds
+
+
+def _seeded_key_y(keys: Keys3ds, head: bytes, key_y: bytes) -> bytes:
+    """KeyY of a 9.6 NCCH: SHA-256 of the signature's first 16 bytes and the title's seed. The seed must match the
+    check word of the header."""
+    program_id = bytes(head[0x118:0x120])
+    seed = keys.seeds.get(program_id)
+    if seed is None:
+        raise ImageError("the 3DS title uses seed crypto and the key folder has no seed for it (seeds or seeddb.bin)")
+    if hashlib.sha256(seed + program_id).digest()[:4] != bytes(head[0x114:0x118]):
+        raise ImageError("the 3DS seed does not match the title's seed check")
+    return hashlib.sha256(key_y + seed).digest()[:16]
 
 
 def _load_keys(keys_path: Optional[str]) -> Keys3ds:

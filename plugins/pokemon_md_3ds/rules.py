@@ -16,15 +16,19 @@ from pathlib import Path
 from struct import error as struct_error
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from core.i18n import tr
+from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
 
-from . import message
+from . import build as build_mod
+from . import message, unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
 PSMD_MARKER = "message_en.bin"
+BUILD_TARGET = "layeredfs"
 
 
 class GameRules(BaseGameRules):
@@ -54,6 +58,39 @@ class GameRules(BaseGameRules):
 
     def get_capabilities(self) -> Set[str]:
         return {"glossary_seed"}
+
+    # -- the wizard: the image in, the source folder and the mod out -----------------
+
+    def get_platforms(self) -> list:
+        return [{"id": "3ds", "label": tr("Nintendo 3DS")}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, str]]:
+        found = images.identify(path)
+        if found is None or found["kind"] != "3ds" or unpack.game_of(found["title_id"]) is None:
+            return None
+        return {"role": "base", "platform": "3ds"}
+
+    def unpack_key_consoles(self) -> list:
+        return ["3ds"]
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
+        base = sources.get("base")
+        if not base:
+            return None
+        return unpack.extract(base, target_dir, progress, is_cancelled)
+
+    def get_build_targets(self) -> list:
+        return [{"id": BUILD_TARGET, "label": tr("3DS mod (LayeredFS)"), "platforms": ["3ds"], "kind": "layeredfs"}]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress, is_cancelled) -> str:
+        if target_id != BUILD_TARGET:
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        try:
+            result = build_mod.build(Path(source_dir), Path(translation_dir), Path(output_dir), progress, is_cancelled)
+        except build_mod.ModError as error:
+            raise ValueError(str(error)) from None
+        return str(result)
 
     # -- which game -------------------------------------------------------------
 

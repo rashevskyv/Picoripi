@@ -23,7 +23,8 @@ from PyQt6.QtGui import QColor, QImage, QPainter
 from PyQt6.QtWidgets import QWidget
 
 from core.bfn_core import char_to_glyph
-from core.font_formats import bcfnt
+from core.font_formats import bcfnt, pmd_font
+from core.font_formats.sources import join_pair
 from core.i18n import tr
 from utils.logging_utils import log_debug
 from utils.thread_utils import WorkerThread
@@ -57,6 +58,7 @@ class BoxFacts:
     box: Tuple[int, int, int, int] = _BOX       # the box fill, drawn only when draw_box
     edge: Tuple[int, int, int, int] = _EDGE     # the box border
     box_rect: Optional[Tuple[int, int, int, int]] = None   # a box inside the screen (x0, y0, x1, y1, inclusive)
+    font_companion: str = ""        # the atlas of a Spike Chunsoft font (font_member is then the .dic)
 
     @classmethod
     def load(cls, config: Path, window: str) -> "BoxFacts":
@@ -66,7 +68,7 @@ class BoxFacts:
                    bool(raw.get("draw_box", True)), float(raw.get("scale_x", 1.0)), float(raw.get("scale_y", 1.0)),
                    _colour(raw.get("ink_rgb"), _WHITE), _colour(raw.get("red_rgb"), _RED),
                    _colour(raw.get("box_rgba"), _BOX), _colour(raw.get("edge_rgb"), _EDGE),
-                   _rect(raw.get("box_rect")))
+                   _rect(raw.get("box_rect")), str(raw.get("font_companion", "")))
 
 
 def _rect(value: Optional[List[int]]) -> Optional[Tuple[int, int, int, int]]:
@@ -98,7 +100,16 @@ class BoxFont:
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "BoxFont":
-        metadata, sheets = bcfnt.extract(data, {})
+        """A CTR font (CFNT or FFNT, read by ``core.font_formats.bcfnt``)."""
+        return cls.from_metadata(*bcfnt.extract(data, {}))
+
+    @classmethod
+    def from_pair(cls, dic: bytes, img: bytes) -> "BoxFont":
+        """A Spike Chunsoft font: the ``.dic`` entries and the ``.img`` atlas (``core.font_formats.pmd_font``)."""
+        return cls.from_metadata(*pmd_font.extract(join_pair(dic, img), {}))
+
+    @classmethod
+    def from_metadata(cls, metadata, sheets) -> "BoxFont":
         gly = metadata["GLY1"][0]
         packets = metadata["WID1"][0]["packets"]
         return cls(sheets, (gly["cell_width"], gly["cell_height"]),
@@ -205,10 +216,11 @@ class WindowResolver(WorkerThread):
 
     resolved = pyqtSignal(object)
 
-    def __init__(self, source_dir: str, font_member: str):
+    def __init__(self, source_dir: str, font_member: str, font_companion: str = ""):
         super().__init__()
         self._source_dir = source_dir
         self._font_member = font_member
+        self._font_companion = font_companion
         self._stop = threading.Event()
 
     def cancel(self) -> None:
@@ -218,7 +230,11 @@ class WindowResolver(WorkerThread):
         result = None
         try:
             path = Path(self._source_dir) / Path(self._font_member)
-            result = Resolved(BoxFont.from_bytes(path.read_bytes()))
+            if self._font_companion:
+                atlas = Path(self._source_dir) / Path(self._font_companion)
+                result = Resolved(BoxFont.from_pair(path.read_bytes(), atlas.read_bytes()))
+            else:
+                result = Resolved(BoxFont.from_bytes(path.read_bytes()))
         except (OSError, ValueError, KeyError, IndexError) as exc:
             log_debug(f"message window: no message font for {self._source_dir}: {exc}")
         if not self._stop.is_set():
@@ -296,11 +312,11 @@ class WindowFonts:
         self._fonts: Dict[str, Optional[Resolved]] = {}
         self._resolvers: Dict[str, WindowResolver] = {}
 
-    def font_of(self, root: str, font_member: str) -> Optional[Resolved]:
+    def font_of(self, root: str, facts: BoxFacts) -> Optional[Resolved]:
         """The font of a source folder (one folder, one game). The first call starts the read on a worker; None until
         the read is done."""
         if root not in self._resolvers:
-            worker = WindowResolver(root, font_member)
+            worker = WindowResolver(root, facts.font_member, facts.font_companion)
             worker.resolved.connect(self._on_resolved)
             self._resolvers[root] = worker
             worker.start()
@@ -312,7 +328,7 @@ class WindowFonts:
 
     def widget(self, root: str, facts: BoxFacts) -> MessageWindowPreview:
         """A preview widget for a folder. It fills in when the font arrives (now, or from the worker)."""
-        self.font_of(root, facts.font_member)
+        self.font_of(root, facts)
         widget = MessageWindowPreview(root, facts)
         if root in self._fonts:
             widget.receive((root, self._fonts[root]))
