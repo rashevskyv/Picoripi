@@ -110,9 +110,9 @@ def test_the_widget_takes_only_its_own_folder_and_draws_the_text_with_the_font(q
     widget = mp.MessageWindowPreview(str(tmp_path))
     qtbot.addWidget(widget)
     widget.receive((str(tmp_path / "other"), mp.Resolved(mp.WINDOWS["CPUE"], font, mp.charmap_for(""))))
-    assert widget._font is None
+    assert widget._face is None
     widget.receive((str(tmp_path), mp.Resolved(mp.Window("x", 1, 192), font, mp.charmap_for(""))))
-    assert widget._font is font and widget._box_px == 192
+    assert widget._face is not None and widget._box_px == 192
     widget.update_preview_text("A line that is far too long for a box this narrow, so it runs past its edge")
     assert widget._overflow is True
     widget.shutdown()
@@ -135,3 +135,22 @@ def test_real_platinum_box_is_drawn_with_the_game_font(qtbot):
     widget.update_preview_text("A line that is far too long for the box, so it runs past the right edge of it")
     assert widget._overflow is True
     widget.shutdown()
+
+
+class _Gen5Stub:
+    """Only what ``_Gen5Face`` reads: the code map and one 12 x 16 two-bit glyph (48 bytes)."""
+
+    def __init__(self, glyph: bytes):
+        self.glyphs = [glyph]
+
+    def codes(self):
+        return {ord("A"): 0, ord("i"): 0, ord(" "): 0}
+
+
+def test_gen5_face_body_is_six_columns_below_row_zero_and_the_advances_are_the_measured_ones():
+    face = mp._Gen5Face(_Gen5Stub(bytes(48)))
+    assert face.advance("A") == 6 and face.advance("i") == 3 and face.advance(" ") == 4
+    assert face.advance("Q") is None                    # a character the font has no code for
+    levels = face.levels("A")
+    assert len(levels) == 16 and all(len(row) == 6 for row in levels)
+    assert levels[0] == [0] * 6
