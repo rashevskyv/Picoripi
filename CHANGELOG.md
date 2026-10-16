@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Silent Hill 1 Switch (PAL): the title menu, difficulty, option and save/load strings are read as glyph text (`silent_hill_ps1/pal_runs.py`, NUL-terminated runs with a room check); the PAL disc is written from the derived image (`zt/silenthill_switch.py`, unpack step).
 - Silent Hill 2 Switch (Ukrainian translation): new plugin `silent_hill2_switch` reads the translation with the Ukrainian glyph table (byte = font atlas cell; Cyrillic, Ukrainian letters, `{XX}` codes kept) and writes it back byte-exact; the Switch build (`zt/silenthill_switch.py`) takes the translated files from `Switch	ranslation`.
 - Silent Hill 1 Switch (PAL): the PAL font sheet labels (`FONT16.TIM`, glyph = byte - 39), Ukrainian messages of the PAL overlays and item tables read as text (`silent_hill_ps1/pal_text.py`), and the PAL font sheets FONT8NOC, FONT8 and FONT24 open as fonts.
 - Silent Hill 1 Switch (PAL disc SLES_015.14 with the Ukrainian English slot): new plugin `silent_hill1_switch` with the PAL font grid (21 by 6 cells); `silent_hill_ps1` also reads the PAL map overlays (VIN to VIN5, PAL link base, high text bytes) and the `VIN/ITEM_*.BIN` item tables; USA parsing is unchanged (`plugins/silent_hill_ps1/doc.py`; tests in `tests/test_plugins/test_silent_hill_ps1/test_pal_text.py` and `tests/test_plugins/test_silent_hill1_switch/test_rules.py`).

@@ -75,10 +75,20 @@ def _is_glyph_message(raw: bytes) -> bool:
     return any(b >= 0x80 for b in raw)
 
 
+def byte_of(ch: str) -> int:
+    """The byte the translation writes for one character (raises KeyError for a letter the sheet lacks)."""
+    return _BYTE_OF[ch]
+
+
 def decode_message(raw: bytes) -> str:
     """Editor text of one message. Glyph text when the message has a byte from 0x80 up, plain ASCII otherwise."""
     if not _is_glyph_message(raw):
         return codec.decode(raw)
+    return decode_glyph(raw)
+
+
+def decode_glyph(raw: bytes) -> str:
+    """Glyph text of a message, whatever its bytes (the menus and the credits are ASCII-looking)."""
     out = []
     i = 0
     in_code = False
@@ -112,6 +122,11 @@ def encode_message(text: str, original: bytes) -> bytes:
     glyph = _is_glyph_message(original) if original else any(ord(c) >= 0x80 for c in text)
     if not glyph:
         return codec.encode(text)
+    return encode_glyph(text)
+
+
+def encode_glyph(text: str) -> bytes:
+    """Glyph bytes of a text (the reverse of decode_glyph)."""
     out = bytearray()
     i = 0
     in_code = False
