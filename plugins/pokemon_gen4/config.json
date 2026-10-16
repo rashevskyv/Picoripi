@@ -1,6 +1,18 @@
 {
     "display_name": "Pokémon Diamond, Pearl, Platinum, HeartGold and SoulSilver (DS)",
-    "default_tag_mappings": {},
+    "default_tag_mappings": {
+        "{PLAYER}": "{STRVAR_01 3,0}",
+        "{PLAYER_2}": "{STRVAR_01 3,1}",
+        "{POKEMON}": "{STRVAR_01 1,0}",
+        "{MOVE}": "{STRVAR_01 5,1}",
+        "{COLOR_1}": "{COLOR 1}",
+        "{COLOR_2}": "{COLOR 2}",
+        "{COLOR_3}": "{COLOR 3}",
+        "{COLOR_255}": "{COLOR 255}",
+        "{COLOR_OFF}": "{COLOR 0}",
+        "{CENTER}": "{ALN_CENTER}",
+        "{YESNO}": "{YESNO 0}"
+    },
     "block_names": {},
     "block_color_markers": {},
     "newline_display_symbol": "↵",
