@@ -1,6 +1,7 @@
 """Pokémon X/Y and Omega Ruby/Alpha Sapphire (3DS) plugin: Game Freak ``.dat`` text tables (the gen 6 ancestor of the
 Switch format, the same ``plugins/common/gfmsg`` codec), one block per GARC file; name-entry keyboard rows as one line."""
 import json
+import os
 import re
 import urllib.parse
 from pathlib import Path
@@ -9,7 +10,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from core.i18n import tr
 from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
-from plugins.common import garc_mod, gfmsg
+from plugins.common import garc_mod, gfmsg, message_window
 from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
 
@@ -22,6 +23,10 @@ BASE_TITLES = ("0004000000055d00", "0004000000055e00", "000400000011c400", "0004
 
 _PLUGIN = "pokemon_gen6"
 _PLUGIN_DIR = Path(__file__).resolve().parent
+_CONFIG = _PLUGIN_DIR / "config.json"
+# The message windows of the games (config.json). The first whose font is in the project folder is used: the in-game
+# dialogue first. X/Y keep their font in a/1/8/5, Omega Ruby / Alpha Sapphire in a/1/6/7.
+_WINDOWS = ("dialogue_xy", "dialogue_oras", "language_xy", "language_oras")
 # English GARC -> (game key of tables.json, kind)
 _GARCS = {"a/0/7/4": ("xy", "game"), "a/0/8/2": ("xy", "story"),
           "a/0/7/3": ("oras", "game"), "a/0/8/1": ("oras", "story"),
@@ -125,6 +130,7 @@ class GameRules(BaseGameRules):
         super().__init__(main_window_ref)
         self._file: Optional[bytes] = None        # the file a save writes over (line flags / keyboard header)
         self._located: Dict[int, Optional[str]] = {}
+        self._window_fonts = message_window.WindowFonts()
 
     # Project Manager: the CIA is read by core/project_library/images.py; unpack6 takes the files.
     def get_platforms(self) -> list:
@@ -320,3 +326,24 @@ class GameRules(BaseGameRules):
 
     def get_editor_page_size(self) -> int:
         return DEFAULT_LINES_PER_PAGE
+
+    # -- message window ------------------------------------------------------------
+
+    def _source_root(self) -> Optional[str]:
+        """The unpacked source folder of the project (None before a project is open)."""
+        try:
+            root = str(self.mw.project_manager.project.metadata.get("source_path") or "")
+        except AttributeError:
+            return None
+        return root if root and os.path.isdir(root) else None
+
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """The message box drawn with the game's own font (the font decides X/Y or Omega Ruby / Alpha Sapphire)."""
+        root = self._source_root()
+        if root is None:
+            return None
+        for name in _WINDOWS:
+            facts = message_window.BoxFacts.load(_CONFIG, name)
+            if os.path.isfile(os.path.join(root, facts.font_member)):
+                return self._window_fonts.widget(root, facts)
+        return None

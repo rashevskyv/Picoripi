@@ -59,5 +59,133 @@
     "newline_bold": true,
     "newline_italic": false,
     "newline_underline": false,
-    "translation_config": {}
+    "translation_config": {},
+    "language_xy": {
+        "font_member": "romfs/a/1/8/5/000.bcfnt",
+        "text_x": 16,
+        "first_line_top": 47,
+        "line_pitch": 19.2,
+        "text_width": 0,
+        "box_lines": 8,
+        "screen_width": 320,
+        "draw_box": true,
+        "scale_x": 0.5,
+        "scale_y": 0.64,
+        "ink_rgb": [
+            240,
+            240,
+            240
+        ],
+        "red_rgb": [
+            255,
+            0,
+            0
+        ],
+        "box_rgba": [
+            78,
+            74,
+            70,
+            245
+        ],
+        "measured_on": "X language screen (bottom screen), Azahar frame x_base/w006_t006.png: line 1 ink rows 51..61, line 2 70..80, 'If you' 166..176; the glyph cell is scaled 0.5 x 0.64 (advance sum 536 px = 268 px on the screen); line pitch 19.2 = 30 x 0.64 (cell height); text origin x 16 on the screen."
+    },
+    "language_oras": {
+        "font_member": "romfs/a/1/6/7/000.bcfnt",
+        "text_x": 16,
+        "first_line_top": 46,
+        "line_pitch": 19.2,
+        "text_width": 0,
+        "box_lines": 8,
+        "screen_width": 320,
+        "draw_box": true,
+        "scale_x": 0.5,
+        "scale_y": 0.64,
+        "ink_rgb": [
+            16,
+            16,
+            16
+        ],
+        "red_rgb": [
+            255,
+            0,
+            0
+        ],
+        "box_rgba": [
+            248,
+            248,
+            248,
+            255
+        ],
+        "measured_on": "Omega Ruby language screen (bottom screen), Azahar frame oras_base/w012_t012.png: dark text (16,16,16) on a light panel (248), red (255,0,0); line 1 'Use' at screen row 56; same glyph scale and line pitch as X (fit 0.5 x 0.64-0.68)."
+    },
+    "dialogue_xy": {
+        "font_member": "romfs/a/1/8/5/000.bcfnt",
+        "screen_width": 400,
+        "text_x": 42,
+        "first_line_top": 185,
+        "line_pitch": 19.2,
+        "text_width": 309,
+        "box_lines": 2,
+        "draw_box": true,
+        "box_rect": [
+            20,
+            173,
+            382,
+            233
+        ],
+        "box_rgba": [
+            205,
+            205,
+            205,
+            245
+        ],
+        "edge_rgb": [
+            20,
+            20,
+            20
+        ],
+        "scale_x": 0.5,
+        "scale_y": 0.6,
+        "ink_rgb": [
+            20,
+            20,
+            20
+        ],
+        "measured_on": "X cutscene dialogue, top screen (frame x_dlg2/w022_t044.png; top screen at frame x 446, y 57): box border at x 20 and 382, y 173 and 233; line 1 cell top at y 185, line 2 at 205 (pitch 19.2); text origin x 42; black text on a light box.. Wrap width 309 px (about 2 px): the game keeps Some run ... through the at 308.5 px ink 41..349 and wraps ... lending our at 307.5 px"
+    },
+    "dialogue_oras": {
+        "font_member": "romfs/a/1/6/7/000.bcfnt",
+        "screen_width": 400,
+        "text_x": 21,
+        "first_line_top": 185,
+        "line_pitch": 19.2,
+        "text_width": 0,
+        "box_lines": 2,
+        "draw_box": true,
+        "box_rect": [
+            2,
+            176,
+            397,
+            232
+        ],
+        "box_rgba": [
+            255,
+            255,
+            255,
+            255
+        ],
+        "edge_rgb": [
+            69,
+            160,
+            198
+        ],
+        "scale_x": 0.5,
+        "scale_y": 0.58,
+        "ink_rgb": [
+            2,
+            2,
+            2
+        ],
+        "measured_on": "Omega Ruby intro dialogue, top screen (frame oras_dlg1/w030_t061.png; top screen at frame x 446, y 57): box x 2..397, y 176..232 with a light-blue border; line 1 cell top 185, line 2 204; text origin x 21; black text (2,2,2) on white. Wrap width not measured: line 1 fits at 228 px, and the next word wraps at 314 px."
+    }
 }

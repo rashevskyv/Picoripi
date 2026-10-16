@@ -1,14 +1,12 @@
-"""The message box of a Pokémon Sun / Moon (3DS, generation 7) game, drawn with the game's own font.
+"""The message box of a Pokémon game drawn with the game's own bitmap font (FFNT or CFNT, read by ``core.font_formats``).
 
-Facts (measured on an Azahar frame of the language screen; kept in ``config.json`` under ``message_window``):
-  - The message font is ``romfs/a/0/2/5/000.bffnt`` (FFNT, 15 x 19 px cells, no spacing). A glyph advances by its
-    WID1 width. Line 1 of the language screen is 255 px wide in the frame; the font gives 255 px.
-  - The text starts at x 9 and the first line's cell top is at y 10. A line is 20 px high.
-  - The editor text is drawn as the game draws it: a newline starts a line, ``{PAGE}`` ends a page,
-    ``{COLOR 0001}`` is red and ``{COLOR 0000}`` is white again. The game breaks the lines itself.
+One renderer for every 3DS Pokémon plugin. The facts of each game (font member, text origin, line pitch, glyph scale,
+box lines) live in that plugin's ``config.json`` under a named window, and are read with ``BoxFacts.load``.
+
+Facts are measured on Azahar frames (see the ``measured_on`` note of each window). Glyph scale: the game draws a font
+at ``scale_x`` / ``scale_y`` of its cell size; the advance of a glyph is its WID1 width times ``scale_x``.
 
 ``WindowResolver`` reads the font on a worker thread (AGENTS rule 5). The widget draws when the result arrives.
-Only the language-screen box is measured so far; other windows need their own frame before their facts change.
 """
 from __future__ import annotations
 
@@ -21,7 +19,7 @@ from typing import Dict, List, Optional, Tuple
 
 from PIL import Image, ImageDraw
 from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtGui import QImage, QPainter, QColor
+from PyQt6.QtGui import QColor, QImage, QPainter
 from PyQt6.QtWidgets import QWidget
 
 from core.bfn_core import char_to_glyph
@@ -30,9 +28,7 @@ from core.i18n import tr
 from utils.logging_utils import log_debug
 from utils.thread_utils import WorkerThread
 
-FONT_MEMBER = "romfs/a/0/2/5/000.bffnt"
-SCALE = 2
-_CONFIG = Path(__file__).resolve().parent / "config.json"
+SCALE = 2                                  # on-screen zoom of the widget; the box itself is drawn at native size
 _TAG = re.compile(r"\{([A-Z]+)([^{}]*)\}")
 # The editor shows the game's apostrophe (font code 0x27) as a curly quote; the font has no glyph for the curly one.
 _SAME_GLYPH = {"’": "'", "‘": "'"}
@@ -40,30 +36,57 @@ _WHITE = (240, 240, 240, 255)
 _RED = (255, 70, 70, 255)
 _BOX = (24, 26, 28, 235)
 _EDGE = (200, 200, 200, 255)
+_HEIGHT = 240                              # every 3DS screen is 240 px high
 
 
 @dataclass(frozen=True)
 class BoxFacts:
-    """Where the text sits in the box, read from ``config.json`` (``message_window``)."""
+    """Where the text sits in the box, read from a plugin's ``config.json`` window."""
     font_member: str
     text_x: int
     first_line_top: int
-    line_pitch: int
+    line_pitch: float
     text_width: int                 # 0: not measured, the width is not checked
     box_lines: int
     screen_width: int = 320         # 320: bottom screen; 400: top screen
     draw_box: bool = True           # the language screen has a box; the dialogue text sits on the scene
+    scale_x: float = 1.0            # glyph scale of the game's text pane (1.0: the cell as stored)
+    scale_y: float = 1.0
+    ink: Tuple[int, int, int, int] = _WHITE     # text colour
+    red: Tuple[int, int, int, int] = _RED       # the colour of {COLOR 0001}
+    box: Tuple[int, int, int, int] = _BOX       # the box fill, drawn only when draw_box
+    edge: Tuple[int, int, int, int] = _EDGE     # the box border
+    box_rect: Optional[Tuple[int, int, int, int]] = None   # a box inside the screen (x0, y0, x1, y1, inclusive)
 
     @classmethod
-    def load(cls, window: str = "message_window", path: Path = _CONFIG) -> "BoxFacts":
-        raw = json.loads(path.read_text(encoding="utf-8"))[window]
-        return cls(raw["font_member"], int(raw["text_x"]), int(raw["first_line_top"]), int(raw["line_pitch"]),
+    def load(cls, config: Path, window: str) -> "BoxFacts":
+        raw = json.loads(Path(config).read_text(encoding="utf-8"))[window]
+        return cls(raw["font_member"], int(raw["text_x"]), int(raw["first_line_top"]), float(raw["line_pitch"]),
                    int(raw["text_width"]), int(raw["box_lines"]), int(raw.get("screen_width", 320)),
-                   bool(raw.get("draw_box", True)))
+                   bool(raw.get("draw_box", True)), float(raw.get("scale_x", 1.0)), float(raw.get("scale_y", 1.0)),
+                   _colour(raw.get("ink_rgb"), _WHITE), _colour(raw.get("red_rgb"), _RED),
+                   _colour(raw.get("box_rgba"), _BOX), _colour(raw.get("edge_rgb"), _EDGE),
+                   _rect(raw.get("box_rect")))
+
+
+def _rect(value: Optional[List[int]]) -> Optional[Tuple[int, int, int, int]]:
+    """A config rectangle ``[x0, y0, x1, y1]`` (inclusive corners); None: the box covers the whole screen."""
+    if value is None:
+        return None
+    x0, y0, x1, y1 = (int(v) for v in value)
+    return (x0, y0, x1, y1)
+
+
+def _colour(value: Optional[List[int]], default: Tuple[int, int, int, int]) -> Tuple[int, int, int, int]:
+    """A config colour: ``[r, g, b]`` (opaque) or ``[r, g, b, a]``; None keeps the default."""
+    if value is None:
+        return default
+    rgba = [int(v) for v in value]
+    return (rgba[0], rgba[1], rgba[2], rgba[3] if len(rgba) > 3 else 255)
 
 
 class BoxFont:
-    """A FFNT font decoded for drawing: glyph cells, advances and the character map."""
+    """A bitmap font decoded for drawing: glyph cells, advances and the character map."""
 
     def __init__(self, sheets: List[Image.Image], cell: Tuple[int, int], grid: Tuple[int, int],
                  cmap: Dict[int, int], advances: List[int]):
@@ -86,14 +109,18 @@ class BoxFont:
         g = self.cmap.get(ord(_SAME_GLYPH.get(ch, ch)))
         return g if g is not None and g < len(self.advances) else None
 
-    def cell(self, glyph: int) -> Image.Image:
+    def cell(self, glyph: int, scale_x: float = 1.0, scale_y: float = 1.0) -> Image.Image:
+        """The alpha mask of one glyph, scaled as the game draws it."""
         per = self.columns * self.rows
         sheet, k = divmod(glyph, per)
         x, y = (k % self.columns) * self.cell_w, (k // self.columns) * self.cell_h
-        return self.sheets[sheet].crop((x, y, x + self.cell_w, y + self.cell_h)).getchannel("A")
+        mask = self.sheets[sheet].crop((x, y, x + self.cell_w, y + self.cell_h)).getchannel("A")
+        if scale_x == 1.0 and scale_y == 1.0:
+            return mask
+        return mask.resize((max(1, round(self.cell_w * scale_x)), max(1, round(self.cell_h * scale_y))), Image.BILINEAR)
 
     def width(self, text: str) -> int:
-        """The pen advance of a line. Characters the font does not have count as 0 px."""
+        """The pen advance of a line in font pixels. Characters the font does not have count as 0 px."""
         return sum(self.advances[g] for g in (self.glyph_of(c) for c in text) if g is not None)
 
 
@@ -131,7 +158,8 @@ def split_pages(text: str) -> List[List[Tuple[str, str]]]:
 
 def overflow_lines(page: List[Tuple[str, str]], font: BoxFont, facts: BoxFacts) -> List[int]:
     """Indexes of the lines of a page that are wider than the text width or that the box cannot show."""
-    bad = [i for i, (line, _c) in enumerate(page) if facts.text_width > 0 and font.width(line) > facts.text_width]
+    bad = [i for i, (line, _c) in enumerate(page)
+           if facts.text_width > 0 and font.width(line) * facts.scale_x > facts.text_width]
     if len(page) > facts.box_lines:
         bad += list(range(facts.box_lines, len(page)))
     return bad
@@ -139,26 +167,29 @@ def overflow_lines(page: List[Tuple[str, str]], font: BoxFont, facts: BoxFacts) 
 
 def render_page(page: List[Tuple[str, str]], font: BoxFont, facts: BoxFacts) -> Image.Image:
     """One page of text at native size on its screen (``facts.screen_width`` x 240), boxed when the window is a box."""
-    height = 240
     width = facts.screen_width
-    out = Image.new("RGBA", (width, height), _BOX if facts.draw_box else (0, 0, 0, 0))
-    if facts.draw_box:
-        ImageDraw.Draw(out).rectangle((0, 0, width - 1, height - 1), outline=_EDGE, width=2)
+    out = Image.new("RGBA", (width, _HEIGHT), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(out)
+    if facts.box_rect is not None:
+        draw.rectangle(facts.box_rect, fill=facts.box, outline=facts.edge, width=2)
+    elif facts.draw_box:
+        out.paste(facts.box, (0, 0, width, _HEIGHT))
+        draw.rectangle((0, 0, width - 1, _HEIGHT - 1), outline=facts.edge, width=2)
     for index, (line, colour) in enumerate(page):
-        top = facts.first_line_top + index * facts.line_pitch
-        if top >= height:
+        top = round(facts.first_line_top + index * facts.line_pitch)
+        if top >= _HEIGHT:
             break
-        pen = facts.text_x
-        ink = _RED if colour == "red" else _WHITE
+        pen = float(facts.text_x)
+        ink = facts.red if colour == "red" else facts.ink
         for ch in line:
             g = font.glyph_of(ch)
             if g is None:
                 continue
-            cell = font.cell(g)
+            cell = font.cell(g, facts.scale_x, facts.scale_y)
             glyph = Image.new("RGBA", cell.size, ink)
             glyph.putalpha(cell)
-            out.alpha_composite(glyph, (pen, top))
-            pen += font.advances[g]
+            out.alpha_composite(glyph, (round(pen), top))
+            pen += font.advances[g] * facts.scale_x
     return out
 
 
@@ -170,13 +201,14 @@ class Resolved:
 
 
 class WindowResolver(WorkerThread):
-    """Reads the project's message font off the UI thread. ``resolved`` carries (folder, Resolved or None)."""
+    """Reads a project's message font off the UI thread. ``resolved`` carries (folder, Resolved or None)."""
 
     resolved = pyqtSignal(object)
 
-    def __init__(self, source_dir: str):
+    def __init__(self, source_dir: str, font_member: str):
         super().__init__()
         self._source_dir = source_dir
+        self._font_member = font_member
         self._stop = threading.Event()
 
     def cancel(self) -> None:
@@ -185,10 +217,10 @@ class WindowResolver(WorkerThread):
     def run(self) -> None:
         result = None
         try:
-            path = Path(self._source_dir) / Path(FONT_MEMBER)
+            path = Path(self._source_dir) / Path(self._font_member)
             result = Resolved(BoxFont.from_bytes(path.read_bytes()))
         except (OSError, ValueError, KeyError, IndexError) as exc:
-            log_debug(f"pokemon_gen7: no message font for {self._source_dir}: {exc}")
+            log_debug(f"message window: no message font for {self._source_dir}: {exc}")
         if not self._stop.is_set():
             self.resolved.emit((self._source_dir, result))
 
@@ -196,15 +228,15 @@ class WindowResolver(WorkerThread):
 class MessageWindowPreview(QWidget):
     """The message box of one project. It draws with the game's font once ``receive`` gets the font."""
 
-    def __init__(self, source_dir: str):
+    def __init__(self, source_dir: str, facts: BoxFacts):
         super().__init__()
         self._root = source_dir
-        self._facts = BoxFacts.load("dialogue_window")   # the main window: the overworld text
+        self._facts = facts
         self._font: Optional[BoxFont] = None
         self._text = ""
         self._note = tr("Reading the game font...")
-        self._image = QImage(self._facts.screen_width * SCALE, 240 * SCALE, QImage.Format.Format_ARGB32)
-        self.setMinimumSize(self._facts.screen_width * SCALE + 20, 240 * SCALE + 46)
+        self._image = QImage(self._facts.screen_width * SCALE, _HEIGHT * SCALE, QImage.Format.Format_ARGB32)
+        self.setMinimumSize(self._facts.screen_width * SCALE + 20, _HEIGHT * SCALE + 46)
         self._render()
 
     def receive(self, payload: object) -> None:
@@ -257,5 +289,37 @@ class MessageWindowPreview(QWidget):
         self._font = None
 
 
-__all__ = ["BoxFacts", "BoxFont", "MessageWindowPreview", "Resolved", "WindowResolver", "overflow_lines",
-           "render_page", "split_pages", "FONT_MEMBER"]
+class WindowFonts:
+    """The message font of a game plugin: one read per source folder, kept for the plugin's lifetime."""
+
+    def __init__(self):
+        self._fonts: Dict[str, Optional[Resolved]] = {}
+        self._resolvers: Dict[str, WindowResolver] = {}
+
+    def font_of(self, root: str, font_member: str) -> Optional[Resolved]:
+        """The font of a source folder (one folder, one game). The first call starts the read on a worker; None until
+        the read is done."""
+        if root not in self._resolvers:
+            worker = WindowResolver(root, font_member)
+            worker.resolved.connect(self._on_resolved)
+            self._resolvers[root] = worker
+            worker.start()
+        return self._fonts.get(root)
+
+    def _on_resolved(self, payload: object) -> None:
+        root, resolved = payload
+        self._fonts[root] = resolved
+
+    def widget(self, root: str, facts: BoxFacts) -> MessageWindowPreview:
+        """A preview widget for a folder. It fills in when the font arrives (now, or from the worker)."""
+        self.font_of(root, facts.font_member)
+        widget = MessageWindowPreview(root, facts)
+        if root in self._fonts:
+            widget.receive((root, self._fonts[root]))
+        else:
+            self._resolvers[root].resolved.connect(widget.receive)
+        return widget
+
+
+__all__ = ["BoxFacts", "BoxFont", "MessageWindowPreview", "Resolved", "WindowFonts", "WindowResolver",
+           "overflow_lines", "render_page", "split_pages"]

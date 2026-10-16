@@ -1,9 +1,14 @@
-"""Pokémon Sun / Moon message window (``plugins.pokemon_gen7.message_preview``): page splitting and colours, the width
-of a FFNT-style font, the box render, and the widget and worker lifecycle. A small synthetic font stands in for the
-game font, so the test needs no game files."""
+"""The shared Pokémon message window (``plugins.common.message_window``): page splitting and colours, the width of a
+FFNT-style font, the box render, the glyph scale, and the widget and worker lifecycle. A small synthetic font stands in
+for the game font, so the test needs no game files. The Sun / Moon facts of ``config.json`` are read as well."""
+from pathlib import Path
+
 from PIL import Image
 
-from plugins.pokemon_gen7 import message_preview as mp
+import plugins.pokemon_gen7 as gen7
+from plugins.common import message_window as mp
+
+GEN7_CONFIG = Path(gen7.__file__).resolve().parent / "config.json"
 
 
 def _font():
@@ -16,6 +21,10 @@ def _font():
 
 def _facts(text_width=20):
     return mp.BoxFacts(font_member="", text_x=2, first_line_top=2, line_pitch=6, text_width=text_width, box_lines=3)
+
+
+def _window(path):
+    return mp.MessageWindowPreview(str(path), _facts())
 
 
 def test_page_break_starts_a_new_page_without_an_empty_line():
@@ -52,13 +61,13 @@ def test_red_line_is_drawn_red_inside_the_box():
 
 
 def test_default_facts_come_from_config():
-    facts = mp.BoxFacts.load()
+    facts = mp.BoxFacts.load(GEN7_CONFIG, "message_window")
     assert facts.font_member == "romfs/a/0/2/5/000.bffnt"
     assert (facts.text_x, facts.first_line_top, facts.line_pitch) == (10, 10, 20)
 
 
 def test_widget_draws_once_the_font_is_received(qtbot, tmp_path):
-    widget = mp.MessageWindowPreview(str(tmp_path))
+    widget = _window(tmp_path)
     qtbot.addWidget(widget)
     widget.update_preview_text("ab\n{COLOR 0001}ab")     # no font yet: the box is empty, no error
     widget.receive((str(tmp_path), mp.Resolved(_font())))
@@ -67,14 +76,14 @@ def test_widget_draws_once_the_font_is_received(qtbot, tmp_path):
 
 
 def test_widget_ignores_another_folder(qtbot, tmp_path):
-    widget = mp.MessageWindowPreview(str(tmp_path / "project"))
+    widget = _window(tmp_path / "project")
     qtbot.addWidget(widget)
     widget.receive((str(tmp_path / "other"), mp.Resolved(_font())))
     assert widget._font is None
 
 
 def test_resolver_without_the_font_emits_none(qtbot, tmp_path):
-    worker = mp.WindowResolver(str(tmp_path))
+    worker = mp.WindowResolver(str(tmp_path), "romfs/a/0/2/5/000.bffnt")
     with qtbot.waitSignal(worker.resolved, timeout=5000) as blocker:
         worker.start()
     assert blocker.args == [(str(tmp_path), None)]
@@ -82,7 +91,7 @@ def test_resolver_without_the_font_emits_none(qtbot, tmp_path):
 
 
 def test_dialogue_facts_are_the_top_screen_text_with_no_box_and_no_measured_width():
-    facts = mp.BoxFacts.load("dialogue_window")
+    facts = mp.BoxFacts.load(GEN7_CONFIG, "dialogue_window")
     assert (facts.screen_width, facts.text_x, facts.first_line_top, facts.line_pitch) == (400, 57, 205, 21)
     assert facts.draw_box is False
     assert facts.text_width == 0
