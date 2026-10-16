@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 import struct
-from typing import Callable, List, NamedTuple, Sequence
+from typing import Callable, List, NamedTuple, Optional, Sequence
 
 from core.containers.game_freak import path_hash
 
@@ -64,11 +64,13 @@ def file_names(files: Sequence[bytes], hashes: Sequence[int]) -> List[str]:
     return names
 
 
-def replace_stored(data: bytes, changed: dict) -> bytes:
-    """The pack with the files ``{index: raw}`` stored (kind 0) in place of the originals; the other files keep their bytes.
+def replace_stored(data: bytes, changed: dict, compress: Optional[Callable[[bytes], bytes]] = None) -> bytes:
+    """The pack with the files ``{index: raw}`` in place of the originals; the other files keep their bytes.
 
-    Files keep the order of their data offsets. A stored entry needs no Oodle library; the game is not known to accept
-    one in every case, so the build reports the result of its own test.
+    With ``compress`` the changed files are Oodle blocks (kind 3) made by it, as the game's own packs are. Without it
+    they are stored (kind 0): the game crashes on a stored entry in the private Eden test (2026-10-17), so the build
+    always passes ``compress``.
+    Files keep the order of their data offsets.
     """
     count, table = struct.unpack_from("<i4xQ", data, 0x10)
     entries = read_entries(data)
@@ -77,7 +79,11 @@ def replace_stored(data: bytes, changed: dict) -> bytes:
     out = bytearray(data[:start])
     for i in order:
         if i in changed:
-            kind, size, packed = KIND_STORED, len(changed[i]), bytes(changed[i])
+            raw = bytes(changed[i])
+            if compress is None:
+                kind, size, packed = KIND_STORED, len(raw), raw
+            else:
+                kind, size, packed = KIND_OODLE, len(raw), compress(raw)
         else:
             kind, size, packed = entries[i].kind, entries[i].size, entries[i].packed
         struct.pack_into("<HII", out, table + 24 * i + 2, kind, size, len(packed))

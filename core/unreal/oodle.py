@@ -1,8 +1,8 @@
 """Oodle decompression through the Oodle core library (``oo2core_*_win64.dll``), loaded with ctypes.
 
 The library is never bundled or searched in a game folder. The caller gives its path, or the environment variable
-``PICORIPI_OODLE_DLL`` names it. Only ``OodleLZ_Decompress`` is called; it returns the decoded size, and a short
-result is an error. Used by ``core.unreal.pak`` (pak v10 and later) and ``core.unreal.iostore``.
+``PICORIPI_OODLE_DLL`` names it. ``OodleLZ_Decompress`` reads blocks; ``OodleLZ_Compress`` (Kraken) writes one for
+the pack writers. A short decode result is an error. Used by ``core.unreal.pak`` (pak v10 and later) and ``core.unreal.iostore``.
 """
 from __future__ import annotations
 
@@ -18,6 +18,8 @@ _FUZZ_SAFE = 1
 _CHECK_CRC_NO = 0
 _VERBOSITY_NONE = 0
 _DECODE_UNTHREADED = 3
+_KRAKEN = 8               # OodleLZ_Compressor_Kraken
+_LEVEL_NORMAL = 4         # OodleLZ_CompressionLevel_Normal
 
 
 class OodleError(RuntimeError):
@@ -48,6 +50,31 @@ class Oodle:
             ctypes.c_int,                           # thread phase
         ]
         self._decompress = fn
+        try:
+            cfn = lib.OodleLZ_Compress
+        except AttributeError:
+            cfn = None
+        if cfn is not None:
+            cfn.restype = ctypes.c_ssize_t
+            cfn.argtypes = [
+                ctypes.c_int, ctypes.c_char_p, ctypes.c_ssize_t,   # compressor, raw buffer
+                ctypes.c_void_p, ctypes.c_int,                    # compressed buffer, level
+                ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,  # options, dictionary, lrm
+                ctypes.c_void_p, ctypes.c_ssize_t,                # scratch memory (library allocates when NULL)
+            ]
+        self._compress = cfn
+
+    def compress(self, raw: bytes, level: int = _LEVEL_NORMAL) -> bytes:
+        """``raw`` as one Kraken block (the game's packs use Kraken blocks; ``decompress`` reads it back)."""
+        if self._compress is None:
+            raise OodleError(f"{self.path.name} has no OodleLZ_Compress")
+        if not raw:
+            return b""
+        out = ctypes.create_string_buffer(len(raw) + len(raw) // 16 + 4096)
+        got = self._compress(_KRAKEN, raw, len(raw), out, level, None, None, None, None, 0)
+        if got <= 0:
+            raise OodleError(f"Oodle compressed nothing from {len(raw)} bytes")
+        return out.raw[:got]
 
     def decompress(self, comp: bytes, raw_size: int) -> bytes:
         if raw_size == 0:

@@ -71,3 +71,13 @@ def test_replace_stored_stores_the_changed_entry_and_keeps_the_others():
     assert entries[0].packed == b"CCCCCCCCC" and entries[0].size == 9
     assert entries[1].packed == b"BBBBBBBB"[::-1] and entries[1].size == 8
     assert gfpak.decode(out, lambda packed, size: packed[::-1]) == [b"CCCCCCCCC", b"BBBBBBBB"]
+
+
+def test_replace_compressed_writes_the_changed_entry_as_an_oodle_block():
+    pack = make_pack([(1, gfpak.KIND_STORED, b"AAAA", b"AAAA"),
+                      (2, gfpak.KIND_OODLE, b"BBBBBBBB", b"BBBBBBBB"[::-1])])
+    out = gfpak.replace_stored(pack, {0: b"CCCCCCCCC"}, lambda raw: raw[::-1])
+    entries = gfpak.read_entries(out)
+    assert [e.kind for e in entries] == [gfpak.KIND_OODLE, gfpak.KIND_OODLE]
+    assert entries[0].packed == b"CCCCCCCCC"[::-1] and entries[0].size == 9
+    assert gfpak.decode(out, lambda packed, size: packed[::-1]) == [b"CCCCCCCCC", b"BBBBBBBB"]

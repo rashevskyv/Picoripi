@@ -2386,6 +2386,7 @@
   "Switch: Atmosphere LayeredFS mod (the game of the image)": "Switch: мод LayeredFS для Atmosphere (гра з образу)",
   "The pack {0} is not in the source: unpack the game again.": "Пака {0} немає в source: розпакуйте гру ще раз.",
   "The pack {0} does not write: {1}": "Пака {0} не записується: {1}",
+  "The Oodle library is needed to write the Legends: Arceus packs: give its path in the wizard.": "Для запису пакетів Legends: Arceus потрібна бібліотека Oodle: вкажіть її шлях у майстрі.",
   "The index of the game is missing; unpack the game again.": "Індексу гри немає; розпакуйте гру ще раз.",
   "Other version: base game": "Інша версія: базова гра",
   "Other version: update": "Інша версія: оновлення",

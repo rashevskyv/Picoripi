@@ -70,7 +70,7 @@ def test_sword_build_writes_the_changed_file_for_both_title_ids(tmp_path):
         assert written.read_bytes() == original + b"\x00" * 8
 
 
-def test_arceus_build_stores_the_changed_entry_and_keeps_the_others(tmp_path):
+def test_arceus_build_writes_the_changed_entry_as_an_oodle_block_and_keeps_the_others(tmp_path):
     if not (ARCEUS_BASE.is_file() and ARCEUS_UPDATE.is_file()) or _switch_key_path() is None or _provider("oodle") is None:
         pytest.skip("the owner's Arceus packages, the key path or the Oodle library are not on disk")
     from core.unreal.oodle import Oodle
@@ -85,8 +85,9 @@ def test_arceus_build_stores_the_changed_entry_and_keeps_the_others(tmp_path):
     translation = _edit_one(folder, rel, tmp_path, edited)
     out = tmp_path / "out"
     out.mkdir()
-    nx_build.build_switch(str(folder), str(translation), str(out), lambda p, t: None, lambda: False)
+    with console_crypto.key_source(_provider):
+        nx_build.build_switch(str(folder), str(translation), str(out), lambda p, t: None, lambda: False)
     written = out / "atmosphere" / "contents" / nx_build.ARCEUS_TITLES[0] / "romfs" / pack_rel
     after = gfpak.decode(written.read_bytes(), oodle.decompress)
     assert after[0] == edited and after[1:] == before[1:]
-    assert gfpak.read_entries(written.read_bytes())[0].kind == gfpak.KIND_STORED
+    assert gfpak.read_entries(written.read_bytes())[0].kind == gfpak.KIND_OODLE

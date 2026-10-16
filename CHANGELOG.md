@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Pokémon Legends: Arceus (Switch): the build writes a changed `.gfpak` entry as an Oodle Kraken block (kind 3) through the shared Oodle library (`core/unreal/oodle.py` `compress`, `core/containers/gfpak.py` `replace_stored`); a stored entry (kind 0) crashed the game in the private Eden test (2026-10-17), the compressed one did not crash in 240 s.
 - Pokémon Brilliant Diamond / Shining Pearl (Switch): the build writes edited pictures (encoded in the texture's format, same size, in the bundle's stream) and edited font atlases back (`plugins/pokemon_bdsp/build.py`, `assets.encode_texture`); the ASTC encoder pads pictures to whole blocks and the BC decoder reads partial blocks (`core/texture_formats/astc.py`, `pixels.py`). Tests `tests/test_plugins/test_pokemon_bdsp/test_pictures.py`; the wiki (EN and UK) says so.
 - Pokémon Scarlet / Violet and Legends: Z-A (Switch): each message line gets its label from the `.tbl` beside its `.dat` (`plugins/common/message_block.py`, shared with Sword / Shield and Legends: Arceus; test `tests/test_plugins/test_pokemon_trinity/test_labels.py`); the wiki (EN and UK) says so.
 - Unity bundles written by `Bundle.build` (`core/unity/unityfs.py`) keep the directory-combined bit (0x40) and store 128 KiB blocks: without the bit the game crashed on the edited Brilliant Diamond bundle; with it the Picoripi build shows the edited language-select text in Eden (`tests/test_core/test_unity_bundle_build.py`).
