@@ -1,7 +1,18 @@
 {
     "display_name": "Pokemon FireRed/LeafGreen",
     "default_tag_mappings": {
-        "player": "original"
+        "{Player}": "{PLAYER}",
+        "{Rival}": "{RIVAL}",
+        "{Var1}": "{STR_VAR_1}",
+        "{Var2}": "{STR_VAR_2}",
+        "{Var3}": "{STR_VAR_3}",
+        "{A}": "{A_BUTTON}",
+        "{B}": "{B_BUTTON}",
+        "{Start}": "{START_BUTTON}",
+        "{Up/Down}": "{DPAD_UPDOWN}",
+        "{Left/Right}": "{DPAD_LEFTRIGHT}",
+        "{Plus}": "{PLUS}",
+        "{Lv2}": "{LV_2}"
     },
     "block_names": {},
     "block_color_markers": {},

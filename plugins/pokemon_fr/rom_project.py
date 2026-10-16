@@ -1,0 +1,122 @@
+"""ROM mode of the Pokemon plugin: unpack a game ROM into the editor's text files, build a patched ROM from them.
+
+The unpacked text is the decompilation's assembly form, one ``label::`` and ``.string`` lines per message, so the
+editor loads it with the same parser as the pret source. The base ROM is kept beside it, so a build does not need
+the original file again. A build writes only the messages that differ from the base ROM.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+from typing import Any, Callable, Dict, Optional, Tuple
+
+from core.i18n import tr
+from plugins.pokemon_fr import pret_text
+from plugins.pokemon_fr.rom_text import CHARMAP_FILE, FACTS_DIR, Charmap, load_units, read_all, write_all
+
+ROM_ROLE = "rom"
+TEXT_FILE = Path("text") / "messages.inc"
+BASE_ROM = Path("rom") / "base.gba"
+META_FILE = Path("rom") / "meta.json"
+Progress = Callable[[int, str], None]
+Cancelled = Callable[[], bool]
+
+
+def _facts_files() -> Dict[str, Dict[str, Any]]:
+    """The facts files this build knows, by file name, with their ROM SHA-1 and build name."""
+    found: Dict[str, Dict[str, Any]] = {}
+    for path in sorted(FACTS_DIR.glob("*.json")):
+        if path.name == CHARMAP_FILE:
+            continue
+        header = json.loads(path.read_text(encoding="utf-8"))
+        found.setdefault(path.name, {"sha1": header["rom_sha1"], "game": header["game"],
+                                     "build_name": header.get("build_name", path.stem)})
+    return found
+
+
+def identify(path: str) -> Optional[Dict[str, str]]:
+    """``{"role", "platform"}`` when the file is a ROM this build has facts for, else None. Reads the file once."""
+    if not str(path).lower().endswith(".gba"):
+        return None
+    digest = hashlib.sha1()
+    try:
+        with open(path, "rb") as handle:
+            for block in iter(lambda: handle.read(1 << 20), b""):
+                digest.update(block)
+    except OSError:
+        return None
+    if any(item["sha1"] == digest.hexdigest() for item in _facts_files().values()):
+        return {"role": ROM_ROLE, "platform": "gba"}
+    return None
+
+
+def _facts_for(rom: bytes) -> Tuple[str, Dict[str, Any]]:
+    digest = hashlib.sha1(rom).hexdigest()
+    for name, item in _facts_files().items():
+        if item["sha1"] == digest:
+            return name, item
+    raise ValueError(tr("This ROM is not a version the Pokemon plugin has text facts for."))
+
+
+def _asm_text(units, texts: Dict[str, str]) -> str:
+    lines = ["@ Messages of the ROM, one label per message. Written by Picoripi; edit the text between the quotes.", ""]
+    for unit in units:
+        lines.append(f"{unit.label}::")
+        lines.append(f'\t.string "{texts[unit.label]}$"')
+        lines.append("")
+    return "\n".join(lines)
+
+
+def unpack(rom_path: str, target_dir: str, progress: Progress, is_cancelled: Cancelled) -> Optional[str]:
+    """Write the messages and the base ROM into ``target_dir``. Returns the folder (the project's source root)."""
+    rom = Path(rom_path).read_bytes()
+    facts_name, facts = _facts_for(rom)
+    progress(10, "Reading the messages")
+    units, _floor, _header = load_units(FACTS_DIR / facts_name)
+    texts = read_all(rom, units, Charmap.load())
+    if is_cancelled():
+        return None
+    target = Path(target_dir)
+    (target / TEXT_FILE.parent).mkdir(parents=True, exist_ok=True)
+    (target / TEXT_FILE).write_text(_asm_text(units, texts), encoding="utf-8", newline="\n")
+    progress(60, "Copying the base ROM")
+    (target / BASE_ROM.parent).mkdir(parents=True, exist_ok=True)
+    (target / BASE_ROM).write_bytes(rom)
+    (target / META_FILE).write_text(json.dumps({"facts": facts_name, "build_name": facts["build_name"]},
+                                               ensure_ascii=False, indent=1), encoding="utf-8")
+    progress(100, "Done")
+    return str(target)
+
+
+def _edited_texts(folder: Path) -> Dict[str, str]:
+    path = folder / TEXT_FILE
+    if not path.is_file():
+        return {}
+    return {unit.label: unit.content for unit in pret_text.parse(path.read_text(encoding="utf-8"), asm=True)}
+
+
+def build(source_dir: str, translation_dir: str, output_dir: str, progress: Progress,
+          is_cancelled: Cancelled) -> str:
+    """Write the patched ROM into ``output_dir``. Messages come from the translation folder, else from the source."""
+    source = Path(source_dir)
+    meta_path = source / META_FILE
+    if not meta_path.is_file():
+        raise ValueError(tr("This project was not unpacked from a ROM."))
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    base = (source / BASE_ROM).read_bytes()
+    units, floor, _header = load_units(FACTS_DIR / meta["facts"])
+    charmap = Charmap.load()
+    original = read_all(base, units, charmap)
+    edited = _edited_texts(source)
+    edited.update(_edited_texts(Path(translation_dir)))
+    changed = {label: text for label, text in edited.items() if label in original and text != original[label]}
+    progress(20, f"Writing {len(changed)} changed messages")
+    if is_cancelled():
+        return ""
+    patched = write_all(base, units, charmap, floor, changed)
+    out = Path(output_dir) / f"{meta['build_name']}.gba"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_bytes(patched)
+    progress(100, "Done")
+    return str(out)

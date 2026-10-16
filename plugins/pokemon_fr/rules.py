@@ -6,7 +6,7 @@ source file, saved in place so ``2_build.bat`` only copies the translated files 
 """
 import json
 import os
-from typing import Dict, Any, Tuple, Set, Optional, List
+from typing import Callable, Dict, Any, Tuple, Set, Optional, List
 from collections import OrderedDict
 from plugins.base_game_rules import BaseGameRules
 from .config import (
@@ -25,7 +25,7 @@ from .config import (
     P_VISUAL_EDITOR_MARKER,
     L_VISUAL_EDITOR_MARKER
 )
-from . import pret_context, pret_text
+from . import pret_context, pret_text, rom_project
 from .problem_analyzer import ProblemAnalyzer
 from .text_fixer import TextFixer
 from utils.logging_utils import log_debug
@@ -40,6 +40,13 @@ class ProblemIDs:
     PROBLEM_TAG_WARNING = PROBLEM_TAG_WARNING
     PROBLEM_BAD_SPACING = PROBLEM_BAD_SPACING
     PROBLEM_MISSING_ICON_SPACING = PROBLEM_MISSING_ICON_SPACING
+
+def _config_aliases() -> Dict[str, str]:
+    """The ``default_tag_mappings`` of this plugin's config.json: alias -> raw tag."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+    with open(path, encoding="utf-8") as handle:
+        return dict(json.load(handle).get("default_tag_mappings") or {})
+
 
 class GameRules(BaseGameRules):
     """Game rules and translation logic for Game."""
@@ -360,8 +367,39 @@ class GameRules(BaseGameRules):
         return "Pokémon FireRed / LeafGreen, Ruby / Sapphire, Emerald"
 
     def get_default_tag_mappings(self) -> Dict[str, str]:
-        """Get the default tag mappings."""
-        return DEFAULT_TAG_MAPPINGS_POKEMON_FR
+        """Get the default tag mappings: the short aliases of config.json, in place of the raw tags they stand for."""
+        aliases = _config_aliases()
+        aliased = set(aliases.values())
+        mappings = {alias: tag for alias, tag in DEFAULT_TAG_MAPPINGS_POKEMON_FR.items() if tag not in aliased}
+        mappings.update(aliases)
+        return mappings
+
+    # ----- Project Manager: ROM mode (a game ROM unpacks to text; the build writes a patched ROM) -----
+
+    def get_source_roles(self) -> List[Dict[str, str]]:
+        return [{"id": rom_project.ROM_ROLE, "label": "Game ROM (Game Boy Advance)"}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, str]]:
+        return rom_project.identify(path)
+
+    def get_platforms(self) -> List[Dict[str, str]]:
+        return [{"id": "gba", "label": "Game Boy Advance"}]
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str,
+                       progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> Optional[str]:
+        rom = sources.get(rom_project.ROM_ROLE)
+        if not rom:
+            return None
+        return rom_project.unpack(rom, target_dir, progress, is_cancelled)
+
+    def get_build_targets(self) -> List[Dict[str, Any]]:
+        return [{"id": "rom", "label": "Patched ROM", "platforms": ["gba"], "kind": "patch"}]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> str:
+        if target_id != "rom":
+            raise ValueError(f"Unknown build target: {target_id}")
+        return rom_project.build(source_dir, translation_dir, output_dir, progress, is_cancelled)
 
     def analyze_subline(self,
                         text: str,
