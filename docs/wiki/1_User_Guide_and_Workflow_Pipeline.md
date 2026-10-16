@@ -762,7 +762,11 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      menus, battle), `font\<bundle>\` (TextMesh Pro SDF fonts: Font Editor format `tmp_sdf`, glyph table +
      atlas; the font files of the dynamic fallback open as `bfotf`) and `texture\...\*.png` (24 English
      pictures: title logos, "Press any button", menu and battle words; Textures window format `png`).
-     `2_build.bat` writes every edited file back into its bundle for both games. Tags: `\n` new line,
+     `2_build.bat` writes every edited file back into its bundle for both games. The Project Manager wizard now
+     unpacks the message tables itself (Picoripi's own Unity readers; base + update) and the Switch build target
+     writes the edited bundles as a LayeredFS mod (their blocks stored, not compressed). Not yet in Picoripi: the fonts
+     and pictures (still from `1_unpack.bat`), and the re-measured word width (`strWidth`) of an edited label, which
+     keeps its original value. Tags: `\n` new line,
      `{scroll}` / `{clear}` + new line (wait for the button), `{wait:0.5}`, `{tag:A:G:T…}` a name, number or
      word form the game fills in (argument A; word forms after `|`), TextMesh Pro `<color=…>` stay as they are.
    - `dragon_quest_builders` — Dragon Quest Builders and Dragon Quest Builders 2 (Switch). **Source:** the workspace's `source` folder (`1_unpack.bat` decrypts base + update; Builders 1 `excel\excel\<Table>.en.bin` from `excel.nxarc` (17 English tables, 19,905 lines) and, from `build.nxarc`, the 4 Phyre fonts `build\gra\font\*.fgen.NXGL.phyre` and 82 pictures (the two HUD sprite packs `uitex` and `uiicon` with 345 and 980 sprites included); Builders 2 `LINKDATA\text\<first>-<last>.dqbp` (28 packs of the English member of each five-language group of `LINKDATA.BIN`: 4,219 tables, 81,129 lines; one pack is one block), the font `LINKDATA\font\00598.g1t` and 62 localized pictures `LINKDATA\texture\<index>.g1t`); **Translation:** `translation`. The game's codes stay in the text (`<key>` end of page, `<br>` new line, `<pname>`, `<speaker(Name)>`, `<color(0xAARRGGBB)>`). The Japanese key column of a Builders 1 table is not shown and never rewritten. `2_build.bat` stores a changed file raw at the end of `excel.nxarc` / `build.nxarc` / `LINKDATA.BIN` and points the index at it (LayeredFS mod; the original is copied once).

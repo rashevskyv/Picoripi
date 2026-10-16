@@ -2373,5 +2373,11 @@
   "Oodle library": "Бібліотека Oodle",
   "Choose the Oodle library file (oo2core or oo2ext DLL)": "Оберіть файл бібліотеки Oodle (oo2core або oo2ext DLL)",
   "Legends: Arceus packs need the Oodle library. Choose its file in the wizard.": "Пакети Legends: Arceus потребують бібліотеку Oodle. Оберіть її файл у майстрі.",
-  "Decoding pack {0} of {1}": "Розпаковую пакет {0} з {1}"
+  "Decoding pack {0} of {1}": "Розпаковую пакет {0} з {1}",
+  "The base file is not a Brilliant Diamond or Shining Pearl image.": "Базовий файл не є образом Brilliant Diamond або Shining Pearl.",
+  "The message bundles are not in this image.": "Бандлів повідомлень немає в цьому образі.",
+  "Building {0} edited tables": "Збираю змінених таблиць: {0}",
+  "The message bundles are missing; unpack the game again.": "Бандлів повідомлень немає; розпакуйте гру ще раз.",
+  "These tables are not in the game: {0}": "Цих таблиць немає в грі: {0}",
+  "Switch: Atmosphere LayeredFS mod (both games)": "Switch: мод LayeredFS для Atmosphere (обидві гри)"
 }
