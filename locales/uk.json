@@ -2372,6 +2372,7 @@
   "Reading the game font...": "Читаю шрифт гри...",
   "This game has no message window facts.": "Для цієї гри немає даних про вікно повідомлень.",
   "The game font is not in this project.": "Шрифту гри немає в цьому проєкті.",
+  "Line too wide for the box or too many lines: %1": "Рядок ширший за вікно або рядків забагато: %1",
   "Base game": "Основна гра",
   "3DS mod (LayeredFS)": "Мод 3DS (LayeredFS)",
   "Update v1.2 (Ultra Sun / Ultra Moon)": "Оновлення v1.2 (Ultra Sun / Ultra Moon)",

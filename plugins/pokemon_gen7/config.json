@@ -49,6 +49,15 @@
         "PKG7_BROKEN_ICON_HYPHEN": false
     },
     "lines_per_page": 2,
+    "message_window": {
+        "font_member": "romfs/a/0/2/5/000.bffnt",
+        "text_x": 10,
+        "first_line_top": 10,
+        "line_pitch": 20,
+        "text_width": 305,
+        "box_lines": 11,
+        "measured_on": "Sun language screen (bottom screen), Azahar frame sm_base_run5/w030_t031.png: line 1 ink 10..264, rows 14..28; line pitch 20; box border at x 6 and 315; rendered extents match within 1 px left, 1 px top and 3 px right (lines 1-8)"
+    },
     "default_font_file": "default_font.json",
     "tag_color_rgba": "#ffff8c00",
     "tag_bold": true,

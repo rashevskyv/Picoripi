@@ -1,6 +1,7 @@
 """Pokémon Sun / Moon and Ultra Sun / Ultra Moon (3DS) plugin: Game Freak ``.dat`` text tables (the same
 ``plugins/common/gfmsg`` codec as the Switch games), one block per GARC file."""
 import json
+import os
 import re
 import urllib.parse
 from pathlib import Path
@@ -13,7 +14,7 @@ from plugins.common import garc_mod, gfmsg
 from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
 
-from . import unpack
+from . import message_preview, unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
@@ -123,6 +124,8 @@ class GameRules(BaseGameRules):
         super().__init__(main_window_ref)
         self._file: Optional[bytes] = None        # the file a save writes over (line flags / keyboard header)
         self._located: Dict[int, Optional[str]] = {}
+        self._fonts: Dict[str, Any] = {}                    # source folder -> font (None: none)
+        self._resolvers: Dict[str, Any] = {}                # one read per source folder
 
     def get_display_name(self) -> str:
         return "Pokémon Sun/Moon + Ultra Sun/Ultra Moon (3DS)"
@@ -306,6 +309,48 @@ class GameRules(BaseGameRules):
 
     def get_capabilities(self) -> Set[str]:
         return {"glossary_seed"}
+
+    # -- message window ------------------------------------------------------------
+
+    def _source_root(self) -> Optional[str]:
+        """The unpacked source folder of the project (None before a project is open)."""
+        try:
+            root = str(self.mw.project_manager.project.metadata.get("source_path") or "")
+        except AttributeError:
+            return None
+        return root if root and os.path.isdir(root) else None
+
+    def _font_of(self, root: str) -> Optional[message_preview.Resolved]:
+        """The font of a source folder. The first call starts the read on a worker; None until it is done."""
+        if root not in self._resolvers:
+            worker = message_preview.WindowResolver(root)
+            worker.resolved.connect(self._on_font_resolved)
+            self._resolvers[root] = worker
+            worker.start()
+        return self._fonts.get(root)
+
+    def _on_font_resolved(self, payload: Any) -> None:
+        root, resolved = payload
+        self._fonts[root] = resolved
+
+    def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
+        """The message box of the game: its text width and lines (see ``message_preview``)."""
+        facts = message_preview.BoxFacts.load()
+        return {"max_width": facts.text_width, "warn_width": facts.text_width,
+                "lines_per_page": DEFAULT_LINES_PER_PAGE}
+
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """The message box drawn with the game's own font. It fills in when the worker has read the font."""
+        root = self._source_root()
+        if root is None:
+            return None
+        self._font_of(root)
+        widget = message_preview.MessageWindowPreview(root)
+        if root in self._fonts:
+            widget.receive((root, self._fonts[root]))
+        else:
+            self._resolvers[root].resolved.connect(widget.receive)
+        return widget
 
     # -- editor ------------------------------------------------------------------
 
