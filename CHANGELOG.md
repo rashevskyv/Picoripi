@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Pokémon Game Boy ROM mode: strings a `db "...@"` line builds (menus, map and type names, the Pokédex categories' neighbours, the trainer classes' data) and the local `.Label` bodies join the facts, with the `home/` text and a label on the db line; the census of the Red ROM covers 3,013 of 3,245 text runs (the rest is listed in the report).
 - Pokémon Generation III ROM mode (audit r38): the byte budgets and the charmap are written to `rom/meta.json` at unpack, so the editor's budget check no longer reads the facts JSON on the UI thread; a project unpacked before this change reads its facts once in a worker.
 - Pokémon Game Boy ROM mode (Red, Blue, Yellow, Gold, Silver, Crystal): the message-box preview draws the selected text in the game's own font, read from the ROM (font tiles found by their bytes, `tools/pokemon_gb_font_facts.py`), two rows with the game's scroll and clear, the box frame from the font tiles; the Oak line matches the mGBA frame of each game.
 - New plugin `donkey_kong_gba`: Donkey Kong Country 3 (GBA, Europe) opens its 238 name-table strings (`text.json`, byte-exact round trip; an edited string moves to free space at 0xFE4000 and repoints its pointers). Dialogue, fonts and textures are not opened yet.

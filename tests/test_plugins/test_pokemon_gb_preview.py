@@ -152,3 +152,11 @@ def test_editor_preview_draws_the_red_box_and_flags_a_wide_line(qtbot, tmp_path)
     widget.update_preview_text("is longer than before, so it keeps on going well past the box")
     qtbot.waitUntil(lambda: "144 px" in widget._status.text(), timeout=10000)
     widget.shutdown()
+
+
+def test_a_label_on_the_db_line_starts_its_own_body():
+    from plugins.pokemon_gen1 import rom_text
+
+    groups = rom_text.read_labels('Foo:   db "CANCEL@"\n\nBar::\n\ttext "x"\n')
+    assert [label for label, _lines in groups] == ["Foo", "Bar"]
+    assert groups[0][1] == [("db", '"CANCEL@"')]

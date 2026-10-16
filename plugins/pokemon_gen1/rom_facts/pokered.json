@@ -22081,6 +22081,19 @@
    ]
   },
   {
+   "file": "data/events/prizes.asm",
+   "labels": [
+    {
+     "label": "NoThanksText",
+     "offset": 337999,
+     "size": 10,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    }
+   ]
+  },
+  {
    "file": "data/items/names.asm",
    "labels": [
     {
@@ -22093,6 +22106,439 @@
      "far": []
     }
    ]
+  },
+  {
+   "file": "data/maps/names.asm",
+   "labels": [
+    {
+     "label": "PalletTownName",
+     "offset": 463987,
+     "size": 12,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "ViridianCityName",
+     "offset": 463999,
+     "size": 14,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "PewterCityName",
+     "offset": 464013,
+     "size": 12,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "CeruleanCityName",
+     "offset": 464025,
+     "size": 14,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "LavenderTownName",
+     "offset": 464039,
+     "size": 14,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "VermilionCityName",
+     "offset": 464053,
+     "size": 15,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "CeladonCityName",
+     "offset": 464068,
+     "size": 13,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "FuchsiaCityName",
+     "offset": 464081,
+     "size": 13,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "CinnabarIslandName",
+     "offset": 464094,
+     "size": 16,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "IndigoPlateauName",
+     "offset": 464110,
+     "size": 15,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "SaffronCityName",
+     "offset": 464125,
+     "size": 13,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route1Name",
+     "offset": 464138,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route2Name",
+     "offset": 464146,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route3Name",
+     "offset": 464154,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route4Name",
+     "offset": 464162,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route5Name",
+     "offset": 464170,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route6Name",
+     "offset": 464178,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route7Name",
+     "offset": 464186,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route8Name",
+     "offset": 464194,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route9Name",
+     "offset": 464202,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route10Name",
+     "offset": 464210,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route11Name",
+     "offset": 464219,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route12Name",
+     "offset": 464228,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route13Name",
+     "offset": 464237,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route14Name",
+     "offset": 464246,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route15Name",
+     "offset": 464255,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route16Name",
+     "offset": 464264,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route17Name",
+     "offset": 464273,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route18Name",
+     "offset": 464282,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route19Name",
+     "offset": 464291,
+     "size": 13,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route20Name",
+     "offset": 464304,
+     "size": 13,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route21Name",
+     "offset": 464317,
+     "size": 13,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route22Name",
+     "offset": 464330,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route23Name",
+     "offset": 464339,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route24Name",
+     "offset": 464348,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "Route25Name",
+     "offset": 464357,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "ViridianForestName",
+     "offset": 464366,
+     "size": 16,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "MountMoonName",
+     "offset": 464382,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "RockTunnelName",
+     "offset": 464390,
+     "size": 12,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "SeaCottageName",
+     "offset": 464402,
+     "size": 12,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "SSAnneName",
+     "offset": 464414,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "PokemonLeagueName",
+     "offset": 464423,
+     "size": 12,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "UndergroundPathName",
+     "offset": 464435,
+     "size": 17,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "PokemonTowerName",
+     "offset": 464452,
+     "size": 11,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "SeafoamIslandsName",
+     "offset": 464463,
+     "size": 16,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "VictoryRoadName",
+     "offset": 464479,
+     "size": 13,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "DiglettsCaveName",
+     "offset": 464492,
+     "size": 14,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "RocketHQName",
+     "offset": 464506,
+     "size": 10,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "SilphCoName",
+     "offset": 464516,
+     "size": 10,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "PokemonMansionName",
+     "offset": 464526,
+     "size": 10,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "SafariZoneName",
+     "offset": 464536,
+     "size": 12,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "CeruleanCaveName",
+     "offset": 464548,
+     "size": 14,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "PowerPlantName",
+     "offset": 464562,
+     "size": 12,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    }
+   ]
+  },
+  {
+   "file": "data/moves/field_move_names.asm",
+   "labels": []
   },
   {
    "file": "data/moves/names.asm",
@@ -22126,6 +22572,10 @@
      "far": []
     }
    ]
+  },
+  {
+   "file": "data/player/names_list.asm",
+   "labels": []
   },
   {
    "file": "data/pokemon/dex_entries.asm",
@@ -23659,6 +24109,10 @@
      "far": []
     }
    ]
+  },
+  {
+   "file": "data/text/alphabets.asm",
+   "labels": []
   },
   {
    "file": "data/text/text_1.asm",
@@ -28542,12 +28996,32 @@
    ]
   },
   {
+   "file": "data/text/unused_names.asm",
+   "labels": []
+  },
+  {
    "file": "data/text_boxes.asm",
    "labels": [
     {
      "label": "UseTossText",
      "offset": 29730,
      "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "MoneyText",
+     "offset": 29757,
+     "size": 6,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "JapaneseMochimonoText",
+     "offset": 29763,
+     "size": 5,
      "fixed": false,
      "end_char": true,
      "far": []
@@ -28579,6 +29053,200 @@
    ]
   },
   {
+   "file": "data/trainers/name_pointers.asm",
+   "labels": [
+    {
+     "label": "TrainerNamePointers.YoungsterName",
+     "offset": 163522,
+     "size": 10,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TrainerNamePointers.BugCatcherName",
+     "offset": 163532,
+     "size": 12,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TrainerNamePointers.LassName",
+     "offset": 163544,
+     "size": 5,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TrainerNamePointers.JrTrainerMName",
+     "offset": 163549,
+     "size": 12,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TrainerNamePointers.JrTrainerFName",
+     "offset": 163561,
+     "size": 12,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TrainerNamePointers.PokemaniacName",
+     "offset": 163573,
+     "size": 11,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TrainerNamePointers.SuperNerdName",
+     "offset": 163584,
+     "size": 11,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TrainerNamePointers.BurglarName",
+     "offset": 163595,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TrainerNamePointers.EngineerName",
+     "offset": 163603,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TrainerNamePointers.UnusedJugglerName",
+     "offset": 163612,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TrainerNamePointers.SwimmerName",
+     "offset": 163620,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TrainerNamePointers.BeautyName",
+     "offset": 163628,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TrainerNamePointers.RockerName",
+     "offset": 163635,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TrainerNamePointers.JugglerName",
+     "offset": 163642,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TrainerNamePointers.BlackbeltName",
+     "offset": 163650,
+     "size": 10,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TrainerNamePointers.ProfOakName",
+     "offset": 163660,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TrainerNamePointers.ChiefName",
+     "offset": 163669,
+     "size": 6,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TrainerNamePointers.ScientistName",
+     "offset": 163675,
+     "size": 10,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TrainerNamePointers.RocketName",
+     "offset": 163685,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TrainerNamePointers.CooltrainerMName",
+     "offset": 163692,
+     "size": 13,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TrainerNamePointers.CooltrainerFName",
+     "offset": 163705,
+     "size": 13,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    }
+   ]
+  },
+  {
    "file": "data/trainers/names.asm",
    "labels": [
     {
@@ -28593,8 +29261,221 @@
    ]
   },
   {
+   "file": "data/types/names.asm",
+   "labels": [
+    {
+     "label": "TypeNames.Normal",
+     "offset": 163300,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TypeNames.Fighting",
+     "offset": 163307,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TypeNames.Flying",
+     "offset": 163316,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TypeNames.Poison",
+     "offset": 163323,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TypeNames.Fire",
+     "offset": 163330,
+     "size": 5,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TypeNames.Water",
+     "offset": 163335,
+     "size": 6,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TypeNames.Grass",
+     "offset": 163341,
+     "size": 6,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TypeNames.Electric",
+     "offset": 163347,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TypeNames.Psychic",
+     "offset": 163356,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TypeNames.Ice",
+     "offset": 163364,
+     "size": 4,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TypeNames.Ground",
+     "offset": 163368,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TypeNames.Rock",
+     "offset": 163375,
+     "size": 5,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TypeNames.Bird",
+     "offset": 163380,
+     "size": 5,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TypeNames.Bug",
+     "offset": 163385,
+     "size": 4,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TypeNames.Ghost",
+     "offset": 163389,
+     "size": 6,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TypeNames.Dragon",
+     "offset": 163395,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    }
+   ]
+  },
+  {
    "file": "data/yes_no_menu_strings.asm",
-   "labels": []
+   "labels": [
+    {
+     "label": "TwoOptionMenuStrings.NoYesMenu",
+     "offset": 30361,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TwoOptionMenuStrings.YesNoMenu",
+     "offset": 30368,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TwoOptionMenuStrings.NorthWestMenu",
+     "offset": 30375,
+     "size": 11,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TwoOptionMenuStrings.SouthEastMenu",
+     "offset": 30386,
+     "size": 11,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TwoOptionMenuStrings.NorthEastMenu",
+     "offset": 30397,
+     "size": 11,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TwoOptionMenuStrings.TradeCancelMenu",
+     "offset": 30408,
+     "size": 13,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
+     "label": "TwoOptionMenuStrings.HealCancelMenu",
+     "offset": 30421,
+     "size": 12,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    }
+   ]
   },
   {
    "file": "engine/battle/common_text.asm",
@@ -28602,7 +29483,32 @@
   },
   {
    "file": "engine/battle/core.asm",
-   "labels": []
+   "labels": [
+    {
+     "label": "WhichTechniqueString",
+     "offset": 250808,
+     "size": 17,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "DisabledText",
+     "offset": 251221,
+     "size": 10,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "TypeText",
+     "offset": 251231,
+     "size": 5,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    }
+   ]
   },
   {
    "file": "engine/battle/display_effectiveness.asm",
@@ -28629,7 +29535,32 @@
   },
   {
    "file": "engine/battle/end_of_battle.asm",
-   "labels": []
+   "labels": [
+    {
+     "label": "YouWinText",
+     "offset": 79955,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "YouLoseText",
+     "offset": 79963,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "DrawText",
+     "offset": 79972,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    }
+   ]
   },
   {
    "file": "engine/battle/experience.asm",
@@ -28719,9 +29650,33 @@
    "file": "engine/events/diploma.asm",
    "labels": [
     {
+     "label": "DiplomaPlayer",
+     "offset": 354210,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "DiplomaEmptyText",
+     "offset": 354217,
+     "size": 1,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
      "label": "DiplomaCongrats",
      "offset": 354218,
      "size": 68,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "DiplomaGameFreak",
+     "offset": 354286,
+     "size": 11,
      "fixed": false,
      "end_char": true,
      "far": []
@@ -28770,7 +29725,16 @@
   },
   {
    "file": "engine/events/hidden_events/blues_room.asm",
-   "labels": []
+   "labels": [
+    {
+     "label": "UnusedPredefText",
+     "offset": 402696,
+     "size": 1,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    }
+   ]
   },
   {
    "file": "engine/events/hidden_events/book_or_sculpture.asm",
@@ -29012,8 +29976,61 @@
    "labels": []
   },
   {
+   "file": "engine/items/town_map.asm",
+   "labels": [
+    {
+     "label": "MonsNestText",
+     "offset": 462729,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "ToText",
+     "offset": 462957,
+     "size": 3,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "AreaUnknownText",
+     "offset": 463434,
+     "size": 14,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    }
+   ]
+  },
+  {
    "file": "engine/link/cable_club.asm",
    "labels": [
+    {
+     "label": "PleaseWaitString",
+     "offset": 21775,
+     "size": 13,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "CancelTextString",
+     "offset": 22464,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "TradeCompleted",
+     "offset": 23081,
+     "size": 17,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
     {
      "label": "TradeCanceled",
      "offset": 23098,
@@ -29029,8 +30046,91 @@
    "labels": []
   },
   {
+   "file": "engine/link/print_waiting_text.asm",
+   "labels": [
+    {
+     "label": "WaitingText",
+     "offset": 19496,
+     "size": 12,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    }
+   ]
+  },
+  {
+   "file": "engine/menus/draw_start_menu.asm",
+   "labels": [
+    {
+     "label": "StartMenuPokedexText",
+     "offset": 29071,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "StartMenuPokemonText",
+     "offset": 29079,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "StartMenuItemText",
+     "offset": 29087,
+     "size": 5,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "StartMenuSaveText",
+     "offset": 29092,
+     "size": 5,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "StartMenuResetText",
+     "offset": 29097,
+     "size": 6,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "StartMenuExitText",
+     "offset": 29103,
+     "size": 5,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "StartMenuOptionText",
+     "offset": 29108,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    }
+   ]
+  },
+  {
    "file": "engine/menus/league_pc.asm",
-   "labels": []
+   "labels": [
+    {
+     "label": "HallOfFameNoText",
+     "offset": 484976,
+     "size": 19,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    }
+   ]
   },
   {
    "file": "engine/menus/main_menu.asm",
@@ -29089,12 +30189,53 @@
      "fixed": false,
      "end_char": true,
      "far": []
+    },
+    {
+     "label": "OptionMenuCancelText",
+     "offset": 24600,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": []
     }
    ]
   },
   {
    "file": "engine/menus/naming_screen.asm",
-   "labels": []
+   "labels": [
+    {
+     "label": "YourTextString",
+     "offset": 26943,
+     "size": 6,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "RivalsTextString",
+     "offset": 26949,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "NameTextString",
+     "offset": 26957,
+     "size": 6,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "NicknameTextString",
+     "offset": 26963,
+     "size": 10,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    }
+   ]
   },
   {
    "file": "engine/menus/oaks_pc.asm",
@@ -29125,12 +30266,45 @@
    "file": "engine/menus/pokedex.asm",
    "labels": [
     {
+     "label": "PokedexSeenText",
+     "offset": 262813,
+     "size": 5,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "PokedexOwnText",
+     "offset": 262818,
+     "size": 4,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "PokedexContentsText",
+     "offset": 262822,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
      "label": "PokedexMenuItemsText",
      "offset": 262831,
      "size": 19,
      "fixed": false,
      "end_char": true,
      "far": []
+    },
+    {
+     "label": "PokeText",
+     "offset": 263261,
+     "size": 2,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
     }
    ]
   },
@@ -29138,9 +30312,25 @@
    "file": "engine/menus/save.asm",
    "labels": [
     {
+     "label": "NowSavingString",
+     "offset": 472922,
+     "size": 14,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
      "label": "BoxNames",
      "offset": 473561,
      "size": 72,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "BoxNoText",
+     "offset": 473633,
+     "size": 8,
      "fixed": false,
      "end_char": true,
      "far": []
@@ -29164,6 +30354,15 @@
    "file": "engine/menus/text_box.asm",
    "labels": [
     {
+     "label": "CurrencyString",
+     "offset": 29922,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": [],
+     "movable": true
+    },
+    {
      "label": "PokemonMenuEntries",
      "offset": 30658,
      "size": 20,
@@ -29177,9 +30376,33 @@
    "file": "engine/movie/hall_of_fame.asm",
    "labels": [
     {
+     "label": "HallOfFameText",
+     "offset": 459371,
+     "size": 13,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
      "label": "HoFMonInfoText",
      "offset": 459561,
      "size": 21,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "HoFPlayTimeText",
+     "offset": 459754,
+     "size": 10,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "HoFMoneyText",
+     "offset": 459764,
+     "size": 6,
      "fixed": false,
      "end_char": true,
      "far": []
@@ -29208,7 +30431,24 @@
   },
   {
    "file": "engine/movie/title.asm",
-   "labels": []
+   "labels": [
+    {
+     "label": "DebugNewGamePlayerName",
+     "offset": 17834,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "DebugNewGameRivalName",
+     "offset": 17841,
+     "size": 5,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    }
+   ]
   },
   {
    "file": "engine/movie/trade.asm",
@@ -29231,8 +30471,101 @@
    "labels": []
   },
   {
+   "file": "engine/overworld/player_state.asm",
+   "labels": [
+    {
+     "label": "SafariSteps",
+     "offset": 50553,
+     "size": 5,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "SafariBallText",
+     "offset": 50558,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    }
+   ]
+  },
+  {
    "file": "engine/pokemon/bills_pc.asm",
    "labels": [
+    {
+     "label": "SomeonesPCText",
+     "offset": 136331,
+     "size": 12,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "BillsPCText",
+     "offset": 136343,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "PlayersPCText",
+     "offset": 136352,
+     "size": 5,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "OaksPCText",
+     "offset": 136357,
+     "size": 13,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "PKMNLeaguePCText",
+     "offset": 136370,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "LogOffPCText",
+     "offset": 136378,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "BoxNoPCText",
+     "offset": 136979,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "DepositPCText",
+     "offset": 137163,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "WithdrawPCText",
+     "offset": 137171,
+     "size": 9,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
     {
      "label": "StatsCancelPCText",
      "offset": 137180,
@@ -29254,6 +30587,22 @@
   {
    "file": "engine/pokemon/status_screen.asm",
    "labels": [
+    {
+     "label": "StatusText",
+     "offset": 76476,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "OKText",
+     "offset": 76484,
+     "size": 3,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
     {
      "label": "StatusScreenExpText",
      "offset": 76975,
@@ -29289,8 +30638,161 @@
      "size": 1,
      "fixed": true,
      "far": []
+    },
+    {
+     "label": "SlotReward300Text",
+     "offset": 226960,
+     "size": 4,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "SlotReward100Text",
+     "offset": 226964,
+     "size": 4,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "SlotReward8Text",
+     "offset": 226968,
+     "size": 2,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "SlotReward15Text",
+     "offset": 226970,
+     "size": 3,
+     "fixed": false,
+     "end_char": true,
+     "far": []
     }
    ]
+  },
+  {
+   "file": "home/list_menu.asm",
+   "labels": [
+    {
+     "label": "InitialQuantityText",
+     "offset": 11824,
+     "size": 4,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "SpacesBetweenQuantityAndPriceText",
+     "offset": 11828,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "ListMenuCancelText",
+     "offset": 12183,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    }
+   ]
+  },
+  {
+   "file": "home/overworld_text.asm",
+   "labels": [
+    {
+     "label": "TextScriptEndingText",
+     "offset": 9430,
+     "size": 1,
+     "fixed": false,
+     "far": []
+    },
+    {
+     "label": "PickUpItemText",
+     "offset": 9460,
+     "size": 1,
+     "fixed": true,
+     "far": []
+    }
+   ]
+  },
+  {
+   "file": "home/text.asm",
+   "labels": [
+    {
+     "label": "TMCharText",
+     "offset": 6741,
+     "size": 3,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "TrainerCharText",
+     "offset": 6744,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "PCCharText",
+     "offset": 6752,
+     "size": 3,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "RocketCharText",
+     "offset": 6755,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "PlacePOKeText",
+     "offset": 6762,
+     "size": 5,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "SixDotsCharText",
+     "offset": 6767,
+     "size": 3,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "EnemyText",
+     "offset": 6770,
+     "size": 7,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "PlacePKMNText",
+     "offset": 6777,
+     "size": 3,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    }
+   ]
+  },
+  {
+   "file": "home/text_script.asm",
+   "labels": []
   },
   {
    "file": "scripts/AgathasRoom.asm",
@@ -29318,6 +30820,14 @@
      "label": "BikeShopMenuText",
      "offset": 120824,
      "size": 15,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "BikeShopMenuPrice",
+     "offset": 120839,
+     "size": 9,
      "fixed": false,
      "end_char": true,
      "far": []
@@ -30115,6 +31625,38 @@
      "offset": 298717,
      "size": 1,
      "fixed": true,
+     "far": []
+    },
+    {
+     "label": "GameCornerMoneyText",
+     "offset": 298874,
+     "size": 6,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "GameCornerCoinText",
+     "offset": 298880,
+     "size": 5,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "GameCornerBlankText1",
+     "offset": 298885,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "GameCornerBlankText2",
+     "offset": 298893,
+     "size": 8,
+     "fixed": false,
+     "end_char": true,
      "far": []
     }
    ]
@@ -32277,6 +33819,62 @@
   {
    "file": "scripts/Route23.asm",
    "labels": [
+    {
+     "label": "EarthBadgeText",
+     "offset": 332420,
+     "size": 11,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "VolcanoBadgeText",
+     "offset": 332431,
+     "size": 13,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "MarshBadgeText",
+     "offset": 332444,
+     "size": 11,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "SoulBadgeText",
+     "offset": 332455,
+     "size": 10,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "RainbowBadgeText",
+     "offset": 332465,
+     "size": 13,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "ThunderBadgeText",
+     "offset": 332478,
+     "size": 13,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
+    {
+     "label": "CascadeBadgeText",
+     "offset": 332491,
+     "size": 13,
+     "fixed": false,
+     "end_char": true,
+     "far": []
+    },
     {
      "label": "Route23Guard1Text",
      "offset": 332551,

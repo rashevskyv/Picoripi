@@ -39,15 +39,20 @@ DEF_LINE = re.compile(r"^\s*DEF\s+(\w+)\s+EQU\s+([^;]+?)\s*(?:;.*)?$")
 # Files the facts do not cover yet: their bodies are built by code macros (FOR loops), not by text.
 EXCLUDED_DATA = set()
 # Folders of the decompilation that never hold text bodies.
-SKIP_DIRS = {"constants", "macros", "tools", "docs", "vc", "ram", "gfx", "audio", "home", "lib", "scripts_skip"}
+SKIP_DIRS = {"constants", "macros", "tools", "docs", "vc", "ram", "gfx", "audio", "lib", "scripts_skip"}
 # Macro words that belong to a text body (a label's leading text is encoded; the first other line ends it).
 BODY_WORDS = (set(rom_text.FLOW_CODE) | set(rom_text.TERMINATOR) | set(rom_text.COMMAND_BY_NAME)
               | set(rom_text.GEN2_COMMAND_BY_NAME)
               | {"db", "dname", "li", "table_width", "list_start", "vc_patch", "vc_patch_end", "text_asm"})
 # Yellow: these bodies are referenced only by debug-only or unused code (not in the normal ROM); no reference exists.
 FAR_ABSENT_OK = {"_BoxFullDebugText", "_BoxWillBeClearedText", "_ExpressionText"}
+# Gold: the ROM holds a 4-byte text_far pattern that points at this label by chance (no text_far names it). The label
+# is referenced from code, so it never moves and the extra hit cannot be rewritten.
+FAR_COINCIDENCE_OK = {"PCCharText"}
 DEFINITION = re.compile(r"^[A-Za-z_][\w.]*::?\s*$")
 NAME_LINE = re.compile(r'^\s+(li|dname)\s+"')
+# A string the code or a table builds: ``db "...@"``, with or without a label on the same line.
+DB_LINE = re.compile(r'^(\s+|[A-Za-z_.][\w.]*:+\s+)db\s+"[^"]*@"')
 TEXT_LINE = re.compile(r'^\s+(text|line|cont|para|next|page|done|prompt|dex|text_end)\b')
 
 
@@ -178,7 +183,7 @@ def name_files(decomp: Path) -> list:
         if path.relative_to(decomp).as_posix() in EXCLUDED_DATA:
             continue
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
-        if any(NAME_LINE.match(line) or TEXT_LINE.match(line) for line in lines):
+        if any(NAME_LINE.match(line) or TEXT_LINE.match(line) or DB_LINE.match(line) for line in lines):
             found.append(path)
     return found
 
@@ -268,21 +273,28 @@ def main(argv: list) -> int:
     sources = sorted((decomp / "text").glob("*.asm")) + name_files(decomp)
     files = []
     all_labels = {}
+    skipped = []
     total_bodies = total_bytes = 0
     for path in sources:
         source = normal_build(path.read_text(encoding="utf-8"))
         groups = rom_text.read_labels(source)
         rel = path.relative_to(decomp).as_posix()
         entries = []
+        parent = ""
         for label, lines in groups:
             lines = text_prefix(lines)
             if not lines:
                 continue
             if not label:
                 continue
+            if not label.startswith(".") and label in rom_labels:
+                parent = label
+            if label.startswith(".") and parent + label in rom_labels:
+                label = parent + label      # a local label: the symbol file names it after its global label
             if label not in rom_labels:
                 if rel.startswith("text/"):
                     fail(f"{label} is not in the symbol file")
+                skipped.append((rel, label, "not in the symbol file"))
                 continue    # a local label inside code: no body of its own
             mode, width = body_mode(lines, defs)
             bank, cpu = rom_labels[label]
@@ -294,12 +306,14 @@ def main(argv: list) -> int:
             except rom_text.CodecError as error:
                 if strict:
                     fail(f"{rel} {label}: {error}")
+                skipped.append((rel, label, f"codec: {error}"))
                 continue
             if not data:
                 continue
             if rom[offset:offset + len(data)] != data:
                 if strict:
                     fail(f"{rel} {label}: the decompilation does not encode to the ROM bytes at {offset:#x}")
+                skipped.append((rel, label, "ROM bytes differ from the decompilation"))
                 continue
             entry = {"label": label, "offset": offset, "size": len(data),
                      "fixed": bool(data) and data[-1] == TEXT_ASM, "lines": lines,
@@ -330,7 +344,8 @@ def main(argv: list) -> int:
         for entry in entries:
             entry["ram_args"] = ram_arguments(entry["lines"], everything, runtime)
             last_word, last_args = entry["lines"][-1] if entry["lines"] else ("", "")
-            entry["end_char"] = (last_word in rom_text.FLOW_CODE and last_args.endswith('@"'))
+            # A string that ends in "@" inside its literal (``next "CANCEL@"``, ``db "CANCEL@"``) keeps the "@".
+            entry["end_char"] = (last_word in rom_text.FLOW_CODE or last_word == "db") and last_args.endswith('@"')
     far_hits = far_reference_sites(rom, rom_text.GEN2_TX_FAR if gen2 else FAR_OPCODE)
     far_pret = pret_far_counts(decomp)
     other_refs = other_reference_counts(decomp)
@@ -354,12 +369,13 @@ def main(argv: list) -> int:
                 if strict:
                     fail(f"{rel} {entry['label']}: decoded text {mine_texts[:2]} differs from {pret_texts[:2]}")
                 entry["drop"] = True
+                skipped.append((rel, entry["label"], "decoded text differs"))
                 continue
             decoded_source.append(rom_text.format_body(entry["label"], lines))
             bank, cpu = rom_labels[entry["label"]]
             hits = far_hits.get((bank, cpu), [])
             expected = 0 if (entry["label"] in FAR_ABSENT_OK and not hits) else far_pret.get(entry["label"], 0)
-            if len(hits) != expected:
+            if len(hits) != expected and entry["label"] not in FAR_COINCIDENCE_OK:
                 mismatch_far.append((entry["label"], len(hits), far_pret.get(entry["label"], 0)))
             entry["far"] = hits
             entry["movable"] = other_refs[entry["label"]] == 0
@@ -384,7 +400,14 @@ def main(argv: list) -> int:
         "files": out_files,
         "gaps": gaps,
     }
+    if out_path.is_file():     # keep the font entry that tools/pokemon_gb_font_facts.py wrote
+        previous = json.loads(out_path.read_text(encoding="utf-8"))
+        if "font" in previous:
+            facts["font"] = previous["font"]
     out_path.write_text(json.dumps(facts, ensure_ascii=False, indent=1), encoding="utf-8", newline="\n")
+    for rel, label, reason in skipped[:40]:
+        print(f"  skipped {rel} {label}: {reason}")
+    print(f"skipped {len(skipped)} labels outside text/")
     print(f"OK {build}: {len(out_files)} files, {total_bodies} bodies, {total_bytes} bytes,"
           f" {len(gaps)} free runs ({sum(end - start for _b, start, end, _p in gaps)} bytes), {out_path}")
     return 0

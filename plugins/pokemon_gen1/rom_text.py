@@ -83,6 +83,7 @@ _ARG_KINDS = {"ram_f": ["ram", "f"], "ram_nn": ["ram", "n", "n"], "ram_dn": ["ra
 # Flags of text_bcd (constants/text_constants.asm): a count and any of these, joined with "|".
 FLAGS = {"LEADING_ZEROES": 0x80, "LEFT_ALIGN": 0x40, "MONEY_SIGN": 0x20}
 _LABEL = re.compile(r"([A-Za-z_.][\w.]*)::?\s*$")
+_INLINE_LABEL = re.compile(r"([A-Za-z_.][\w.]*)::?\s+(\S.*)$")
 _LITERAL = re.compile(r'^"(.*)"$', re.S)
 _RAW_CELL = re.compile(r"<\$([0-9A-Fa-f]{2})>")
 
@@ -398,6 +399,10 @@ def read_labels(source: str) -> List[Tuple[str, List[Line]]]:
             if label:
                 groups.append((label.group(1), []))
                 continue
+            inline = _INLINE_LABEL.match(stripped)     # ``name: db "..."``: the label starts the body
+            if inline:
+                groups.append((inline.group(1), []))
+                stripped = inline.group(2).strip()
         if not groups:
             groups.append(("", []))
         word, _, args = stripped.partition(" ")
