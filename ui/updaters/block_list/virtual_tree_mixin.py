@@ -448,7 +448,13 @@ class VirtualTreeMixin:
         item = QTreeWidgetItem([title])
         icon = QStyle.StandardPixmap.SP_DirIcon if children else QStyle.StandardPixmap.SP_FileDialogDetailedView
         self._set_item_style_icon(item, 0, icon)
-        item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        # Not dragged, not dropped on: a whole manual's rows would get a speaker, or a block would land in it.
+        item.setFlags(
+            item.flags()
+            & ~Qt.ItemFlag.ItemIsEditable
+            & ~Qt.ItemFlag.ItemIsDragEnabled
+            & ~Qt.ItemFlag.ItemIsDropEnabled
+        )
         item.setData(0, Qt.ItemDataRole.UserRole, -2)
         item.setData(0, Qt.ItemDataRole.UserRole + 4, title)
         item.setData(0, Qt.ItemDataRole.UserRole + 18, "aggregate")

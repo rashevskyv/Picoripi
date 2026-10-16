@@ -116,3 +116,99 @@ def test_a_rebuild_selects_the_same_plugin_folder_again(updater, tree_mw):
     current = tree.currentItem()
     assert current is not None
     assert current.data(0, Qt.ItemDataRole.UserRole + 13) == [(0, 0)]
+
+
+class _Project:
+    """Explicit fake ProjectManager: records every change a drop could make to the project layout."""
+
+    def __init__(self):
+        self.project = MagicMock()
+        self.project.blocks = [MagicMock(), MagicMock(), MagicMock()]
+        self.calls = []
+
+    def create_virtual_folder(self, *args, **kwargs):
+        self.calls.append("create_virtual_folder")
+        return MagicMock()
+
+    def move_block_to_folder(self, *args):
+        self.calls.append("move_block_to_folder")
+
+    def move_folder_to_folder(self, *args):
+        self.calls.append("move_folder_to_folder")
+
+    def save(self):
+        self.calls.append("save")
+
+
+@pytest.fixture
+def drag_tree(qtbot, updater):
+    """A real CustomTreeWidget holding block 0 with its real plugin folders, and block 1 to drag around.
+
+    Returns the window too: qtbot keeps no strong reference, and the tree and its items die with the window."""
+    from PyQt6.QtWidgets import QWidget
+
+    from components.custom_tree_widget import CustomTreeWidget
+
+    window = QWidget()
+    qtbot.addWidget(window)
+    window.project_manager = _Project()
+    window.block_to_project_file_map = {}
+    window.undo_manager = None
+    window.data_store = MagicMock()
+    window.ui_updater = MagicMock()
+    tree = CustomTreeWidget(window)
+    block = updater._create_block_tree_item(0, {})
+    other = QTreeWidgetItem(["Other manual"])
+    other.setData(0, Qt.ItemDataRole.UserRole, 1)
+    tree.addTopLevelItems([block, other])
+    return window, tree, block, other
+
+
+def _drop_on(tree, target):
+    tree.itemAt = lambda point: target
+    event = MagicMock()
+    event.mimeData.return_value.hasFormat.return_value = False
+    tree.dropEvent(event)
+    return event
+
+
+def test_plugin_folders_cannot_be_dragged(drag_tree):
+    _window, tree, block, other = drag_tree
+    small = _find(block, "Small text")
+    assert not small.flags() & Qt.ItemFlag.ItemIsDragEnabled
+    assert not small.flags() & Qt.ItemFlag.ItemIsDropEnabled
+    assert tree._draggable([other, small, small.child(0)]) == [other]
+
+    small.setSelected(True)
+    tree.startDrag(Qt.DropAction.MoveAction)  # nothing draggable selected: returns before QDrag.exec
+    assert tree._pending_drag_items == []
+
+
+def test_dropping_a_block_on_a_plugin_folder_changes_no_project_block(drag_tree):
+    """Before: the folder's UserRole -2 read as a block index, so blocks[-2] went into a new folder and was saved."""
+    window, tree, block, other = drag_tree
+    small = _find(block, "Small text")
+    tree._pending_drag_items = [other]
+    tree._custom_drop_target = (small, "On")  # what the drag-move used to record
+
+    event = _drop_on(tree, small)
+
+    assert window.project_manager.calls == []
+    event.ignore.assert_called_once_with()
+    assert tree.indexOfTopLevelItem(other) == 1
+
+
+def test_a_selected_plugin_folder_dropped_on_a_speaker_assigns_nothing(drag_tree):
+    window, tree, block, _other = drag_tree
+    _find(block, "Contents").setSelected(True)
+    speaker = QTreeWidgetItem(["SYSTEM"])
+    speaker.setData(0, Qt.ItemDataRole.UserRole, -3)
+    speaker.setData(0, Qt.ItemDataRole.UserRole + 15, "SYSTEM")
+    tree.addTopLevelItem(speaker)
+    tree._pending_drag_items = []
+
+    event = _drop_on(tree, speaker)
+
+    assert tree._dragged_assignment_rows(tree._draggable(tree.selectedItems())) == []
+    assert window.project_manager.calls == []
+    event.ignore.assert_called_once_with()

@@ -16,6 +16,17 @@ class TreeDragDropMixin:
         return position.toPoint() if hasattr(position, "toPoint") else position
 
     @staticmethod
+    def _draggable(items):
+        """The items that may be dragged (plugin folders in the block tree may not)."""
+        return [item for item in items or () if item.flags() & Qt.ItemFlag.ItemIsDragEnabled]
+
+    @staticmethod
+    def _is_reorder_target(item):
+        """A project block or project folder: the only items a drop may move blocks into or next to."""
+        block_idx = item.data(0, Qt.UserRole)
+        return (isinstance(block_idx, int) and block_idx >= 0) or item.data(0, Qt.UserRole + 1) is not None
+
+    @staticmethod
     def _story_assignment_target(item):
         """Return the editable Story facet represented by a virtual tree leaf."""
         if item is None:
@@ -433,7 +444,7 @@ class TreeDragDropMixin:
 
     def startDrag(self, supportedActions):
         """Capture selected items BEFORE Qt can change hover/current state."""
-        self._pending_drag_items = list(self.selectedItems())
+        self._pending_drag_items = self._draggable(self.selectedItems())
 
         if not self._pending_drag_items:
             return
@@ -493,7 +504,7 @@ class TreeDragDropMixin:
         if self._story_assignment_target(item):
             self._custom_drop_target = (item, "On")
             event.acceptProposedAction()
-        elif not is_editor_drag and item and (item.data(0, Qt.UserRole) is not None or item.data(0, Qt.UserRole + 1) is not None):
+        elif not is_editor_drag and item and self._is_reorder_target(item):
             rect = self.visualItemRect(item)
             pct = (event_point.y() - rect.top()) / max(rect.height(), 1)
             pos = "Above" if pct < 0.2 else ("Below" if pct > 0.8 else "On")
@@ -523,7 +534,7 @@ class TreeDragDropMixin:
         undo_mgr = getattr(main_window, 'undo_manager', None)
         before = undo_mgr.get_project_snapshot() if undo_mgr else None
 
-        selected_items = self.selectedItems()
+        selected_items = self._draggable(self.selectedItems())
         drag_source_items = self._pending_drag_items or selected_items
 
         is_editor_drag = event.mimeData().hasFormat("application/x-selected-lines")
@@ -536,6 +547,13 @@ class TreeDragDropMixin:
                 event.acceptProposedAction()
             else:
                 event.ignore()
+            self._pending_drag_items = []
+            return
+
+        if drop_item is not None and not self._is_reorder_target(drop_item):
+            # A virtual item (a plugin folder, a Story root, a Notated leaf) takes no blocks: blocks[-2] is not one,
+            # and the empty-space fallback below would move the dragged blocks to the top level.
+            event.ignore()
             self._pending_drag_items = []
             return
 
@@ -650,7 +668,7 @@ class TreeDragDropMixin:
 
         # ── Fallback: drop on empty space → append to root ──────────────────
         target_item = self.itemAt(self._event_point(event))
-        selected_items = self.selectedItems()
+        selected_items = self._draggable(self.selectedItems())
         main_window = self.window()
         undo_mgr = getattr(main_window, 'undo_manager', None)
         before = undo_mgr.get_project_snapshot() if undo_mgr else None
