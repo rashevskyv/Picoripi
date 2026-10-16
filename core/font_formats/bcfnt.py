@@ -15,7 +15,7 @@ fonts: R = the letter, G = the shape behind it) show as (R, R, R, G) and are wri
 
 Wii (NW4R): the 3DS block layout in big endian under a ``RFNT`` header (version, file size at 0x08, header
 size at 0x0C, block count at 0x0E); a sheet is a GX texture in tiles (I4 8x8, high nibble first; I8 and IA4
-8x4; IA8 4x4, alpha byte first), cells ``cell + 1`` apart as on the 3DS. ``min_sheets`` adds blank sheets at
+8x4; IA8 4x4, alpha byte first; colour RGB5A3 4x4), cells ``cell + 1`` apart as on the 3DS. ``min_sheets`` adds blank sheets at
 the end of TGLP, as for Wii U fonts.
 
 Wii archived font (``RFNA``: Xenoblade Chronicles ``font.pkb``, the console's ``wbf1.brfna``): a ``GLGR``
@@ -64,8 +64,8 @@ CAFE_FORMATS = {CAFE_RGBA8: "RGBA8", CAFE_BC4: "BC4", CAFE_BC5: "BC5", CAFE_RGBA
 
 
 # Wii (NW4R GX) sheet formats
-RVL_I4, RVL_I8, RVL_IA4, RVL_IA8 = 0, 1, 2, 3
-RVL_FORMATS = {RVL_I4: "I4", RVL_I8: "I8", RVL_IA4: "IA4", RVL_IA8: "IA8"}
+RVL_I4, RVL_I8, RVL_IA4, RVL_IA8, RVL_RGB5A3 = 0, 1, 2, 3, 5
+RVL_FORMATS = {RVL_I4: "I4", RVL_I8: "I8", RVL_IA4: "IA4", RVL_IA8: "IA8", RVL_RGB5A3: "RGB5A3"}
 _RVL_TILES = {RVL_I4: (8, 8, 4), RVL_I8: (8, 4, 8), RVL_IA4: (8, 4, 8), RVL_IA8: (4, 4, 16)}
 
 
@@ -98,9 +98,12 @@ def _gx_place(texels: bytes, order: Tuple[int, ...], size: int) -> bytes:
 
 
 def gx_decode(raw: bytes, fmt: int, width: int, height: int) -> Image.Image:
-    """An RGBA image of a GX I4 / I8 / IA4 / IA8 texture: intensity as grey ink, IA as grey + alpha."""
+    """An RGBA image of a GX I4 / I8 / IA4 / IA8 texture: intensity as grey ink, IA as grey + alpha. A colour
+    RGB5A3 sheet (Super Mario Galaxy's button-icon and number fonts) goes through the shared GX codec."""
+    if fmt == RVL_RGB5A3:
+        return pixels.codec("gx:RGB5A3").decode(bytes(raw[:width * height * 2]), width, height)
     if fmt not in _RVL_TILES:
-        raise ValueError(f"Wii font sheet format {fmt} is not supported (I4, I8, IA4, IA8 are)")
+        raise ValueError(f"Wii font sheet format {fmt} is not supported (I4, I8, IA4, IA8, RGB5A3 are)")
     tile_w, tile_h, bits = _RVL_TILES[fmt]
     order, size, dims = _gx_order(width, height, tile_w, tile_h), width * height, (width, height)
     raw = bytes(raw[:size * bits // 8])
@@ -122,6 +125,8 @@ def gx_decode(raw: bytes, fmt: int, width: int, height: int) -> Image.Image:
 
 def gx_encode(image: Image.Image, fmt: int) -> bytes:
     """The GX texture of an RGBA image (the inverse of ``gx_decode``)."""
+    if fmt == RVL_RGB5A3:
+        return pixels.codec("gx:RGB5A3").encode(image.convert("RGBA"))
     width, height = image.size
     tile_w, tile_h, _bits = _RVL_TILES[fmt]
     order = _gx_order(width, height, tile_w, tile_h)

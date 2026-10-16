@@ -3,7 +3,8 @@
 ``WiiImage`` reads a Wii disc with one data partition and common key index 0. It decrypts the partition with the
 title key from the ticket, then lists the files like a GameCube disc (``sys/`` and ``files/``). The partition's
 cluster hash blocks are not verified. Refused: the Korean and vWii common keys, a disc with no data partition. Update
-and channel partitions are ignored. RVZ and WIA images are not recognised here.
+and channel partitions are ignored. A WIA or RVZ image (``core.containers.wia.WiaStream``) stores the partition
+decrypted, so it is read with no key: pass the stream and ``None``.
 """
 from __future__ import annotations
 
@@ -13,6 +14,7 @@ from typing import Any, BinaryIO, Dict, List, Optional
 from core.containers.console_crypto import BLOCK, CbcView, PlainView, read_raw, wrong_key_error
 from core.containers.gcm import APPLOADER_OFFSET, BI2_SIZE, FST_ENTRY, HEADER_SIZE, MAX_DEPTH, u32be
 from core.containers.image_files import MAX_TABLE, ImageError, ImageFile, ImageReader, check_name
+from core.containers.wia import WiaStream
 
 WII_MAGIC_AT = 0x18
 WII_MAGIC = 0x5D1C9EA3
@@ -33,7 +35,8 @@ def locate(head: bytes) -> Optional[Dict[str, Any]]:
     if len(head) < 0x20 or struct.unpack_from(">I", head, WII_MAGIC_AT)[0] != WII_MAGIC:
         return None
     game_id = head[:6].decode("ascii", "replace")
-    return {"kind": "wii", "game_id": game_id, "title_id": game_id, "encrypted": True, "title_kind": ""}
+    return {"kind": "wii", "game_id": game_id, "title_id": game_id, "encrypted": True, "title_kind": "",
+            "revision": head[7]}
 
 
 def load_common_key(path: str) -> bytes:
@@ -79,7 +82,8 @@ class WiiDataView(PlainView):
 class WiiImage(ImageReader):
     """A Wii disc image: its data partition, decrypted with ``common_key``, as a GameCube-style file layout."""
 
-    def __init__(self, stream: BinaryIO, common_key: bytes) -> None:
+    def __init__(self, stream: BinaryIO, common_key: Optional[bytes]) -> None:
+        """``common_key`` is None for a WIA or RVZ stream: it holds the partition already decrypted."""
         super().__init__(stream)
         head = self.read_at(0, 0x20)
         if u32be(head, WII_MAGIC_AT) != WII_MAGIC:
@@ -87,11 +91,6 @@ class WiiImage(ImageReader):
         self.game_id = head[:6].decode("ascii", "replace")
         part = self._data_partition()
         header = self.read_at(part, PARTITION_HEADER)
-        if header[0x1F1]:
-            raise ImageError(f"the Wii partition uses common key {header[0x1F1]}, which is not supported")
-        from Crypto.Cipher import AES  # pycryptodome, imported here as in console_crypto
-        title_id = header[0x1DC:0x1E4]
-        title_key = AES.new(common_key, AES.MODE_CBC, title_id + bytes(8)).decrypt(header[0x1BF:0x1CF])
         tmd_size, tmd_at = u32be(header, 0x2A4), u32be(header, 0x2A8) << 2
         if not tmd_size or part + tmd_at + tmd_size > self.size:
             raise ImageError("the Wii partition has no title metadata")
@@ -99,13 +98,23 @@ class WiiImage(ImageReader):
         clusters = (u32be(header, 0x2BC) << 2) // CLUSTER
         if not clusters or data_at + clusters * CLUSTER > self.size:
             raise ImageError("the Wii partition data is outside the image")
-        self._view = WiiDataView(stream, data_at, clusters, title_key)
+        if isinstance(stream, WiaStream):
+            self._view = stream.partition_view(data_at)
+        else:
+            if header[0x1F1]:
+                raise ImageError(f"the Wii partition uses common key {header[0x1F1]}, which is not supported")
+            from Crypto.Cipher import AES  # pycryptodome, imported here as in console_crypto
+            title_id = header[0x1DC:0x1E4]
+            title_key = AES.new(common_key, AES.MODE_CBC, title_id + bytes(8)).decrypt(header[0x1BF:0x1CF])
+            self._view = WiiDataView(stream, data_at, clusters, title_key)
         boot = read_raw(self._view, 0, HEADER_SIZE)
         if u32be(boot, WII_MAGIC_AT) != WII_MAGIC:
+            if isinstance(stream, WiaStream):
+                raise ImageError("the Wii partition data of this image is not a disc")
             raise wrong_key_error("Wii")
         self._dol_at = u32be(boot, 0x420) << 2
         self._fst_at = u32be(boot, 0x424) << 2
-        self._fst_size = u32be(boot, 0x428)  # not shifted, unlike the two pointers above
+        self._fst_size = u32be(boot, 0x428) << 2  # divided by 4 on a Wii disc, like the two pointers above
 
     def entries(self) -> List[ImageFile]:
         """The ``sys/`` files, then every file of the disc under ``files/``. Offsets address the decrypted view."""

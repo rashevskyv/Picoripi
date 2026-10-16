@@ -310,7 +310,8 @@ class RevertManager:
 
                     # Re-parsing what was written must not change what the plugin learned on load.
                     plugin_state = formats.export_state(self.mw.current_game_rules)
-                    reverted_data_list, _ = self.mw.current_game_rules.load_data_from_json_obj(output_data)
+                    with formats.translation_parse(self.mw.current_game_rules):
+                        reverted_data_list, _ = self.mw.current_game_rules.load_data_from_json_obj(output_data)
                     formats.restore_state(self.mw.current_game_rules, plugin_state)
 
                     self.mw.data_store.edited_file_data = reverted_data_list

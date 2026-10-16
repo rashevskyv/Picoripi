@@ -2,13 +2,34 @@
 status: current
 updated: 2026-10-15
 owns: unfinished work
-tokens: 33.4k
+tokens: 34.2k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## Super Mario Galaxy 1 and 2 (`plugins/super_mario_galaxy`, 2026-10-15, D39)
+
+- The Wii fonts get the Ukrainian mod's Cyrillic glyphs, scaled from the Switch fonts (`font_port.py`); the mod has
+  no ґ, so the builds write г for it. The scaled glyphs are not reviewed letter by letter yet. The Switch fonts
+  (little-endian `TNFR`) do not open in the Font Editor.
+- Picoripi cannot read a Switch update's RomFS (BKTR). The Switch build takes the update's archives from the imported
+  mod; a project without a mod builds on the base game's archives, which lack the update's labels (SMG1 v0 has 2246,
+  the mods 2247). The update the Ukrainian SMG1 mod was made for is unknown (its labels are those of the Russian mod,
+  which needs v1.3.0 = v196608).
+- Switch build not run in an emulator (skipped for now): Eden cannot open the `.nsz` packages (NCZ inside); an NSP is
+  needed.
+- 73 SMG1 labels (110 in SMG2) are worded differently on the Wii and the Switch, so each has a Wii row and a Switch
+  row (warning "Switch translation; Wii English differs"). The SMG1 Wii rows have no Ukrainian yet and build as the
+  Wii English; the Wii title prompt ("Press both A and B") is one of them.
+- Nebula: the build's `sys/fst.bin` must also replace Nebula's `content\sys\fst.bin` (the runtime loads that copy at
+  boot). Setup or repair of Nebula writes it back.
+- 132 imported SMG1 messages have other tags than the English (colour and timing tags the translator moved);
+  every button picture in a Wii row is now a Wii picture.
+- The 22 SMG1 Wii-only labels with text have no Ukrainian yet (the Switch mod does not have them); the Switch
+  `System.arc` (6 messages) is not in the mod either.
 
 ## Write hardening (audit r28, 2026-10-15)
 
@@ -1161,3 +1182,16 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - Super Mario Sunshine: escape tags and the attribute tables are still the Twilight Princess ones; the SMS tag catalogue is not written.
 - Super Mario Sunshine reference languages (2026-10-15, D37): the European disc gives English (EU), French, German, Spanish and Italian for 186 of 191 US message files (3193 of 3481 messages, every language). No reference: the four Japanese `dolpic1.bmg`, `title.szs/marisun_stage.bmg` (same file on both discs) and `main_strings.dolstr`. Open: the European English of a few slots says something else (`sys_message` #19 and #21, `pinnaParco5` and `test11/pinnaparco_5` #12, `ricco7` and `test11/ricco_7` #21; `loadmessage` #6 and #22-25 by the text pairing); a reworded slot or a moved message is not told apart.
 - Super Mario Sunshine reference, open: the owner's project folder holds `reference_eu`, but `project_settings.json` was not written (the agent's write was blocked); the owner runs the agent's `sms_set_eu_reference.bat` or picks the folder in Settings. A reference path that is still the disc image (Picoripi closed during the unpack) loads nothing at the next open; pick the disc again.
+
+## Final Fantasy Tactics Advance (GBA) plugin (`plugins/ffta_gba`, 2026-10-15)
+
+- Not opened yet: the name-entry keyboard grid (u16 LE codes from about 0xA33F00) and a few text runs outside the known
+  tables (0x4B9011, 0x4B658E, 0x4C3006, debug strings near 0x391000 and 0x3C4000).
+- The title menu words (New Game, Saved Game, Color Mode) and the intro captions are pictures; texture support is not
+  done.
+- Single-byte strings of the offset tables are not shown: 5,478 strings, all placeholder codes (5,474 `8D 8A FF` /
+  `8A FF` and four short kana strings); the build keeps their bytes.
+- The text buffer size is not read from the code (`rom_text.TEXT_LIMIT` = the longest string of the game).
+- FFTARecomp: upstream runs a translated ROM "Unpatched" (whole-ROM hash: no widescreen patches). A one-line fork
+  (`ffta_rom::eligible` = `verify_hooks`) shows it in 16:9 with the patches on (checked headless, 2026-10-15); the fork
+  is local and unpublished, and its installer still checks `KNOWN_SHA1`.

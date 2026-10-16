@@ -2,8 +2,9 @@
 
 Each file is ``{key: {"lines", "width", "en", "ru", "ua"}}``: ``lines`` is the paragraph's line count on the
 console, ``width`` its column in pixels (the widest line any official localisation drew there). The original is
-``en``; the Russian ``ru`` is reference context only; the translation is ``ua``. The source file has no ``ua`` key,
-the translation file has one, so the content alone says which of the two a load is.
+``en`` (``ru`` when ``en`` is empty: a page the English manual does not have); the Russian ``ru`` is reference
+context; the translation is ``ua``. One file may hold all three (a project that reads the owner's files in place),
+so the host's load role (``set_load_role``), not the content, says which a parse returns.
 
 A project holds many manuals: each parsed file is one data block, kept in load order (block index = position),
 and the list travels with the host as the plugin's runtime state (a restored session parses no file).
@@ -174,6 +175,7 @@ class GameRules(BaseGameRules):
         self._manuals: List[_Manual] = []  # one per data block, in load order
         self._save_doc: Optional[Dict[str, Dict[str, Any]]] = None
         self._save_block: Optional[int] = None
+        self._load_role = "source"
         self._problem_cache: Dict[Tuple[int, int, str], Tuple[Set[str], Dict[str, str]]] = {}
         # (block, string) -> {problem id: detail text} from the last analysis of that string
         self._problem_details: Dict[Tuple[int, int], Dict[str, str]] = {}
@@ -206,9 +208,14 @@ class GameRules(BaseGameRules):
         # export_runtime_state and restore_runtime_state, so those extra blocks never stay.
         manual = _Manual.of(doc).resolved()
         self._manuals.append(manual)
-        translation = any("ua" in entry for entry in doc.values())
-        texts = [str(entry.get("ua", "")) if translation else str(entry["en"]) for entry in doc.values()]
+        if self._load_role == "translation":
+            texts = [str(entry.get("ua", "")) for entry in doc.values()]
+        else:
+            texts = [str(entry.get("en") or entry.get("ru", "")) for entry in doc.values()]
         return [texts], {"0": manual.name or "Manual"}
+
+    def set_load_role(self, role: str) -> None:
+        self._load_role = role
 
     def export_runtime_state(self) -> Any:
         """The loaded manuals without their translation (the editor holds it): a restored session parses no file."""

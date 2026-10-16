@@ -183,7 +183,8 @@ class SaveMixin:
                     # Re-parsing what was written, to refresh the view, must not change
                     # what the plugin learned on load.
                     plugin_state = formats.export_state(self.mw.current_game_rules)
-                    reloaded_edited_data, _ = self.mw.current_game_rules.load_data_from_json_obj(final_obj_to_save)
+                    with formats.translation_parse(self.mw.current_game_rules):
+                        reloaded_edited_data, _ = self.mw.current_game_rules.load_data_from_json_obj(final_obj_to_save)
                     formats.restore_state(self.mw.current_game_rules, plugin_state)
 
                     self.mw.data_store.edited_file_data = reloaded_edited_data

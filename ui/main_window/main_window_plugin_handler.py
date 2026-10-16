@@ -40,6 +40,9 @@ class MainWindowPluginHandler:
 
     def setup_plugin_ui(self):
         """Setup plugin ui."""
+        # The startup plugin load runs before the preview column exists, and a project opened at startup reuses that
+        # plugin, so the plugin's own preview is docked here, once the column is built.
+        self.attach_custom_preview()
         if not self.mw.current_game_rules:
             return
             
@@ -181,16 +184,19 @@ class MainWindowPluginHandler:
                 bar.show()
         rules = getattr(mw, 'current_game_rules', None)
         getter = getattr(rules, 'get_custom_preview_widget', None)
-        widget = getter(mw) if callable(getter) and column is not None else None
-        if widget is None:
-            return
-        mw.custom_preview_widget = widget
-        column.layout().insertWidget(0, widget, 1)
-        if bfn is not None:
-            bfn.hide()
-        if bar is not None:
-            bar.hide()
-        widget.refresh()
+        try:
+            widget = getter(mw) if callable(getter) and column is not None else None
+            if widget is None:
+                return
+            mw.custom_preview_widget = widget
+            column.layout().insertWidget(0, widget, 1)
+            if bfn is not None:
+                bfn.hide()
+            if bar is not None:
+                bar.hide()
+            widget.refresh()
+        except Exception as exc:  # pythonw has no stderr: a broken plugin preview must reach the log
+            log_error(f"The preview widget of {type(rules).__name__} failed: {exc}", exc_info=True)
 
     def _load_custom_aliases(self):
         """Internal helper to load custom aliases."""

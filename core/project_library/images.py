@@ -3,9 +3,9 @@
 ``identify`` reads only the headers, by content, never by file name. ``extract`` writes the files a plugin asks for, in
 the folder layout of the zt scripts' ``source`` folder. NKit GameCube discs are read as they are (the layout is the
 same). Nintendo 3DS programs are read when they are decrypted (NoCrypto); encrypted 3DS, Switch and Wii content raises
-``ImageError`` from ``core.containers.console_crypto``. GameCube WIA and RVZ images are read as the plain disc they
-hold (``core.containers.wia``); the file is never converted or written. Formats this module does not read (other
-NKit kinds, Wii WIA or RVZ) raise ``ImageError`` with the reason: a plugin reports it.
+``ImageError`` from ``core.containers.console_crypto``. GameCube and Wii WIA and RVZ images are read as the plain
+disc they hold (``core.containers.wia``; a Wii one needs no key, its partition is stored decrypted); the file is never
+converted or written. Formats this module does not read (other NKit kinds) raise ``ImageError`` with the reason.
 All functions run on a worker thread: they read and write files, never touch widgets.
 """
 from __future__ import annotations
@@ -42,14 +42,17 @@ WII_MAGIC = wii_disc.WII_MAGIC
 
 def _describe(stream: Any, head: bytes) -> Optional[Dict[str, Any]]:
     """``{"kind", "game_id", "encrypted", ...}`` of a supported image, or None. Leaves the stream at offset 0."""
-    if is_wia_or_rvz(head):   # the decoded disc's header; a Wii WIA or RVZ raises ImageError from the reader
+    if is_wia_or_rvz(head):   # the decoded disc's header
         stream.seek(0)
         disc_head = WiaStream(stream).read(HEADER_SIZE)
         stream.seek(0)
         if is_gamecube_header(disc_head):
             return {"kind": KIND_GC, "game_id": disc_head[:6].decode("ascii", "replace"), "encrypted": False,
                     "revision": disc_head[7]}
-        return None
+        found = wii_disc.locate(disc_head)
+        if found is not None:   # the image holds the partition decrypted: no key file is needed
+            found["encrypted"] = False
+        return found
     if is_gamecube_header(head):
         return {"kind": KIND_GC, "game_id": head[:6].decode("ascii", "replace"), "encrypted": False,
                 "revision": head[7]}
@@ -123,7 +126,10 @@ def _reader(stream: Any, cache_dir: Optional[str | Path] = None,
     if is_nds_header(head):
         return NdsImage(stream)
     if is_wia_or_rvz(head):   # the decoded disc, read in place: the file is never written
-        return GameCubeImage(WiaStream(stream))
+        disc = WiaStream(stream)
+        if wii_disc.locate(disc.read(HEADER_SIZE)) is not None:
+            return wii_disc.WiiImage(disc, None)
+        return GameCubeImage(disc)
     found = _describe(stream, head)
     if found is not None:
         kind = found["kind"]

@@ -33,6 +33,19 @@ def test_an_edit_changes_only_its_cell():
     assert packed[4 + 3 * 64:4 + 4 * 64] == b"\xff" * 64
 
 
+def test_column_tiles_and_width_table_round_trip_and_save_widths():
+    params = {"offset": 0, "count": 1, "cell": [16, 16], "bpp": 4, "columns": 1, "tiles": "columns", "widths": 128}
+    data = bytearray(129)
+    data[32] = 0x0F              # first pixel of tile 1: bottom left in the column order
+    data[128] = 9
+    metadata, sheets = font_formats.extract("cells", bytes(data), params)
+    assert sheets[0].getpixel((0, 8)) == (255, 255, 255, 255) and sheets[0].getpixel((8, 0))[3] == 0
+    assert metadata["WID1"][0]["packets"][0]["width"] == 9
+    assert font_formats.pack("cells", metadata, sheets, bytes(data), params) == bytes(data)
+    metadata["WID1"][0]["packets"][0]["width"] = 12
+    assert font_formats.pack("cells", metadata, sheets, bytes(data), params)[128] == 12
+
+
 def test_tiles_layout_places_the_second_tile_right_of_the_first():
     params = {"offset": 0, "count": 1, "cell": [16, 16], "bpp": 4, "columns": 1, "tiles": True}
     cell = bytearray(128)

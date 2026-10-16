@@ -200,6 +200,13 @@ class BaseGameRules:
     def reset_runtime_state(self) -> None:
         """Forget the loading state: a new file or project is about to be loaded."""
 
+    def set_load_role(self, role: str) -> None:
+        """``"translation"`` while the host parses a translation file with ``load_data_from_json_obj`` (the project
+        load, the changes file, the re-parse after a save or a revert, the Project Manager's counts), ``"source"``
+        after. For a format whose source file can also hold the translation (several languages in one file), so a
+        parse returns the right language.
+        Default: nothing to do."""
+
     def prepare_save_context(self, context: Any) -> None:
         """Called before ``save_data_to_json_obj`` for each file of a project.
 
