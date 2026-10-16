@@ -14,7 +14,7 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple
 
 from core.i18n import tr
 from plugins.pokemon_fr import pret_text
-from plugins.pokemon_fr.rom_text import (CHARMAP_FILE, FACTS_DIR, Charmap, load_tables, load_units, read_all,
+from plugins.pokemon_fr.rom_text import (CHARMAP_FILE, FACTS_DIR, Charmap, braille_charmap, load_tables, load_units, read_all,
                                         table_files, write_all)
 
 ROM_ROLE = "rom"
@@ -81,7 +81,7 @@ def unpack(rom_path: str, target_dir: str, progress: Progress, is_cancelled: Can
     facts_name, facts = _facts_for(rom)
     progress(10, "Reading the messages")
     units, _floor, _header = load_units(FACTS_DIR / facts_name)
-    texts = read_all(rom, units, Charmap.load(FACTS_DIR / facts["charmap"]))
+    texts = read_all(rom, units, Charmap.load(FACTS_DIR / facts["charmap"]), braille_charmap(FACTS_DIR / facts_name))
     if is_cancelled():
         return None
     target = Path(target_dir)
@@ -113,7 +113,7 @@ def field_budgets(text_dir: str) -> Optional[Tuple[Dict[str, int], Charmap]]:
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
     facts = FACTS_DIR / meta["facts"]
     header = json.loads(facts.read_text(encoding="utf-8"))
-    sizes = {unit.label: unit.size for unit in load_tables(facts) if unit.fixed}
+    sizes = {unit.label: unit.size for unit in load_tables(facts) + load_units(facts)[0] if unit.fixed}
     return sizes, Charmap.load(FACTS_DIR / header.get("charmap", CHARMAP_FILE))
 
 
@@ -161,7 +161,8 @@ def build(source_dir: str, translation_dir: str, output_dir: str, progress: Prog
     units, floor, header = load_units(FACTS_DIR / meta["facts"])
     charmap = Charmap.load(FACTS_DIR / header.get("charmap", CHARMAP_FILE))
     tables = load_tables(FACTS_DIR / meta["facts"])
-    original = read_all(base, units + tables, charmap)
+    braille = braille_charmap(FACTS_DIR / meta["facts"])
+    original = read_all(base, units + tables, charmap, braille)
     edited = _edited_texts(source, len(units))
     edited.update(_edited_texts(Path(translation_dir), len(units)))
     edited.update(_edited_table_texts([source, Path(translation_dir)], meta["facts"]))
@@ -169,7 +170,7 @@ def build(source_dir: str, translation_dir: str, output_dir: str, progress: Prog
     progress(20, f"Writing {len(changed)} changed messages")
     if is_cancelled():
         return ""
-    patched = write_all(base, units + tables, charmap, floor, changed)
+    patched = write_all(base, units + tables, charmap, floor, changed, braille)
     out = Path(output_dir) / f"{meta['build_name']}.gba"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(patched)

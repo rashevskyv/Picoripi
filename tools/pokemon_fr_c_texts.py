@@ -33,6 +33,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "tools"))
 
+from plugins.common.gba_rom import pointer_index  # noqa: E402
 from plugins.pokemon_fr import rom_text  # noqa: E402
 from pokemon_fr_rom_facts import map_symbols  # noqa: E402
 
@@ -44,7 +45,8 @@ PIECE = re.compile(r'"((?:[^"\\\n]|\\.)*)"', re.S)
 DECLARED = re.compile(r'(\w+)\s*\[\s*\]\s*=\s*$')
 ESCAPES = {"n": "\\n", "p": "\\p", "l": "\\l", '"': '\\"', "\\": "\\\\"}
 BARE_BYTES = re.compile(r"\{(\w+)((?: [0-9A-Fa-f]+)+)\}")
-KANA = re.compile("[\u3040-\u30ff]")
+MAX_HITS = 256   # occurrences of one literal counted in the ROM
+SHORT = 4        # encoded length (terminator included) at or below which a repeated text is a fragment
 # Tables of characters, not messages: the naming screen's key rows and the hex digit table.
 CHARACTER_TABLES = {"naming_screen.c", "string_util.c"}
 SOURCE_DIRS = ("src", "data")
@@ -153,31 +155,77 @@ def source_files(decomp: Path) -> List[Path]:
                    and "debug" not in path.parts})
 
 
+def tally(found: Counter, residue: Optional[List[Dict[str, object]]], key: str, text: str, match: "re.Match",
+          shown: str, cls: str) -> None:
+    """Count one literal in its class; a residual record (file, line, text) is kept when a list is given."""
+    found[cls] += 1
+    if residue is not None:
+        residue.append({"cls": cls, "file": key, "line": text.count("\n", 0, match.start()) + 1,
+                        "text": shown[:90]})
+
+
+REGION_JSON = "src/data/region_map/region_map_sections.json"
+
+
+def region_names(decomp: Path) -> List[str]:
+    """The unique map section names of the region map data. The decomp builds each one as a C string
+    (``sMapsecName_<NAME>[] = _("<name>")``) from this JSON, so the text is in the ROM by its name alone."""
+    names: List[str] = []
+
+    def walk(node: object) -> None:
+        if isinstance(node, dict):
+            if isinstance(node.get("name"), str) and node["name"] not in names:
+                names.append(node["name"])
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+
+    path = decomp / REGION_JSON
+    if path.is_file():
+        walk(json.loads(path.read_text(encoding="utf-8")))
+    return names
+
+
+def source_texts(decomp: Path) -> List[Tuple[str, str, str]]:
+    """Each source as (key, stem, text): the C and header files, and the region names as C strings."""
+    found: List[Tuple[str, str, str]] = []
+    for path in source_files(decomp):
+        key = str(path.relative_to(decomp)).replace("\\", "/")
+        found.append((key, re.sub(r"\W", "_", path.stem), path.read_text(encoding="utf-8", errors="replace")))
+    lines = ['static const u8 sMapsecName_%s[] = _("%s");' % (re.sub(r"\W", "_", name), name)
+             for name in region_names(decomp)]
+    if lines:
+        found.append((REGION_JSON, "region_map_sections", "\n".join(lines) + "\n"))
+    return found
+
+
 def scan(decomp: Path, rom: bytes, charmap: rom_text.Charmap, symbols: Dict[str, int],
-         covered: Set[int], variant: str) -> Tuple[Dict[str, List[List[object]]], Dict[str, Counter]]:
-    """The new units per source file, and the count of each class per source file."""
+         covered: Set[int], variant: str, residue: Optional[List[Dict[str, object]]] = None
+         ) -> Tuple[Dict[str, List[List[object]]], Dict[str, Counter]]:
+    """The new units per source file, and the count of each class per source file. ``residue`` gets one record per literal
+    that was not opened (the class, file, line and text), when a list is passed."""
     units: Dict[str, List[List[object]]] = {}
     counts: Dict[str, Counter] = {}
     claimed: Set[int] = set(covered)
-    for path in source_files(decomp):
-        text = path.read_text(encoding="utf-8", errors="replace")
-        key = str(path.relative_to(decomp)).replace("\\", "/")
-        stem = re.sub(r"\W", "_", path.stem)
+    pointers = pointer_index(rom)
+    for key, stem, text in source_texts(decomp):
         found: Counter = Counter()
         flags = language_excluded_lines(text, variant)
         for match in LITERAL.finditer(text):
             raw = "".join(PIECE.findall(match.group(1)))
             shown = editor_text(raw)
             if flags[text.count("\n", 0, match.start())]:
-                found["other_language"] += 1
+                tally(found, residue, key, text, match, shown, "other_language")
                 continue
-            if KANA.search(shown):
-                found["japanese"] += 1
+            if shown == "":
+                tally(found, residue, key, text, match, shown, "empty")
                 continue
             try:
                 expected = charmap.encode(shown)
             except rom_text.CodecError:
-                found["nocell"] += 1
+                tally(found, residue, key, text, match, shown, "nocell")
                 continue
             declared = DECLARED.search(text[max(0, match.start() - 120):match.start()])
             name = declared.group(1) if declared else None
@@ -190,18 +238,27 @@ def scan(decomp: Path, rom: bytes, charmap: rom_text.Charmap, symbols: Dict[str,
             if at is None:
                 hits: List[int] = []
                 spot = rom.find(expected)
-                while spot >= 0 and len(hits) < 16:
+                while spot >= 0 and len(hits) < MAX_HITS:
                     hits.append(spot)
                     spot = rom.find(expected, spot + 1)
                 if any(h in claimed for h in hits):
-                    found["covered"] += 1
+                    tally(found, residue, key, text, match, shown, "covered")
                     continue
                 if not hits:
-                    found["missing"] += 1
+                    tally(found, residue, key, text, match, shown, "missing")
                     continue
-                starts = [h for h in hits if h == 0 or rom[h - 1] in (0x00, TERMINATOR)]
+                # A start is a byte after a terminator, or a place a pointer names: a text may follow data.
+                starts = [h for h in hits if h == 0 or rom[h - 1] in (0x00, TERMINATOR)
+                          or BASE + h in pointers]
                 if not starts:
-                    found["not_a_start"] += 1
+                    # One place in the image, after data: a text the code reads by its address (an inline field).
+                    if len(hits) != 1 or len(expected) <= 2:
+                        tally(found, residue, key, text, match, shown, "not_a_start")
+                        continue
+                    starts = hits
+                if len(expected) <= SHORT and len(starts) > 1 and not re.search(r"[A-Za-z]{2}", shown):
+                    # A short piece of code output (a control code, a space): not text, not opened.
+                    tally(found, residue, key, text, match, shown, "fragment")
                     continue
                 if len(starts) > 1:
                     # the same text in several places: each place the code has not claimed becomes a unit
@@ -211,11 +268,11 @@ def scan(decomp: Path, rom: bytes, charmap: rom_text.Charmap, symbols: Dict[str,
                             continue
                         units.setdefault(key, []).append([f"{stem}_L{line}_{k}", spot_k, len(expected)])
                         claimed.update(range(spot_k, spot_k + len(expected)))
-                        found["duplicate"] += 1
+                        tally(found, residue, key, text, match, shown, "duplicate")
                     continue
                 at = starts[0]
             if any(i in claimed for i in range(at, at + len(expected))):
-                found["covered"] += 1
+                tally(found, residue, key, text, match, shown, "covered")
                 continue
             label = name if how == "symbol" else f"{stem}_L{text.count(chr(10), 0, match.start()) + 1}"
             units.setdefault(key, []).append([label, at, len(expected)])

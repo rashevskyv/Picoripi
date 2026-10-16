@@ -62,6 +62,8 @@ FAMILY_TABLES = {
          "stride": 13, "size": 13, "first": ["AQUA LEADER", "TEAM AQUA"], "first_index": 2, "count": 107},
         {"name": "trainer_names", "file": "trainer_names.inc", "label": "gTrainerName_", "stride": 40,
          "size": 12, "first": ["SIDNEY", "PHOEBE", "ROXANNE"], "first_index": 25, "count": 743},
+        {"name": "decorations", "file": "decoration_names.inc", "label": "gDecorationName_", "stride": 32,
+         "size": 16, "first": ["SMALL DESK", "SMALL DESK", "POKéMON DESK"], "first_index": 0, "count": 121},
     ],
     "emerald": [
         {**ITEMS, "count": 377},
@@ -70,6 +72,8 @@ FAMILY_TABLES = {
          "count": 66},
         {"name": "trainer_names", "file": "trainer_names.inc", "label": "gTrainerName_", "stride": 40,
          "size": 12, "first": ["MARCEL", "ALBERTO", "ED"], "first_index": 11, "count": 855},
+        {"name": "decorations", "file": "decoration_names.inc", "label": "gDecorationName_", "stride": 32,
+         "size": 16, "first": ["SMALL DESK", "SMALL DESK", "POKéMON DESK"], "first_index": 0, "count": 121},
     ],
     "ruby": [
         {**ITEMS, "count": 349},

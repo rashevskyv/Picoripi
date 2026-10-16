@@ -199,3 +199,23 @@ def test_real_rom_unpack_writes_the_name_tables_and_their_budgets(tmp_path):
     assert "gMoveName_1" in sizes and "gMoveDescription_1" not in sizes
     assert len(charmap.encode("POUND")) == 6
     assert rom_project.field_budgets(str(tmp_path)) is None
+
+
+def test_braille_texts_use_the_braille_codes():
+    braille = rom_text.braille_charmap()
+    assert braille is not None
+    assert braille.decode(bytes([0x31, 0x17, 0xFF])) == "UP"
+    assert braille.encode("UP") == bytes([0x31, 0x17, 0xFF])
+    assert braille.decode(bytes([0x2C, 0xFF])) == "."
+
+
+def test_real_rom_braille_and_decoration_fields_unpack(tmp_path):
+    path = _rom_path()
+    if path is None:
+        pytest.skip("FireRed ROM not on disk")
+    unpacked = rom_project.unpack(str(path), str(tmp_path / "unpacked"), lambda p, t: None, lambda: False)
+    text_dir = Path(unpacked) / rom_project.SOURCE_DIR
+    messages = (text_dir / rom_project.TEXT_FILE).read_text(encoding="utf-8")
+    assert 'Braille_Text_Up::\n\t.string "UP$"' in messages
+    sizes, _charmap = rom_project.field_budgets(str(text_dir))
+    assert sizes["gDecorationName_0"] == 16

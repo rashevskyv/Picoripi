@@ -40,6 +40,7 @@ class Unit:
     size: int
     fixed: bool = False
     pad: int = 0
+    braille: bool = False     # a braille text: its bytes are braille character codes (the ``braille_chars`` facts)
 
 
 class Charmap:
@@ -197,8 +198,19 @@ def load_units(path: Optional[Path] = None) -> Tuple[List[Unit], int, Dict[str, 
     """The messages of a game's facts file, the first free file offset, and the facts header."""
     data = json.loads((path or FACTS_DIR / "firered_usa_rev0.json").read_text(encoding="utf-8"))
     units = [Unit(label, int(offset), int(size)) for label, offset, size in data["units"]]
+    for item in data.get("braille_units", []):
+        # A fourth item "fixed" marks a text a window format precedes: its pointer names the format, so it keeps its size.
+        units.append(Unit(item[0], int(item[1]), int(item[2]), fixed=len(item) > 3, braille=True))
     header = {key: value for key, value in data.items() if key != "units"}
     return units, int(data["free_start"]), header
+
+
+def braille_charmap(path: Optional[Path] = None) -> Optional[Charmap]:
+    """The braille codes of a facts file (``braille_chars``: ``[char, hex code]``), or None when it has none."""
+    data = json.loads((path or FACTS_DIR / "firered_usa_rev0.json").read_text(encoding="utf-8"))
+    if "braille_chars" not in data:
+        return None
+    return Charmap([(char, int(code, 16)) for char, code in data["braille_chars"]], [], {})
 
 
 def load_tables(path: Optional[Path] = None) -> List[Unit]:
@@ -240,13 +252,20 @@ def table_files(path: Optional[Path] = None) -> Dict[str, List[str]]:
     return files
 
 
-def read_all(rom: bytes, units: Sequence[Unit], charmap: Charmap) -> Dict[str, str]:
+def _codec(unit: Unit, charmap: Charmap, braille: Optional[Charmap]) -> Charmap:
+    """The character codes of one unit: the braille table for a braille text, else the game's charmap."""
+    return braille if unit.braille and braille is not None else charmap
+
+
+def read_all(rom: bytes, units: Sequence[Unit], charmap: Charmap,
+             braille: Optional[Charmap] = None) -> Dict[str, str]:
     """The editor text of every message, keyed by label."""
-    return {unit.label: charmap.decode(rom[unit.offset:unit.offset + unit.size]) for unit in units}
+    return {unit.label: _codec(unit, charmap, braille).decode(rom[unit.offset:unit.offset + unit.size])
+            for unit in units}
 
 
 def write_all(rom: bytes, units: Sequence[Unit], charmap: Charmap, floor: int,
-              texts: Dict[str, str]) -> bytes:
+              texts: Dict[str, str], braille: Optional[Charmap] = None) -> bytes:
     """A patched copy of the ROM with the given messages written. A message that does not fit moves to free space.
 
     The header complement is written as well. With ``texts`` equal to ``read_all`` the result equals the input.
@@ -259,9 +278,10 @@ def write_all(rom: bytes, units: Sequence[Unit], charmap: Charmap, floor: int,
         unit = by_label.get(label)
         if unit is None:
             raise RomError(tr("No message named {0} in this game.", label))
-        data = charmap.encode(text)
+        codec = _codec(unit, charmap, braille)
+        data = codec.encode(text)
         if unit.fixed:
-            if charmap.decode(rom[unit.offset:unit.offset + unit.size]) == text:
+            if codec.decode(rom[unit.offset:unit.offset + unit.size]) == text:
                 continue          # the field keeps its own padding when its text is unchanged
             if len(data) > unit.size:
                 raise RomError(tr("{0} is {1} bytes long; its table gives {2} bytes, the terminator included. "
