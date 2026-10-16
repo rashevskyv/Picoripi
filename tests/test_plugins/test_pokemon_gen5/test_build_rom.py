@@ -1,6 +1,6 @@
-"""Pokémon Black / White (DS) ROM build without zt: the wizard's unpack keeps the clean image, the build writes one
-longer line into a message file and the ROM lays out again. The Black image is DSi-enhanced, so the build also turns
-it into a plain NDS image (real data; skipped without the workspace image)."""
+"""Pokémon Black / White and Black 2 (DS) ROM build without zt: the wizard's unpack keeps the clean image, the build
+writes one longer line into a message file and the ROM lays out again. The Black image is DSi-enhanced, so the build also
+turns it into a plain NDS image; Black 2 is a plain NDS image (real data; skipped without the workspace images)."""
 from pathlib import Path
 
 import pytest
@@ -11,17 +11,18 @@ from core.containers.narc_members import narc_members
 from plugins.common import gen5msg
 from plugins.pokemon_gen5.rules import BUILD_TARGET, GameRules
 
-
-def _black_image():
-    folder = romhacking_root.path("Pokemon", "Black and White", "ISO")
-    images = sorted(folder.glob("*.nds")) if folder.is_dir() else []
-    if not images:
-        pytest.skip("no Black image on disk under the workspace")
-    return images[0]
+CASES = [
+    ("Black and White", "Pokemon - Black Version (DSi Enhanced)(USA) (E)(SweeTnDs).nds"),
+    ("Black 2 and White 2", "Pokemon - Black Version 2 (U) (frieNDS).nds"),
+]
 
 
-def test_real_black_unpack_then_build_writes_a_longer_line(tmp_path):
-    iso = _black_image()
+@pytest.mark.parametrize("game,image", CASES)
+def test_real_unpack_then_build_writes_a_longer_line(tmp_path, game, image):
+    iso = romhacking_root.path("Pokemon", game, "ISO", image)
+    reason = romhacking_root.missing("Pokemon", game, "ISO", image)
+    if reason:
+        pytest.skip(reason)
     rules = GameRules(None)
     source, translation = tmp_path / "source", tmp_path / "translation"
     rules.unpack_sources({"base": str(iso)}, str(source), lambda *_: None, lambda: False)
@@ -44,8 +45,8 @@ def test_real_black_unpack_then_build_writes_a_longer_line(tmp_path):
     out.mkdir()
     built = Path(rules.build_target(BUILD_TARGET, str(source), str(translation), str(out),
                                     lambda *_: None, lambda: False)).read_bytes()
-    assert built[0x12] == 0, "the DSi-enhanced image must come out as plain NDS"
     nds_write.check_header(built)
+    assert built[0x12] == 0
 
     # the folder name is the archive name with "/" for "_"; the file name is the member index
     archive = path.parent.name.replace("_", "/")

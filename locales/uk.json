@@ -2366,5 +2366,7 @@
   "Large text": "Великий текст",
   "Sections": "Розділи",
   "Contents": "Зміст",
-  "Page {0}": "Сторінка {0}"
+  "Page {0}": "Сторінка {0}",
+  "A line is wider than the box (216 px).": "Один рядок ширший за вікно (216 px).",
+  "More text follows on the next page or line.": "Далі йде ще текст на наступній сторінці або рядку."
 }

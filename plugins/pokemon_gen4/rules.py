@@ -275,6 +275,42 @@ class GameRules(BaseGameRules):
             log_debug(f"pokemon_gen4: no file for block {block_idx}: {error}")
             return ""
 
+    def _source_root(self) -> Optional[str]:
+        """The unpacked source folder of the project (None before a project is open)."""
+        try:
+            root = str(self.mw.project_manager.project.metadata.get("source_path") or "")
+        except AttributeError:
+            return None
+        return root if root and os.path.isdir(root) else None
+
+    def _window_facts(self) -> Optional[Tuple[str, Tuple[str, int]]]:
+        """(source folder, font location) for the games whose message window is known (Platinum)."""
+        from . import message_preview
+        root = self._source_root()
+        code = message_preview.game_code(root) if root else None
+        facts = message_preview.facts_for(code) if code else None
+        return (root, facts) if facts else None
+
+    def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
+        """The message box of the game: its width and lines (pret facts, see ``message_preview``)."""
+        if self._window_facts() is None:
+            return None
+        from . import message_preview
+        return {"max_width": message_preview.BOX_PX, "warn_width": message_preview.BOX_PX,
+                "lines_per_page": message_preview.LINES_PER_PAGE}
+
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """The game's message box drawn with the game's own font; None (the BFN preview) without the facts."""
+        from . import message_preview
+        found = self._window_facts()
+        if found is None:
+            return None
+        root, (narc, member) = found
+        font = message_preview.load_font(root, narc, member)
+        if font is None:
+            return None
+        return message_preview.MessageWindowPreview(font, gen4msg.Codec(self._game_charmap()))
+
     def get_scene_context_for_string(self, block_idx: int, string_idx: int) -> Dict[str, Any]:
         rel = self._block_path(block_idx)
         return {"resource": rel, "label": os.path.splitext(os.path.basename(rel))[0]} if rel else {}
