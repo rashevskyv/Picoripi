@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from handlers.project_action_handler import ProjectActionHandler
 from core.project_manager import ProjectManager
-from PyQt6.QtWidgets import QMessageBox, QDialog
+from PyQt6.QtWidgets import QMessageBox, QDialog, QTreeWidgetItem
 
 
 class _RecentProjectsSettings:
@@ -262,6 +262,25 @@ def test_ProjectActionHandler_delete_block_action_folder(mock_mw):
 
     h.delete_block_action()
     mock_mw.virtual_folder_handler.delete_folder_action.assert_called_once_with("folder_1", mock_item)
+
+
+@patch('handlers.project_action.blocks_mixin.QMessageBox')
+def test_ProjectActionHandler_delete_block_action_on_a_virtual_item_removes_nothing(mock_msg_box, mock_mw):
+    """Remove Block on a plugin folder (UserRole -2) once asked about blocks[-2] and removed that unrelated block."""
+    mock_mw.project_manager = MagicMock()
+    mock_mw.project_manager.project.blocks = [MagicMock(), MagicMock(), MagicMock()]
+    h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
+    folder = QTreeWidgetItem(["Small text"])
+    folder.setData(0, Qt.UserRole, -2)
+    mock_mw.block_list_widget.currentItem.return_value = folder
+    mock_msg_box.StandardButton = QMessageBox.StandardButton
+    mock_msg_box.question.return_value = QMessageBox.StandardButton.Yes
+
+    h.delete_block_action()
+
+    mock_msg_box.question.assert_not_called()
+    mock_mw.project_manager.project.remove_block.assert_not_called()
+    mock_mw.project_manager.save.assert_not_called()
 
 
 @patch('handlers.project_action.recent_mixin.ProjectManager')

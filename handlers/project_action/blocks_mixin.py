@@ -88,8 +88,9 @@ class BlocksMixin:
         folder_id = current_item.data(0, Qt.UserRole + 1)
         pm = self.mw.project_manager
 
-        # Determine what we are deleting
-        if block_idx is not None:
+        # Determine what we are deleting. A virtual item (a plugin folder, a chapter, a speaker) has a negative
+        # UserRole: it is no block, and blocks[-2] would remove an unrelated one.
+        if isinstance(block_idx, int) and block_idx >= 0:
             # IT IS A BLOCK
             block = pm.project.blocks[block_idx]
             block_name = block.name
