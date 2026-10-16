@@ -329,3 +329,17 @@ def test_a_project_block_menu_keeps_block_actions(menu_tree):
     labels = open_menu(tree.topLevelItem(1))
     assert {"Rename Block", "Remove Block", "Reveal in Explorer", "Properties..."} <= labels
     assert "AI: Translate Block 'Block 1' (UA)" in labels
+
+
+def test_saving_the_tree_layout_skips_virtual_items(drag_tree):
+    """Before: a top-level Story chapter or speaker put blocks[-2] or blocks[-3] into the saved root layout."""
+    window, tree, _block, _other = drag_tree
+    project = window.project_manager.project
+    for index, block in enumerate(project.blocks):
+        block.id = f"b{index}"
+    project.metadata = {}
+    tree.addTopLevelItems([_story_chapter(), _speaker()])
+
+    tree.sync_tree_to_project_manager()
+
+    assert project.metadata["root_block_ids"] == ["b0", "b1"]
