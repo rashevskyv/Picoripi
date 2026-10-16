@@ -12,7 +12,16 @@
         "{Up/Down}": "{DPAD_UPDOWN}",
         "{Left/Right}": "{DPAD_LEFTRIGHT}",
         "{Plus}": "{PLUS}",
-        "{Lv2}": "{LV_2}"
+        "{Lv2}": "{LV_2}",
+        "{Kun}": "{KUN}",
+        "{Version}": "{VERSION}",
+        "{Unknown}": "{UNKNOWN_STR}",
+        "{EvilTeam}": "{EVIL_TEAM}",
+        "{GoodTeam}": "{GOOD_TEAM}",
+        "{EvilLeader}": "{EVIL_LEADER}",
+        "{GoodLeader}": "{GOOD_LEADER}",
+        "{EvilLegend}": "{EVIL_LEGENDARY}",
+        "{GoodLegend}": "{GOOD_LEGENDARY}"
     },
     "block_names": {},
     "block_color_markers": {},

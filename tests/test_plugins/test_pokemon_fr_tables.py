@@ -42,3 +42,18 @@ def test_fixed_entries_round_trip_and_refuse_a_longer_name():
         rom_text.write_all(rom, units, charmap, 0, {"gSpeciesName_1": "UA-BULBASAUR"})
     with pytest.raises(CodecError):
         rom_text.write_all(rom, units, charmap, 0, {"gSpeciesName_1": "ЙО"})
+
+
+def test_every_default_alias_targets_a_charmap_control_name():
+    """Each alias in config.json names a control code of the Generation III charmap (no typo ships)."""
+    import json
+
+    from plugins.pokemon_fr import rom_text
+
+    config = json.loads((rom_text.FACTS_DIR.parent / "config.json").read_text(encoding="utf-8"))
+    charmap = json.loads((rom_text.FACTS_DIR / "charmap_gen3.json").read_text(encoding="utf-8"))
+    names = {name for name, _ in charmap["names"]}
+    for alias, raw in config["default_tag_mappings"].items():
+        assert alias.startswith("{") and alias.endswith("}")
+        assert raw.startswith("{") and raw.endswith("}")
+        assert raw[1:-1] in names, raw
