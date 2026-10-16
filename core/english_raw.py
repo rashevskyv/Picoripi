@@ -105,9 +105,10 @@ def dialogue_text(chunk: bytes) -> bytes:
     return chunk[3:]
 
 
-# MG1 menu and result strings: NUL-terminated runs in this window that do not overlap a dialogue record.
+# MG1 menu, option and result strings: NUL-terminated runs in this window that do not overlap a dialogue record.
+# The Switch file and the PC ovr_stm\ovr_eu file end their option menus at 0x15EF09.
 MENU_START = 0x15DF00
-MENU_END = 0x15EC00
+MENU_END = 0x160000
 _NUL_TEXT = re.compile(rb"[\x20-\x7e\n]{4,}\x00")
 _WORDS4 = re.compile(rb"[A-Za-z]{4,}")
 
