@@ -2,7 +2,6 @@
 translated pack member and a loose file (``plugins.pokemon_md_3ds.unpack`` and ``build``). A synthetic pack and
 message file stand in for the game, so the test needs no game files."""
 import struct
-from pathlib import Path
 
 from core.containers import farc
 from plugins.pokemon_md_3ds import build as build_mod
