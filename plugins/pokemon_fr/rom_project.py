@@ -1,8 +1,9 @@
 """ROM mode of the Pokemon plugin: unpack a game ROM into the editor's text files, build a patched ROM from them.
 
-The unpacked text is the decompilation's assembly form, one ``label::`` and ``.string`` lines per message, so the
-editor loads it with the same parser as the pret source. The base ROM is kept beside it, so a build does not need
-the original file again. A build writes only the messages that differ from the base ROM.
+The unpacked tree holds ``text/messages.inc`` (the project's source root, see ``SOURCE_DIR``) and ``rom/`` beside it:
+the base ROM and the facts it was unpacked with. The messages are the decompilation's assembly form, one ``label::``
+and ``.string`` lines per message, so the editor loads them with the same parser as the pret source. A build writes
+only the messages that differ from the base ROM.
 """
 from __future__ import annotations
 
@@ -16,9 +17,11 @@ from plugins.pokemon_fr import pret_text
 from plugins.pokemon_fr.rom_text import CHARMAP_FILE, FACTS_DIR, Charmap, load_units, read_all, write_all
 
 ROM_ROLE = "rom"
-TEXT_FILE = Path("text") / "messages.inc"
-BASE_ROM = Path("rom") / "base.gba"
-META_FILE = Path("rom") / "meta.json"
+SOURCE_DIR = "text"                       # the project's source root, inside the unpacked tree
+TEXT_FILE = Path("messages.inc")          # inside the source root (and inside the translation folder)
+ROM_DIR = "rom"                           # beside the source root
+BASE_ROM = Path(ROM_DIR) / "base.gba"
+META_FILE = Path(ROM_DIR) / "meta.json"
 Progress = Callable[[int, str], None]
 Cancelled = Callable[[], bool]
 
@@ -69,7 +72,7 @@ def _asm_text(units, texts: Dict[str, str]) -> str:
 
 
 def unpack(rom_path: str, target_dir: str, progress: Progress, is_cancelled: Cancelled) -> Optional[str]:
-    """Write the messages and the base ROM into ``target_dir``. Returns the folder (the project's source root)."""
+    """Write ``text/messages.inc`` and ``rom/`` into ``target_dir``; returns ``target_dir`` (the host takes ``text``)."""
     rom = Path(rom_path).read_bytes()
     facts_name, facts = _facts_for(rom)
     progress(10, "Reading the messages")
@@ -78,10 +81,10 @@ def unpack(rom_path: str, target_dir: str, progress: Progress, is_cancelled: Can
     if is_cancelled():
         return None
     target = Path(target_dir)
-    (target / TEXT_FILE.parent).mkdir(parents=True, exist_ok=True)
-    (target / TEXT_FILE).write_text(_asm_text(units, texts), encoding="utf-8", newline="\n")
+    (target / SOURCE_DIR).mkdir(parents=True, exist_ok=True)
+    (target / SOURCE_DIR / TEXT_FILE).write_text(_asm_text(units, texts), encoding="utf-8", newline="\n")
     progress(60, "Copying the base ROM")
-    (target / BASE_ROM.parent).mkdir(parents=True, exist_ok=True)
+    (target / ROM_DIR).mkdir(parents=True, exist_ok=True)
     (target / BASE_ROM).write_bytes(rom)
     (target / META_FILE).write_text(json.dumps({"facts": facts_name, "build_name": facts["build_name"]},
                                                ensure_ascii=False, indent=1), encoding="utf-8")
@@ -89,27 +92,36 @@ def unpack(rom_path: str, target_dir: str, progress: Progress, is_cancelled: Can
     return str(target)
 
 
-def _edited_texts(folder: Path) -> Dict[str, str]:
-    path = folder / TEXT_FILE
+def _edited_texts(text_dir: Path, expected: int) -> Dict[str, str]:
+    """The messages of a text file. A file with fewer messages than the ROM has is broken: refuse it, do not drop them."""
+    path = text_dir / TEXT_FILE
     if not path.is_file():
         return {}
-    return {unit.label: unit.content for unit in pret_text.parse(path.read_text(encoding="utf-8"), asm=True)}
+    units = pret_text.parse(path.read_text(encoding="utf-8"), asm=True)
+    if len(units) != expected:
+        raise ValueError(tr("{0} has {1} messages; the ROM has {2}. Check each label and each .string line.",
+                            str(path), str(len(units)), str(expected)))
+    return {unit.label: unit.content for unit in units}
 
 
 def build(source_dir: str, translation_dir: str, output_dir: str, progress: Progress,
           is_cancelled: Cancelled) -> str:
-    """Write the patched ROM into ``output_dir``. Messages come from the translation folder, else from the source."""
+    """Write the patched ROM into ``output_dir``. Messages come from the translation folder, else from the source.
+
+    ``source_dir`` is the text folder (the project's source root); the base ROM is in ``rom/`` beside it.
+    """
     source = Path(source_dir)
-    meta_path = source / META_FILE
+    rom_dir = source.parent / ROM_DIR
+    meta_path = rom_dir / "meta.json"
     if not meta_path.is_file():
         raise ValueError(tr("This project was not unpacked from a ROM."))
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
-    base = (source / BASE_ROM).read_bytes()
+    base = (rom_dir / "base.gba").read_bytes()
     units, floor, _header = load_units(FACTS_DIR / meta["facts"])
     charmap = Charmap.load()
     original = read_all(base, units, charmap)
-    edited = _edited_texts(source)
-    edited.update(_edited_texts(Path(translation_dir)))
+    edited = _edited_texts(source, len(units))
+    edited.update(_edited_texts(Path(translation_dir), len(units)))
     changed = {label: text for label, text in edited.items() if label in original and text != original[label]}
     progress(20, f"Writing {len(changed)} changed messages")
     if is_cancelled():

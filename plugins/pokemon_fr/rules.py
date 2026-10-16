@@ -385,6 +385,9 @@ class GameRules(BaseGameRules):
     def get_platforms(self) -> List[Dict[str, str]]:
         return [{"id": "gba", "label": "Game Boy Advance"}]
 
+    def get_source_subfolder(self) -> Optional[str]:
+        return rom_project.SOURCE_DIR
+
     def unpack_sources(self, sources: Dict[str, str], target_dir: str,
                        progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> Optional[str]:
         rom = sources.get(rom_project.ROM_ROLE)

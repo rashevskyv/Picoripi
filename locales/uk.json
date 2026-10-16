@@ -2379,5 +2379,7 @@
   "An opening brace without a closing one.": "Відкриваюча фігурна дужка без закриваючої.",
   "No cell for {0} in this game's charmap.": "Немає клітинки для {0} у таблиці символів гри.",
   "No message named {0} in this game.": "У цій грі немає повідомлення {0}.",
-  "The ROM has no free space left for the longer text.": "У ROM немає вільного місця для довшого тексту."
+  "The ROM has no free space left for the longer text.": "У ROM немає вільного місця для довшого тексту.",
+  "This message is not used through a pointer, so it cannot move. Keep it within its original length.": "Це повідомлення не використовується через вказівник, тому його не можна перенести. Зробіть його не довшим за оригінал.",
+  "{0} has {1} messages; the ROM has {2}. Check each label and each .string line.": "{0} містить {1} повідомлень, а в ROM їх {2}. Перевірте кожну мітку і кожен рядок .string."
 }

@@ -101,9 +101,42 @@ def test_real_rom_unpack_and_build_match_the_image(tmp_path):
     if path is None:
         pytest.skip("FireRed ROM not on disk")
     unpacked = rom_project.unpack(str(path), str(tmp_path / "unpacked"), lambda p, t: None, lambda: False)
-    built = rom_project.build(unpacked, str(tmp_path / "translation"), str(tmp_path / "build"),
+    source_root = Path(unpacked) / rom_project.SOURCE_DIR          # the host opens this folder as the project
+    assert (source_root / rom_project.TEXT_FILE).is_file()
+    built = rom_project.build(str(source_root), str(tmp_path / "translation"), str(tmp_path / "build"),
                               lambda p, t: None, lambda: False)
     assert Path(built).read_bytes() == path.read_bytes()
+
+
+def test_real_rom_project_loads_saves_and_builds_unchanged(tmp_path):
+    """The Project Manager's path: unpack, the plugin loads and saves the text file, the build packs the ROM."""
+    from core.project_library import build as project_build
+    from plugins.pokemon_fr.rules import GameRules
+
+    path = _rom_path()
+    if path is None:
+        pytest.skip("FireRed ROM not on disk")
+    rules = GameRules(None)
+    never = lambda: False  # noqa: E731
+    source = project_build.run_unpack(rules, {rom_project.ROM_ROLE: str(path)}, str(tmp_path / "project"),
+                                      lambda p, t: None, never)
+    text_file = Path(source) / rom_project.TEXT_FILE
+    original = text_file.read_text(encoding="utf-8")
+    data, block_names = rules.load_data_from_json_obj(original)
+    assert len(data[0]) == len(rom_text.load_units(rom_text.FACTS_DIR / "firered_usa_rev0.json")[0])
+    assert rules.save_data_to_json_obj(data, block_names) == original
+    built = project_build.run_build(rules, "rom", str(tmp_path / "project"), source,
+                                    str(tmp_path / "translation"), lambda p, t: None, never)
+    assert Path(built).read_bytes() == path.read_bytes()
+
+
+def test_a_message_without_a_pointer_refuses_to_move():
+    rom = bytearray(b"\xff" * 0x100)
+    rom[0x10:0x14] = b"ABCD"
+    relocator = gba_rom.Relocator(rom, {}, floor=0x80)
+    with pytest.raises(gba_rom.RomError):
+        relocator.move(0x10, 4, b"LONGER THAN FOUR")
+    assert rom[0x10:0x14] == b"ABCD"
 
 
 def test_real_rom_longer_message_moves_and_reads_back(tmp_path, charmap):
@@ -121,3 +154,23 @@ def test_real_rom_longer_message_moves_and_reads_back(tmp_path, charmap):
     size = len(charmap.encode(new_text))
     assert charmap.decode(patched[target:target + size]) == new_text
     assert patched[unit.offset:unit.offset + unit.size] == b"\xff" * unit.size
+
+
+FOUR_IMAGES = {
+    "Pokemon - FireRed Version (USA, Europe).gba": "FireRed (USA, rev 0)",
+    "Pokemon - FireRed Version (USA, Europe) (Rev 1).gba": "FireRed (USA, rev 1)",
+    "Pokemon - LeafGreen Version (USA, Europe).gba": "LeafGreen (USA, rev 0)",
+    "Pokemon - LeafGreen Version (USA, Europe) (Rev 1).gba": "LeafGreen (USA, rev 1)",
+}
+
+
+@pytest.mark.parametrize("name", sorted(FOUR_IMAGES))
+def test_real_images_are_identified_and_round_trip_unedited(tmp_path, name):
+    path = DEFAULT_ROM.parent / name
+    if not path.is_file():
+        pytest.skip(f"{FOUR_IMAGES[name]} not on disk")
+    assert rom_project.identify(str(path)) == {"role": rom_project.ROM_ROLE, "platform": "gba"}
+    unpacked = rom_project.unpack(str(path), str(tmp_path / "unpacked"), lambda p, t: None, lambda: False)
+    built = rom_project.build(str(Path(unpacked) / rom_project.SOURCE_DIR), str(tmp_path / "translation"),
+                              str(tmp_path / "build"), lambda p, t: None, lambda: False)
+    assert Path(built).read_bytes() == path.read_bytes()

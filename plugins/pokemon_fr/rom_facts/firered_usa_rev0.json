@@ -5,6 +5,7 @@
 "rom_size": 16777216,
 "source": "pret decompilation and its link map; facts only",
 "free_start": 15403808,
+"unpointed_units": 188,
 "units": [
 [
 "ViridianForest_Text_FriendsItchingToBattle",

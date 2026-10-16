@@ -14,21 +14,17 @@ ROM_BASE = 0x08000000
 MAX_ROM = 0x02000000          # 32 MB, the largest GBA cartridge; a relocated text may grow the file up to it
 COMPLEMENT_AT = 0xBD
 
-
 class RomError(ValueError):
     """A ROM cannot take the change: no room, or a pointer that cannot be rewritten."""
-
 
 def header_complement(rom: bytes) -> int:
     """The value the BIOS checks at 0xBD: ``-(sum(0xA0..0xBC) + 0x19) & 0xFF``."""
     total = sum(rom[0xA0:0xBD])
     return (-(total + 0x19)) & 0xFF
 
-
 def fix_header(rom: bytearray) -> None:
     """Write the header complement. An unchanged header gives the same byte (checked by the tests)."""
     rom[COMPLEMENT_AT] = header_complement(rom)
-
 
 def pointer_index(rom: bytes) -> Dict[int, List[int]]:
     """Every 4-byte value in the ROM range, at any offset, that is a ROM address: ``value -> offsets``."""
@@ -43,11 +39,9 @@ def pointer_index(rom: bytes) -> Dict[int, List[int]]:
             index.setdefault(value, []).append(at - 3)
     return index
 
-
 def free_start(rom_end_address: int) -> int:
     """The first free file offset after the linked data (an absolute address), aligned to 4 bytes."""
     return ((rom_end_address - ROM_BASE) + 3) & ~3
-
 
 class Relocator:
     """Places new bytes in free space and rewrites the pointers that point at a moved block.
@@ -81,15 +75,18 @@ class Relocator:
 
         Pointers to the old address are rewritten to the new one. The old bytes become 0xFF.
         """
-        new = self.place(data)
         old_address = ROM_BASE + old
+        pointers = self.index.get(old_address, [])
+        if not pointers:
+            # Nothing points at this block, so a moved copy could never be read: refuse instead of losing the text.
+            raise RomError(tr("This message is not used through a pointer, so it cannot move. Keep it within its original length."))
+        new = self.place(data)
         new_address = ROM_BASE + new
-        for at in self.index.get(old_address, []):
+        for at in pointers:
             self.rom[at:at + 4] = new_address.to_bytes(4, "little")
         self.rom[old:old + old_size] = b"\xff" * old_size
         self.moved.append((old, new, old_size))
         return new
-
 
 def write_in_place(rom: bytearray, offset: int, old_size: int, data: bytes) -> None:
     """Write ``data`` over a block of ``old_size`` bytes; the rest of the block becomes 0xFF."""

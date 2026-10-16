@@ -25,7 +25,7 @@ from typing import Dict, List, Tuple
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from plugins.common.gba_rom import ROM_BASE  # noqa: E402
+from plugins.common.gba_rom import ROM_BASE, pointer_index  # noqa: E402
 from plugins.pokemon_fr import pret_text  # noqa: E402
 from plugins.pokemon_fr.rom_text import CHARMAP_FILE, FACTS_DIR, Charmap, CodecError, TERMINATOR  # noqa: E402
 
@@ -157,6 +157,7 @@ def main() -> int:
     if any(byte != 0xFF for byte in rom[floor:]):
         raise SystemExit(f"The ROM is not 0xFF after the linked data at 0x{floor:X}; the free space is not known.")
 
+    pointers = pointer_index(rom)
     sources = source_units(options.decomp)
     units: List[Tuple[int, str, int]] = []
     differs: List[str] = []
@@ -190,7 +191,8 @@ def main() -> int:
 
     charmap_path = FACTS_DIR / CHARMAP_FILE
     charmap_path.parent.mkdir(parents=True, exist_ok=True)
-    charmap_path.write_text(json.dumps(charmap_facts, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    charmap_path.write_text(json.dumps(charmap_facts, ensure_ascii=False, indent=1) + "\n", encoding="utf-8",
+                            newline="\n")
 
     facts = {
         "game": options.game,
@@ -199,10 +201,12 @@ def main() -> int:
         "rom_size": len(rom),
         "source": "pret decompilation and its link map; facts only",
         "free_start": floor,
+        # A message with no pointer to it can be written only in its original length (see gba_rom.Relocator).
+        "unpointed_units": sum(1 for offset, _label, _size in units if ROM_BASE + offset not in pointers),
         "units": [[label, offset, size] for offset, label, size in units],
     }
     options.out.parent.mkdir(parents=True, exist_ok=True)
-    options.out.write_text(json.dumps(facts, ensure_ascii=False, indent=0) + "\n", encoding="utf-8")
+    options.out.write_text(json.dumps(facts, ensure_ascii=False, indent=0) + "\n", encoding="utf-8", newline="\n")
 
     print(f"messages in source: {len(sources)}")
     print(f"messages linked and written: {len(units)}")
