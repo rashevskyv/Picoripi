@@ -23,6 +23,7 @@ class GameRules(BaseGameRules):
     problem_definitions = PROBLEM_DEFINITIONS
     tag_manager_class = TagManager
     tag_style = "curly"
+    pal_glyphs = False   # the PAL disc: messages with bytes from 0x80 up are glyph text (pal_text.py)
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
@@ -48,7 +49,7 @@ class GameRules(BaseGameRules):
         data = bytes(json_obj)
         self._last_kind = "disc"
         self._last_loaded = data
-        groups = doc.parse(data)
+        groups = doc.parse(data, pal=self.pal_glyphs)
         if not groups:
             log_debug("silent_hill_ps1: no text tables in this file")
             return [[]], {}
@@ -67,7 +68,7 @@ class GameRules(BaseGameRules):
         source = self._save_source if self._save_source is not None else self._last_loaded
         if source is None:
             return super().save_data_to_json_obj(data, block_names)
-        out, problems = doc.build(source, data or [])
+        out, problems = doc.build(source, data or [], pal=self.pal_glyphs)
         for problem in problems:
             log_warning(f"silent_hill_ps1: not written, {problem}")
         return out

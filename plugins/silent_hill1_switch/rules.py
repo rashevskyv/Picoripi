@@ -9,5 +9,7 @@ from plugins.silent_hill_ps1.rules import GameRules as PsxGameRules
 class GameRules(PsxGameRules):
     """Silent Hill 1 (Switch port, PAL disc SLES_015.14)."""
 
+    pal_glyphs = True
+
     def get_display_name(self) -> str:
         return "Silent Hill 1 (Switch, PAL)"
