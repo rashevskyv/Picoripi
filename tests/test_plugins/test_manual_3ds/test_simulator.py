@@ -12,7 +12,9 @@ import pytest
 from PIL import Image
 
 import romhacking_root
+from core.texture_formats import flim, pixels
 from plugins.manual_3ds import console_render as cr
+from plugins.manual_3ds import page_build, repo_tools
 from plugins.manual_3ds import sim_screens as ss
 from plugins.manual_3ds import simulator
 
@@ -452,3 +454,78 @@ def test_home_menu_page_7_small_matches_the_console_within_antialiasing():
     # Round 17 draws the second line of the first paragraph into the picture beside it (fixed in round 18).
     defects = simulator.find_defects(sim, "home_menu_manual", 6, "small")
     assert [(d.kind, d.pane) for d in defects] == [("over_picture", "TextBox_38")]
+
+
+# -- every picture archive of a manual -------------------------------------------------------------
+
+
+class _Archive:
+    """A manual archive stand-in: its members by name ("x.arc") and the names read (the bare name, as Bcma.read takes)."""
+
+    def __init__(self, members):
+        self._members = members
+        self.members = list(members)
+        self.reads = []
+
+    def read(self, member):
+        name = member if member.endswith(".arc") else f"{member}.arc"
+        self.reads.append(name)
+        if name not in self._members:
+            raise KeyError(name)
+        return self._members[name]
+
+
+def _clim(colour):
+    """A 4 x 4 RGBA8 BCLIM of one colour, stored on an 8 x 8 tile as the core texture tests store one."""
+    fmt = {v: k for k, v in flim.PICA_FLIM.items()}["RGBA8"]
+    data = pixels.codec("pica:RGBA8").encode(Image.new("RGBA", (8, 8), colour))
+    footer = b"CLIM" + struct.pack("<HHIIHH", 0xFEFF, 0x14, 0x07020000, len(data) + 0x28, 1, 0)
+    return data + footer + b"imag" + struct.pack("<IHHII", 0x10, 4, 4, fmt, 0)
+
+
+def test_a_picture_of_an_extra_archive_is_drawn_and_another_language_is_not_read():
+    archive = _Archive({
+        "BcmaInfo.arc": {"info.bin": b""},
+        "Common_texture.arc": {"common.bclim": _clim((0, 255, 0, 255))},
+        "EUR_ru_texture.arc": {"same.bclim": _clim((0, 0, 255, 255))},
+        "EUR_de_texture.arc": {"same.bclim": _clim((255, 255, 0, 255))},
+        "EUR_ru_small.arc": {"Page_000_small_0.bclyt": b""},
+        "distance.arc": {"distance.bclim": _clim((255, 0, 0, 255))},
+    })
+    textures = cr.Textures.from_archive(archive, "EUR_ru")
+    assert textures.get("common.bclim") is not None
+    assert textures.get("same.bclim").getpixel((0, 0))[:3] == (0, 0, 255)   # the slot's, not the German one
+    assert sorted(archive.reads) == ["Common_texture.arc", "EUR_ru_texture.arc", "distance.arc"]
+    # A frame drawn from the extra archive's picture: red on its top edge; with no picture it is empty.
+    frame = _bclyt([_txl1(["distance.bclim"]), _mat1([("content", None), ("frame", 0)]),
+                    _wnd1("Diagram", 10.0, -10.0, 40.0, 20.0, (0, 0, 0, 0), [(1, 0)])])
+    top, left = 204 + 10, 10
+    drawn = cr.PageRenderer(textures, cr.Glyphs(_Font(), _Bcfnt())).render([frame])
+    assert drawn.getpixel((left + 20, top))[:3] == (255, 0, 0)
+    empty = cr.PageRenderer(cr.Textures({}), cr.Glyphs(_Font(), _Bcfnt())).render([frame])
+    assert empty.getpixel((left + 20, top))[3] == 0
+
+
+_REAL_PICTURE_MANUALS = ("camera", "system_settings", "mii_maker", "activity_log")
+
+
+@pytest.mark.skipif(_GATE is not None, reason=_GATE or "")
+@pytest.mark.parametrize("manual", _REAL_PICTURE_MANUALS)
+def test_every_picture_a_manual_page_names_decodes(manual):
+    """Each manual whose pages name pictures outside Common_texture and the slot's archive: every page names
+    pictures that decode. Camera page 4 (the distance diagram) is one of them."""
+    tools = repo_tools.load_tools(str(romhacking_root.path(*_REPO_MANUAL)))
+    archive = page_build.archive_of(tools, manual)
+    textures = page_build.textures_of(tools, manual)
+    index = page_build.index_of(tools, manual)
+    slot = tools.manual.BASE_SLOT
+    undecoded = []
+    for part in ("small", "large"):
+        files = archive.read(f"{slot}_{part}")
+        for page in cr.page_numbers(files, part):
+            for data in cr.page_files(files, page, part):
+                undecoded += [(page, name) for name in cr.parse(data).textures if textures.get(name) is None]
+            if manual == "camera" and index.number_of(page) == 4:
+                names = [name for data in cr.page_files(files, page, part) for name in cr.parse(data).textures]
+                assert "distance.bclim" in names and textures.get("distance.bclim") is not None, part
+    assert undecoded == []
