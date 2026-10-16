@@ -44,6 +44,13 @@ the line when it is done or moved into a plan.
 - A plugin BFN font's width map, translation map and main-window preview cache are updated before its file is written (unchanged); a failed font
   write leaves them ahead of the file.
 
+## 3DS system menus (`plugins/system_3ds`, 2026-10-15)
+
+- Phase 2, not started: a live preview that draws the selected string in its applet's BCLYT panes with the shared 3DS renderer of `plugins/manual_3ds` (`console_render`, being reworked on `feat/manual-sim-fidelity`). Nothing is built for it yet.
+- Width budgets (`budgets.json`, built by `scripts/build_system_3ds_budgets.py` from the decrypted NAND titles and the owner's validate.py): 10,533 of 16,235 strings have one (10,508 label budgets in 30 titles and 1 pane). On the owner's text with a wide word added to every string, the plugin and the owner's gate flag the same 5,640 strings. Still without a budget: the New 3DS titles `browser_n3ds` and `health_safety_n3ds` (no decrypted dump), `area`, `plaza_map` and `nnid` (the owner checks them with their own functions: `validate_area`, `validate_plaza_map`, `validate_nnid`), labels no official localisation has, and the `_smdh.json` files. Rebuild the file when the owner's layouts, `budget_groups` or `budget_px` change.
+- The host reads the reference column while a project's files are still loading. `system_3ds` matched files by the blocks parsed so far and showed 792 of 2,317 Russian strings on a fresh open; it now reads each project block's own file. `manual_3ds` matches its reference the same way (fingerprints of the manuals parsed so far): not checked whether it loses part of its reference too.
+- A save writes every `ua` the editor holds that differs from the file on disk, so a `ua` changed outside Picoripi in a file that is open is written back with the editor's text. The reference read (0.15 s for 138 files) runs on the UI thread, as for every plugin; the session keeps the string ids (about 310 KB).
+
 ## Link's Awakening Switch for LAS Recomp (`plugins/zelda_las`, 2026-10-14)
 
 - Run in LAS Recomp beta_4 (2026-10-15) with the owner's v1.0.0 dump, the SWUK import and DejaVu Sans 2.37: the Ukrainian title screen, file select, difficulty choice and name entry show. Not reached yet: the first dialogue (the scripted run did not get past the name entry). Noto Sans 2.015 crashed the game at start (no U+25A1); the build now refuses such a font. The font is not in the repo. Not checked yet: the font's size and line height in long dialogue against the Standard font.
