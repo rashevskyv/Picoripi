@@ -416,6 +416,11 @@ class ManualPreviewPanel(QWidget):
         if page is None:
             self._show_message(tr("The index is not drawn here. Select a string of a page."))
             return
+        # The view follows the selected string's size, so the string is always on the drawn page.
+        if string_key.startswith("large/") != self._large:
+            self._large = not self._large
+            self._scroll = 0.0
+            self._update_buttons()
         part = "large" if self._large else "small"
         group = f"{part}/{page}_{part}"
         indices = self._rules.strings_of_group(block, group)

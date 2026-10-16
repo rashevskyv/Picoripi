@@ -523,3 +523,23 @@ def test_the_index_entry_of_a_page_is_its_title_string():
     assert rules.index_string_of_page(0, 2) == 2
     assert rules.index_string_of_page(0, 0) == 0
     assert rules.index_string_of_page(0, 9) is None
+
+
+def test_the_view_follows_the_size_of_the_selected_string(qtbot, monkeypatch):
+    """A small-text string selected while large text is shown switches the view to small text, and back."""
+    monkeypatch.setattr(preview_panel, "load_folder", lambda: "")
+    small_key = "small/Page_003_small_0#0"
+    rules = m3d.GameRules()
+    rules.load_data_from_json_obj(_document([KEY_A, small_key]))
+    store = _Store(["Text", "Text"])
+    panel = preview_panel.ManualPreviewPanel(store, rules)
+    qtbot.addWidget(panel)
+    panel._large = True
+    store.current_string_idx = 1
+    panel._start_render()
+    assert panel._large is False
+    assert panel._current_key == small_key
+    store.current_string_idx = 0
+    panel._start_render()
+    assert panel._large is True
+    panel.shutdown()
