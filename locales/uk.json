@@ -2418,5 +2418,7 @@
   "Open a game project to see the message box.": "Відкрийте проєкт гри, щоб побачити вікно повідомлення.",
   "The font of this game is not in its facts yet.": "Шрифту цієї гри ще немає у фактах.",
   "Line {0} is {1} px wide; the box holds {2} px.": "Рядок {0} має {1} пкс; вікно вміщує {2} пкс.",
-  "Line {0} does not fit the box; add a line scroll or a new page before it.": "Рядок {0} не вміщується у вікно; перед ним додайте прокрутку рядка або нову сторінку."
+  "Line {0} does not fit the box; add a line scroll or a new page before it.": "Рядок {0} не вміщується у вікно; перед ним додайте прокрутку рядка або нову сторінку.",
+  "{0} has no entry {1}; the ROM has it. Restore the label.": "У {0} немає запису {1}, а в ROM він є. Відновіть мітку.",
+  "{0} is {1} bytes long; its table gives {2} bytes, the terminator included. Shorten it.": "{0} має {1} байтів, а таблиця дає {2} байтів разом із термінатором. Скоротіть текст."
 }

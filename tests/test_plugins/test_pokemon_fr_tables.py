@@ -9,13 +9,13 @@ from pathlib import Path
 
 import pytest
 
+import romhacking_root
 from plugins.pokemon_fr import rom_text
 from plugins.pokemon_fr.rom_text import CodecError, RomError
 
 FACTS = rom_text.FACTS_DIR / "firered_usa_rev0.json"
-ROM = Path(os.environ.get("PICORIPI_FIRERED_ROM",
-                          "E:/Emulators/RomHacking/Pokemon/FireRed and LeafGreen/ISO/"
-                          "Pokemon - FireRed Version (USA, Europe).gba"))
+ROM = Path(os.environ.get("PICORIPI_FIRERED_ROM", romhacking_root.under(
+    "Pokemon/FireRed and LeafGreen/ISO/Pokemon - FireRed Version (USA, Europe).gba")))
 
 
 def test_species_table_units_come_from_the_facts():
