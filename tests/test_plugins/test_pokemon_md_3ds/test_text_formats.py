@@ -95,3 +95,16 @@ def test_a_file_that_is_not_a_lua_dump_is_refused():
 def test_the_debug_pack_is_unpacked_as_dbin_members():
     assert unpack.PSMD_PACKS["message_debug_en.bin"] == "*.dbin"
     assert unpack.PSMD_PACKS["message_en.bin"] == "*.bin"
+
+
+def test_the_gti_box_flags_a_line_past_its_measured_edge_and_the_smd_box_loads():
+    from pathlib import Path
+
+    from plugins.common import message_window as mw
+    from plugins.pokemon_md_3ds import rules
+
+    config = Path(rules.__file__).resolve().parent / "config.json"
+    gti = mw.BoxFacts.load(config, "dialogue_gti")
+    assert gti.text_width == 386 - 66                      # the box edge minus the text origin
+    smd = mw.BoxFacts.load(config, "dialogue_psmd")
+    assert (smd.text_x, smd.line_pitch, smd.draw_box) == (78, 24.0, False)

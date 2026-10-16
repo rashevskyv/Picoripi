@@ -1024,7 +1024,7 @@ omase.nds`, made by the unpack) with the edited banks and files put in; no `zt`
      and writes the same tree as `1_unpack.bat`. **Build target 3DS mod (LayeredFS)** writes `titles\<title id>\romfs\...`:
      a changed loose file as it is, a changed pack member rebuilt into the game's own pack. **Preview:** Gates to
      Infinity draws the intro dialogue on the top screen with the game's font (`FOT-RodinProN-DB_14`, the box at
-     y 170..232); Super Mystery Dungeon has no measured box yet, so it shows none. Tags: `[CN]` centre a line,
+     y 170..232); Super Mystery Dungeon draws the story text on the top screen with `Fot-TskuARdGothic_Std_B_14` at scale 1.0 (no panel, line pitch 24). Gates to Infinity marks every line wider than the box edge (text width 320 px); the game does not word-wrap there. Tags: `[CN]` centre a line,
      `[K]` wait for a button, `[C]` new box, `[hero]` / `[partner]` / `[my_team]` names, `[CS:06]…[CR]` colour,
      `[M:B05]` button icons, `[value:02:0003:0001]` numbers and inserted names (keep them as they are); a literal
      bracket is `[[` / `]]`. Text may grow: `2_build.bat` lays each message file out again and repacks the packs.
