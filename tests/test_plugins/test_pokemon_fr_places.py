@@ -71,3 +71,21 @@ def test_a_thumb_pointer_follows_a_moved_block_when_asked():
     new = gba_rom.Relocator(rom, index, floor=0x100, thumb_pointers=True).move(0x10, 4, b"LONGER")
 
     assert int.from_bytes(rom[0x80:0x84], "little") == gba_rom.ROM_BASE + new + 1
+
+
+def test_the_copies_of_a_text_are_its_places_when_the_facts_load(tmp_path):
+    facts = {"units": [["m1", 16, 4]], "free_start": 256, "places": {"m1": [64, 96]}}
+    path = tmp_path / "facts.json"
+    path.write_text(json.dumps(facts), encoding="utf-8")
+
+    units, _free, _header = rom_text.load_units(path)
+
+    assert units == [rom_text.Unit("m1", 16, 4, places=(64, 96))]
+
+
+def test_a_unit_with_an_unpointed_copy_has_a_budget_even_when_its_first_place_is_pointed():
+    rom = bytearray(b"\xff" * 0x100)
+    rom[0x80:0x84] = (gba_rom.ROM_BASE + 0x10).to_bytes(4, "little")     # the first place is pointed, the copy is not
+    units = [rom_text.Unit("shared", 0x10, 4, places=(0x40,))]
+
+    assert rom_text.unpointed_budgets(bytes(rom), units) == {"shared": 4}

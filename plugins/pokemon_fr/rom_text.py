@@ -11,7 +11,7 @@ map; ``tools/pokemon_fr_rom_facts.py`` writes them and checks each message again
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
@@ -195,6 +195,13 @@ class Charmap:
         return bytes(out)
 
 
+def _with_copies(units: Sequence[Unit], data: Dict[str, object]) -> List[Unit]:
+    """Each unit with the other places its text holds in the image (``places``: label -> offsets, the copies pass)."""
+    copies = data.get("places", {})
+    return [replace(unit, places=unit.places + tuple(int(spot) for spot in copies.get(unit.label, [])))
+            if unit.label in copies else unit for unit in units]
+
+
 def load_units(path: Optional[Path] = None) -> Tuple[List[Unit], int, Dict[str, object]]:
     """The messages of a game's facts file, the first free file offset, and the facts header."""
     data = json.loads((path or FACTS_DIR / "firered_usa_rev0.json").read_text(encoding="utf-8"))
@@ -206,7 +213,7 @@ def load_units(path: Optional[Path] = None) -> Tuple[List[Unit], int, Dict[str, 
         units.append(Unit(item[0], int(item[1]), int(item[2]), fixed=len(item) > 3 and item[3] == "fixed",
                           braille=True, places=extra))
     header = {key: value for key, value in data.items() if key != "units"}
-    return units, int(data["free_start"]), header
+    return _with_copies(units, data), int(data["free_start"]), header
 
 
 def unpointed_budgets(rom: bytes, units: Sequence[Unit]) -> Dict[str, int]:
@@ -215,8 +222,11 @@ def unpointed_budgets(rom: bytes, units: Sequence[Unit]) -> Dict[str, int]:
     Nothing can move such a text, so the editor keeps each one within its size and the build refuses a longer one.
     """
     index = pointer_index(rom)
+    def pointed(at: int) -> bool:
+        return bool(index.get(ROM_BASE + at) or index.get(ROM_BASE + at + 1))
+    # a unit with a place no pointer reaches cannot grow either: its copy would stay behind
     return {unit.label: unit.size for unit in units
-            if not unit.fixed and not index.get(ROM_BASE + unit.offset) and not index.get(ROM_BASE + unit.offset + 1)}
+            if not unit.fixed and (not pointed(unit.offset) or any(not pointed(at) for at in unit.places))}
 
 
 def braille_charmap(path: Optional[Path] = None) -> Optional[Charmap]:
@@ -242,7 +252,7 @@ def load_tables(path: Optional[Path] = None) -> List[Unit]:
             units.append(Unit(f"{table['label']}{index}", int(table["offset"]) + index * int(table["stride"]),
                               size, True, int(table.get("pad", 0))))
     units.extend(c_text_units(path))
-    return units
+    return _with_copies(units, data)
 
 
 def c_text_units(path: Optional[Path] = None) -> List[Unit]:
