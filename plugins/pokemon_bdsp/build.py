@@ -9,7 +9,10 @@ from pathlib import Path
 from typing import Callable, Dict, List
 
 from core.i18n import tr
+from typing import Optional
+
 from plugins.pokemon_bdsp import bundles
+from plugins.pokemon_bdsp.widths import Widths, edited_labels
 
 TITLE_IDS = ("0100000011D90000", "010018E011D92000")   # Brilliant Diamond, Shining Pearl (same romfs)
 MOD_DIR = "atmosphere"
@@ -35,6 +38,13 @@ def build_switch(source_dir: str, translation_dir: str, output_dir: str,
     if not edits:
         return str(out / MOD_DIR)
     remaining = dict(edits)
+    widths: Optional[Widths] = None
+
+    def pick(rel):
+        for root in (translation, source):
+            if (root / rel).is_file():
+                return root / rel
+        return None
     for rel in bundles.MESSAGE_BUNDLES:
         if is_cancelled():
             raise InterruptedError()
@@ -48,6 +58,13 @@ def build_switch(source_dir: str, translation_dir: str, output_dir: str,
             if name not in names:
                 continue
             value = json.loads(remaining.pop(name).decode("utf-8"))
+            original = source / "message" / f"{name}.bdmsg"
+            old = json.loads(original.read_text(encoding="utf-8")) if original.is_file() else {}
+            edited = edited_labels(value, old)
+            if edited:
+                widths = widths or Widths(pick)
+                for label in edited:
+                    widths.label(label)
             changes[names[name]] = serialized.write(names[name], value)
         if not changes:
             continue
