@@ -7,10 +7,10 @@ runs are noise (for example "yyyy" tables). join() restores the input byte for b
 ponytail: split only, skipped: record grammar and pointers, add when the header fields are decoded.
 
 MG1 dialogue (dialogue_split): records of [flag u8][length u16 BE][text of length bytes], no terminator. The
-walk starts at DIALOGUE_START and finds the next record by its header and its text (printable bytes plus
-high bytes, one word of 3 letters). Bytes between records (binary tables, 4-byte tails, one 3.4 KB table)
-stay raw. The pointers into this file are not found yet, so an edit that changes a length is not proven
-to boot.
+walk starts at DIALOGUE_START. A candidate counts when its text has 3 letters and no NUL, and the next two
+records follow it within 4 raw bytes. This finds 269 records (14,240 text bytes) in the install file. Other
+records sit in gaps the walk does not decode (about 4 KB of binary table and a few short records). Bytes
+between records stay raw. No pointer table is found, so an edit that changes a length is not proven to boot.
 """
 from __future__ import annotations
 
@@ -20,11 +20,11 @@ from typing import List, Optional, Tuple
 _STRING = re.compile(rb"[\x20-\x7e\n]{4,}\x00")
 
 DIALOGUE_START = 0x1594A5   # MG1 english.raw: first dialogue record (flag 00, length 0x01F8)
-_TEXT_OK = bytes(range(0x20, 0x100)) + b"\n"
-_WORD = re.compile(rb"[A-Za-z]{3,}")
-_FLAG_MAX = 9
-_LENGTH_MAX = 1000
+_LETTERS = re.compile(rb"[A-Za-z]{3,}")
+_LENGTH_MAX = 4096
 _GAP_WINDOW = 4096
+_TAIL_MAX = 4      # raw bytes allowed between two records
+_LOOKAHEAD = 2     # records that must follow a candidate for it to count
 
 
 def split(data: bytes) -> List[Tuple[bool, bytes]]:
@@ -47,20 +47,31 @@ def join(chunks: List[Tuple[bool, bytes]]) -> bytes:
 
 def _record_length(data: bytes, pos: int) -> Optional[int]:
     """Text length of a dialogue record at pos, or None when no record starts there."""
-    if pos + 3 > len(data) or data[pos] > _FLAG_MAX:
+    if pos + 3 > len(data):
         return None
     length = (data[pos + 1] << 8) | data[pos + 2]
     if not 1 <= length <= _LENGTH_MAX or pos + 3 + length > len(data):
         return None
     text = data[pos + 3:pos + 3 + length]
-    if text.translate(None, _TEXT_OK) or not _WORD.search(text):
+    if b"\x00" in text or not _LETTERS.search(text):
         return None
     return length
 
 
+def _chain_ok(data: bytes, pos: int, depth: int) -> bool:
+    """True when a record starts at pos and the next depth records follow it (small gaps allowed)."""
+    length = _record_length(data, pos)
+    if length is None:
+        return False
+    nxt = pos + 3 + length
+    if depth == 0 or nxt + 3 > len(data):
+        return True
+    return any(_chain_ok(data, nxt + gap, depth - 1) for gap in range(_TAIL_MAX + 1))
+
+
 def _next_record(data: bytes, pos: int) -> Optional[int]:
     for candidate in range(pos, min(len(data), pos + _GAP_WINDOW)):
-        if _record_length(data, candidate) is not None:
+        if _chain_ok(data, candidate, _LOOKAHEAD):
             return candidate
     return None
 
@@ -74,7 +85,7 @@ def dialogue_split(data: bytes, start: int = DIALOGUE_START) -> List[Tuple[bool,
     end = 0
     pos = start
     while pos < len(data):
-        length = _record_length(data, pos)
+        length = _record_length(data, pos) if _chain_ok(data, pos, _LOOKAHEAD) else None
         if length is None:
             pos = _next_record(data, pos + 1)
             if pos is None:

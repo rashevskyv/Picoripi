@@ -90,6 +90,6 @@ def test_dialogue_split_round_trips_the_install_file():
     chunks = english_raw.dialogue_split(data)
     assert english_raw.join(chunks) == data
     records = [c for is_record, c in chunks if is_record]
-    assert len(records) == 295
+    assert len(records) == 269
     assert records[0][:3] == b"\x00\x01\xf8"
-    assert sum(len(english_raw.dialogue_text(c)) for c in records) == 17648
+    assert sum(len(english_raw.dialogue_text(c)) for c in records) == 14240
