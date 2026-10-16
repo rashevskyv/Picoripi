@@ -84,7 +84,8 @@ def unpack(rom_path: str, target_dir: str, progress: Progress, is_cancelled: Can
             if body.get("mode"):
                 lines = rom_text.decode_names(region, names, body["mode"], body["width"])
             else:
-                lines = rom_text.decode(region, names, body.get("bcd_hex", ()))
+                lines = rom_text.decode(region, names, body.get("bcd_hex", ()), body.get("ram_args", ()),
+                                        body.get("end_char", False))
             bodies.append(rom_text.format_body(body["label"], lines))
         text = HEADER + "\n" + "\n".join(bodies)
         (target / SOURCE_DIR / unit_name(item["file"])).write_text(text, encoding="utf-8", newline="\n")

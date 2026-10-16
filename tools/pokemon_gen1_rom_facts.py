@@ -35,7 +35,12 @@ SYM_LINE = re.compile(r"^([0-9A-Fa-f]{2}):([0-9A-Fa-f]{4}) (\S+)$")
 SECTION_LINE = re.compile(r"^\s*SECTION: \$([0-9a-f]{4})-\$([0-9a-f]{4}) ", re.I)
 BANK_LINE = re.compile(r"^(ROM0|ROMX) bank #(\d+):")
 DEF_LINE = re.compile(r"^\s*DEF\s+(\w+)\s+EQU\s+([^;]+?)\s*(?:;.*)?$")
+# Files the facts do not cover yet: their bodies are built by code macros (FOR loops), not by text.
+EXCLUDED_DATA = {"data/credits/credits_text.asm", "data/yes_no_menu_strings.asm", "data/text_boxes.asm", "data/player/names.asm", "data/pokemon/dex_entries.asm"}
+# Yellow: these bodies are referenced only by debug-only or unused code (not in the normal ROM); no reference exists.
+FAR_ABSENT_OK = {"_BoxFullDebugText", "_BoxWillBeClearedText", "_ExpressionText"}
 NAME_LINE = re.compile(r'^\s+(li|dname)\s+"')
+TEXT_LINE = re.compile(r'^\s+(text|line|cont|para|next|page|done|prompt|dex|text_end)\b')
 
 
 def fail(message: str) -> None:
@@ -144,12 +149,51 @@ def pret_far_counts(decomp: Path) -> Counter:
 
 
 def name_files(decomp: Path) -> list:
-    """The data files with name tables (``li`` or ``dname`` entries), in path order."""
+    """The data files with name tables (``li`` or ``dname`` entries) or text macros, in path order."""
     found = []
     for path in sorted((decomp / "data").rglob("*.asm")):
-        if any(NAME_LINE.match(line) for line in path.read_text(encoding="utf-8", errors="replace").splitlines()):
+        if path.relative_to(decomp).as_posix() in EXCLUDED_DATA:
+            continue
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        if any(NAME_LINE.match(line) or TEXT_LINE.match(line) for line in lines):
             found.append(path)
     return found
+
+
+def normal_build(source: str) -> str:
+    """The source as the normal (not Virtual Console) build sees it: the ``IF ..._VC`` branch is dropped, its ``ELSE``
+    branch kept. Other conditionals are not supported and show up as an unknown macro."""
+    out, state = [], None
+    for line in source.splitlines():
+        stripped = line.strip()
+        if state is None and re.match(r"IF\b.*_VC", stripped):
+            state = "vc"
+            continue
+        if state == "vc":
+            if stripped == "ELSE":
+                state = "else"
+            continue
+        if state == "else" and stripped == "ENDC":
+            state = None
+            continue
+        if stripped.startswith("vc_patch"):
+            continue
+        out.append(line)
+    return "\n".join(out) + "\n"
+
+
+def ram_arguments(lines, everything, runtime) -> list:
+    """The RAM names the body's commands use, in order, when the address alone would give another name (aliases)."""
+    names = []
+    for word, args in lines:
+        code = rom_text.COMMAND_BY_NAME.get(word)
+        if code is None or "ram" not in rom_text.COMMANDS[code][1]:
+            continue
+        name = args.split(",")[0].strip()
+        names.append(name)
+    if all(runtime.ram_name.get(everything.ram.get(name)) == name for name in names):
+        return []
+    return names
 
 
 def body_mode(lines, defs):
@@ -190,7 +234,7 @@ def main(argv: list) -> int:
     all_labels = {}
     total_bodies = total_bytes = 0
     for path in sources:
-        source = path.read_text(encoding="utf-8")
+        source = normal_build(path.read_text(encoding="utf-8"))
         groups = rom_text.read_labels(source)
         rel = path.relative_to(decomp).as_posix()
         entries = []
@@ -233,6 +277,11 @@ def main(argv: list) -> int:
                     used_far[name] = all_labels.get(name, rom_labels.get(name))
 
     runtime = rom_text.Names(charmap, used_ram, used_far)
+    for _rel, entries, _source in files:
+        for entry in entries:
+            entry["ram_args"] = ram_arguments(entry["lines"], everything, runtime)
+            last_word, last_args = entry["lines"][-1] if entry["lines"] else ("", "")
+            entry["end_char"] = (last_word in rom_text.FLOW_CODE and last_args.endswith('@"'))
     far_hits = far_reference_sites(rom)
     far_pret = pret_far_counts(decomp)
     mismatch_far = []
@@ -246,13 +295,15 @@ def main(argv: list) -> int:
                 if rom_text.encode(lines, runtime, entry["width"]) != region:
                     fail(f"{rel} {entry['label']}: decode then encode is not the same bytes")
             else:
-                lines = rom_text.decode(region, runtime, entry["bcd_hex"])
+                lines = rom_text.decode(region, runtime, entry["bcd_hex"], entry.get("ram_args", ()),
+                                        entry.get("end_char", False))
                 if rom_text.encode(lines, runtime) != region:
                     fail(f"{rel} {entry['label']}: decode then encode is not the same bytes")
             decoded_source.append(rom_text.format_body(entry["label"], lines))
             bank, cpu = rom_labels[entry["label"]]
             hits = far_hits.get((bank, cpu), [])
-            if len(hits) != far_pret.get(entry["label"], 0):
+            expected = 0 if (entry["label"] in FAR_ABSENT_OK and not hits) else far_pret.get(entry["label"], 0)
+            if len(hits) != expected:
                 mismatch_far.append((entry["label"], len(hits), far_pret.get(entry["label"], 0)))
             entry["far"] = hits
         mine, theirs = asm_text.texts("\n".join(decoded_source)), asm_text.texts(source)
@@ -261,7 +312,7 @@ def main(argv: list) -> int:
             fail(f"{rel}: decoded text differs (counts {len(mine)} vs {len(theirs)}): {pairs}")
         out_files.append({"file": rel, "labels": [
             {key: value for key, value in entry.items()
-             if key not in ("lines",) and not (key == "bcd_hex" and not value)}
+             if key not in ("lines",) and not (key in ("bcd_hex", "ram_args", "end_char") and not value)}
             for entry in entries]})
 
     if mismatch_far:

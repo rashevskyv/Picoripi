@@ -117,7 +117,8 @@ def _far_text(names: Names, bank: int, cpu: int) -> str:
     return names.far_name.get((bank, cpu), f"${bank:02X}:${cpu:04X}")
 
 
-def _args(names: Names, kind: str, data: bytes, at: int, hexed: bool = False) -> Tuple[str, int]:
+def _args(names: Names, kind: str, data: bytes, at: int, hexed: bool = False,
+          ram_name: Optional[str] = None) -> Tuple[str, int]:
     """The asm arguments of a command at ``at`` (the byte after the command code) and their size in bytes."""
     kinds = _ARG_KINDS.get(kind, [kind] if kind else [])
     parts: List[str] = []
@@ -125,7 +126,7 @@ def _args(names: Names, kind: str, data: bytes, at: int, hexed: bool = False) ->
     for item in kinds:
         if item == "ram":
             addr = data[at + size] | data[at + size + 1] << 8
-            parts.append(_ram_text(names, addr))
+            parts.append(ram_name if ram_name is not None else _ram_text(names, addr))
             size += 2
         elif item == "far":
             cpu = data[at + size] | data[at + size + 1] << 8
@@ -145,7 +146,8 @@ def _args(names: Names, kind: str, data: bytes, at: int, hexed: bool = False) ->
     return ", ".join(parts), size
 
 
-def decode(region: bytes, names: Names, bcd_hex: Sequence[int] = ()) -> List[Line]:
+def decode(region: bytes, names: Names, bcd_hex: Sequence[int] = (), ram_args: Sequence[str] = (),
+           end_char: bool = False) -> List[Line]:
     """The macro lines of a text body. Stops at ``text_asm`` (the bytes after it are code, not text).
 
     ``bcd_hex`` lists the text_bcd commands (counted from 0 in the body) whose flags the decompilation wrote as a
@@ -155,6 +157,7 @@ def decode(region: bytes, names: Names, bcd_hex: Sequence[int] = ()) -> List[Lin
     word: Optional[str] = None
     chars: List[str] = []
     bcd_seen = 0
+    ram_seen = 0
 
     def flush() -> None:
         nonlocal word
@@ -184,7 +187,7 @@ def decode(region: bytes, names: Names, bcd_hex: Sequence[int] = ()) -> List[Lin
             flush()
             out.append((TERMINATOR_BY_CODE[code], ""))
             at += 1
-        elif code == TX_END and at == end - 1:
+        elif code == TX_END and at == end - 1 and not end_char:
             flush()
             out.append(("text_end", ""))
             at += 1
@@ -203,7 +206,11 @@ def decode(region: bytes, names: Names, bcd_hex: Sequence[int] = ()) -> List[Lin
             if code == 0x02:
                 hexed = bcd_seen in bcd_hex
                 bcd_seen += 1
-            args, size = _args(names, kind, region, at + 1, hexed)
+            ram_name = None
+            if "ram" in kind:
+                ram_name = ram_args[ram_seen] if ram_seen < len(ram_args) else None
+                ram_seen += 1
+            args, size = _args(names, kind, region, at + 1, hexed, ram_name)
             out.append((name, args))
             at += 1 + size
         else:
@@ -307,7 +314,7 @@ def encode(lines: Sequence[Line], names: Names, width: int = 0) -> bytes:
             out += data + bytes([TX_END]) * (width - len(data))
         elif word == "li":
             out += _string_bytes(names, args) + bytes([TX_END])
-        elif word in ("table_width", "list_start") or word.startswith("assert"):
+        elif word in ("table_width", "list_start", "vc_patch", "vc_patch_end") or word.startswith("assert"):
             continue
         elif word in FLOW_CODE:
             out.append(FLOW_CODE[word])
