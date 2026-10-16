@@ -1,10 +1,11 @@
 """3DS electronic manuals (Instruction Manual viewer): one JSON file per manual, one block, one string per paragraph.
 
 Each file is ``{key: {"lines", "width", "en", "ru", "ua"}}``: ``lines`` is the paragraph's line count on the
-console, ``width`` its column in pixels (the widest line any official localisation drew there). The original is
-``en`` (``ru`` when ``en`` is empty: a page the English manual does not have); the Russian ``ru`` is reference
-context; the translation is ``ua``. One file may hold all three (a project that reads the owner's files in place),
-so the host's load role (``set_load_role``), not the content, says which a parse returns.
+console, ``width`` its column in pixels (the widest line any official localisation drew there). The keys and ``ua``
+follow the Russian document, so the original is ``ru``. ``en`` comes from the English document by flow index, so it
+is reference context only, and only on pages whose English pairs with the Russian (``pairs_agree``). The translation
+is ``ua``. One file may hold all three (a project that reads the owner's files in place), so the host's load role
+(``set_load_role``), not the content, says which a parse returns: ``ru`` for a source parse, ``ua`` for a translation.
 
 A project holds many manuals: each parsed file is one data block, kept in load order (block index = position),
 and the list travels with the host as the plugin's runtime state (a restored session parses no file).
@@ -44,6 +45,36 @@ def group_key_of(string_key: str) -> Optional[str]:
     if not match:
         return None
     return f"{match.group(1)}/Page_{match.group(2)}_{match.group(1)}"
+
+
+_TAG_KIND = re.compile(r"\{[A-Za-z]+")
+
+
+def paragraph_kind(text: str) -> Tuple[str, ...]:
+    """What a paragraph is, for pairing two layouts: its lone marker, or "text" with its tag kinds ("{i", "{s")."""
+    stripped = text.strip()
+    if len(stripped) <= 2:
+        return ("mark", stripped)
+    return ("text", *sorted(set(_TAG_KIND.findall(stripped))))
+
+
+def pairs_agree(pairs: List[Tuple[str, str]]) -> bool:
+    """True when every (English, Russian) pair of a page has the same kind: the English layout lists the page's
+    paragraphs in the Russian order, so the English at an index is the English of that paragraph."""
+    return all(paragraph_kind(en) == paragraph_kind(ru) for en, ru in pairs)
+
+
+def page_of(key: str) -> str:
+    """The page a key belongs to: "large/Page_003_large"; an index entry is its own page ("index/Index")."""
+    return group_key_of(key) or key.split("#", 1)[0]
+
+
+def english_pages(doc: Dict[str, Dict[str, Any]]) -> Set[str]:
+    """The pages of one manual file whose English pairs with its Russian (``pairs_agree``); the rest show no English."""
+    pages: Dict[str, List[Tuple[str, str]]] = {}
+    for key, entry in doc.items():
+        pages.setdefault(page_of(key), []).append((str(entry.get("en", "")), str(entry.get("ru", ""))))
+    return {page for page, pairs in pages.items() if pairs_agree(pairs)}
 
 
 def parse_manual(text: str) -> Dict[str, Dict[str, Any]]:
@@ -211,7 +242,7 @@ class GameRules(BaseGameRules):
         if self._load_role == "translation":
             texts = [str(entry.get("ua", "")) for entry in doc.values()]
         else:
-            texts = [str(entry.get("en") or entry.get("ru", "")) for entry in doc.values()]
+            texts = [str(entry.get("ru", "")) for entry in doc.values()]
         return [texts], {"0": manual.name or "Manual"}
 
     def set_load_role(self, role: str) -> None:
@@ -283,16 +314,18 @@ class GameRules(BaseGameRules):
         key = manual.keys[string_idx]
         return manual, key, manual.doc[key]
 
-    # -- reference (Russian, context only) ------------------------------------------------
+    # -- reference (English, on the pages that pair with the Russian) -----------------------
 
     def supports_reference_patch(self) -> bool:
         return True
 
     def get_reference_language_label(self) -> str:
-        return "Russian (RU)"
+        return "English (EN)"
 
     def load_reference_patch(self, patch_path: str, block_names: Any = None) -> Dict[Tuple[int, int], str]:
-        """The ``ru`` column of every manual file in ``patch_path`` (a folder or one file), matched by key list."""
+        """The ``en`` column of every manual file in ``patch_path`` (a folder or one file), matched by key list.
+
+        Only the strings of a page whose English pairs with its Russian (``english_pages``); the rest get no English."""
         if not self._manuals:
             return {}
         paths = [patch_path] if os.path.isfile(patch_path) else [
@@ -307,9 +340,11 @@ class GameRules(BaseGameRules):
                     doc = parse_manual(handle.read())
             except (OSError, ValueError):
                 continue
+            verified = english_pages(doc)
             for block in wanted.get(fingerprint(list(doc.keys())), []):
-                for index, entry in enumerate(doc.values()):
-                    out[(block, index)] = str(entry.get("ru", ""))
+                for index, (key, entry) in enumerate(doc.items()):
+                    if page_of(key) in verified:
+                        out[(block, index)] = str(entry.get("en", ""))
         return out
 
     # -- problems -------------------------------------------------------------------------

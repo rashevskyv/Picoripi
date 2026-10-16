@@ -975,3 +975,10 @@ stricter than the render on box frames until the geometry carries the painted wi
 screenshots: the viewer's own layouts (`BtnHeadLineTxt`, `PageNum`, `SideScrollArw` in the applet's romfs) give the
 textures and sizes, but the applet's code places and animates them, so the stored positions do not land where the
 console draws them.
+
+**Original column (audit r32).** The keys and `ua` follow the Russian document, so the Original column is `ru`; the
+host's load role gives `ru` for a source parse and `ua` for a translation parse. The English (`en`) comes from the
+English document by flow index, and the English layout orders flows differently on many pages. So English shows only on
+a page where every paragraph has the same kind in English and Russian (`rules.pairs_agree`: a lone marker, or text with
+its tag kinds). Other pages show no English, so a wrong English line never shows. The check is per page, the stricter
+reading: per flow would show 304 more keys of the owner's files.

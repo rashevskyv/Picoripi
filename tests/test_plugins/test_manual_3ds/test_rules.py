@@ -73,26 +73,47 @@ def test_source_and_translation_load_differently(widths, geometry):
     rules = check_loads(PLUGIN)
     source = {k: {x: y for x, y in v.items() if x != "ua"} for k, v in SAMPLE.items()}
     blocks, names = rules.load_data_from_json_obj(_text(source))
-    assert blocks == [["Hello there", "Note"]], "the source role gives the original, the English"
+    assert blocks == [["Привет", "Заметка"]], "the source role gives the original, the Russian"
     assert names == {"0": "synthetic"}
     with formats.translation_parse(rules):
         blocks, _ = rules.load_data_from_json_obj(_text(SAMPLE))
     assert blocks == [["Привіт", ""]], "the translation role gives ua; an empty ua stays empty"
 
 
-def test_a_file_with_every_language_gives_english_as_source_and_ukrainian_as_translation(widths, geometry):
-    """Regression: a project that reads the owner's files in place parses the same en+ru+ua file for both columns;
-    the original column showed the Ukrainian. A page the English manual lacks (empty en) shows the Russian."""
+def test_a_file_with_every_language_gives_russian_as_source_and_ukrainian_as_translation(widths, geometry):
+    """Regression: a project that reads the owner's files in place parses the same en+ru+ua file for both columns.
+    The original is the Russian even where the English is empty: the keys follow the Russian document."""
     rules = check_loads(PLUGIN)
     both = {SAMPLE_KEYS[0]: _entry(2, 50.0, "Hello there", "Привет", "Привіт"),
             SAMPLE_KEYS[1]: _entry(1, 300.0, "", "Заметка", "Нотатка")}
     original, _ = rules.load_data_from_json_obj(_text(both))
     with formats.translation_parse(rules):
         edited, _ = rules.load_data_from_json_obj(_text(both))
-    assert original == [["Hello there", "Заметка"]]
+    assert original == [["Привет", "Заметка"]]
     assert edited == [["Привіт", "Нотатка"]]
     again, _ = rules.load_data_from_json_obj(_text(both))
     assert again == original, "the role goes back to source after the translation parse"
+
+
+def test_english_pairs_with_the_russian_only_where_the_kinds_agree():
+    """Page 3 of ar_games: the English layout lists a lone marker where the Russian has a sentence with a tag."""
+    assert m3d.pairs_agree([("❺", "Нажмите {i0} во время игры")]) is False
+    assert m3d.pairs_agree([("Press {i0} during play", "Нажмите {i0} во время игры"), ("❺", "❺")]) is True
+    assert m3d.pairs_agree([("Press {s1|x}", "Нажмите {i0}")]) is False, "a different tag kind is a different paragraph"
+    assert m3d.pairs_agree([("", "Заметка")]) is False, "a small-text key has no English: the page shows none"
+
+
+def test_the_english_of_a_page_that_does_not_pair_is_left_out_of_the_reference(tmp_path, widths, geometry):
+    """The reference file has the loaded file's key list (the match is by key list); page 001 does not pair."""
+    rules = check_loads(PLUGIN)
+    shifted = "large/Page_001_large_0"
+    reference = {SAMPLE_KEYS[0]: _entry(2, 50.0, "Hello there", "Привет"),
+                 SAMPLE_KEYS[1]: _entry(1, 300.0, "Note", "Заметка"),
+                 f"{shifted}#0": _entry(1, 300.0, "❺", "Нажмите {i0} во время игры")}
+    rules.load_data_from_json_obj(_text(reference))
+    (tmp_path / "ref.json").write_text(_text(reference), encoding="utf-8")
+    assert rules.get_reference_language_label() == "English (EN)"
+    assert rules.load_reference_patch(str(tmp_path / "ref.json")) == {(0, 0): "Hello there", (0, 1): "Note"}
 
 
 def test_an_unchanged_save_is_the_same_file_and_ua_goes_back_by_key(widths, geometry):
