@@ -1011,7 +1011,9 @@ omase.nds`), із внесеними банками і файлами; скри
    - `pokemon_md_3ds` — Pokémon Mystery Dungeon: Gates to Infinity і Pokémon Super Mystery Dungeon (3DS,
      Європа), один плагін для обох ігор. **Source:** тека `source` робочої папки (`1_unpack.bat`): англійські файли
      повідомлень — Gates to Infinity `message\*.bin` (884 файли, 55 081 рядок), Super Mystery Dungeon файли паку
-     `message_en.bin` як `message_en.bin\*.bin` (808 файлів, 68 716 рядків) — блок на файл (сюжет, назви й описи
+     `message_en.bin` як `message_en.bin\*.bin` (808 файлів, 68 716 рядків), її налагоджувальні копії
+     `message_debug_en.bin\*.dbin` (808 файлів, 68 716 міток) і скрипти з текстом `script\...\*.lua` (рядкові константи
+     Lua 5.1: титри, налагоджувальні написи; 28 файлів, 359 рядків) — блок на файл (сюжет, назви й описи
      підземель, предметів, прийомів і покемонів у `common`, меню, текст Pelipper і Connection Orb); шрифти
      `font\*.dic` + `*.img` (формат редактора шрифтів `pmd_font`) і картинки `image_2d\*.img` /
      `image_2d.bin\*.img` (логотип, меню; формат вікна «Текстури» `pmd_img`). Майстер розпаковує образ сам (власні читачі Picoripi; для CIA Super Mystery Dungeon потрібен 9.6 seed з теки ключів: `seeds\` або `seeddb.bin`) і записує те саме дерево, що `1_unpack.bat`. **Ціль збірки 3DS mod (LayeredFS)** пише `titles\<title id>\romfs\...`: змінений звичайний файл як є, змінений член паку — у власний пак гри. **Перегляд:** Gates to Infinity малює діалог вступу на верхньому екрані шрифтом гри (`FOT-RodinProN-DB_14`, рамка y 170..232); для Super Mystery Dungeon рамку ще не виміряно, тож вікна немає. Теги: `[CN]` рядок по центру,

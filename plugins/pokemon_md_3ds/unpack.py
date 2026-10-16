@@ -4,8 +4,11 @@ The same set and the same names as the workspace ``source\\romfs`` that ``zt/pmd
 either tree sees the same files:
   Gates to Infinity:     ``romfs/message/*.bin`` (no ``name_sort.bin``, no other-language copies), ``romfs/font/*.dic``
                          and ``*.img`` (no ``*_win.img``), ``romfs/image_2d/*.img`` (no other-language copies).
-  Super Mystery Dungeon: the members of ``message_en.bin`` and ``image_2d.bin`` (FARC packs, ``core.containers.farc``)
-                         as ``romfs/message_en.bin/<name>`` and ``romfs/image_2d.bin/<name>``, and the fonts as above.
+  Super Mystery Dungeon: the members of ``message_en.bin``, ``message_debug_en.bin`` and ``image_2d.bin`` (FARC packs,
+                         ``core.containers.farc``) as ``romfs/<pack>/<name>``, and the fonts as above. The debug pack
+                         holds one ``.dbin`` label table per message file (the same message count as ``message_en``).
+  Both games:            every ``.lua`` script of the image that holds text (a Lua 5.1 string constant with a space;
+                         the credits, the debug labels), at the same path under ``romfs``. See ``lua_text``.
 The member names come from ``message_en.lst`` and the picture database (``pack_names``); a member no name fits is
 ``#<hash>.bin`` or ``#<hash>.img``.
 
@@ -22,11 +25,13 @@ from core.containers import farc
 from core.i18n import tr
 from core.project_library import images
 
+from . import lua_text
+
 GTI_TITLE = "00040000000ba900"
 PSMD_TITLE = "0004000000174400"
 ORIGINAL_DIR = "garc_original"
 LANG_SUFFIX = re.compile(r"_(de|es|fr|it|ge|sp)$")
-PSMD_PACKS = {"message_en.bin": "*.bin", "image_2d.bin": "*.img"}      # pack -> the member names kept
+PSMD_PACKS = {"message_en.bin": "*.bin", "message_debug_en.bin": "*.dbin", "image_2d.bin": "*.img"}   # pack -> names kept
 GTI_LOOSE = (("message", "*.bin"), ("font", "*.dic"), ("font", "*.img"), ("image_2d", "*.img"))
 PSMD_LOOSE = (("font", "*.dic"), ("font", "*.img"))
 GTI_SKIP = {"message/name_sort.bin"}
@@ -113,6 +118,20 @@ def extract(base: str, target_dir: str, progress: Callable[[int, str], None],
             out = root / Path(*rel.split("/"))
             out.parent.mkdir(parents=True, exist_ok=True)
             out.write_bytes(readers[rel]())
+        scripts = [rel for rel in sorted(readers) if rel.endswith(".lua")]      # only those with text (lua_text)
+        for number, rel in enumerate(scripts, 1):
+            if is_cancelled():
+                return None
+            progress(100 * number // (len(scripts) + 1), rel)
+            raw = readers[rel]()
+            try:
+                has_text = bool(lua_text.prose_slots(raw))
+            except lua_text.LuaError:
+                has_text = False
+            if has_text:
+                out = root / Path(*rel.split("/"))
+                out.parent.mkdir(parents=True, exist_ok=True)
+                out.write_bytes(raw)
         for pack, pattern in sorted(PSMD_PACKS.items()) if game == "psmd" else ():
             if is_cancelled():
                 return None

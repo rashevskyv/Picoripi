@@ -1014,7 +1014,9 @@ omase.nds`, made by the unpack) with the edited banks and files put in; no `zt`
    - `pokemon_md_3ds` — Pokémon Mystery Dungeon: Gates to Infinity and Pokémon Super Mystery Dungeon (3DS,
      EUR), one plugin for both games. **Source:** the workspace's `source` (`1_unpack.bat`): the English message
      files — Gates to Infinity `message\*.bin` (884 files, 55,081 lines), Super Mystery Dungeon the members of the
-     `message_en.bin` pack as `message_en.bin\*.bin` (808 files, 68,716 lines) — one block per file (story,
+     `message_en.bin` pack as `message_en.bin\*.bin` (808 files, 68,716 lines), its debug label copies
+     `message_debug_en.bin\*.dbin` (808 files, 68,716 labels) and the scripts with text `script\...\*.lua` (Lua 5.1
+     string constants: the credits, debug labels; 28 files, 359 lines) — one block per file (story,
      dungeon, item, move and Pokémon names and descriptions in `common`, menus, Pelipper and Connection Orb text);
      the fonts `font\*.dic` + `*.img` (Font Editor format `pmd_font`) and the pictures `image_2d\*.img` /
      `image_2d.bin\*.img` (title logo, menus; Textures window format `pmd_img`). The wizard unpacks the image itself

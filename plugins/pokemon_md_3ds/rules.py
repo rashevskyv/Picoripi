@@ -25,7 +25,7 @@ from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
 
 from . import build as build_mod
-from . import message, unpack
+from . import lua_text, message, unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
@@ -73,7 +73,9 @@ class GameRules(BaseGameRules):
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
-        return [FileFormat((".bin",), "bytes", "Mystery Dungeon message file (SIR0)"), *DEFAULT_FORMATS]
+        return [FileFormat((".bin", ".dbin"), "bytes", "Mystery Dungeon message file (SIR0)"),
+                FileFormat((".lua",), "bytes", "Mystery Dungeon script (Lua 5.1 bytecode, its text)"),
+                *DEFAULT_FORMATS]
 
     def get_capabilities(self) -> Set[str]:
         return {"glossary_seed"}
@@ -137,8 +139,10 @@ class GameRules(BaseGameRules):
             return super().load_data_from_json_obj(json_obj)
         self._last_loaded = bytes(json_obj)
         try:
+            if self._last_loaded.startswith(lua_text.HEADER):
+                return [lua_text.texts(self._last_loaded)], {}
             return [message.File(self._last_loaded).texts(self.game())], {}
-        except (message.FormatError, ValueError, struct_error) as error:
+        except (message.FormatError, lua_text.LuaError, ValueError, struct_error) as error:
             log_debug(f"pokemon_md_3ds: not a message file ({error})")
             return [[]], {}
 
@@ -150,7 +154,10 @@ class GameRules(BaseGameRules):
         source = self._save_source if self._save_source is not None else self._last_loaded
         if source is None:
             return super().save_data_to_json_obj(data, block_names)
-        return message.File(source).rebuild([str(s) for s in (data[0] if data else [])], self.game())
+        texts = [str(s) for s in (data[0] if data else [])]
+        if source.startswith(lua_text.HEADER):
+            return lua_text.rebuild(source, texts)
+        return message.File(source).rebuild(texts, self.game())
 
     def reset_runtime_state(self) -> None:
         self._attributes.clear()
