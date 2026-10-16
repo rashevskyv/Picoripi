@@ -70,7 +70,7 @@ def test_glyph_levels_read_back_the_pixels_of_a_glyph():
 def test_windows_name_the_font_and_box_of_each_game_and_nothing_else():
     assert mp.WINDOWS["CPUE"] == mp.Window("graphic/pl_font.narc", 1, 216)
     assert mp.WINDOWS["IPKE"].font_narc == "a/0/1/6"
-    assert mp.WINDOWS["ADAE"].box_px == 192
+    assert mp.WINDOWS["ADAE"].box_px == 216
     assert "BOGUS" not in mp.WINDOWS
     assert mp.LINES_PER_PAGE == 2 and mp.WIDEST_BOX_PX == 216
 

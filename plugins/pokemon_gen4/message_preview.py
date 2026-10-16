@@ -47,13 +47,14 @@ class Window:
     box_px: int
 
 
-# Game code (ROM header) -> window. Platinum's width is pret's; the others use the plugin's 192 px box width.
+# Game code (ROM header) -> window. Box widths: 27 x 4 tiles in all five games (pret pokediamond
+# arm9/src/text_02054590.c, ctrl-cheeb-del pokeheartgold src/dialog_box.c); font member 1 is fontId 1.
 WINDOWS: Dict[str, Window] = {
     "CPUE": Window("graphic/pl_font.narc", 1, 216),   # Platinum
-    "ADAE": Window("graphic/font.narc", 1, 192),      # Diamond
-    "APAE": Window("graphic/font.narc", 1, 192),      # Pearl
-    "IPKE": Window("a/0/1/6", 1, 192),                # HeartGold
-    "IPGE": Window("a/0/1/6", 1, 192),                # SoulSilver
+    "ADAE": Window("graphic/font.narc", 1, 216),      # Diamond
+    "APAE": Window("graphic/font.narc", 1, 216),      # Pearl
+    "IPKE": Window("a/0/1/6", 1, 216),                # HeartGold
+    "IPGE": Window("a/0/1/6", 1, 216),                # SoulSilver
 }
 
 
