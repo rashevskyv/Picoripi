@@ -90,9 +90,10 @@ def font_files(font_dir: Path, names: Tuple[str, ...] | List[str]) -> List[Path]
 
 
 def sibling_layout_exists(project_dir: str, spec: BoxSpec) -> bool:
-    """A cheap check for the host hook (UI thread): the box's archive sits in the ``source`` folder next to the
-    project's own folder."""
-    return (Path(project_dir).parent / "source" / spec.arc).is_file()
+    """A cheap check for the host hook (UI thread): the box's archive is in the project's source folder. Two places:
+    the owner's ``source`` next to the project folder, or the wizard's ``unpacked/source`` inside the project folder."""
+    folder = Path(project_dir)
+    return any((root / spec.arc).is_file() for root in (folder.parent / "source", folder / "unpacked" / "source"))
 
 
 def _font_file(font_dir: Path, name: str) -> Optional[Path]:

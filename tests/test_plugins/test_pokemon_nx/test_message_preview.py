@@ -47,6 +47,15 @@ def test_sibling_layout_gate(tmp_path):
     assert mp.sibling_layout_exists(str(project), mp.SWORD_SHIELD_BOX) is True
 
 
+def test_sibling_gate_finds_the_wizard_unpacked_source(tmp_path):
+    project = tmp_path / "Sword project"
+    layout = project / "unpacked" / "source" / "bin" / "appli" / "msg" / "bin"
+    layout.mkdir(parents=True)
+    (layout / "msg_00.arc").write_bytes(b"SARC")
+    assert mp.sibling_layout_exists(str(project), mp.SWORD_SHIELD_BOX) is True
+    assert mp.sibling_layout_exists(str(project), mp.ARCEUS_BATTLE_BOX) is False
+
+
 @pytest.mark.skipif(not HAS_SOURCE, reason="needs the owner's Sword and Shield unpack with msg_00.arc")
 def test_real_sword_dialogue_layout_has_two_message_panes_and_a_name_pane():
     arc = Sarc((SOURCE / "bin/appli/msg/bin/msg_00.arc").read_bytes())
