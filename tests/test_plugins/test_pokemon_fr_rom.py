@@ -9,12 +9,12 @@ from pathlib import Path
 
 import pytest
 
+import romhacking_root
 from plugins.common import gba_rom
 from plugins.pokemon_fr import rom_project, rom_text
 from plugins.pokemon_fr.rom_text import Charmap, CodecError
 
-DEFAULT_ROM = Path("E:/Emulators/RomHacking/Pokemon/FireRed and LeafGreen/ISO/"
-                   "Pokemon - FireRed Version (USA, Europe).gba")
+DEFAULT_ROM = romhacking_root.under("Pokemon/FireRed and LeafGreen/ISO/Pokemon - FireRed Version (USA, Europe).gba")
 
 
 def _rom_path():
@@ -156,8 +156,8 @@ def test_real_rom_longer_message_moves_and_reads_back(tmp_path, charmap):
     assert patched[unit.offset:unit.offset + unit.size] == b"\xff" * unit.size
 
 
-RUBY_DIR = Path("E:/Emulators/RomHacking/Pokemon/Ruby and Sapphire/ISO")
-EMERALD_ROM = Path("E:/Emulators/RomHacking/Pokemon/Emerald/ISO/Pokemon - Emerald Version (USA, Europe).gba")
+RUBY_DIR = romhacking_root.under("Pokemon/Ruby and Sapphire/ISO")
+EMERALD_ROM = romhacking_root.under("Pokemon/Emerald/ISO/Pokemon - Emerald Version (USA, Europe).gba")
 IMAGES = {
     "firered_rev0": (DEFAULT_ROM, "FireRed (USA, rev 0)"),
     "firered_rev1": (DEFAULT_ROM.parent / "Pokemon - FireRed Version (USA, Europe) (Rev 1).gba", "FireRed (USA, rev 1)"),

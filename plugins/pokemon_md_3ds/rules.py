@@ -13,18 +13,25 @@ two games' code tables differ in the icon codes.
 from __future__ import annotations
 
 from pathlib import Path
+import os
 from struct import error as struct_error
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from core.i18n import tr
+from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
+from plugins.common import message_window
 from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
 
-from . import message
+from . import build as build_mod
+from . import lua_text, message, unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
+_CONFIG = Path(__file__).resolve().parent / "config.json"
 PSMD_MARKER = "message_en.bin"
+BUILD_TARGET = "layeredfs"
 
 
 class GameRules(BaseGameRules):
@@ -44,16 +51,67 @@ class GameRules(BaseGameRules):
         self._save_source: Optional[bytes] = None
         self._last_loaded: Optional[bytes] = None
         self._attributes: Dict[int, Optional[List[Dict[str, str]]]] = {}
+        self._window_fonts = message_window.WindowFonts()
 
     def get_display_name(self) -> str:
         return "Pokémon Mystery Dungeon (3DS)"
 
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """The dialogue box drawn with the game's own font and box (the window of the game in the project)."""
+        try:
+            root = str(self.mw.project_manager.project.metadata.get("source_path") or "")
+        except AttributeError:
+            return None
+        if not root or not os.path.isdir(root):
+            return None
+        window = "dialogue_psmd" if self.game() == "psmd" else "dialogue_gti"
+        try:
+            facts = message_window.BoxFacts.load(_CONFIG, window)
+        except KeyError:                       # the window is not measured yet
+            return None
+        return self._window_fonts.widget(root, facts)
+
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
-        return [FileFormat((".bin",), "bytes", "Mystery Dungeon message file (SIR0)"), *DEFAULT_FORMATS]
+        return [FileFormat((".bin", ".dbin"), "bytes", "Mystery Dungeon message file (SIR0)"),
+                FileFormat((".lua",), "bytes", "Mystery Dungeon script (Lua 5.1 bytecode, its text)"),
+                *DEFAULT_FORMATS]
 
     def get_capabilities(self) -> Set[str]:
         return {"glossary_seed"}
+
+    # -- the wizard: the image in, the source folder and the mod out -----------------
+
+    def get_platforms(self) -> list:
+        return [{"id": "3ds", "label": tr("Nintendo 3DS")}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, str]]:
+        found = images.identify(path)
+        if found is None or found["kind"] != "3ds" or unpack.game_of(found["title_id"]) is None:
+            return None
+        return {"role": "base", "platform": "3ds"}
+
+    def unpack_key_consoles(self) -> list:
+        return ["3ds"]
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
+        base = sources.get("base")
+        if not base:
+            return None
+        return unpack.extract(base, target_dir, progress, is_cancelled)
+
+    def get_build_targets(self) -> list:
+        return [{"id": BUILD_TARGET, "label": tr("3DS mod (LayeredFS)"), "platforms": ["3ds"], "kind": "layeredfs"}]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress, is_cancelled) -> str:
+        if target_id != BUILD_TARGET:
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        try:
+            result = build_mod.build(Path(source_dir), Path(translation_dir), Path(output_dir), progress, is_cancelled)
+        except build_mod.ModError as error:
+            raise ValueError(str(error)) from None
+        return str(result)
 
     # -- which game -------------------------------------------------------------
 
@@ -81,8 +139,10 @@ class GameRules(BaseGameRules):
             return super().load_data_from_json_obj(json_obj)
         self._last_loaded = bytes(json_obj)
         try:
+            if self._last_loaded.startswith(lua_text.HEADER):
+                return [lua_text.texts(self._last_loaded)], {}
             return [message.File(self._last_loaded).texts(self.game())], {}
-        except (message.FormatError, ValueError, struct_error) as error:
+        except (message.FormatError, lua_text.LuaError, ValueError, struct_error) as error:
             log_debug(f"pokemon_md_3ds: not a message file ({error})")
             return [[]], {}
 
@@ -94,7 +154,10 @@ class GameRules(BaseGameRules):
         source = self._save_source if self._save_source is not None else self._last_loaded
         if source is None:
             return super().save_data_to_json_obj(data, block_names)
-        return message.File(source).rebuild([str(s) for s in (data[0] if data else [])], self.game())
+        texts = [str(s) for s in (data[0] if data else [])]
+        if source.startswith(lua_text.HEADER):
+            return lua_text.rebuild(source, texts)
+        return message.File(source).rebuild(texts, self.game())
 
     def reset_runtime_state(self) -> None:
         self._attributes.clear()

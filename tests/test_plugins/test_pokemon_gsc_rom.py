@@ -1,6 +1,6 @@
 """ROM mode of the Pokemon Gold, Silver and Crystal plugin: the Generation II codec and the real ROMs.
 
-The real-ROM tests read the images from ``PICORIPI_GSC_ROMS`` (a folder) or the owner's workspace and skip when they
+The real-ROM tests read the images from the RomHacking workspace (``PICORIPI_ROMHACKING``) and skip when they
 are not there. Nothing from an image is copied into the repository.
 """
 import hashlib
@@ -8,10 +8,11 @@ from pathlib import Path
 
 import pytest
 
+import romhacking_root
 from plugins.pokemon_gen1 import rom_project, rom_text
 from plugins.pokemon_gsc import rules as gsc_rules
 
-WORKSPACE = Path("E:/Emulators/RomHacking/Pokemon")
+WORKSPACE = romhacking_root.under("Pokemon")
 ROMS = {
     "gold": WORKSPACE / "Gold and Silver/ISO/Pokemon - Gold Version (UE) [!].gbc",
     "silver": WORKSPACE / "Gold and Silver/ISO/Pokemon - Silver Version (UE) [!].gbc",

@@ -1,0 +1,14 @@
+[
+  {
+    "label": "Text font 12x16 PAL (1ST/FONT16.TIM)",
+    "format": "texture_grid",
+    "path": "1ST/FONT16.TIM",
+    "params": {
+      "texture": "tim",
+      "cell": [12, 16],
+      "columns": 21,
+      "rows_at": [[0, 0], [0, 16], [0, 32], [0, 48], [0, 64], [0, 80]],
+      "first_code": 39
+    }
+  }
+]

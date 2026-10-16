@@ -126,7 +126,7 @@ The log file `app_debug.txt` stays next to the program unless **Log File Path** 
 | `project_manager.json` in the data folder | Project Manager list: added projects, their folders, the group and sort choices. Written atomically. A file it cannot read is kept as `.unreadable` |
 | `project_index.json` in the data folder | Project Manager cache: the last card and string counts of each project. Safe to delete; rebuilt on the next visit |
 | `project.uiproj` | Project record: name, plugin folder, source/translation paths, bookmarks, `reference_patch_path` |
-| plugin `config.json` | Defaults for that game |
+| plugin `config.json` | Defaults for that game, including `default_tag_mappings` (alias ↔ tag; Pokémon plugins ship short aliases such as `{PLAYER}`) |
 | plugin `aliases.json` | Extra tag aliases |
 | `translation_prompts/` | Prompt JSON used by Edit Prompts JSON / glossary pipeline |
 

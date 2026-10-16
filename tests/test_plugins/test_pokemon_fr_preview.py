@@ -12,11 +12,11 @@ import pytest
 
 from plugins.common import text_window_preview as tw
 from plugins.common.gba_text_font import GLYPH_BYTES, GlyphSet, decode_glyph, half_row_pixels
+import romhacking_root
 from plugins.pokemon_fr import rom_text
 
-ROM = Path(os.environ.get("PICORIPI_FIRERED_ROM",
-                          "E:/Emulators/RomHacking/Pokemon/FireRed and LeafGreen/ISO/"
-                          "Pokemon - FireRed Version (USA, Europe).gba"))
+ROM = Path(os.environ.get("PICORIPI_FIRERED_ROM", romhacking_root.under(
+    "Pokemon/FireRed and LeafGreen/ISO/Pokemon - FireRed Version (USA, Europe).gba")))
 
 
 def _charmap_of(chars):
@@ -120,14 +120,15 @@ def test_ruby_4bpp_nibbles_map_to_paper_ink_and_shadow():
     assert rows[0] == [PAPER] * 8
 
 
-@pytest.mark.skipif(not (Path("E:/Emulators/RomHacking/Pokemon/Ruby and Sapphire/ISO/"
-                              "Pokemon - Ruby Version (USA, Europe).gba").is_file()),
-                    reason="Ruby rev 0 ROM is not on this machine")
+RUBY_ROM = romhacking_root.under("Pokemon/Ruby and Sapphire/ISO/Pokemon - Ruby Version (USA, Europe).gba")
+
+
+@pytest.mark.skipif(not RUBY_ROM.is_file(), reason="Ruby rev 0 ROM is not on this machine")
 def test_real_ruby_rom_4bpp_font_matches_the_proof_glyph_a():
     from plugins.common.gba_text_font import INK, PAPER, SHADOW, read_glyph_set_4bpp
 
     facts = json.loads((rom_text.FACTS_DIR / "ruby_usa_rev0.json").read_text(encoding="utf-8"))
-    rom = Path("E:/Emulators/RomHacking/Pokemon/Ruby and Sapphire/ISO/Pokemon - Ruby Version (USA, Europe).gba")
+    rom = RUBY_ROM
     glyphs = read_glyph_set_4bpp(rom, facts["font"])
     charmap = rom_text.Charmap.load(rom_text.FACTS_DIR / facts["charmap"])
     a = charmap.byte_of["A"]

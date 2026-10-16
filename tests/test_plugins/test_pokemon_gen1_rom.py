@@ -10,10 +10,11 @@ from pathlib import Path
 
 import pytest
 
+import romhacking_root
 from plugins.common import gb_rom
 from plugins.pokemon_gen1 import rom_project, rom_text
 
-WORKSPACE = Path("E:/Emulators/RomHacking/Pokemon")
+WORKSPACE = romhacking_root.under("Pokemon")
 ROMS = {
     "red": Path(os.environ.get("PICORIPI_RED_ROM", WORKSPACE / "Red and Blue/ISO/Pokemon Red Version (UE) [S][!].gb")),
     "blue": Path(os.environ.get("PICORIPI_BLUE_ROM", WORKSPACE / "Red and Blue/ISO/Pokemon Blue Version (UE) [S][!].gb")),
