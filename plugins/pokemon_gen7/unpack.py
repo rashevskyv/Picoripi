@@ -15,7 +15,7 @@ from core.project_library import images
 from plugins.common import garc_mod, gfmsg
 from plugins.common.garc import Garc
 
-TEXT = ("a/0/3/2", "a/0/4/2")
+TEXT = ("a/0/3/2", "a/0/4/2", "a/0/7/3")   # a/0/7/3: the English Ultra text bank, in the v1.2 update only
 FONTS = ("a/0/2/5",)
 PICTURES = ("a/0/6/1", "a/0/6/2", "a/1/5/4", "a/1/5/9", "a/2/6/0", "a/2/6/9", "a/2/8/1", "a/2/9/1")
 GARCS = TEXT + FONTS + PICTURES

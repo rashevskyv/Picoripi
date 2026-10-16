@@ -25,7 +25,7 @@ ULTRA_CODES = ("A2AA", "A2BA")                    # the v1.2 update CIAs of the 
 _PLUGIN = "pokemon_gen7"
 _PLUGIN_DIR = Path(__file__).resolve().parent
 # English GARC -> (game key of tables.json, kind)
-_GARCS = {"a/0/3/2": ("sm", "game"), "a/0/4/2": ("sm", "battle")}
+_GARCS = {"a/0/3/2": ("sm", "game"), "a/0/4/2": ("sm", "battle"), "a/0/7/3": ("sm", "ultra")}
 _ROLE_WORDS = (("Species names", "Pokémon name", "The name of a Pokémon species."),
                ("Form names", "Form name", "The name of a Pokémon form."),
                ("Move names", "Move name", "The name of a move."),
@@ -63,6 +63,8 @@ def table_name(rel: str) -> str:
     if where is None:
         return Path(_rel(rel)).stem
     game, kind, index = where
+    if kind == "ultra":
+        return f"Ultra text {index:03d}"
     if kind == "story":
         return f"Story {index:03d}"
     if kind == "keyboard":
