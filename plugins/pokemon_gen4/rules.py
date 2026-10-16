@@ -17,7 +17,7 @@ from core.containers.nitro import NarcContainer
 from core.i18n import tr
 from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
-from plugins.common import gen4msg
+from plugins.common import gen4msg, nds_build
 from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
 
@@ -26,6 +26,7 @@ from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
 LINES_PER_BOX = 2
+BUILD_TARGET = "nds_rom"
 _PLUGIN = "pokemon_gen4"
 _CHARMAPS = Path(__file__).resolve().parent / "charmaps"
 _CODECS: List[gen4msg.Codec] = []
@@ -115,7 +116,27 @@ class GameRules(BaseGameRules):
 
     def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
         base = sources.get("base")
-        return unpack.extract(base, target_dir, progress, is_cancelled) if base else None
+        if not base:
+            return None
+        nds_build.store_base_rom(base, Path(target_dir))
+        return unpack.extract(base, target_dir, progress, is_cancelled)
+
+    def get_build_targets(self) -> List[Dict[str, Any]]:
+        return [{"id": BUILD_TARGET, "label": tr("Translated DS ROM"), "platforms": ["nds"], "kind": "patch"}]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress, is_cancelled) -> str:
+        if target_id != BUILD_TARGET:
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        try:
+            built = nds_build.build_text_rom(
+                source_dir, translation_dir, narc_of_folder=lambda folder: folder.replace("+", "/"),
+                is_text=gen4msg_is_bank, progress=progress, is_cancelled=is_cancelled)
+        except nds_build.NdsBuildError as error:
+            raise ValueError(str(error)) from None
+        out = Path(output_dir) / f"{built[0x0C:0x10].decode('ascii', 'replace')}_UA.nds"
+        nds_build.write_rom(out, built)
+        return str(out)
 
     def get_display_name(self) -> str:
         return "Pokémon Diamond, Pearl, Platinum, HeartGold and SoulSilver (DS)"
