@@ -15,6 +15,7 @@ PROBLEM_SINGLE_WORD_SUBLINE_NON_START = "PKFR_SINGLE_WORD_SUBLINE_NON_START"
 PROBLEM_TAG_WARNING = "PKFR_TAG_WARNING"
 PROBLEM_BAD_SPACING = "PKFR_BAD_SPACING"
 PROBLEM_MISSING_ICON_SPACING = "PKFR_MISSING_ICON_SPACING"
+PROBLEM_BYTE_BUDGET = "PKFR_BYTE_BUDGET"
 
 # Keep compatibility with base rule references
 PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY = "PKFR_EMPTY_ODD_SUBLINE_DISPLAY"
@@ -25,6 +26,7 @@ PRIORITY_EMPTY_SUBLINE = 3
 PRIORITY_SINGLE_WORD_SUBLINE = 4
 PRIORITY_SINGLE_WORD_SUBLINE_NON_START = 3
 PRIORITY_SHORT_LINE = 5
+PRIORITY_BYTE_BUDGET = 1
 
 custom_problems = {
     "EMPTY_SUBLINE": {
@@ -32,6 +34,13 @@ custom_problems = {
         "color": QColor(255, 165, 0, 180),
         "priority": PRIORITY_EMPTY_SUBLINE,
         "description": "An empty subline created by two consecutive newline tags is present."
+    },
+    "BYTE_BUDGET": {
+        "name": "Byte budget exceeded",
+        "color": QColor(220, 0, 80, 120),
+        "priority": PRIORITY_BYTE_BUDGET,
+        "description": "The text is longer than the fixed name field the game reads. The build refuses it; "
+                       "shorten the text."
     }
 }
 

@@ -6,7 +6,7 @@ source file, saved in place so ``2_build.bat`` only copies the translated files 
 """
 import json
 import os
-from typing import Dict, Any, Tuple, Set, Optional, List
+from typing import Callable, Dict, Any, Tuple, Set, Optional, List
 from collections import OrderedDict
 from plugins.base_game_rules import BaseGameRules
 from .config import (
@@ -19,13 +19,15 @@ from .config import (
     PROBLEM_TAG_WARNING,
     PROBLEM_BAD_SPACING,
     PROBLEM_MISSING_ICON_SPACING,
+    PROBLEM_BYTE_BUDGET,
     DEFAULT_TAG_MAPPINGS_POKEMON_FR,
     P_NEWLINE_MARKER,
     L_NEWLINE_MARKER,
     P_VISUAL_EDITOR_MARKER,
     L_VISUAL_EDITOR_MARKER
 )
-from . import pret_context, pret_text
+from . import pret_context, pret_text, rom_project
+from .rom_text import CodecError
 from .problem_analyzer import ProblemAnalyzer
 from .text_fixer import TextFixer
 from utils.logging_utils import log_debug
@@ -40,6 +42,14 @@ class ProblemIDs:
     PROBLEM_TAG_WARNING = PROBLEM_TAG_WARNING
     PROBLEM_BAD_SPACING = PROBLEM_BAD_SPACING
     PROBLEM_MISSING_ICON_SPACING = PROBLEM_MISSING_ICON_SPACING
+    PROBLEM_BYTE_BUDGET = PROBLEM_BYTE_BUDGET
+
+def _config_aliases() -> Dict[str, str]:
+    """The ``default_tag_mappings`` of this plugin's config.json: alias -> raw tag."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+    with open(path, encoding="utf-8") as handle:
+        return dict(json.load(handle).get("default_tag_mappings") or {})
+
 
 class GameRules(BaseGameRules):
     """Game rules and translation logic for Game."""
@@ -62,6 +72,8 @@ class GameRules(BaseGameRules):
         self._pret_loaded: Optional[str] = None
         self._pret_source: Optional[str] = None
         self._pret_cache: Dict[str, Tuple[int, list, Dict[str, list], Dict[str, list]]] = {}
+        # The fixed name fields of each project's text folder (None outside a ROM project).
+        self._budget_cache: Dict[str, Any] = {}
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
@@ -359,9 +371,72 @@ class GameRules(BaseGameRules):
         """Get the display name."""
         return "Pokémon FireRed / LeafGreen, Ruby / Sapphire, Emerald"
 
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """The message box in the game's own font (plugins/pokemon_fr/preview_panel.py)."""
+        from plugins.pokemon_fr.preview_panel import MessageWindowPreview
+        return MessageWindowPreview(main_window)
+
     def get_default_tag_mappings(self) -> Dict[str, str]:
-        """Get the default tag mappings."""
-        return DEFAULT_TAG_MAPPINGS_POKEMON_FR
+        """Get the default tag mappings: the short aliases of config.json, in place of the raw tags they stand for."""
+        aliases = _config_aliases()
+        aliased = set(aliases.values())
+        mappings = {alias: tag for alias, tag in DEFAULT_TAG_MAPPINGS_POKEMON_FR.items() if tag not in aliased}
+        mappings.update(aliases)
+        return mappings
+
+    # ----- Project Manager: ROM mode (a game ROM unpacks to text; the build writes a patched ROM) -----
+
+    def get_source_roles(self) -> List[Dict[str, str]]:
+        return [{"id": rom_project.ROM_ROLE, "label": "Game ROM (Game Boy Advance)"}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, str]]:
+        return rom_project.identify(path)
+
+    def get_platforms(self) -> List[Dict[str, str]]:
+        return [{"id": "gba", "label": "Game Boy Advance"}]
+
+    def get_source_subfolder(self) -> Optional[str]:
+        return rom_project.SOURCE_DIR
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str,
+                       progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> Optional[str]:
+        rom = sources.get(rom_project.ROM_ROLE)
+        if not rom:
+            return None
+        return rom_project.unpack(rom, target_dir, progress, is_cancelled)
+
+    def get_build_targets(self) -> List[Dict[str, Any]]:
+        return [{"id": "rom", "label": "Patched ROM", "platforms": ["gba"], "kind": "patch"}]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> str:
+        if target_id != "rom":
+            raise ValueError(f"Unknown build target: {target_id}")
+        return rom_project.build(source_dir, translation_dir, output_dir, progress, is_cancelled)
+
+    def exceeds_byte_budget(self, block_idx: int, string_idx: int, text: str) -> bool:
+        """True when a fixed name field of the ROM (a C-built table entry) cannot hold this text.
+
+        Messages are not fixed fields: they move to free space when they grow, so they never exceed a budget.
+        """
+        block = self._block_file(block_idx)
+        if not block:
+            return False
+        text_dir = os.path.dirname(block[1])
+        if text_dir not in self._budget_cache:
+            self._budget_cache[text_dir] = rom_project.field_budgets(text_dir)
+        budgets = self._budget_cache[text_dir]
+        if budgets is None:
+            return False
+        sizes, charmap = budgets
+        _rel, unit, _scripts, _speakers = self._pret_unit(block_idx, string_idx)
+        size = sizes.get(unit.label) if unit is not None else None
+        if size is None:
+            return False
+        try:
+            return len(charmap.encode(text)) > size
+        except CodecError:
+            return False
 
     def analyze_subline(self,
                         text: str,

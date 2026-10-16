@@ -1,6 +1,16 @@
 {
     "display_name": "Pokémon Red / Blue / Yellow (Game Boy)",
-    "default_tag_mappings": {},
+    "default_tag_mappings": {
+        "{Player}": "<PLAYER>",
+        "{Rival}": "<RIVAL>",
+        "{POKe}": "#",
+        "{TM}": "<TM>",
+        "{PC}": "<PC>",
+        "{Trainer}": "<TRAINER>",
+        "{Rocket}": "<ROCKET>",
+        "{Target}": "<TARGET>",
+        "{User}": "<USER>"
+    },
     "block_names": {},
     "block_color_markers": {},
     "newline_display_symbol": "↵",

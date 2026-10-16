@@ -11,15 +11,20 @@ PNG files (``font_sources.json``, ``texture_sources.json``, format ``png``); rgb
 """
 from __future__ import annotations
 
+import json
 import os
 import re
-from typing import Any, Dict, List, Optional, Set, Tuple
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
 
 from . import pret_context, pret_text
+from plugins.pokemon_gen1 import rom_project
+
+ROM_FACTS_DIR = Path(__file__).with_name("rom_facts")
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
@@ -210,3 +215,39 @@ class GameRules(BaseGameRules):
 
     def get_editor_page_size(self) -> int:
         return LINES_PER_BOX
+
+    def get_default_tag_mappings(self) -> Dict[str, str]:
+        """The short aliases of config.json, in place of the raw tags they stand for."""
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+        with open(path, encoding="utf-8") as handle:
+            return dict(json.load(handle).get("default_tag_mappings") or {})
+
+    # ----- Project Manager: ROM mode (a game ROM unpacks to asm text; the build writes a patched ROM) -----
+
+    def get_source_roles(self) -> List[Dict[str, str]]:
+        return [{"id": rom_project.ROM_ROLE, "label": "Game ROM (Game Boy Color)"}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, str]]:
+        return rom_project.identify(path, ROM_FACTS_DIR)
+
+    def get_platforms(self) -> List[Dict[str, str]]:
+        return [{"id": "gbc", "label": "Game Boy Color"}]
+
+    def get_source_subfolder(self) -> Optional[str]:
+        return rom_project.SOURCE_DIR
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str,
+                       progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> Optional[str]:
+        rom = sources.get(rom_project.ROM_ROLE)
+        if not rom:
+            return None
+        return rom_project.unpack(rom, target_dir, progress, is_cancelled, ROM_FACTS_DIR)
+
+    def get_build_targets(self) -> List[Dict[str, Any]]:
+        return [{"id": "rom", "label": "Patched ROM", "platforms": ["gbc"], "kind": "patch"}]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> str:
+        if target_id != "rom":
+            raise ValueError(f"Unknown build target: {target_id}")
+        return rom_project.build(source_dir, translation_dir, output_dir, progress, is_cancelled, ROM_FACTS_DIR)
