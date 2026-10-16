@@ -2392,5 +2392,10 @@
   "Other version: update": "Інша версія: оновлення",
   "Choose the update of the other version too.": "Оберіть оновлення іншої версії також.",
   "The other version file is not a Scarlet, Violet or Legends: Z-A image.": "Файл іншої версії не є образом Scarlet, Violet або Legends: Z-A.",
-  "The other version has no Trinity index (arc/data.trpfd).": "В іншій версії немає індексу Trinity (arc/data.trpfd)."
+  "The other version has no Trinity index (arc/data.trpfd).": "В іншій версії немає індексу Trinity (arc/data.trpfd).",
+  "No project folder: the dialogue box needs the unpacked game.": "Немає папки проєкту: для діалогового вікна потрібна розпакована гра.",
+  "Reading the game layout...": "Читання розмітки гри...",
+  "The dialogue layout is not in this project's unpacked game.": "Розмітки діалогу немає в розпакованій грі цього проєкту.",
+  "Line too wide for the box: %1": "Рядок завеликий для вікна: %1",
+  "Too many lines for the box: %1 (box holds %2)": "Забагато рядків для вікна: %1 (вміщує %2)"
 }
