@@ -267,9 +267,14 @@ def test_ProjectActionHandler_delete_block_action_folder(mock_mw):
 @patch('handlers.project_action.blocks_mixin.QMessageBox')
 def test_ProjectActionHandler_delete_block_action_on_a_virtual_item_removes_nothing(mock_msg_box, mock_mw):
     """Remove Block on a plugin folder (UserRole -2) once asked about blocks[-2] and removed that unrelated block."""
-    mock_mw.project_manager = MagicMock()
-    mock_mw.project_manager.project.blocks = [MagicMock(), MagicMock(), MagicMock()]
+    blocks = [SimpleNamespace(id=name, name=name) for name in ("a", "b", "c")]
+    saved = []
+    project = SimpleNamespace(blocks=blocks, remove_block=lambda block_id: blocks.remove(
+        next(block for block in blocks if block.id == block_id)) or True)
+    mock_mw.project_manager = SimpleNamespace(project=project, save=lambda: saved.append(True))
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
+    h._block_tree_item = lambda block_idx: None
+    h._populate_blocks_from_project = lambda: None
     folder = QTreeWidgetItem(["Small text"])
     folder.setData(0, Qt.UserRole, -2)
     mock_mw.block_list_widget.currentItem.return_value = folder
@@ -278,9 +283,8 @@ def test_ProjectActionHandler_delete_block_action_on_a_virtual_item_removes_noth
 
     h.delete_block_action()
 
-    mock_msg_box.question.assert_not_called()
-    mock_mw.project_manager.project.remove_block.assert_not_called()
-    mock_mw.project_manager.save.assert_not_called()
+    assert [block.id for block in blocks] == ["a", "b", "c"]
+    assert saved == []
 
 
 @patch('handlers.project_action.recent_mixin.ProjectManager')
