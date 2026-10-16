@@ -6,10 +6,9 @@ come from melonDS frames of Black):
     in its WID table. ``WINDOWS`` gives its place per game code. Platinum's is pl_font.narc member 1.
     A message box is 4 tiles (32 px) high: a line is 16 px high and there is no line spacing, so a box shows 2 lines.
     The text code of a character is its glyph index + 1 (pret ``TryLoadGlyph``).
-  - Gen 5 (Black, White, Black 2, White 2): the message font is the NFTR ``a/0/2/3`` member 0 (12 x 15 cells).
-    Row 0 of a cell is not drawn and a glyph body is six columns wide. Advance: 6 px, except 'i' 3, 'l' 4,
-    ',' 5 and the space 4 (fitted on frames; the rule is not stored in the ROM the reader can decode, the
-    HDWC width block does not decode). Box: text origin 20 px from the box's left edge, lines 16 px apart.
+  - Gen 5 (Black, White, Black 2, White 2): the message font is the NFTR ``a/0/2/3`` member 0 (12 x 16 cells).
+    Row 0 of each cell holds that glyph's widths, not ink: left offset, ink width, advance (one byte each).
+    Box: text origin 20 px from the box's left edge, lines 16 px apart.
   - Colours: Gen 4 ink 81,81,89 and 162,162,170 (Diamond frame); Gen 5 ink 89,81,81 and 162,162,170
     (Black frame); the box is 251,251,251 in both.
   - ``\\n`` (E000 / Gen 5 editor newline) breaks a line; ``\\r`` (Gen 4) and ``{PAGE}`` / ``{SCROLL}`` (Gen 5) end a page.
@@ -49,12 +48,8 @@ _PLAYER = "PLAYER"
 BOX_RGB = (251, 251, 251)
 INK = {1: QColor(81, 81, 89), 2: QColor(162, 162, 170), 3: QColor(*BOX_RGB)}
 INK5 = {1: QColor(89, 81, 81), 2: QColor(162, 162, 170)}
-GEN5_BODY = 6                                   # columns of a glyph body drawn (row 0 of a cell is not drawn)
-GEN5_ADVANCE = {" ": 4, "i": 3, "l": 4, ",": 5}  # every other glyph advances 6 px
 GEN5_TEXT_X, GEN5_LINE_PX = 20, 16
 # The page arrow of Gen 5 (measured on the Black frame): origin (x, y) in the box image and its levels.
-# Gen 5 glyph ink drawn this many pixels right of the cell origin (the comma, measured on the frames).
-GEN5_INK_SHIFT = {",": 1, ".": 1}
 GEN5_ARROW = (225, 27, ["2222222", "1222222", ".122222", "..12221", "...1211"])
 
 
@@ -221,6 +216,9 @@ class _Gen4Face:
         code = self._code(ch)
         return self._widths[code - 1] if code is not None else None
 
+    def shift(self, ch: str) -> int:
+        return 0                                    # Gen 4 ink starts at the pen
+
     def levels(self, ch: str) -> Optional[List[List[int]]]:
         code = self._code(ch)
         if code is None:
@@ -231,7 +229,8 @@ class _Gen4Face:
 
 
 class _Gen5Face:
-    """A Gen 5 NFTR font: the body of each glyph is ``GEN5_BODY`` columns, row 0 of its cell is not drawn."""
+    """A Gen 5 NFTR font. A cell is 12 x 16 two-bit pixels; row 0 holds the glyph's widths, not ink: the left
+    offset, the ink width and the advance, one byte each. Rows 1-15 are the ink."""
 
     ink = INK5
     line_px = GEN5_LINE_PX
@@ -241,28 +240,33 @@ class _Gen5Face:
         self._codes = font.codes()
         self._glyphs: Dict[int, List[List[int]]] = {}
 
+    def _glyph(self, ch: str) -> Optional[bytes]:
+        glyph = self._codes.get(ord(ch))
+        return self._font.glyphs[glyph] if glyph is not None else None
+
     def advance(self, ch: str) -> Optional[int]:
-        if ord(ch) not in self._codes:
-            return None
-        return GEN5_ADVANCE.get(ch, GEN5_BODY)
+        data = self._glyph(ch)
+        return data[2] if data is not None else None
+
+    def shift(self, ch: str) -> int:
+        data = self._glyph(ch)
+        return data[0] if data is not None else 0
 
     def levels(self, ch: str) -> Optional[List[List[int]]]:
         glyph = self._codes.get(ord(ch))
         if glyph is None:
             return None
         if glyph not in self._glyphs:
-            # The cell is 12 x 16 two-bit pixels, rows running on from each other (the glyph data holds 16 rows;
-            # the reader's cell height of 15 drops the descender row). Row 0 is not drawn; the body is 6 columns.
-            raw = int.from_bytes(self._font.glyphs[glyph], "big")
-            total = len(self._font.glyphs[glyph]) * 8
-            cell_w = 12
-            rows = [[0] * GEN5_BODY]
-            for y in range(1, 16):
+            data = self._font.glyphs[glyph]
+            cell_w = self._font.cell_width
+            raw = int.from_bytes(data, "big")
+            total = len(data) * 8
+            rows = [[0] * cell_w]                     # row 0 is the widths, not drawn
+            for y in range(1, total // (2 * cell_w)):
                 row = []
-                for x in range(GEN5_BODY):
-                    index = y * cell_w + x
-                    shift = total - 2 * (index + 1)
-                    row.append((raw >> shift) & 3 if shift >= 0 else 0)
+                for x in range(cell_w):
+                    shift = total - 2 * (y * cell_w + x + 1)
+                    row.append((raw >> shift) & 3)
                 rows.append(row)
             self._glyphs[glyph] = rows
         return self._glyphs[glyph]
@@ -335,7 +339,7 @@ class MessageWindowPreview(QWidget):
                     if advance:
                         x += advance
                     continue
-                shift = GEN5_INK_SHIFT.get(ch, 0) if isinstance(self._face, _Gen5Face) else 0
+                shift = self._face.shift(ch)
                 for gy, row_levels in enumerate(levels):
                     for gx, level in enumerate(row_levels):
                         if not level or level not in ink:

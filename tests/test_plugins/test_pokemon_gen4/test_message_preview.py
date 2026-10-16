@@ -138,19 +138,32 @@ def test_real_platinum_box_is_drawn_with_the_game_font(qtbot):
 
 
 class _Gen5Stub:
-    """Only what ``_Gen5Face`` reads: the code map and one 12 x 16 two-bit glyph (48 bytes)."""
+    """Only what ``_Gen5Face`` reads: the code map, the cell width and 12 x 16 two-bit glyphs (48 bytes each)."""
 
-    def __init__(self, glyph: bytes):
-        self.glyphs = [glyph]
+    cell_width = 12
+
+    def __init__(self, glyphs):
+        self.glyphs = glyphs
 
     def codes(self):
-        return {ord("A"): 0, ord("i"): 0, ord(" "): 0}
+        return {ord("A"): 0, ord("i"): 1, ord(" "): 2, ord(","): 3}
 
 
-def test_gen5_face_body_is_six_columns_below_row_zero_and_the_advances_are_the_measured_ones():
-    face = mp._Gen5Face(_Gen5Stub(bytes(48)))
+def _gen5_glyph(left: int, width: int, advance: int, ink_row1_col0: int = 0) -> bytes:
+    """Row 0 holds (left, width, advance), one byte each; row 1 column 0 may carry ink."""
+    value = left << 376 | width << 368 | advance << 360
+    value |= ink_row1_col0 << (384 - 2 * (12 + 1))
+    return value.to_bytes(48, "big")
+
+
+def test_gen5_row_zero_gives_the_advance_and_the_left_offset_of_each_glyph():
+    glyphs = [_gen5_glyph(0, 6, 6, ink_row1_col0=3), _gen5_glyph(0, 2, 3), _gen5_glyph(4, 0, 4),
+              _gen5_glyph(1, 3, 5)]
+    face = mp._Gen5Face(_Gen5Stub(glyphs))
     assert face.advance("A") == 6 and face.advance("i") == 3 and face.advance(" ") == 4
-    assert face.advance("Q") is None                    # a character the font has no code for
+    assert face.advance(",") == 5 and face.shift(",") == 1 and face.shift("A") == 0
+    assert face.shift(" ") == 4 and face.advance("Q") is None and face.shift("Q") == 0
     levels = face.levels("A")
-    assert len(levels) == 16 and all(len(row) == 6 for row in levels)
-    assert levels[0] == [0] * 6
+    assert len(levels) == 16 and all(len(row) == 12 for row in levels)
+    assert levels[0] == [0] * 12                        # row 0 is the widths, not drawn
+    assert levels[1][0] == 3                            # row 1 is ink
