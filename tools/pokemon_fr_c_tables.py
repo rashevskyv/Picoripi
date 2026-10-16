@@ -102,6 +102,17 @@ FIRERED_CATEGORIES = {"name": "pokedex_categories", "file": "pokedex_categories.
                       "field": 0, "count": 387}
 
 
+# Ruby and Sapphire name the same arrays differently; their Pokedex entry is FireRed's (36 bytes).
+RUBY_POINTERS = [
+    dict(FIRERED_POINTERS[0], symbol="gMoveDescriptions"),
+    dict(FIRERED_POINTERS[1], symbol="gAbilityDescriptions"),
+    dict(FIRERED_POINTERS[2], symbol="gNatureNames"),
+    dict(FIRERED_POINTERS[3], count=349),
+    FIRERED_POINTERS[4],
+    FIRERED_CATEGORIES,
+]
+
+
 def family_of(game: str) -> str:
     """The game family of a facts file: its tables and trainer anchors differ between the three."""
     if "Emerald" in game:
@@ -113,7 +124,17 @@ def family_of(game: str) -> str:
 
 def tables_for(game: str) -> List[Dict[str, object]]:
     family = family_of(game)
-    return COMMON + FAMILY_TABLES[family] + (FIRERED_POINTERS + [FIRERED_CATEGORIES] if family == "firered" else [])
+    if family == "firered":
+        return COMMON + FAMILY_TABLES[family] + FIRERED_POINTERS + [FIRERED_CATEGORIES]
+    if family == "emerald":
+        # Emerald's Pokedex entry is 32 bytes (FireRed's is 36): the same fields at the same offsets
+        # Emerald has 377 items (FireRed 375): the item descriptions count the same entries as the item names
+        changes = {"gPokedexEntries": {"stride": 32}, "gItems": {"count": 377}}
+        return COMMON + FAMILY_TABLES[family] + [
+            dict(spec, **changes.get(str(spec.get("symbol")), {})) for spec in FIRERED_POINTERS + [FIRERED_CATEGORIES]]
+    if family == "ruby":
+        return COMMON + FAMILY_TABLES[family] + RUBY_POINTERS
+    return COMMON + FAMILY_TABLES[family]
 
 
 def _text_at(rom: bytes, ptr: int, charmap: rom_text.Charmap) -> Optional[Tuple[int, int]]:

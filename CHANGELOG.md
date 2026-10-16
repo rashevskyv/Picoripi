@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Pokémon Emerald / Ruby / Sapphire ROM mode: the same move, ability and item descriptions, nature names, Pokédex descriptions and categories as FireRed / LeafGreen unpack as texts that may grow (pointer tables from the decompilation link map)
 - Pokémon FireRed / LeafGreen ROM mode: move, ability and item descriptions, nature names, Pokédex descriptions and Pokédex categories unpack as texts that may grow (a longer text moves to free space, its pointer is rewritten); a test moves a longer move description
 - Pokémon FireRed / LeafGreen / Emerald / Ruby / Sapphire ROM mode: moves, abilities, types, trainer classes, item names, trainer names and berry names unpack as C-built fixed fields (per-game counts checked against the decompilation); a name over its field size shows the Byte budget exceeded warning, and the build refuses it
 - Pokémon FireRed / LeafGreen / Emerald / Ruby / Sapphire: nine more default tag aliases for the no-argument control names (`{Kun}`, `{Version}`, `{Unknown}`, the team and leader names); a test checks every alias target against the charmap.
