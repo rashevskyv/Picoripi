@@ -1,15 +1,19 @@
-"""The dialogue box of a Switch Pokémon game (``msg_00.bflyt``) drawn with the game's own layout and font.
+"""The dialogue box of a Switch Pokémon game drawn with the game's own layout and font.
 
 The source folder comes from the project file (``metadata.source_path``, as the build reads it). The layout and the
 fonts are read on a worker thread (AGENTS rule 5). The widget draws the page on the UI thread: a few lines of text.
 Each text pane of the layout takes one line of the page. A line wider than its pane, or a page with more lines than
 the box has panes, is reported under the preview.
+
+``BoxSpec`` holds the facts of one box: its layout archive, the font setting, the font files and the em size. The
+em size is measured per box (see the comments at each spec); the Trinity plugin (Scarlet / Violet) uses its own spec
+from ``plugins/pokemon_trinity``.
 """
 from __future__ import annotations
 
 import json
 import threading
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, List, Optional, Tuple
 
@@ -24,21 +28,41 @@ from plugins.common.message_window import split_pages
 from utils.logging_utils import log_debug
 from utils.thread_utils import WorkerThread, safe_shutdown_thread
 
-SCALE = 1.0
-LAYOUT = "bin/appli/msg/bin/msg_00.arc"
-LAYOUT_MEMBER = "blyt/msg_00.bflyt"
-FCPX_MEMBER = "fcpx/system54_jpn.bfcpx"
-FONT_DIR = "bin/font"
-# The text font and its em. Measured, not read from the layout: the game's hand-broken dialogue lines fit the 1080 px
-# pane only with FOT-UDKakugoC80Pro at 44 px (the largest broken line is 1078 px; at 54 px a third of them would
-# not fit). The language screen's band text (UA TEST, Eden frame) is 502 px: UDKakugo at 44 px gives 501 px.
-# The layout's own fcpx names Rodin first; the in-game binding is not read yet. Rodin and or_font only add glyphs
-# that UDKakugo lacks.
-MESSAGE_FONTS = ["FOT-UDKakugoC80Pro-DB.otf", "FOT-RodinNTLGPro-DB.otf", "or_font.otf"]
-MESSAGE_EM = 44.0
-WINDOW_BG = (238, 240, 242, 255)     # the window texture is not read yet: a flat light box stands in for it
+# The text font chain, in fallback order. The game's own binding is not read yet (the layout's fcpx names Rodin first).
+# UDKakugo is the font the measured line widths fit; Rodin and or_font only add glyphs UDKakugo lacks.
+MESSAGE_FONTS = ("FOT-UDKakugoC80Pro-DB.otf", "FOT-RodinNTLGPro-DB.otf", "or_font.otf")
 _MARGIN = 10
 WORKER_STOP_MS = 2000               # the bounded wait for the layout read when the widget is closed
+
+
+@dataclass(frozen=True)
+class BoxSpec:
+    """One dialogue box: where its layout is, the font setting and font folder, and the em size of its text."""
+    arc: str                      # the layout archive, relative to the source folder
+    member: str                   # the layout member inside it
+    fcpx: str                     # the font setting member
+    font_dir: str                 # the folder of the scrambled font files, relative to the source folder
+    em: float                     # the em size the text is drawn at (layout pixels)
+    background: Tuple[int, int, int, int] = (238, 240, 242, 255)   # a flat stand-in for the box picture (not read yet)
+
+
+# Sword / Shield: msg_00.bflyt, one frame with two text panes (1080 px). Measured: the game's hand-broken lines
+# top out at 1078 px at 44 px in UDKakugo (the largest line that fits the pane); 54 px (the layout's fontSizeX)
+# leaves a third of them too wide.
+SWORD_SHIELD_BOX = BoxSpec("bin/appli/msg/bin/msg_00.arc", "blyt/msg_00.bflyt", "fcpx/system54_jpn.bfcpx",
+                           "bin/font", 44.0)
+# Scarlet / Violet: msg_sub_00.bflyt from the sub-window archive (appli/data/msg_sub), two text panes of 840 px and no
+# frame. Measured: the hand-broken lines top out at 832 px at 38 px in UDKakugo; 40 px already exceeds 840 px.
+# Not yet checked that this is the field dialogue (msg_btl_00 is the battle box, also two panes).
+SCARLET_VIOLET_SUB_BOX = BoxSpec("appli/data/msg_sub/msg_sub_body_00.arc", "blyt/msg_sub_00.bflyt",
+                                 "fcpx/system32_jpn.bfcpx", "appli/font/bin", 38.0,
+                                 background=(38, 42, 52, 255))   # the text is white; the box picture is dark
+
+
+# Legends: Arceus: the battle message box (msg_sys_00_s, in the battle_menu pack, decoded by the wizard). Two 960 px panes,
+# no text from the field dialogue yet. Measured: the hand-broken lines top out at 960 px at 46 px in UDKakugo.
+ARCEUS_BATTLE_BOX = BoxSpec("bin/archive/appli/battle_menu_eng.gfpak.d/11_msg_sys_00_s.arc", "blyt/msg_sys_00_s.bflyt",
+                            "fcpx/system32_jpn.bfcpx", "bin/font", 46.0, background=(38, 42, 52, 255))
 
 
 def source_folder(project_dir: str) -> Optional[str]:
@@ -57,8 +81,8 @@ def source_folder(project_dir: str) -> Optional[str]:
     return str(path)
 
 
-def font_files(font_dir: Path, names: List[str]) -> List[Path]:
-    """The scrambled font files of a layout's font names, in fallback order. Raises if one is missing."""
+def font_files(font_dir: Path, names: Tuple[str, ...] | List[str]) -> List[Path]:
+    """The scrambled font files of a font name list, in fallback order. Raises if one is missing."""
     out = []
     for name in names:
         path = _font_file(font_dir, name)
@@ -68,10 +92,10 @@ def font_files(font_dir: Path, names: List[str]) -> List[Path]:
     return out
 
 
-def sibling_layout_exists(project_dir: str) -> bool:
-    """A cheap check for the host hook (UI thread): the dialogue layout sits in the ``source`` folder next to the
-    project's own folder. Arceus has no such layout, so it keeps the BFN preview."""
-    return (Path(project_dir).parent / "source" / LAYOUT).is_file()
+def sibling_layout_exists(project_dir: str, spec: BoxSpec) -> bool:
+    """A cheap check for the host hook (UI thread): the box's archive sits in the ``source`` folder next to the
+    project's own folder."""
+    return (Path(project_dir).parent / "source" / spec.arc).is_file()
 
 
 def _font_file(font_dir: Path, name: str) -> Optional[Path]:
@@ -84,13 +108,14 @@ def _font_file(font_dir: Path, name: str) -> Optional[Path]:
 
 
 class LayoutLoader(WorkerThread):
-    """Reads the dialogue layout and its fonts. ``loaded`` carries ``(project folder, (layout, chain) or None)``."""
+    """Reads one box's layout and fonts. ``loaded`` carries ``(project folder, (layout, chain) or None)``."""
 
     loaded = pyqtSignal(object)
 
-    def __init__(self, project_dir: str):
+    def __init__(self, project_dir: str, spec: BoxSpec):
         super().__init__()
         self._project_dir = project_dir
+        self._spec = spec
         self._source_dir = ""
         self._stop = threading.Event()
 
@@ -104,9 +129,10 @@ class LayoutLoader(WorkerThread):
             if not self._source_dir:
                 raise FileNotFoundError("the project file has no source folder")
             root = Path(self._source_dir)
-            arc = Sarc((root / LAYOUT).read_bytes())
-            layout = fm.read_layout(arc.files[LAYOUT_MEMBER], arc.files[FCPX_MEMBER])
-            faces = [fm.Face.from_bfotf(path.read_bytes()) for path in font_files(root / FONT_DIR, MESSAGE_FONTS)]
+            arc = Sarc((root / self._spec.arc).read_bytes())
+            layout = fm.read_layout(arc.files[self._spec.member], arc.files[self._spec.fcpx])
+            faces = [fm.Face.from_bfotf(path.read_bytes())
+                     for path in font_files(root / self._spec.font_dir, MESSAGE_FONTS)]
             result = (layout, fm.FontChain(faces))
         except (OSError, ValueError, KeyError, IndexError, FileNotFoundError) as exc:
             log_debug(f"switch message preview: no dialogue layout for {self._source_dir}: {exc}")
@@ -117,9 +143,10 @@ class LayoutLoader(WorkerThread):
 class SwitchMessagePreview(QWidget):
     """The dialogue box of the project (see GameRules.get_custom_preview_widget)."""
 
-    def __init__(self, main_window: Any, parent: Optional[QWidget] = None):
+    def __init__(self, main_window: Any, spec: BoxSpec, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self._mw = main_window
+        self._spec = spec
         self._text = ""
         self._note = ""
         self._loaded: Optional[Tuple[fm.MessageLayout, fm.FontChain]] = None
@@ -153,7 +180,7 @@ class SwitchMessagePreview(QWidget):
             self._note = tr("No project folder: the dialogue box needs the unpacked game.")
             return
         self._source = str(project_dir)
-        self._loader = LayoutLoader(self._source)
+        self._loader = LayoutLoader(self._source, self._spec)
         self._loader.loaded.connect(self._on_loaded)
         self._loader.start()
         self._note = tr("Reading the game layout...")
@@ -175,11 +202,11 @@ class SwitchMessagePreview(QWidget):
             self.update()
             return
         layout, chain = self._loaded
-        layout = replace(layout, panes=[replace(pane, size=(MESSAGE_EM, MESSAGE_EM)) for pane in layout.panes])
+        layout = replace(layout, panes=[replace(pane, size=(self._spec.em, self._spec.em)) for pane in layout.panes])
         page = (split_pages(self._text) or [[]])[0]
         lines = [[page[i][0]] if i < len(page) else [] for i in range(len(layout.panes))]
         wide = [i for i, pane in enumerate(layout.panes) if lines[i] and fm.overflow(pane, chain, lines[i][0])]
-        image = fm.render_window(layout, chain, lines, background=WINDOW_BG)
+        image = fm.render_window(layout, chain, lines, background=self._spec.background)
         self._image = _to_qimage(image)
         notes = []
         if wide:
@@ -207,4 +234,6 @@ def _to_qimage(image: Any) -> QImage:
     return QImage(raw, rgba.width, rgba.height, rgba.width * 4, QImage.Format.Format_RGBA8888).copy()
 
 
-__all__ = ["LayoutLoader", "SwitchMessagePreview", "font_files", "sibling_layout_exists", "source_folder"]
+__all__ = ["ARCEUS_BATTLE_BOX", "BoxSpec", "LayoutLoader", "SCARLET_VIOLET_SUB_BOX", "SWORD_SHIELD_BOX",
+           "SwitchMessagePreview",
+           "font_files", "sibling_layout_exists", "source_folder"]

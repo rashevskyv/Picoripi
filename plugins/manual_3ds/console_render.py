@@ -86,6 +86,7 @@ class Pane:
     # txt1
     text: str = ""
     font_index: int = 0
+    buffer: int = 0                 # the string buffer size (FLYT): a message pane's is large, a name's is small
     text_pos: int = 0
     text_align: int = 0
     font_size: Tuple[float, float] = (0.0, 0.0)
@@ -230,7 +231,8 @@ def _flyt_pane(data: bytes, pos: int, magic: bytes) -> Pane:
     w, h = struct.unpack_from("<ff", data, pos + 0x4C)
     pane = Pane(magic.decode("ascii"), name, bool(flags & 1), origin, alpha, x, y, w, h)
     if magic == b"txt1":
-        _buf, str_bytes, pane.material, pane.font_index = struct.unpack_from("<HHHH", data, pos + 0x54)
+        buf, str_bytes, pane.material, pane.font_index = struct.unpack_from("<HHHH", data, pos + 0x54)
+        pane.buffer = buf
         pane.text_pos, pane.text_align = struct.unpack_from("<BB", data, pos + 0x5C)
         offset = struct.unpack_from("<I", data, pos + 0x64)[0]
         top = struct.unpack_from("<4B", data, pos + 0x68)

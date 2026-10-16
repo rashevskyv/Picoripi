@@ -12,7 +12,7 @@ from core.containers.sarc import Sarc
 from plugins.common import flyt_message as fm
 from plugins.common import gfmsg
 from plugins.common.message_window import split_pages
-from plugins.pokemon_nx import message_preview as mp
+from plugins.common import switch_message_preview as mp
 
 ROOT = romhacking_root.under("Pokemon")
 SOURCE = ROOT / "Sword and Shield" / "source" if ROOT else None
@@ -41,11 +41,11 @@ def test_source_folder_is_none_without_project_file(tmp_path):
 def test_sibling_layout_gate(tmp_path):
     project = tmp_path / "picoripi"
     project.mkdir()
-    assert mp.sibling_layout_exists(str(project)) is False
+    assert mp.sibling_layout_exists(str(project), mp.SWORD_SHIELD_BOX) is False
     layout = tmp_path / "source" / "bin" / "appli" / "msg" / "bin"
     layout.mkdir(parents=True)
     (layout / "msg_00.arc").write_bytes(b"SARC")
-    assert mp.sibling_layout_exists(str(project)) is True
+    assert mp.sibling_layout_exists(str(project), mp.SWORD_SHIELD_BOX) is True
 
 
 @pytest.mark.skipif(not HAS_SOURCE, reason="needs the owner's Sword and Shield unpack with msg_00.arc")
@@ -78,6 +78,31 @@ def test_hand_broken_game_lines_fit_the_pane_at_the_measured_em():
                     for line, _colour in page:
                         if line.strip():
                             seen += 1
-                            widest = max(widest, chain.width(line, mp.MESSAGE_EM))
+                            widest = max(widest, chain.width(line, mp.SWORD_SHIELD_BOX.em))
     assert seen > 500
     assert widest <= PANE_WIDTH
+
+
+ARCEUS = ROOT / "Legends Arceus" / "source" if ROOT else None
+HAS_ARCEUS = ARCEUS is not None and (ARCEUS / mp.ARCEUS_BATTLE_BOX.arc).is_file()
+HAS_SV = (ROOT is not None and (ROOT / "Scarlet and Violet" / "source" / mp.SCARLET_VIOLET_SUB_BOX.arc).is_file())
+
+
+@pytest.mark.skipif(not HAS_ARCEUS, reason="needs the owner's Legends: Arceus unpack with the battle_menu pack")
+def test_real_arceus_battle_box_has_two_960_px_panes_and_a_name_pane():
+    spec = mp.ARCEUS_BATTLE_BOX
+    arc = Sarc((ARCEUS / spec.arc).read_bytes())
+    layout = fm.read_layout(arc.files[spec.member], arc.files[spec.fcpx])
+    assert [p.name for p in layout.panes] == ["T_00", "T_01"]
+    assert layout.name is not None and layout.name.name == "T_name_00"
+    assert layout.panes[0].rect[2] - layout.panes[0].rect[0] == 960.0
+
+
+@pytest.mark.skipif(not HAS_SV, reason="needs the owner's Scarlet / Violet unpack with the msg_sub archive")
+def test_real_scarlet_violet_sub_box_has_two_840_px_panes_and_a_name_pane():
+    spec = mp.SCARLET_VIOLET_SUB_BOX
+    arc = Sarc((ROOT / "Scarlet and Violet" / "source" / spec.arc).read_bytes())
+    layout = fm.read_layout(arc.files[spec.member], arc.files[spec.fcpx])
+    assert [p.name for p in layout.panes] == ["T_00", "T_01"]
+    assert layout.name is not None and layout.name.name == "T_name_00"
+    assert layout.panes[0].rect[2] - layout.panes[0].rect[0] == 840.0

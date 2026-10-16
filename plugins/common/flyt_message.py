@@ -70,25 +70,25 @@ def _inside(rect: Rect, outer: Rect) -> bool:
 
 
 def read_layout(layout: bytes, fcpx: bytes) -> MessageLayout:
-    """The message window of a FLYT layout (its message panes, its frame, the name pane) and its font names."""
+    """The message window of a FLYT layout: the message panes, the frame that holds them, the name pane, the fonts.
+
+    The message panes are the visible ``txt1`` panes with the largest string buffer (a message line's is about 4006
+    bytes; a speaker name's is small). The frame is the first ``wnd1`` that holds all of them; none (Arceus, Scarlet /
+    Violet) means the box is drawn around the panes. The name pane is the first other ``txt1``.
+    """
     parsed = cr.parse(layout)
     canvas = (parsed.width, parsed.height)
-    window: Optional[Rect] = None
-    texts: List[Tuple[cr.Pane, TextPane]] = []
-    for pane in parsed.panes:
-        if pane.kind == "wnd1" and window is None:
-            window = _rect(pane, canvas)
-        elif pane.kind == "txt1":
-            texts.append((pane, TextPane(pane.name, _rect(pane, canvas), pane.origin, pane.font_index,
-                                         (pane.font_size[0], pane.font_size[1]), pane.char_space, pane.line_space,
-                                         pane.text_pos, pane.text_align, _colour(pane.colours[0]))))
-    panes: List[TextPane] = []
-    name: Optional[TextPane] = None
-    for raw, text in texts:
-        if window is not None and raw.visible and _inside(text.rect, window):
-            panes.append(text)
-        elif name is None:
-            name = text
+    frames = [_rect(pane, canvas) for pane in parsed.panes if pane.kind == "wnd1"]
+    texts = [(pane, TextPane(pane.name, _rect(pane, canvas), pane.origin, pane.font_index,
+                             (pane.font_size[0], pane.font_size[1]), pane.char_space, pane.line_space,
+                             pane.text_pos, pane.text_align, _colour(pane.colours[0])))
+             for pane in parsed.panes if pane.kind == "txt1"]
+    top = max((raw.buffer for raw, _text in texts if raw.visible), default=0)
+    message = [index for index, (raw, _text) in enumerate(texts) if raw.visible and top > 0 and raw.buffer == top]
+    panes = [texts[index][1] for index in message]
+    window = next((frame for frame in frames if all(_inside(text.rect, frame) for text in panes)), None)
+    others = [text for index, (_raw, text) in enumerate(texts) if index not in message]
+    name = others[0] if others else None
     return MessageLayout(canvas, window, panes, font_names(fcpx), name)
 
 
@@ -196,10 +196,22 @@ def render_window(layout: MessageLayout, chain: FontChain, lines_by_pane: Sequen
     image = Image.new("RGBA", (width, height), background)
     for pane, lines in zip(layout.panes, lines_by_pane):
         draw_pane(image, pane, chain, lines)
-    if layout.window is not None:
-        x0, y0, x1, y1 = (int(round(v)) for v in layout.window)
-        return image.crop((max(0, x0), max(0, y0), min(width, x1), min(height, y1)))
-    return image
+    box = layout.window or _panes_box(layout.panes)
+    if box is None:
+        return image
+    x0, y0, x1, y1 = (int(round(v)) for v in box)
+    return image.crop((max(0, x0), max(0, y0), min(width, x1), min(height, y1)))
+
+
+_MARGIN = 16.0
+
+
+def _panes_box(panes: Sequence[TextPane]) -> Optional[Rect]:
+    """The rectangle around the message panes, with a margin (the crop when the layout has no frame)."""
+    if not panes:
+        return None
+    return (min(p.rect[0] for p in panes) - _MARGIN, min(p.rect[1] for p in panes) - _MARGIN,
+            max(p.rect[2] for p in panes) + _MARGIN, max(p.rect[3] for p in panes) + _MARGIN)
 
 
 __all__ = ["Face", "FontChain", "MessageLayout", "TextPane", "draw_pane", "font_names", "line_pitch", "overflow",

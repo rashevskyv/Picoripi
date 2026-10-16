@@ -24,7 +24,10 @@ UPDATE_STEP = 0x800
 SOURCE_DIR = "source"
 ROMFS = "romfs"
 # game -> (pack name pattern for the source files, title ids of the base game)
-SV_PACKS = r"^arc/(messagedatEnglish|applifontbin|applidata.*_eng\.arc\.trpak$|ymap_e\.trpak$)"
+# The battle and the sub-window message boxes (applidatamsg_btlmsg_btl_body_00, applidatamsg_submsg_sub_body_00) have no
+# language suffix, so the _eng rule above misses them; they hold the message box layouts the preview reads.
+SV_PACKS = (r"^arc/(messagedatEnglish|applifontbin|applidata.*_eng\.arc\.trpak$|ymap_e\.trpak$"
+            r"|applidatamsg_(btlmsg_btl|submsg_sub)_body_00\.arc\.trpak$)")
 ZA_PACKS = r"^arc/(ik_messagedatEnglish|uifontbin|uidata.*_eng\.arc\.trpak$|uitexhud_spmgtga_eng)"
 GAMES = {
     "0100A3D008C5C000": SV_PACKS,   # Pokémon Scarlet

@@ -288,12 +288,16 @@ class GameRules(BaseGameRules):
         return DEFAULT_LINES_PER_PAGE
 
     def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
-        """The dialogue box drawn from the game's own layout and font (plugins/pokemon_nx/message_preview.py).
+        """The dialogue box drawn from the game's own layout and font (plugins/common/switch_message_preview.py).
 
         Only the games with that layout (Sword / Shield) get it; the others keep the BFN preview.
         """
-        from plugins.pokemon_nx.message_preview import SwitchMessagePreview, sibling_layout_exists
+        from plugins.common.switch_message_preview import (ARCEUS_BATTLE_BOX, SWORD_SHIELD_BOX, SwitchMessagePreview,
+                                                          sibling_layout_exists)
         project_dir = getattr(getattr(main_window, "project_manager", None), "project_dir", None)
-        if not project_dir or not sibling_layout_exists(str(project_dir)):
+        if not project_dir:
             return None
-        return SwitchMessagePreview(main_window)
+        for spec in (SWORD_SHIELD_BOX, ARCEUS_BATTLE_BOX):
+            if sibling_layout_exists(str(project_dir), spec):
+                return SwitchMessagePreview(main_window, spec)
+        return None
