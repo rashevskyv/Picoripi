@@ -311,3 +311,16 @@ def test_gba_rom_is_used_as_it_is_when_the_plugin_unpacks_nothing(tmp_path):
     assert result is None
     assert rom.read_bytes() == data
     assert list(project.iterdir()) == []
+
+
+def test_an_emulator_starts_in_its_own_folder_and_a_bare_name_has_none(tmp_path):
+    """BlueWake's launcher does pushd to its folder first; a bare program name has no folder to start in."""
+    program = tmp_path / "BlueWake" / "BlueWake.exe"
+    program.parent.mkdir()
+    program.write_bytes(b"")
+    argv = build.emulator_argv(f'"{program}" --disc {{path}}', str(tmp_path / "GZLE01.iso"), posix=False)
+
+    assert build.emulator_working_dir(argv) == str(program.parent)
+    assert build.emulator_working_dir(["emu", "/x"]) == ""
+    assert build.emulator_working_dir([str(tmp_path / "missing" / "emu.exe")]) == ""
+    assert build.emulator_working_dir([]) == ""

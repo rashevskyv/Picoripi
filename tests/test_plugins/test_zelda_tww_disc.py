@@ -3,6 +3,7 @@
 The tree is made here: sys/ (header, bi2, apploader, FST, DOL) and files/. The checks read the built image back
 through its own FST, so a wrong offset or size fails them.
 """
+import hashlib
 import struct
 from pathlib import Path
 
@@ -142,3 +143,20 @@ def test_the_plugin_build_writes_the_named_disc(tmp_path):
 
     assert Path(built) == output / "The Wind Waker (UA).iso"
     assert Path(built).is_file()
+
+
+def test_the_bluewake_disc_is_refused_unless_the_source_dol_is_the_revision_0_one(tmp_path, monkeypatch):
+    from plugins.zelda_tww import rules as ww_rules
+
+    source = _tree(tmp_path / "src")   # its main.dol is synthetic, so it is not the revision 0 executable
+    output = tmp_path / "out"
+    output.mkdir()
+    args = (BLUEWAKE_TARGET, str(source), str(tmp_path / "missing"), str(output), lambda *_: None, lambda: False)
+
+    with pytest.raises(ValueError, match="not USA revision 0"):
+        GameRules().build_target(*args)
+    assert not (output / "GZLE01.iso").exists()
+
+    monkeypatch.setattr(ww_rules, "BLUEWAKE_DOL_SHA1", hashlib.sha1(b"D" * 0x1234).hexdigest())
+    built = GameRules().build_target(*args)
+    assert Path(built) == output / "GZLE01.iso"

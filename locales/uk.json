@@ -2781,6 +2781,7 @@
   "BlueWake (PC port)": "BlueWake (порт для ПК)",
   "Disc image (ISO)": "Образ диска (ISO)",
   "BlueWake disc (original main.dol)": "Диск для BlueWake (оригінальний main.dol)",
+  "The source main.dol is not USA revision 0 (GZLE01), so BlueWake would refuse the disc.": "Вихідний main.dol не є USA revision 0 (GZLE01), тому BlueWake відхилить диск.",
   "{0} is not a Wind Waker HD message pack. Use the extracted {1}.": "{0} не є пакетом повідомлень Wind Waker HD. Використайте розпакований {1}.",
   "The pack {0} holds no message files.": "У пакеті {0} немає файлів повідомлень."
 }

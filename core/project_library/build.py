@@ -206,6 +206,17 @@ def emulator_template_for(settings: Dict[str, Any], platform: str) -> str:
     return str(settings.get(EMULATOR_KEY) or "").strip()
 
 
+def emulator_working_dir(argv: List[str]) -> str:
+    """The folder a launched emulator starts in: the folder of its program, as a launcher's pushd does.
+
+    Empty when the program is a bare name or its folder is not there.
+    """
+    if not argv or not os.path.isabs(argv[0]):
+        return ""
+    folder = os.path.dirname(argv[0])
+    return folder if os.path.isdir(folder) else ""
+
+
 def emulator_argv(template: str, path: str, posix: Optional[bool] = None) -> List[str]:
     """The program and its arguments for a user's emulator command template.
 

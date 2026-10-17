@@ -1,6 +1,8 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Wind Waker BlueWake disc: the build stops with a message unless the source main.dol is USA revision 0 (SHA-1 checked on the worker); BlueWake's run command is `BlueWake.exe --disc {path}`, and Run in emulator now starts an emulator in the folder of its program (as `3_run_bluewake.bat` does with pushd).
+- Twilight Princess family: the shared `Fontus/fontres.arc` for the Wii is copied from the translated GameCube folder, not the English source copy (`python -m plugins.zelda_bmg.family shared`).
 - Wind Waker (GameCube): Build makes the disc image (`iso` target) and the BlueWake disc (`bluewake` target, original main.dol) from the unpacked tree with the translation over it, with no original image needed (`plugins/zelda_tww/disc.py`); Run uses the emulator command of the platform (`gc` or `bluewake`).
 - Wind Waker HD (Wii U): the wizard takes the English pack or the game folder, unpacks `Message/`, `Font/`, `Pack/` and `Layout/` (`plugins/zelda_ww/message_pack.py`), and Build makes the Cemu graphic pack (`cemu` target, `plugins/zelda_ww/graphic_pack.py`); a .wua or .wux file is not read yet.
 - Pokémon plugins (Gen 1, Gen 2, Gen 5, Gen 3 Mystery Dungeon 3DS, Switch, French): the asm, message, text and ROM budget files of a string are read on a worker (`plugins/common/block_loader.py`), so the editor's budget check, context and speaker lookups and the message attribute hooks never read a file on the UI thread; the block's problem scan runs again when its read ends.
