@@ -1287,3 +1287,7 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
   so relocation needs the bytecode decoder first. The same layout holds on Dreamcast (little endian).
 - Open: the GD-ROM image kind is not wired into the Project Manager wizard (`core/containers/gdrom.py` only).
 - Open: the other text groups of the GameCube disc (battle, bchara, beff, title, ending) and the AFNT font are not read.
+- Skies script analysis (2026-10-17, field/me002a): the Dreamcast and GameCube code streams hold the same 32-bit
+  words (GameCube read big endian, Dreamcast little endian). Every `\h(` page starts 4-byte aligned, follows a 0x1d
+  byte, and ends with `\c` or `\e` followed by zero bytes. Word 0x0b is followed by 0x98b0 (goto-subscript
+  candidate, not yet proven). Instruction boundaries and operand sizes are not yet proven; no re-assembler exists.
