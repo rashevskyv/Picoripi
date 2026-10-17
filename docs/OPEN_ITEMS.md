@@ -478,6 +478,14 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   data step that runs off the UI thread (the mapping work of `_set_virtual_folder_mappings` and `_story_mapping_indices`
   included). The pass also re-reads the message flows on its copy (about 0.7 s of CPU a pass). The parked patch is
   `C:\RomHacking_scratch\ui-thread-open\speaker_pass_wip.patch` (not in the repository).
+- **Plugin reads on the UI thread, surveyed 2026-10-18 (not yet a ranking of real cost):** the plugin test suite
+  (`tests/test_plugins`, 2,325 passed, 868 skipped) was run with a probe on `open`, `Path.read_bytes` and
+  `Path.read_text`, counting only reads made on the main thread from a plugin's own code. 999 reads in 55 plugins took
+  0.008 s in total; the worst single read took 2.5 ms (`ffta_gba` `rules.py:build_target`). The fixtures are small, so
+  this shows the call sites, not the cost on a real game. The reads that matter are the big archives of a real project
+  (Twilight Princess reference, 2.1 s on the window's thread before the worker; see above). Open: run the probe on the
+  owner's projects, and measure parse time (not only file reads) per hook. Probe script (not in the repository):
+  `C:\RomHacking_scratch\ui-thread-open\survey\survey_plugin.py`.
 - **The issue scan runs one whole block per UI-thread step** (`issue_scan_handler._scan_next_batch`): a game
   whose text is one block (N64: 4589 strings) freezes the window for ~2 s at the first open.
 - **An enabled spellchecker parses its dictionary in a Python thread** (pure-Python `spylls`, 2–3 s of CPU
