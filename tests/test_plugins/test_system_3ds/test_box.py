@@ -145,4 +145,3 @@ def test_the_panel_shows_the_folder_message_it_is_given(qtbot):
     panel._on_rendered(1, ("", "abc", 40, 1), preview_panel.repo_tools.NO_FOLDER)
     assert panel._status.text() == "Set the repo_manual folder to draw the page."
     assert panel._image is None
-

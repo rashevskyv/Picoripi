@@ -93,7 +93,7 @@ def build(messages: List[bytes]) -> bytes:
 
 
 # Ukrainian text (the Switch translation). The game draws the glyph whose atlas cell index equals the byte:
-# atlas cell = byte (checked on the Ukrainian words "Надто", "Ні", "цієї" and on fontwdata.bin widths).
+# atlas cell = byte (checked on known words of the translation and on fontwdata.bin widths).
 # Cells 1..94 are the ASCII printable characters shifted by 0x20 (byte 0x0E is "." and 0x0C is ","), cell 0 is a
 # space, cell 95 is empty. Cells 96..222 are Cyrillic and Latin-1 letters. Cell 223 and bytes 0xE0..0xFF are
 # not letters: they stay tags (0xFD is the line break, 0xFF ends a message).
