@@ -175,11 +175,47 @@ def quoted_names(data: bytes, folder: str) -> set:
     return names
 
 
+def name_views(found: Dict[int, str], files: Sequence[Tuple[int, bytes]]) -> None:
+    """Name the component archives and views of a view pack, in the folder of the names ``resolve`` found.
+
+    A view ``view_X.truiv`` names ``X.arc`` (Legends: Z-A: 75 of 80 view packs have it in the index). An unnamed archive
+    is named after the root layout inside it: ``blyt/X.bflyt`` gives ``X.arc`` (msg_body_00.arc holds blyt/msg_body_00.bflyt),
+    and a named archive ``X.arc`` names its view ``view_X.truiv``. Each name must be a file of this pack, so a child
+    layout name that is not an archive of the pack is never used.
+    """
+    if not found:
+        return
+    folder = next(iter(found.values())).rpartition("/")[0]
+
+    def free() -> set:
+        return {h for h, _d in files} - set(found)
+
+    for path in [p for p in found.values() if p.endswith(".truiv")]:
+        leaf = path.rpartition("/")[2]
+        if leaf.startswith("view_"):
+            arc = f"{folder}/{leaf[len('view_'):-len('.truiv')]}.arc"
+            if fnv(arc) in free():
+                found[fnv(arc)] = arc
+    for h, data in files:
+        if h in found or data[:4] != b"SARC":
+            continue
+        for name in re.findall(rb"blyt/([A-Za-z0-9_]+)\.bflyt", data[:16384]):
+            arc = f"{folder}/{name.decode('ascii')}.arc"
+            if fnv(arc) in free():
+                found[fnv(arc)] = arc
+                break
+    for path in [p for p in found.values() if p.endswith(".arc") and p.rpartition("/")[0] == folder]:
+        view = f"{folder}/view_{path.rpartition('/')[2][:-len('.arc')]}.truiv"
+        if fnv(view) in free():
+            found[fnv(view)] = view
+
+
 def name_others(found: Dict[int, str], files: Sequence[Tuple[int, bytes]]) -> None:
     """Name the pack's files that ``resolve`` missed: paths quoted in the pack's files, a layout archive named after
     its BFLYT with the main archive's suffix, the sizes of a font setting, and textures named in a BNTX string table."""
     if not found:
         return
+    name_views(found, files)
     main = next(iter(found.values()))
     folder = main.rsplit("/", 1)[0]
     want = {h for h, _d in files} - set(found)

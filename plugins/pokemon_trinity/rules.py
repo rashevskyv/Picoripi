@@ -128,15 +128,20 @@ class GameRules(BaseGameRules):
         return gfmsg.describe(str(tag))
 
     def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
-        """The sub-window message box drawn from the game's own layout (plugins/common/switch_message_preview.py).
+        """The message box drawn from the game's own layout (plugins/common/switch_message_preview.py).
 
-        Only when the unpacked game has the box's archive (Scarlet / Violet); Legends: Z-A keeps the BFN preview.
+        Scarlet / Violet: the sub-window box. Legends: Z-A: the field dialogue box (msg_body_00.arc, written by the wizard).
+        Only the box whose archive the unpacked game has is shown.
         """
-        from plugins.common.switch_message_preview import SCARLET_VIOLET_SUB_BOX, SwitchMessagePreview, sibling_layout_exists
+        from plugins.common.switch_message_preview import (SCARLET_VIOLET_SUB_BOX, ZA_FIELD_BOX, SwitchMessagePreview,
+                                                           sibling_layout_exists)
         project_dir = getattr(getattr(main_window, "project_manager", None), "project_dir", None)
-        if not project_dir or not sibling_layout_exists(str(project_dir), SCARLET_VIOLET_SUB_BOX):
+        if not project_dir:
             return None
-        return SwitchMessagePreview(main_window, SCARLET_VIOLET_SUB_BOX)
+        for spec in (SCARLET_VIOLET_SUB_BOX, ZA_FIELD_BOX):
+            if sibling_layout_exists(str(project_dir), spec):
+                return SwitchMessagePreview(main_window, spec)
+        return None
 
     def get_editor_page_size(self) -> int:
         return DEFAULT_LINES_PER_PAGE

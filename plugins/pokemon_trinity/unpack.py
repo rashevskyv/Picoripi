@@ -28,7 +28,10 @@ ROMFS = "romfs"
 # language suffix, so the _eng rule above misses them; they hold the message box layouts the preview reads.
 SV_PACKS = (r"^arc/(messagedatEnglish|applifontbin|applidata.*_eng\.arc\.trpak$|ymap_e\.trpak$"
             r"|applidatamsg_(btlmsg_btl|submsg_sub)_body_00\.arc\.trpak$)")
-ZA_PACKS = r"^arc/(ik_messagedatEnglish|uifontbin|uidata.*_eng\.arc\.trpak$|uitexhud_spmgtga_eng)"
+# The message box of Z-A: view_msg_body_00.truiv names the archive msg_body_00.arc (layout msg_00.bflyt). Both sit in
+# one pack, and the pack has no language suffix, so the _eng rule above misses it.
+ZA_PACKS = (r"^arc/(ik_messagedatEnglish|uifontbin|uidata.*_eng\.arc\.trpak$|uitexhud_spmgtga_eng"
+            r"|uidatamsgview_msg_body_01\.truiv\.trpak$)")
 GAMES = {
     "0100A3D008C5C000": SV_PACKS,   # Pokémon Scarlet
     "01008F6008C5E000": SV_PACKS,   # Pokémon Violet

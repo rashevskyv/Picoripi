@@ -59,9 +59,9 @@ def font_names(fcpx: bytes) -> List[str]:
     return [m.group(0).decode("ascii") for m in _FCPX_NAME.finditer(fcpx) if m.group(0).lower().endswith(b".otf")]
 
 
-def _rect(pane: cr.Pane, canvas: Tuple[float, float]) -> Rect:
-    cx = canvas[0] / 2 + pane.abs_x
-    cy = canvas[1] / 2 - pane.abs_y
+def _rect(pane: cr.Pane, canvas: Tuple[float, float], offset: Tuple[float, float] = (0.0, 0.0)) -> Rect:
+    cx = canvas[0] / 2 + pane.abs_x + offset[0]
+    cy = canvas[1] / 2 - pane.abs_y - offset[1]
     return (cx - pane.w / 2, cy - pane.h / 2, cx + pane.w / 2, cy + pane.h / 2)
 
 
@@ -69,22 +69,29 @@ def _inside(rect: Rect, outer: Rect) -> bool:
     return rect[0] >= outer[0] - 0.5 and rect[1] >= outer[1] - 0.5 and rect[2] <= outer[2] + 0.5 and rect[3] <= outer[3] + 0.5
 
 
-def read_layout(layout: bytes, fcpx: bytes) -> MessageLayout:
+def read_layout(layout: bytes, fcpx: bytes, offset: Tuple[float, float] = (0.0, 0.0),
+                names: Optional[Sequence[str]] = None) -> MessageLayout:
     """The message window of a FLYT layout: the message panes, the frame that holds them, the name pane, the fonts.
 
-    The message panes are the visible ``txt1`` panes with the largest string buffer (a message line's is about 4006
-    bytes; a speaker name's is small). The frame is the first ``wnd1`` that holds all of them; none (Arceus, Scarlet /
-    Violet) means the box is drawn around the panes. The name pane is the first other ``txt1``.
+    ``offset`` moves the whole layout on the canvas (x right, y up): a parts pane of the window's outer layout places it
+    (Z-A: msg_body_00.bflyt puts msg_00.bflyt at y -370). ``names`` picks the message panes by name (visible ones).
+    Without it, the message panes are the visible ``txt1`` panes with the largest string buffer (a message line's is
+    about 4006 bytes; a speaker name's is small). The frame is the first ``wnd1`` that holds all of them; none (Arceus,
+    Scarlet / Violet) means the box is drawn around the panes. The name pane is the first other ``txt1``.
     """
     parsed = cr.parse(layout)
     canvas = (parsed.width, parsed.height)
-    frames = [_rect(pane, canvas) for pane in parsed.panes if pane.kind == "wnd1"]
-    texts = [(pane, TextPane(pane.name, _rect(pane, canvas), pane.origin, pane.font_index,
+    frames = [_rect(pane, canvas, offset) for pane in parsed.panes if pane.kind == "wnd1"]
+    texts = [(pane, TextPane(pane.name, _rect(pane, canvas, offset), pane.origin, pane.font_index,
                              (pane.font_size[0], pane.font_size[1]), pane.char_space, pane.line_space,
                              pane.text_pos, pane.text_align, _colour(pane.colours[0])))
              for pane in parsed.panes if pane.kind == "txt1"]
     top = max((raw.buffer for raw, _text in texts if raw.visible), default=0)
-    message = [index for index, (raw, _text) in enumerate(texts) if raw.visible and top > 0 and raw.buffer == top]
+    if names is not None:
+        message = [index for index, (raw, _text) in enumerate(texts) if raw.visible and raw.name in names]
+        message.sort(key=lambda index: list(names).index(texts[index][0].name))
+    else:
+        message = [index for index, (raw, _text) in enumerate(texts) if raw.visible and top > 0 and raw.buffer == top]
     panes = [texts[index][1] for index in message]
     window = next((frame for frame in frames if all(_inside(text.rect, frame) for text in panes)), None)
     others = [text for index, (_raw, text) in enumerate(texts) if index not in message]

@@ -1011,7 +1011,10 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      BNTX pictures of the English layouts (title logo, menus). `2_build.bat` writes the changed files into a
      LayeredFS mod with an `arc\data.trpfd` that no longer points the game to the packed originals (a changed
      English layout `X_eng.arc` also goes in as `X.arc`: the game reads language layouts only from its packs); Scarlet and
-     Violet share one project and get the same mod.
+     Violet share one project and get the same mod. **Message box preview:** the box is drawn from the game's own layout
+     with the `.bfotf` fonts. Scarlet / Violet: `msg_sub_00.bflyt` (sub-window archive). Legends: Z-A: `msg_00.bflyt` in
+     `msg_body_00.arc`, placed by the outer `msg_body_00.bflyt` at y -370; the wizard writes that archive (its view is
+     `view_msg_body_00.truiv`). The window picture is not drawn. The Z-A glyph size is not measured yet.
    - `wii_sysfont` — the Wii system bitmap fonts `wbf1.brfna` / `wbf2.brfna` (the NW4R archived fonts of the
      System Menu, shipped as copies on discs that draw prompts with them, e.g. Raving Rabbids: Party Collection).
      The vWii NAND of the EUR console has the same two files; its WiiNTLG-Regular.ttc faces

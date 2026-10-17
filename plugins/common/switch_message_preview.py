@@ -47,6 +47,9 @@ class BoxSpec:
     background: Tuple[int, int, int, int] = (238, 240, 242, 255)
     em_y: Optional[float] = None  # glyph height in px when it differs from the pane's X size (stretched in X)
     marker: Optional[str] = None  # a folder that only this game has (Arceus: bin/archive/appli); None for no check
+    offset: Tuple[float, float] = (0.0, 0.0)            # the outer layout's parts placement (x right, y up)
+    panes: Optional[Tuple[str, ...]] = None            # the message pane names; None picks them by string buffer
+    fonts: Optional[Tuple[str, ...]] = None            # the font chain; None uses MESSAGE_FONTS
 
 
 # The text is drawn at each pane's own fontSize (the layout's value), unless the spec sets em_y. The font is UDKakugo;
@@ -71,6 +74,13 @@ ARCEUS_FIELD_BOX = BoxSpec("bin/appli/msg/bin/msg_00.arc", "blyt/msg_00.bflyt", 
 # panes, no text from the field dialogue yet. Its cliff is weak: 303 battle lines, none above 1.02 of the pane.
 ARCEUS_BATTLE_BOX = BoxSpec("bin/archive/appli/battle_menu_eng.gfpak.d/11_msg_sys_00_s.arc", "blyt/msg_sys_00_s.bflyt",
                             "fcpx/system32_jpn.bfcpx", "bin/font", background=(38, 42, 52, 255))
+# Legends: Z-A field dialogue: msg_00.bflyt inside ui/data/msg/msg_body_00.arc (the wizard writes it; view_msg_body_00.truiv
+# names it). Two 840 px text panes (T_00, T_01), 42 x 52 font, centre-set, colour (54, 54, 76): the same class as the
+# Arceus field box. The outer layout msg_body_00.bflyt places it with a parts pane (prt1 L_msg_00: translate (0, -370),
+# magnify 1, 1). Window frame: the first wnd1 holding both panes (W_shadow_00). NOT MEASURED: the glyph height is drawn
+# at the layout size (no em_y); check against a frame before trusting the wrap or the box position.
+ZA_FIELD_BOX = BoxSpec("ui/data/msg/msg_body_00.arc", "blyt/msg_00.bflyt", "fcpx/system42_jpn.bfcpx", "ui/font/bin",
+                       offset=(0.0, -370.0), panes=("T_00", "T_01"), fonts=("or_font.otf", "FOT-RodinNTLGPro-DB.otf"))
 
 
 def source_folder(project_dir: str) -> Optional[str]:
@@ -140,9 +150,10 @@ class LayoutLoader(WorkerThread):
                 raise FileNotFoundError("the project file has no source folder")
             root = Path(self._source_dir)
             arc = Sarc((root / self._spec.arc).read_bytes())
-            layout = fm.read_layout(arc.files[self._spec.member], arc.files[self._spec.fcpx])
+            layout = fm.read_layout(arc.files[self._spec.member], arc.files[self._spec.fcpx], self._spec.offset,
+                                    self._spec.panes)
             faces = [fm.Face.from_bfotf(path.read_bytes())
-                     for path in font_files(root / self._spec.font_dir, MESSAGE_FONTS)]
+                     for path in font_files(root / self._spec.font_dir, self._spec.fonts or MESSAGE_FONTS)]
             result = (layout, fm.FontChain(faces))
         except (OSError, ValueError, KeyError, IndexError, FileNotFoundError) as exc:
             log_debug(f"switch message preview: no dialogue layout for {self._source_dir}: {exc}")
@@ -258,5 +269,5 @@ def _to_qimage(image: Any) -> QImage:
     return QImage(raw, rgba.width, rgba.height, rgba.width * 4, QImage.Format.Format_RGBA8888).copy()
 
 
-__all__ = ["ARCEUS_BATTLE_BOX", "ARCEUS_FIELD_BOX", "BoxSpec", "LayoutLoader", "SCARLET_VIOLET_SUB_BOX",
+__all__ = ["ARCEUS_BATTLE_BOX", "ARCEUS_FIELD_BOX", "BoxSpec", "LayoutLoader", "SCARLET_VIOLET_SUB_BOX", "ZA_FIELD_BOX",
            "SWORD_SHIELD_BOX", "SwitchMessagePreview", "font_files", "sibling_layout_exists", "source_folder"]
