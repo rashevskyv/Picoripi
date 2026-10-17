@@ -13,7 +13,7 @@ from utils.atomic_io import atomic_write_json
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PyQt6.QtCore import pyqtSignal
 
@@ -62,8 +62,62 @@ class ReferenceUnpackWorker(WorkerThread):
             self.finished_signal.emit(folder or "", "")
 
 
+class ReferenceLoadWorker(WorkerThread):
+    """Parses a reference translation on a worker thread: ``loaded(languages)`` when done.
+
+    ``game_rules`` must be the plugin's private copy (``reference_worker_rules``): the parse may register aliases into
+    the tag mapping it sees, and that mapping belongs to the copy. See ``ReferenceManager.load_in_background``.
+    """
+    loaded = pyqtSignal(object)
+
+    def __init__(self, patch_path: str, block_names: Any, game_rules: Any):
+        super().__init__()
+        self._path, self._block_names, self._rules = patch_path, block_names, game_rules
+
+    def run(self) -> None:
+        languages = ReferenceManager.load_multi_reference(self._path, block_names=self._block_names,
+                                                          game_rules=self._rules)
+        self.loaded.emit(languages)
+
+
 class ReferenceManager:
     """Manages loading, persisting settings, and coordinating reference translations."""
+
+    @classmethod
+    def load_in_background(cls, patch_path: str | Path, block_names: Any, game_rules: Any, window: Any,
+                           on_done: Callable[[Dict[str, Dict[Tuple[int, int], str]]], None]) -> bool:
+        """Parse the reference on a worker thread; ``on_done(languages)`` runs on the window's thread.
+
+        ``window`` is the main window. Returns False when the plugin gives no worker rules (``reference_worker_rules``
+        is absent): the caller then loads synchronously, as before. The aliases the parse registered are copied into the
+        window's tag mapping before ``on_done`` runs.
+        """
+        make_rules = getattr(game_rules, "reference_worker_rules", None)
+        if not callable(make_rules):
+            return False
+        worker_rules, worker_window = make_rules()
+        worker = ReferenceLoadWorker(str(patch_path), block_names, worker_rules)
+
+        def finished(languages) -> None:
+            cls.adopt_aliases(window, worker_window)
+            on_done(languages)
+
+        worker.loaded.connect(finished)
+        worker.start()
+        return True
+
+    @staticmethod
+    def adopt_aliases(window: Any, worker_window: Any) -> None:
+        """Copy the aliases of a worker's copy of the tag mapping into the window's mapping. Existing entries win.
+
+        Call on the window's thread only: the window's mapping is read by the UI.
+        """
+        if window is None or worker_window is None or not hasattr(window, "default_tag_mappings"):
+            return
+        if window.default_tag_mappings is None:
+            window.default_tag_mappings = {}
+        for alias, raw_tag in dict(getattr(worker_window, "default_tag_mappings", None) or {}).items():
+            window.default_tag_mappings.setdefault(alias, raw_tag)
 
     @staticmethod
     def get_reference_patch_path(project_dir: str | Path) -> Optional[str]:

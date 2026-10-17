@@ -58,12 +58,12 @@ def load_zelda_bmg_reference_patch(
     if msg_sub.is_dir():
         search_dirs.insert(0, msg_sub)
 
-    # 1. Look for .arc archives (RARC)
+    # 1. Look for .arc archives (RARC). One pass per folder: on Windows "*.arc" and "*.ARC" match the same files,
+    # and each archive was parsed twice.
     arc_files: List[Path] = []
     for sdir in search_dirs:
         if sdir.is_dir():
-            arc_files.extend(sorted(sdir.glob("*.arc")))
-            arc_files.extend(sorted(sdir.glob("*.ARC")))
+            arc_files.extend(_files_with_suffix(sdir, ".arc"))
 
     if arc_files:
         _load_from_arcs(arc_files, name_to_idx, ref_data, game_rules, encoding)
@@ -72,8 +72,7 @@ def load_zelda_bmg_reference_patch(
     bmg_files: List[Path] = []
     for sdir in search_dirs:
         if sdir.is_dir():
-            bmg_files.extend(sorted(sdir.glob("*.bmg")))
-            bmg_files.extend(sorted(sdir.glob("*.BMG")))
+            bmg_files.extend(_files_with_suffix(sdir, ".bmg"))
     if bmg_files:
         _load_from_bmgs(bmg_files, name_to_idx, ref_data, game_rules, encoding)
 
@@ -86,6 +85,11 @@ def load_zelda_bmg_reference_patch(
 
     log_info(f"ZeldaBMG reference: loaded {len(ref_data)} strings across {len(name_to_idx)} blocks.")
     return ref_data
+
+
+def _files_with_suffix(folder: Path, suffix: str) -> List[Path]:
+    """The files of ``folder`` whose name ends in ``suffix``, any case, sorted once."""
+    return sorted(path for path in folder.iterdir() if path.is_file() and path.suffix.lower() == suffix)
 
 
 def _load_from_arcs(

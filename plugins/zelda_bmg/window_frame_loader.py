@@ -1,6 +1,7 @@
 """Load TP message-window frames from a local retail dump (res/Layout)."""
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional, Tuple
@@ -9,7 +10,6 @@ from PyQt6.QtCore import QRectF, Qt
 from PyQt6.QtGui import QColor, QImage, QPainter
 
 from core.containers.rarc_container import RarcContainer
-from utils import app_mode
 
 from .bti_image import bti_to_qimage
 from .j2d_blo import parse_blo, J2DPane
@@ -49,7 +49,13 @@ _HIO = {
     "explain": (1.2, 1.0),
 }
 
-_KNOWN_DUMP = Path(r"E:\Emulators\RomHacking\Zelda\Twilight Princess\GC + Wii\ISO\ENG\root")
+
+def _under(base: Path, text: str) -> Path:
+    """``text`` as a path: as it is when absolute, else inside ``base`` (the project folder)."""
+    path = Path(text)
+    if path.is_absolute() or not str(base) or str(base) == ".":
+        return path
+    return Path(os.path.normpath(base / path))   # "../game/root" must not keep its ".." parts
 
 # dItem_data::item_resource[i].mTexture — itemicon.arc file_id
 _ITEM_TEXTURE = (
@@ -113,15 +119,17 @@ def find_layout_root(mw=None) -> Optional[Path]:
                 candidates.append(Path(str(p)))
         pm = getattr(mw, "project_manager", None)
         proj = getattr(pm, "project", None) if pm else None
+        project_dir = Path(str(getattr(pm, "project_dir", "") or "")) if pm else Path()
         if proj is not None:
+            # The project's game folder (the res folder above it holds Layout): absolute, or relative to the project.
+            source = str((getattr(proj, "metadata", None) or {}).get("source_path") or "")
+            if source:
+                candidates.append(_under(project_dir, source))
             for block in getattr(proj, "blocks", []) or []:
                 src = getattr(block, "source_file", None)
                 if src:
-                    candidates.append(Path(str(src)))
+                    candidates.append(_under(project_dir, str(src)))
                     break
-    # The retail dump on this machine is for the interactive application only.
-    if not app_mode.headless and _KNOWN_DUMP.is_dir():
-        candidates.append(_KNOWN_DUMP)
     seen = set()
     for start in candidates:
         cur = start if start.is_dir() else start.parent

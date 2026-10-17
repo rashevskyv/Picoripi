@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from core.formats import FileFormat
 from core.i18n import tr
 from core.project_library import images
+from plugins.common.disc_source import write_source_mark
 from plugins.zelda_bmg.rules import GameRules as TwilightPrincessRules
 
 from . import build, reference
@@ -154,7 +155,7 @@ class GameRules(TwilightPrincessRules):
         if done is None or not build.fold_archives(target_dir, is_cancelled):   # each RARC .szs: a folder of members
             return None
         build.write_text_member(target_dir)    # sys/main_strings.dolstr: the executable's English text
-        build.write_source_mark(target_dir, base)
+        write_source_mark(target_dir, base)
         return done
 
     def get_source_subfolder(self) -> Optional[str]:

@@ -288,13 +288,11 @@ class _PreviewWindow:
 
 
 def _use_dump(dump_root):
-    """Point the frame loader at the dump, or make sure it finds none."""
+    """Clear the frame loader's layout root and cache, so the next lookup starts again."""
     from plugins.zelda_bmg import window_frame_loader as loader
 
     loader._LAYOUT_ROOT = None
     loader._CACHE.clear()
-    if dump_root is None:
-        loader._KNOWN_DUMP = Path(__file__).parent / "_no_dump_here"
 
 
 def png_bytes(image) -> bytes:

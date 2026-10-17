@@ -21,6 +21,9 @@ class PluginSettings:
         self.mw = main_window
         self._reference_request = None
         self._reference_result = None
+        self._reference_busy = False     # a worker parse is running
+        self._reference_wanted = None    # (path, rules, names, request) of the parse to start next
+        self._reference_latest = None    # the request the window wants; an older parse result is not applied
 
     def _get_plugin_config_path(self) -> Optional[Path]:
         """Internal helper to get the plugin config path."""
@@ -219,21 +222,57 @@ class PluginSettings:
             # archives takes seconds, so the same request reuses the last result.
             request = (ref_path, game_rules, repr(self.mw.data_store.block_names))
             if request == self._reference_request and self._reference_result:
-                ref_langs = self._reference_result
-            else:
-                ref_langs = ReferenceManager.load_multi_reference(
-                    ref_path,
-                    self.mw.data_store.block_names,
-                    game_rules=game_rules
-                )
-                self._reference_request, self._reference_result = request, ref_langs
-            self.mw.data_store.reference_languages_data = ref_langs
-            self.mw.data_store.reference_data = (
-                ref_langs.get("Russian (RU)")
-                or (next(iter(ref_langs.values())) if ref_langs else {})
+                self._apply_reference(self._reference_result)
+                return
+            if callable(getattr(game_rules, "reference_worker_rules", None)):
+                # Worker parse: one at a time, and only the latest request is applied (see _start_reference_parse).
+                self._reference_wanted = (ref_path, game_rules, self.mw.data_store.block_names, request)
+                self._reference_latest = request
+                self._start_reference_parse()
+                return
+            ref_langs = ReferenceManager.load_multi_reference(
+                ref_path,
+                self.mw.data_store.block_names,
+                game_rules=game_rules
             )
+            self._reference_request, self._reference_result = request, ref_langs
+            self._apply_reference(ref_langs)
         except Exception as err:
             log_error(f"Failed to load reference from {ref_path}: {err}")
+
+    def _start_reference_parse(self) -> None:
+        """Start the wanted parse on a worker thread unless one is running. Its result is applied only when it is the
+        latest request; a parse that was superseded is still read to the end (the parser cannot be stopped), then the
+        wanted one starts."""
+        from core.reference_manager import ReferenceManager
+        if self._reference_busy or self._reference_wanted is None:
+            return
+        ref_path, game_rules, names, request = self._reference_wanted
+        self._reference_wanted = None
+        self._reference_busy = True
+
+        def parsed(ref_langs) -> None:
+            self._reference_busy = False
+            if request == self._reference_latest:
+                self._reference_request, self._reference_result = request, ref_langs
+                self._apply_reference(ref_langs)
+                try:
+                    if getattr(self.mw, "ui_updater", None) is not None:
+                        self.mw.ui_updater.update_text_views()
+                except Exception as err:   # a Qt slot: an error here must not leave the parse half-applied
+                    log_error(f"Reference text views not refreshed: {err}")
+            self._start_reference_parse()
+
+        if not ReferenceManager.load_in_background(ref_path, names, game_rules, self.mw, parsed):
+            parsed(ReferenceManager.load_multi_reference(ref_path, names, game_rules=game_rules))
+
+    def _apply_reference(self, ref_langs: Dict[str, Any]) -> None:
+        """Store the parsed languages on the data store: all of them, and the primary one."""
+        self.mw.data_store.reference_languages_data = ref_langs
+        self.mw.data_store.reference_data = (
+            ref_langs.get("Russian (RU)")
+            or (next(iter(ref_langs.values())) if ref_langs else {})
+        )
 
     def _migrate_legacy_styles(self, plugin_data: Dict[str, Any]) -> None:
         # Implementation of style migration from SettingsManager

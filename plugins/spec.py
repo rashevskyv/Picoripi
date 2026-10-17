@@ -187,6 +187,10 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
         Hook("get_reference_language_label", "Label of the reference tab.", call=(), returns=str),
         Hook("load_reference_patch", "Read a reference translation: (block, string) -> text."),
         Hook("load_multi_reference", "Read reference translations in several languages."),
+        Hook("reference_worker_rules", "Returns (rules, window) for a reference parse on a worker thread: the rules "
+             "of the same game, and a window copy with its own tag mapping that the parse fills (the host copies the "
+             "new aliases into the editor's mapping on the window's thread). Without it the parse runs on the "
+             "window's thread.", on_base=False),
         Hook("unpack_reference", "Unpack a picked reference file (a game image) into a project folder on a worker "
              "thread: progress(percent, text) and is_cancelled() are passed in. Returns the folder to store as the "
              "reference path, or None to use the path as it is.", call=None, returns=str, optional=True),
