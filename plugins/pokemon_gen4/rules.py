@@ -17,7 +17,7 @@ from core.containers.nitro import NarcContainer
 from core.i18n import tr
 from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
-from plugins.common import gen4msg, nds_build
+from plugins.common import gen4msg, name_seeds, nds_build
 from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
 
@@ -25,6 +25,17 @@ from . import ds_text, message_preview, unpack
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 from .tag_manager import SERIES_TAG_MAP
+
+# The name tables of the game's message banks: bank folder -> {bank number: table}. The numbers were found by the
+# names each bank holds (a known species, move, item, ability, type or trainer class, and the bank's row count).
+NAME_BANKS = {
+    "msgdata+msg.narc": {362: "species", 588: "moves", 344: "items", 552: "abilities", 565: "types", 560: "classes"},
+    "msgdata+pl_msg.narc": {412: "species", 647: "moves", 392: "items", 610: "abilities", 624: "types", 619: "classes"},
+    "a+0+2+7": {237: "species", 750: "moves", 222: "items", 720: "abilities", 735: "types", 730: "classes"},
+}
+_NAME_TABLE_SECTIONS = {"species": ("Pokémon", "Pokémon name"), "moves": ("Moves", "Move name"),
+                        "items": ("Items", "Item name"), "abilities": ("Abilities", "Ability name"),
+                        "types": ("Types", "Type name"), "classes": ("Characters", "Trainer class")}
 
 LINES_PER_BOX = 2
 BUILD_TARGET = "nds_rom"
@@ -338,5 +349,30 @@ class GameRules(BaseGameRules):
                                editor_player_tag_const: str) -> Tuple[str, str, str]:
         return clean_spaces(segment_to_insert), "OK", ""
 
+    def get_glossary_seed_entries(self) -> List[Dict[str, Any]]:
+        """Pokémon, moves, items, abilities, types and trainer classes from the game's name banks (``NAME_BANKS``)."""
+        pm = getattr(self.mw, "project_manager", None) if self.mw else None
+        try:
+            blocks = list(pm.project.blocks)
+        except (AttributeError, TypeError):
+            return []
+        collector = name_seeds.TermCollector()
+        codecs = _codecs()
+        for block in blocks:
+            rel = str(block.source_file).replace("\\", "/")
+            tables = NAME_BANKS.get(Path(rel).parent.name, {})
+            number = Path(rel).stem
+            if not number.isdigit() or int(number) not in tables:
+                continue
+            key = tables[int(number)]
+            section, _description = _NAME_TABLE_SECTIONS[key]
+            try:
+                codec, bank = gen4msg.open_bank(Path(pm.get_absolute_path(block.source_file)).read_bytes(), codecs)
+            except (OSError, gen4msg.BankError) as error:
+                log_debug(f"{_PLUGIN}: no glossary terms from {rel}: {error}")
+                continue
+            collector.add_table(rel, gen4msg.decode_all(bank, codec), section, f"{key} table")
+        return collector.entries
+
     def get_capabilities(self) -> Set[str]:
-        return set()
+        return {"glossary_seed"}

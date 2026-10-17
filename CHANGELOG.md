@@ -1,6 +1,9 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Pokémon glossary seeds: Sun / Moon names are labelled by their anchor names (species, items, moves, abilities, types, trainer classes), so a series glossary gets their terms (it had none); Gold / Silver / Crystal, Ruby / Sapphire / Emerald / FireRed / LeafGreen (English files), Diamond / Pearl / Platinum / HeartGold / SoulSilver, Brilliant Diamond / Shining Pearl and Scarlet / Violet / Legends Z-A seed their name tables (`plugins/common/name_seeds.py`).
+- Pokémon glossary seeds: the Switch name tables seed their base tables only (a plural or accusative form gives context, no term) and a term keeps the first table that gives it; a clothing item named after a type no longer takes the type's section.
+- Pokémon Ultra Sun / Ultra Moon: no glossary seed terms yet (its text tables are another archive than Sun / Moon's; its labels are not derived).
 - Series translation reuse across syntaxes: a plugin's `get_series_tag_map()` (`plugins/common/series_tags.py`) gives each control tag a kind; a translation of another game of the series carries across when the kinds match, with its tags written in this game's syntax, and a tag that cannot be mapped blocks it and the memory bar says why (D43). Declared by Pokémon Gen 1, Gen 2, Gen 3, Gen 4, Gen 5, Gen 6/7, Switch, Trinity and Mystery Dungeon 3DS / Brilliant Diamond plugins.
 - Translation memory bar: **Apply here** and **Apply to places with the same context** use the speaker and window rule (D41); "Apply to places" writes only where the text fits the window and runs the issue check on each place.
 - Series glossary: `scripts/seed_series_glossary.py` (`core/glossary/series_seeds.py`) adds the game's own terms from a plugin's seed hook to a series glossary file, headless and without translations; existing entries stay.

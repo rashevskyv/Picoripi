@@ -1,4 +1,33 @@
 {
-  "_comment": "Game text tables of the English GARC a/0/3/2 (key sm); a/0/4/2 (Battle Tree) uses the same key. Names are added when the tables are read; the rest are 'Game text NNN'.",
-  "sm": {}
+  "_comment": "Game text tables of the English GARC a/0/3/2 (key sm); a/0/4/2 (Battle Tree) uses the same key. The labels of the name tables were found by their anchor names (a known species, item, move, ability, type, nature or trainer class in each file, with the table's row count); the rest are 'Game text NNN'.",
+  "sm": {
+    "36": [
+      "Item names",
+      "Items"
+    ],
+    "55": [
+      "Species names",
+      "Pokémon"
+    ],
+    "87": [
+      "Nature names",
+      ""
+    ],
+    "96": [
+      "Ability names",
+      "Abilities"
+    ],
+    "106": [
+      "Trainer classes",
+      "Characters"
+    ],
+    "107": [
+      "Type names",
+      "Types"
+    ],
+    "113": [
+      "Move names",
+      "Moves"
+    ]
+  }
 }
