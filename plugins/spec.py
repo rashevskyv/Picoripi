@@ -193,7 +193,7 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
              "the window's thread. rules answers the parse and must not read the window's widgets or state that changes: "
              "a copy with the window state it needs, taken now. window is a copy with its own tag mapping that the parse "
              "fills (the host copies the new aliases into the editor's mapping on the window's thread), or None. "
-             "Without this hook the parse runs on the window's thread.", on_base=False),
+             "Default None: the parse runs on the window's thread."),
         Hook("unpack_reference", "Unpack a picked reference file (a game image) into a project folder on a worker "
              "thread: progress(percent, text) and is_cancelled() are passed in. Returns the folder to store as the "
              "reference path, or None to use the path as it is.", call=None, returns=str, optional=True),

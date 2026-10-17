@@ -226,7 +226,7 @@ class PluginSettings:
             if not force and request == self._reference_request and self._reference_result:
                 self._apply_reference(self._reference_result)
                 return
-            if callable(getattr(game_rules, "reference_worker_rules", None)):
+            if ReferenceManager.has_worker_rules(game_rules):
                 # Worker parse: one at a time, and only the latest request is applied (see _start_reference_parse).
                 self._reference_wanted = (ref_path, game_rules, self.mw.data_store.block_names, request)
                 self._reference_latest = request

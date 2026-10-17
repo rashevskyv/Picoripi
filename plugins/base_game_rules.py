@@ -809,6 +809,15 @@ class BaseGameRules:
         """
         return None
 
+    def reference_worker_rules(self) -> Optional[Tuple[Any, Any]]:
+        """Rules for a reference parse on a worker thread: ``(rules, window)``, built on the window's thread.
+
+        ``rules`` answers ``load_multi_reference`` on the worker and must not read the window. ``window`` is the window
+        copy whose tag aliases the host copies back on the window's thread (``ReferenceManager.adopt_aliases``), or
+        None. Default: None, meaning the parse runs on the window's thread as before.
+        """
+        return None
+
     def get_tag_tooltip(self, tag: str) -> str:
         """Return an optional human-readable explanation for an editor tag."""
         return ""

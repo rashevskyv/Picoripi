@@ -127,7 +127,7 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | `get_reference_language_label` | Label of the reference tab. |  |
 | `load_reference_patch` | Read a reference translation: (block, string) -> text. |  |
 | `load_multi_reference` | Read reference translations in several languages. |  |
-| `reference_worker_rules` | Returns (rules, window) for a reference parse on a worker thread, built on the window's thread. rules answers the parse and must not read the window's widgets or state that changes: a copy with the window state it needs, taken now. window is a copy with its own tag mapping that the parse fills (the host copies the new aliases into the editor's mapping on the window's thread), or None. Without this hook the parse runs on the window's thread. | looked for |
+| `reference_worker_rules` | Returns (rules, window) for a reference parse on a worker thread, built on the window's thread. rules answers the parse and must not read the window's widgets or state that changes: a copy with the window state it needs, taken now. window is a copy with its own tag mapping that the parse fills (the host copies the new aliases into the editor's mapping on the window's thread), or None. Default None: the parse runs on the window's thread. |  |
 | `unpack_reference` | Unpack a picked reference file (a game image) into a project folder on a worker thread: progress(percent, text) and is_cancelled() are passed in. Returns the folder to store as the reference path, or None to use the path as it is. |  |
 
 ## Project Manager (worker thread: no widgets, no self.mw)

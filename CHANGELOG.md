@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Plugin hook `reference_worker_rules()` is defined on `BaseGameRules` with the default None (the parse stays on the window's thread); `ReferenceManager.has_worker_rules` checks the override on the class, so the caller builds no worker copy. Tests in `tests/test_core/test_reference_background.py`.
 - Silent Hill 2 Switch (Ukrainian translation): the capital Ї has a cell now; it takes the spare Ъ cell (byte 0x7A), which the Font Editor labels Ї, so the translator redraws that cell; Ъ is refused (`plugins/silent_hill2_pc/mes.py`, `plugins/silent_hill2_switch/font_sources.json`; tests in `tests/test_plugins/test_silent_hill2_switch/test_uk_codec.py`).
 - Skies of Arcadia (Dreamcast, USA): the GD-ROM set build writes a same-length marker and reads it back exactly (tracks 1 and 2 byte-identical, track 3 changed). `FIELD/ME201A.SCT` keeps its segment lengths (`fixed_scripts`, as the GameCube file); other scripts may grow, not yet proven in game.
 - Skies of Arcadia (Dreamcast, USA): field scripts open as editor text (one string per text segment, little-endian words). The 406 scripts of both USA discs round trip unchanged (59,250 segments). 22,605 of 22,980 pages of the 227 scripts that exist on the GameCube disc have the same text there.

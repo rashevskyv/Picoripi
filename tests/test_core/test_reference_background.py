@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import romhacking_root
 from core.reference_manager import ReferenceManager
 from core.settings.plugin_settings import PluginSettings
+from plugins.base_game_rules import BaseGameRules
 from plugins.zelda_bmg.rules import GameRules as TwilightPrincessRules
 
 PAL_RU = ("Zelda", "Twilight Princess", "GC + Wii", "ISO", "PAL_RU")
@@ -167,3 +168,20 @@ def test_a_twilight_princess_background_parse_equals_the_synchronous_one(qtbot):
 
     assert seen["languages"] == expected
     assert background_window.default_tag_mappings == sync_window.default_tag_mappings
+
+
+def test_the_base_rules_default_keeps_the_parse_on_the_window_thread():
+    rules = BaseGameRules()
+    assert rules.reference_worker_rules() is None
+    assert ReferenceManager.has_worker_rules(rules) is False
+    seen = []
+    assert ReferenceManager.load_in_background("ignored", None, rules, _Window(), seen.append) is False
+    assert seen == []
+
+
+def test_a_base_rules_subclass_that_overrides_the_hook_has_worker_rules():
+    class _OverridingRules(BaseGameRules):
+        def reference_worker_rules(self):
+            return self, None
+
+    assert ReferenceManager.has_worker_rules(_OverridingRules()) is True

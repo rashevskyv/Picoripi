@@ -17,6 +17,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PyQt6.QtCore import pyqtSignal
 
+from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_error, log_info, log_warning
 from utils.thread_utils import WorkerThread
 
@@ -83,19 +84,33 @@ class ReferenceLoadWorker(WorkerThread):
 class ReferenceManager:
     """Manages loading, persisting settings, and coordinating reference translations."""
 
+    @staticmethod
+    def has_worker_rules(game_rules: Any) -> bool:
+        """True when the plugin overrides ``reference_worker_rules``. A BaseGameRules default (None) is not an override.
+
+        The check reads the class, so no worker copy is built on the window's thread.
+        """
+        if isinstance(game_rules, BaseGameRules):
+            return type(game_rules).reference_worker_rules is not BaseGameRules.reference_worker_rules
+        return callable(getattr(game_rules, "reference_worker_rules", None))
+
     @classmethod
     def load_in_background(cls, patch_path: str | Path, block_names: Any, game_rules: Any, window: Any,
                            on_done: Callable[[Dict[str, Dict[Tuple[int, int], str]]], None]) -> bool:
         """Parse the reference on a worker thread; ``on_done(languages)`` runs on the window's thread.
 
         ``window`` is the main window. Returns False when the plugin gives no worker rules (``reference_worker_rules``
-        is absent): the caller then loads synchronously, as before. The aliases the parse registered are copied into the
-        window's tag mapping before ``on_done`` runs.
+        returns None or is absent): the caller then loads synchronously, as before. The aliases the parse registered are
+        copied into the window's tag mapping before ``on_done`` runs.
         """
-        make_rules = getattr(game_rules, "reference_worker_rules", None)
-        if not callable(make_rules):
+        if isinstance(game_rules, BaseGameRules):
+            made = game_rules.reference_worker_rules()
+        else:
+            make_rules = getattr(game_rules, "reference_worker_rules", None)
+            made = make_rules() if callable(make_rules) else None
+        if made is None:
             return False
-        worker_rules, worker_window = make_rules()
+        worker_rules, worker_window = made
         worker = ReferenceLoadWorker(str(patch_path), block_names, worker_rules)
 
         def finished(languages) -> None:
