@@ -2600,6 +2600,7 @@
   "a multi-extent file in the image is not read": "багатоекстентний файл в образі не читається",
   "the last track of the HD area holds no data": "остання доріжка області HD не містить даних",
   "Dreamcast": "Dreamcast",
+  "PlayStation 1": "PlayStation 1",
   "Translated disc set (cue and tracks)": "Перекладений набір диска (cue і доріжки)",
   "Writing the disc set...": "Запис набору диска...",
   "The unpacked folder has no {0}: unpack the disc again.": "У розпакованій папці немає {0}: розпакуйте диск знову.",

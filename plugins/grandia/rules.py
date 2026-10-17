@@ -17,10 +17,19 @@ from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_debug, log_warning
 
-from . import archive, fields
+from . import archive, fields, psx_text
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 
 GAME_ID = "T17716N"
+PS1_GAME_IDS = ("SCUS-94457", "SCUS-94465")   # Grandia PlayStation, disc 1 and disc 2 (English release)
+
+
+def _is_psx_text(path: str) -> bool:
+    """The PlayStation files that hold text: field scripts (dialogue) and battle string tables."""
+    upper = path.upper()
+    return (path.startswith("FIELD/") and upper.endswith(".MDP")) or (path.startswith("BATLE/") and upper.endswith(".BBG"))
+
+
 TEXT_DIR = "files/MAP/"
 TEXTURE_FILES = ("files/WINDOW/TITLE_DATA.AFS", "files/0GDTEX.PVR")   # the title screen and the shared UI textures
 FIELD_FILES = ("files/BTL/SYS.AFS", "files/BTL/ENEMY.AFS", "files/BTL/MAGIC.AFS", "files/BTL/PARTY.AFS",
@@ -39,23 +48,28 @@ class GameRules(BaseGameRules):
         super().__init__(main_window_ref)
         self._save_source: Optional[bytes] = None
         self._last_loaded: Optional[bytes] = None
+        self._psx_source: Optional[bytes] = None
 
     def get_display_name(self) -> str:
         return "Grandia II (Dreamcast)"
 
     def get_platforms(self) -> List[Dict[str, str]]:
-        return [{"id": images.KIND_GDROM, "label": tr("Dreamcast")}]
+        return [{"id": images.KIND_GDROM, "label": tr("Dreamcast")},
+                {"id": images.KIND_PSX, "label": tr("PlayStation 1")}]
 
     def identify_source(self, path: str) -> Optional[Dict[str, str]]:
-        return images.base_identity(path, (GAME_ID,))
+        return images.base_identity(path, (GAME_ID, *PS1_GAME_IDS))
 
     def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
         base = sources.get("base")
         if not base:
             return None
-        written = images.extract(base, target_dir, progress, is_cancelled,
-                                 select=lambda path: path in TEXTURE_FILES or path in FIELD_FILES
-                                 or (path.startswith(TEXT_DIR) and path.upper().endswith(".AFS")))
+        if (images.identify(base) or {}).get("kind") == images.KIND_PSX:
+            written = images.extract(base, target_dir, progress, is_cancelled, select=_is_psx_text)
+        else:
+            written = images.extract(base, target_dir, progress, is_cancelled,
+                                     select=lambda path: path in TEXTURE_FILES or path in FIELD_FILES
+                                     or (path.startswith(TEXT_DIR) and path.upper().endswith(".AFS")))
         if written is None:
             return None
         Path(target_dir, REF_NAME).write_text(json.dumps({"game_id": GAME_ID, "cue": os.path.abspath(base)}),
@@ -111,6 +125,10 @@ class GameRules(BaseGameRules):
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Dict[str, str]]:
         if not isinstance(json_obj, (bytes, bytearray)):
             return super().load_data_from_json_obj(json_obj)
+        if psx_text.is_ps1_text(bytes(json_obj)):   # a PlayStation battle string table (read side only)
+            self._psx_source = bytes(json_obj)
+            texts, names = psx_text.blocks(self._psx_source)
+            return [texts], names
         self._last_loaded = bytes(json_obj)
         try:
             if fields.has_messages(self._last_loaded):
@@ -128,6 +146,10 @@ class GameRules(BaseGameRules):
         self._save_source = versions[-1] if versions else None
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
+        if self._psx_source is not None:   # PlayStation text: writing is not built yet, the file stays as it was
+            if [str(t) for t in (data[0] if data else [])] != psx_text.blocks(self._psx_source)[0]:
+                log_warning("grandia: PlayStation text cannot be written yet; the file keeps its original text")
+            return self._psx_source
         source = self._save_source if self._save_source is not None else self._last_loaded
         if source is None:
             return super().save_data_to_json_obj(data, block_names)
@@ -149,7 +171,7 @@ class GameRules(BaseGameRules):
         return "texture" if os.path.basename(path).upper() in ("TITLE_DATA.AFS", "0GDTEX.PVR") else None
 
     def reset_runtime_state(self) -> None:
-        self._save_source = self._last_loaded = None
+        self._save_source = self._last_loaded = self._psx_source = None
 
     def get_capabilities(self) -> Set[str]:
         return set()
