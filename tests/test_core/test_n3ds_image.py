@@ -67,6 +67,8 @@ def build_ncch(encrypted=False, romfs=None, tamper=None, packed=False):
     struct.pack_into("<II", exefs_header, 8, 0, len(code))
     exefs = _pad4(bytes(exefs_header) + code).ljust(((0x200 + len(code) + UNIT - 1) // UNIT) * UNIT, b"\0")
     romfs = romfs.ljust(((len(romfs) + UNIT - 1) // UNIT) * UNIT, b"\0")
+    if encrypted:   # ciphertext, not an IVFC header: a plain RomFS is read without a key (see n3ds._plain_romfs)
+        romfs = bytes(byte ^ 0x5A for byte in romfs)
     header = bytearray(0x200)
     header[0x100:0x104] = b"NCCH"
     header[0x118:0x120] = b"\x01\x00\x00\x00\x00\x00\x00\x00"       # program id, little-endian
@@ -128,6 +130,21 @@ def test_decrypted_card_image_lists_exheader_exefs_and_romfs_without_a_key(tmp_p
     assert (out / "exefs" / "code.bin").read_bytes() == CODE
     assert (out / "romfs" / "a.bin").read_bytes() == b"hello"
     assert (out / "romfs" / "d" / "b.txt").read_bytes() == b"xyz"
+
+
+def test_decrypted_dump_with_the_nocrypto_flag_unset_reads_without_a_key(tmp_path):
+    """Decrypted dumps often leave NoCrypto unset while the RomFS is plain IVFC: no key is needed."""
+    def unset_flag(body):
+        body[0x188 + 7] = 0
+        return body
+
+    path = _write(tmp_path, "dump.3ds", build_cci(build_ncch(tamper=unset_flag)))
+
+    assert images.identify(path)["encrypted"] is False
+    assert images.needs_key(path) is None
+    out = tmp_path / "out"
+    assert images.extract(path, out, lambda p, t: None, lambda: False) == str(out)
+    assert (out / "romfs" / "a.bin").read_bytes() == b"hello"
 
 
 def test_packed_code_section_is_written_decoded(tmp_path):

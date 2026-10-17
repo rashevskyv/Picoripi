@@ -1,6 +1,10 @@
 {
     "display_name": "Pokémon Gold, Silver and Crystal (pret)",
-    "default_tag_mappings": {},
+    "default_tag_mappings": {
+        "{Player}": "<PLAYER>",
+        "{Rival}": "<RIVAL>",
+        "{POKe}": "#"
+    },
     "block_names": {},
     "block_color_markers": {},
     "newline_display_symbol": "↵",

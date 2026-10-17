@@ -280,8 +280,11 @@ KNOWN_CONFIG_KEYS = frozenset({
     "newline_underline", "tag_css", "bracket_tag_color_hex", "tag_color_rgba", "tag_bold", "tag_italic",
     "tag_underline", "autofix_enabled", "detection_enabled", "align_sentences_to_original_pages",
     "prevent_empty_lines_in_autofix", "translation_config",
+    # message box facts, one named window each (plugins/common/message_window.py, BoxFacts.load)
+    "message_window", "dialogue_window", "dialogue_xy", "dialogue_oras", "language_xy", "language_oras",
+    "dialogue_gti", "dialogue_psmd",
     # read by the plugin itself, not by the host
-    "CONTROL_CODES", "PROBLEM_DEFINITIONS",
+    "CONTROL_CODES", "PROBLEM_DEFINITIONS", "dialogue_box",
 })
 
 # Sections of ``translation_prompts/prompts.json``. A plugin file may hold any

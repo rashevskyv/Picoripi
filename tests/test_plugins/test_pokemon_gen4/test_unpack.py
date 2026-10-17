@@ -71,7 +71,7 @@ def test_plugin_identifies_the_cartridge_and_unpacks_it(tmp_path):
     assert rules.identify_source(str(other)) is None
     out = rules.unpack_sources({"base": rom}, str(tmp_path / "out"), lambda *_: None, lambda: False)
     assert out == str(tmp_path / "out")
-    assert set(_tree(tmp_path / "out")) == {"text/msgdata+msg.narc/0000.msg"}
+    assert set(_tree(tmp_path / "out")) == {"text/msgdata+msg.narc/0000.msg", "rom/base.nds"}
     assert rules.unpack_sources({}, str(tmp_path / "none"), lambda *_: None, lambda: False) is None
 
 
@@ -84,6 +84,7 @@ def test_diamond_unpack_equals_the_workspace_source(tmp_path):
     out = GameRules(None).unpack_sources({"base": str(romhacking_root.path(*DIAMOND_ROM))},
                                          str(tmp_path / "out"), lambda *_: None, lambda: False)
     unpacked = _tree(Path(out))
+    unpacked.pop("rom/base.nds")       # the build keeps the clean image in the source folder
     workspace = _tree(romhacking_root.path(*DIAMOND_SOURCE))
     assert len(unpacked) == 720
     assert {path: workspace.get(path) for path in unpacked} == unpacked

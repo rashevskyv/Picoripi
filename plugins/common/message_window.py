@@ -10,6 +10,7 @@ at ``scale_x`` / ``scale_y`` of its cell size; the advance of a glyph is its WID
 """
 from __future__ import annotations
 
+import functools
 import json
 import re
 import threading
@@ -62,6 +63,12 @@ class BoxFacts:
 
     @classmethod
     def load(cls, config: Path, window: str) -> "BoxFacts":
+        """The facts of one window. Read once per config file: the callers run on the UI thread."""
+        return cls._read_cached(str(config), window)
+
+    @classmethod
+    @functools.lru_cache(maxsize=None)
+    def _read_cached(cls, config: str, window: str) -> "BoxFacts":
         raw = json.loads(Path(config).read_text(encoding="utf-8"))[window]
         return cls(raw["font_member"], int(raw["text_x"]), int(raw["first_line_top"]), float(raw["line_pitch"]),
                    int(raw["text_width"]), int(raw["box_lines"]), int(raw.get("screen_width", 320)),

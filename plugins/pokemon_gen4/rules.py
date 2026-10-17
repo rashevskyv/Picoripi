@@ -17,15 +17,16 @@ from core.containers.nitro import NarcContainer
 from core.i18n import tr
 from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
-from plugins.common import gen4msg
+from plugins.common import gen4msg, nds_build
 from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
 
-from . import ds_text, unpack
+from . import ds_text, message_preview, unpack
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
 LINES_PER_BOX = 2
+BUILD_TARGET = "nds_rom"
 _PLUGIN = "pokemon_gen4"
 _CHARMAPS = Path(__file__).resolve().parent / "charmaps"
 _CODECS: List[gen4msg.Codec] = []
@@ -105,6 +106,8 @@ class GameRules(BaseGameRules):
         self._msg_file: Optional[bytes] = None          # the ROM bank a save writes over (raw lines, codec)
         self._bank: Optional[gen4msg.Bank] = None
         self._codec: Optional[gen4msg.Codec] = None
+        self._windows: Dict[str, Optional[message_preview.Resolved]] = {}   # source folder -> facts (None: none)
+        self._resolvers: Dict[str, message_preview.WindowResolver] = {}     # one read per source folder
 
     # Project Manager: the cartridge (USA) is read by core/project_library/images.py; unpack.py picks the files.
     def get_platforms(self) -> list:
@@ -115,7 +118,27 @@ class GameRules(BaseGameRules):
 
     def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
         base = sources.get("base")
-        return unpack.extract(base, target_dir, progress, is_cancelled) if base else None
+        if not base:
+            return None
+        nds_build.store_base_rom(base, Path(target_dir))
+        return unpack.extract(base, target_dir, progress, is_cancelled)
+
+    def get_build_targets(self) -> List[Dict[str, Any]]:
+        return [{"id": BUILD_TARGET, "label": tr("Translated DS ROM"), "platforms": ["nds"], "kind": "patch"}]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress, is_cancelled) -> str:
+        if target_id != BUILD_TARGET:
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        try:
+            built = nds_build.build_text_rom(
+                source_dir, translation_dir, narc_of_folder=lambda folder: folder.replace("+", "/"),
+                is_text=gen4msg_is_bank, progress=progress, is_cancelled=is_cancelled)
+        except nds_build.NdsBuildError as error:
+            raise ValueError(str(error)) from None
+        out = Path(output_dir) / f"{built[0x0C:0x10].decode('ascii', 'replace')}_UA.nds"
+        nds_build.write_rom(out, built)
+        return str(out)
 
     def get_display_name(self) -> str:
         return "Pokémon Diamond, Pearl, Platinum, HeartGold and SoulSilver (DS)"
@@ -216,15 +239,8 @@ class GameRules(BaseGameRules):
         return sources
 
     def _game_charmap(self) -> str:
-        """The charmap of the game of the unpacked tree: Platinum has pl_msg banks, HeartGold / SoulSilver a+0+2+7,
-        Diamond / Pearl neither."""
-        try:
-            root = Path(str(self.mw.project_manager.project.metadata.get("source_path") or ""))
-        except AttributeError:
-            root = Path("")
-        if (root / "text" / "msgdata+pl_msg.narc").is_dir():
-            return str(_CHARMAPS / "charmap_platinum.txt")
-        return str(_CHARMAPS / "charmap_dp_hgss.txt")
+        """The charmap of the game of the unpacked tree (see ``message_preview.charmap_for``)."""
+        return message_preview.charmap_for(self._source_root() or "")
 
     def get_texture_sources(self) -> List[Dict[str, Any]]:
         """The NCGR pictures of the NARCs, one source per kind per NARC: the raw members, and the LZ10 members with
@@ -253,6 +269,52 @@ class GameRules(BaseGameRules):
         except (AttributeError, IndexError, KeyError, TypeError) as error:
             log_debug(f"pokemon_gen4: no file for block {block_idx}: {error}")
             return ""
+
+    def _source_root(self) -> Optional[str]:
+        """The unpacked source folder of the project (None before a project is open)."""
+        try:
+            root = str(self.mw.project_manager.project.metadata.get("source_path") or "")
+        except AttributeError:
+            return None
+        return root if root and os.path.isdir(root) else None
+
+    def _window_of(self, root: str) -> Optional[message_preview.Resolved]:
+        """The window facts of a source folder. The first call starts the read on a worker; None until it is done."""
+        if root not in self._resolvers:
+            worker = message_preview.WindowResolver(root)
+            worker.resolved.connect(self._on_window_resolved)
+            self._resolvers[root] = worker
+            worker.start()
+        return self._windows.get(root)
+
+    def _on_window_resolved(self, payload: Any) -> None:
+        root, resolved = payload
+        self._windows[root] = resolved
+
+    def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
+        """The message box of the game: its width and lines (pret facts, see ``message_preview``).
+
+        Until the read of the project's font is done the host gets no layout and uses its defaults.
+        """
+        root = self._source_root()
+        resolved = self._window_of(root) if root else None
+        if resolved is None:
+            return None
+        return {"max_width": resolved.window.box_px, "warn_width": resolved.window.box_px,
+                "lines_per_page": message_preview.LINES_PER_PAGE}
+
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """The message box drawn with the game's own font. It fills in when the worker has read the font."""
+        root = self._source_root()
+        if root is None:
+            return None
+        self._window_of(root)
+        widget = message_preview.MessageWindowPreview(root)
+        if root in self._windows:
+            widget.receive((root, self._windows[root]))
+        else:
+            self._resolvers[root].resolved.connect(widget.receive)
+        return widget
 
     def get_scene_context_for_string(self, block_idx: int, string_idx: int) -> Dict[str, Any]:
         rel = self._block_path(block_idx)

@@ -2,6 +2,7 @@
 measured pen origin and baseline. The box picture is not drawn (flat background). Facts: config.json "dialogue_box"."""
 from __future__ import annotations
 
+import functools
 import json
 import threading
 from pathlib import Path
@@ -25,6 +26,7 @@ WORKER_STOP_MS = 2000
 _MARGIN = 10
 
 
+@functools.lru_cache(maxsize=None)  # the worker reads it first; _render (UI thread) then reuses it
 def load_facts() -> Dict[str, Any]:
     return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))["dialogue_box"]
 

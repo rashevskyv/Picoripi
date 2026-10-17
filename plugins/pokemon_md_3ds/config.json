@@ -1,6 +1,10 @@
 {
     "display_name": "Pokémon Mystery Dungeon (3DS)",
-    "default_tag_mappings": {},
+    "default_tag_mappings": {
+        "[PLAYER]": "[hero]",
+        "[CLEAR]": "[C]",
+        "[WAIT_KEY]": "[K]"
+    },
     "block_names": {},
     "block_color_markers": {},
     "newline_display_symbol": "↵",
@@ -47,5 +51,60 @@
     "newline_bold": true,
     "newline_italic": false,
     "newline_underline": false,
-    "translation_config": {}
+    "translation_config": {},
+    "dialogue_gti": {
+        "font_member": "romfs/font/FOT-RodinProN-DB_14.dic",
+        "font_companion": "romfs/font/FOT-RodinProN-DB_14.img",
+        "screen_width": 400,
+        "text_x": 66,
+        "first_line_top": 182,
+        "line_pitch": 25.0,
+        "text_width": 320,
+        "box_lines": 2,
+        "draw_box": true,
+        "box_rect": [
+            14,
+            170,
+            386,
+            232
+        ],
+        "box_rgba": [
+            250,
+            250,
+            240,
+            235
+        ],
+        "edge_rgb": [
+            110,
+            225,
+            230
+        ],
+        "ink_rgb": [
+            20,
+            20,
+            20
+        ],
+        "scale_x": 0.75,
+        "scale_y": 0.75,
+        "measured_on": "Gates to Infinity intro dialogue, top screen (Azahar frames gti_dlg2/w039_t078.png (one line) and w058_t116.png (two lines); top screen at frame x 446, y 57): the box is a cyan-bordered panel at x 14..386, y 170..232; line 1 cell top at y 182, line 2 at 207 (pitch 25); text origin x 66; dark ink (4,4,3). The game does not word-wrap in this box: a line longer than the box runs past the edge (probe frames gti_wrap1, 2026-10-17). text_width = 386 - 66 = 320 px is the measured inner edge; a line wider than it is flagged by the preview."
+    },
+    "dialogue_psmd": {
+        "font_member": "romfs/font/Fot-TskuARdGothic_Std_B_14.dic",
+        "font_companion": "romfs/font/Fot-TskuARdGothic_Std_B_14.img",
+        "screen_width": 400,
+        "text_x": 78,
+        "first_line_top": 182,
+        "line_pitch": 24.0,
+        "text_width": 0,
+        "box_lines": 2,
+        "draw_box": false,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "ink_rgb": [
+            245,
+            245,
+            245
+        ],
+        "measured_on": "Super Mystery Dungeon boxed story text (no drawn panel), top screen. Azahar frame smd_mouse1/w076_t160.png (top screen at frame x 446, y 57). Line 1 ink x 82..307 rows 185..194 (text A new student transfers into your class.), line 2 ink x 148..252 rows 209..218 (What do you do?). Line pitch 24. Font Fot-TskuARdGothic_Std_B_14 at scale 1.0: advance 244 and 107 px per line, matching the ink (line 2 107 vs ink 105). Text origin x 78. Line-wrap width and the right limit are not measured."
+    }
 }

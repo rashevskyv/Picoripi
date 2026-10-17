@@ -1,6 +1,15 @@
 {
     "display_name": "Pokémon Black / White and Black 2 / White 2 (DS)",
-    "default_tag_mappings": {},
+    "default_tag_mappings": {
+        "{PLAYER}": "{VAR 0100 0000}",
+        "{POKEMON}": "{VAR 0101 0000}",
+        "{OPPONENT}": "{VAR 0102 0000}",
+        "{ITEM}": "{VAR 0109 0000}",
+        "{ITEMALT}": "{VAR 0109 0001}",
+        "{COLORON}": "{COLOR 0001}",
+        "{COLORTWO}": "{COLOR 0002}",
+        "{COLOROFF}": "{COLOR 0000}"
+    },
     "block_names": {},
     "block_color_markers": {},
     "newline_display_symbol": "↵",

@@ -1,14 +1,208 @@
 [
-  {
-    "label": "Text font 12x16 PAL (1ST/FONT16.TIM)",
-    "format": "texture_grid",
-    "path": "1ST/FONT16.TIM",
-    "params": {
-      "texture": "tim",
-      "cell": [12, 16],
-      "columns": 21,
-      "rows_at": [[0, 0], [0, 16], [0, 32], [0, 48], [0, 64], [0, 80]],
-      "first_code": 39
-    }
+ {
+  "label": "Text font 12x16 PAL (1ST/FONT16.TIM; cell = byte - 39, Ukrainian glyph labels)",
+  "format": "texture_grid",
+  "path": "1ST/FONT16.TIM",
+  "params": {
+   "texture": "tim",
+   "cell": [
+    12,
+    16
+   ],
+   "columns": 21,
+   "rows_at": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     16
+    ],
+    [
+     0,
+     32
+    ],
+    [
+     0,
+     48
+    ],
+    [
+     0,
+     64
+    ],
+    [
+     0,
+     80
+    ]
+   ],
+   "chars": [
+    "'",
+    "(",
+    ")",
+    "=",
+    "+",
+    ",",
+    "-",
+    ".",
+    "/",
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    ":",
+    ";",
+    "<",
+    "—",
+    ">",
+    "?",
+    "*",
+    "А",
+    "Б",
+    "В",
+    "Г",
+    "Д",
+    "Е",
+    "Ж",
+    "З",
+    "И",
+    "Й",
+    "К",
+    "Л",
+    "М",
+    "Н",
+    "О",
+    "П",
+    "Р",
+    "С",
+    "Т",
+    "У",
+    "Ф",
+    "Х",
+    "Ц",
+    "Ч",
+    "Ш",
+    "Щ",
+    "«",
+    "!",
+    "»",
+    "&",
+    " ",
+    "'",
+    "а",
+    "б",
+    "с",
+    "д",
+    "е",
+    "і",
+    " ",
+    "\u0000",
+    "і",
+    "…",
+    " ",
+    "І",
+    "т",
+    "п",
+    "о",
+    "р",
+    "\u0000",
+    "а",
+    "и",
+    "к",
+    "ш",
+    "\u0000",
+    "\u0000",
+    "х",
+    "у",
+    "?",
+    "\u0000",
+    "Ґ",
+    "\u0000",
+    "Є",
+    "Ю",
+    "Я",
+    "ф",
+    "щ",
+    "ч",
+    "ь",
+    "\u0000",
+    "а",
+    "б",
+    "в",
+    "г",
+    "д",
+    "ж",
+    "з",
+    "и",
+    "й",
+    "к",
+    "л",
+    "м",
+    "н",
+    "\u0000",
+    "п",
+    "р",
+    "с",
+    "т",
+    "у",
+    "ф",
+    "х",
+    "ц",
+    "ч",
+    "ш",
+    "щ",
+    "ї",
+    "ґ",
+    "ь",
+    "є",
+    "ю",
+    "я"
+   ]
   }
+ },
+ {
+  "label": "Menu font 8x8 (1ST/FONT8NOC.TIM; glyph map not read yet)",
+  "format": "texture_grid",
+  "path": "1ST/FONT8NOC.TIM",
+  "params": {
+   "texture": "tim",
+   "cell": [
+    8,
+    8
+   ],
+   "chars": ""
+  }
+ },
+ {
+  "label": "Font 8x8 (TIM/FONT8.TIM; glyph map not read yet)",
+  "format": "texture_grid",
+  "path": "TIM/FONT8.TIM",
+  "params": {
+   "texture": "tim",
+   "cell": [
+    8,
+    8
+   ],
+   "chars": ""
+  }
+ },
+ {
+  "label": "Font 16x16 Latin (TIM/FONT24.TIM; glyph map not read yet)",
+  "format": "texture_grid",
+  "path": "TIM/FONT24.TIM",
+  "params": {
+   "texture": "tim",
+   "cell": [
+    16,
+    16
+   ],
+   "chars": ""
+  }
+ }
 ]

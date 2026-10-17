@@ -314,23 +314,64 @@ class GameRules(BaseGameRules):
     def _project_files(self) -> List[str]:
         return [str(block.source_file).replace("\\", "/") for block in self._project_blocks()]
 
-    def budget(self, block_idx: int, string_idx: int) -> Optional[int]:
-        """The owner's width budget of a string in font pixels (budgets.json), or None when it has none."""
+    def _budget_table(self) -> Dict[str, Any]:
+        if self._budgets is None:
+            with open(os.path.join(_DATA_DIR, "budgets.json"), encoding="utf-8") as handle:
+                self._budgets = json.load(handle)
+        return self._budgets
+
+    def _budget_place(self, block_idx: int, string_idx: int) -> Optional[Tuple[str, str, str]]:
+        """(table, part, key) where budgets.json holds the string's width budget: "labels" for a label of a strings
+        file (validate.py skips the "_" files), "panes" for a pane of a layout spec. None otherwise."""
         key = self.string_key(block_idx, string_idx)
         blocks = self._project_blocks()
         if key is None or not 0 <= block_idx < len(blocks):
             return None
-        path = str(blocks[block_idx].source_file).replace("\\", "/")
-        if self._budgets is None:
-            with open(os.path.join(_DATA_DIR, "budgets.json"), encoding="utf-8") as handle:
-                self._budgets = json.load(handle)
-        parts = path.split("/")
-        value = None
-        if len(parts) == 3 and parts[0] == "strings" and not parts[2].startswith("_"):  # validate.py skips "_" files
-            value = self._budgets["labels"].get(parts[1], {}).get(key)
-        elif len(parts) == 2 and parts[0] == "layouts":
-            value = self._budgets["panes"].get(Path(parts[1]).stem, {}).get(key.split("#", 1)[0])
+        parts = str(blocks[block_idx].source_file).replace("\\", "/").split("/")
+        if len(parts) == 3 and parts[0] == "strings" and not parts[2].startswith("_"):
+            return "labels", parts[1], key
+        if len(parts) == 2 and parts[0] == "layouts":
+            return "panes", Path(parts[1]).stem, key.split("#", 1)[0]
+        return None
+
+    def budget(self, block_idx: int, string_idx: int) -> Optional[int]:
+        """The owner's width budget of a string in font pixels (budgets.json), or None when it has none."""
+        place = self._budget_place(block_idx, string_idx)
+        if place is None:
+            return None
+        table, part, key = place
+        value = self._budget_table()[table].get(part, {}).get(key)
         return int(value) if value else None
+
+    def line_budget(self, block_idx: int, string_idx: int) -> Optional[int]:
+        """The most lines any official localisation of the string has (budgets.json "lines"), or None."""
+        place = self._budget_place(block_idx, string_idx)
+        if place is None or place[0] != "labels":
+            return None
+        _, part, key = place
+        value = self._budget_table().get("lines", {}).get(part, {}).get(key)
+        return int(value) if value else None
+
+    def part_of(self, block_idx: int) -> str:
+        """The part of a block: the folder of strings/<part>/... or the stem of layouts/<part>.json; "" otherwise."""
+        blocks = self._project_blocks()
+        if not 0 <= block_idx < len(blocks):
+            return ""
+        parts = str(blocks[block_idx].source_file).replace("\\", "/").split("/")
+        if len(parts) == 3 and parts[0] == "strings":
+            return parts[1]
+        if len(parts) == 2 and parts[0] == "layouts":
+            return Path(parts[1]).stem
+        return ""
+
+    def line_widths_of(self, text: str) -> List[float]:
+        """The painted width of each line in font pixels (the owner's measure; reads widths.json once)."""
+        return line_widths(text, self._widths_table())
+
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """The budget box of the selected string (plugins/system_3ds/preview_panel.py)."""
+        from .preview_panel import SystemPreviewPanel
+        return SystemPreviewPanel(main_window, self)
 
     def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
         """The budget as the string's width limit (the editor's guide line); None when the string has none."""
