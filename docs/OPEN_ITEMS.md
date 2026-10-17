@@ -292,6 +292,24 @@ Open after phase 3b:
 - `core/unreal/pak.py` (Unreal pak v8) has no plugin user yet; its zstd path needs Python 3.14+ (`compression.zstd`) or the `zstandard` package; otherwise it raises `PakError`. MGS2/3 Master Collection PC text is not read yet (only the PC `.ctxr` pictures).
 - `core/texture_formats/sources.resolve()` decodes every picture it lists: Bravely Second's 5,073 ETC1 pictures take about 100 s (its real-data test has a 600 s timeout).
 
+## Pokémon series: same text (measured 2026-10-17, branch feat/pokemon-series-ready)
+
+Measured by `python -I scripts/measure_series_text.py <series root> <out.json>` on the 23 projects of
+`E:\Emulators\RomHacking\Pokemon` (read-only, English source text, the Project Manager's parser; no archive member
+skipped). Numbers only; the table is on the Emu Radar page `pokemon-series-ready`.
+
+- Strings: 960,820 in 23 projects. Distinct exact texts: 630,769. Strings whose text repeats in the same project: 467,009.
+- Repeated texts that span blocks (files): 110,301. Repeated texts inside one block: 26,657. A fold per file misses most repeats.
+- Distinct exact texts across all projects: 374,734; in 2+ games: 119,956; in 5+ games: 16,979.
+- After tag normalisation (generic pattern, not the plugins' syntax): 334,037 distinct; 110,087 in 2+ games.
+- Shared texts in 2+ games: 34,635 are 2 words or fewer (31 %); 75,452 are longer (69 %).
+- Closest pairs (normalised shared): Sun and Moon / Ultra Sun and Ultra Moon 30,127; HeartGold and SoulSilver / Platinum
+  29,502; Black 2 and White 2 / Black and White 27,765. Gen 1 Red and Blue / Yellow share about 3,000.
+- Open: the tag pattern is a guess; the normalised counts are an upper bound for "differs only in tags" until each plugin
+  states its tag syntax (the D27 pattern).
+- Open: the 2-word share is the first candidate list for the series glossary, not yet a decision that names are safe.
+- Open: the owner decides whether sentences shared across games are offered (default: off, see the series reuse record once written).
+
 ## Pokémon generation III-V (`plugins/pokemon_fr`, `pokemon_gen4`, `pokemon_gen5`, 2026-10-10)
 
 - Game text in older tests (before r37, not changed by r43): `test_pokemon_gen1/test_rules.py`, `test_pokemon_gen4/test_gen4_rom.py`, `test_pokemon_gen4/test_rules.py` and `test_pokemon_gen5/test_rules.py` quote full game lines. Use synthetic text, or a facts file under `PICORIPI_ROMHACKING` as the r43 tests do. The lines already exist in git history (for example commits `b1188479`, `e9d9ae0d`); a history rewrite needs the owner's decision.
