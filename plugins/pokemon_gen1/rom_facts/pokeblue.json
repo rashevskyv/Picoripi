@@ -477,6 +477,270 @@
    109
   ],
   [
+   "А",
+   128
+  ],
+  [
+   "Б",
+   192
+  ],
+  [
+   "В",
+   129
+  ],
+  [
+   "Г",
+   193
+  ],
+  [
+   "Ґ",
+   194
+  ],
+  [
+   "Д",
+   195
+  ],
+  [
+   "Е",
+   132
+  ],
+  [
+   "Є",
+   196
+  ],
+  [
+   "Ж",
+   197
+  ],
+  [
+   "З",
+   198
+  ],
+  [
+   "И",
+   199
+  ],
+  [
+   "І",
+   136
+  ],
+  [
+   "Ї",
+   200
+  ],
+  [
+   "Й",
+   201
+  ],
+  [
+   "К",
+   138
+  ],
+  [
+   "Л",
+   202
+  ],
+  [
+   "М",
+   140
+  ],
+  [
+   "Н",
+   135
+  ],
+  [
+   "О",
+   142
+  ],
+  [
+   "П",
+   203
+  ],
+  [
+   "Р",
+   143
+  ],
+  [
+   "С",
+   130
+  ],
+  [
+   "Т",
+   147
+  ],
+  [
+   "У",
+   204
+  ],
+  [
+   "Ф",
+   205
+  ],
+  [
+   "Х",
+   151
+  ],
+  [
+   "Ц",
+   206
+  ],
+  [
+   "Ч",
+   207
+  ],
+  [
+   "Ш",
+   208
+  ],
+  [
+   "Щ",
+   209
+  ],
+  [
+   "Ь",
+   210
+  ],
+  [
+   "Ю",
+   211
+  ],
+  [
+   "Я",
+   212
+  ],
+  [
+   "а",
+   160
+  ],
+  [
+   "б",
+   235
+  ],
+  [
+   "в",
+   215
+  ],
+  [
+   "г",
+   234
+  ],
+  [
+   "ґ",
+   187
+  ],
+  [
+   "д",
+   220
+  ],
+  [
+   "е",
+   164
+  ],
+  [
+   "є",
+   188
+  ],
+  [
+   "ж",
+   189
+  ],
+  [
+   "з",
+   223
+  ],
+  [
+   "и",
+   214
+  ],
+  [
+   "і",
+   168
+  ],
+  [
+   "ї",
+   191
+  ],
+  [
+   "й",
+   190
+  ],
+  [
+   "к",
+   218
+  ],
+  [
+   "л",
+   217
+  ],
+  [
+   "м",
+   219
+  ],
+  [
+   "н",
+   213
+  ],
+  [
+   "о",
+   174
+  ],
+  [
+   "п",
+   221
+  ],
+  [
+   "р",
+   175
+  ],
+  [
+   "с",
+   162
+  ],
+  [
+   "т",
+   216
+  ],
+  [
+   "у",
+   184
+  ],
+  [
+   "ф",
+   228
+  ],
+  [
+   "х",
+   183
+  ],
+  [
+   "ц",
+   229
+  ],
+  [
+   "ч",
+   186
+  ],
+  [
+   "ш",
+   240
+  ],
+  [
+   "щ",
+   241
+  ],
+  [
+   "ь",
+   233
+  ],
+  [
+   "ю",
+   242
+  ],
+  [
+   "я",
+   222
+  ],
+  [
    "ぃ",
    110
   ],
@@ -22868,17 +23132,7 @@
   },
   {
    "file": "data/items/names.asm",
-   "labels": [
-    {
-     "label": "ItemNames",
-     "offset": 18219,
-     "size": 871,
-     "fixed": false,
-     "mode": "li",
-     "width": 0,
-     "far": []
-    }
-   ]
+   "labels": []
   },
   {
    "file": "data/maps/names.asm",
@@ -31664,25 +31918,9 @@
      "far": []
     },
     {
-     "label": "JapaneseMochimonoText",
-     "offset": 29763,
-     "size": 5,
-     "fixed": false,
-     "end_char": true,
-     "far": []
-    },
-    {
      "label": "BattleMenuText",
      "offset": 29781,
      "size": 19,
-     "fixed": false,
-     "end_char": true,
-     "far": []
-    },
-    {
-     "label": "SafariZoneBattleMenuText",
-     "offset": 29800,
-     "size": 33,
      "fixed": false,
      "end_char": true,
      "far": []
@@ -31740,15 +31978,6 @@
      "label": "TrainerNamePointers.JrTrainerFName",
      "offset": 163561,
      "size": 12,
-     "fixed": false,
-     "end_char": true,
-     "movable": true,
-     "far": []
-    },
-    {
-     "label": "TrainerNamePointers.PokemaniacName",
-     "offset": 163573,
-     "size": 11,
      "fixed": false,
      "end_char": true,
      "movable": true,
@@ -31893,17 +32122,7 @@
   },
   {
    "file": "data/trainers/names.asm",
-   "labels": [
-    {
-     "label": "TrainerNames",
-     "offset": 236031,
-     "size": 392,
-     "fixed": false,
-     "mode": "li",
-     "width": 0,
-     "far": []
-    }
-   ]
+   "labels": []
   },
   {
    "file": "data/types/names.asm",
@@ -32726,22 +32945,6 @@
    "file": "engine/menus/draw_start_menu.asm",
    "labels": [
     {
-     "label": "StartMenuPokedexText",
-     "offset": 29071,
-     "size": 8,
-     "fixed": false,
-     "end_char": true,
-     "far": []
-    },
-    {
-     "label": "StartMenuPokemonText",
-     "offset": 29079,
-     "size": 8,
-     "fixed": false,
-     "end_char": true,
-     "far": []
-    },
-    {
      "label": "StartMenuItemText",
      "offset": 29087,
      "size": 5,
@@ -33152,14 +33355,6 @@
      "fixed": false,
      "end_char": true,
      "far": []
-    },
-    {
-     "label": "SafariBallText",
-     "offset": 50558,
-     "size": 8,
-     "fixed": false,
-     "end_char": true,
-     "far": []
     }
    ]
   },
@@ -33306,14 +33501,6 @@
    "file": "engine/slots/slot_machine.asm",
    "labels": [
     {
-     "label": "CoinMultiplierSlotMachineText",
-     "offset": 226398,
-     "size": 9,
-     "fixed": false,
-     "end_char": true,
-     "far": []
-    },
-    {
      "label": "SymbolLinedUpSlotMachineText",
      "offset": 226917,
      "size": 1,
@@ -33375,14 +33562,6 @@
   {
    "file": "home/list_menu.asm",
    "labels": [
-    {
-     "label": "InitialQuantityText",
-     "offset": 11824,
-     "size": 4,
-     "fixed": false,
-     "end_char": true,
-     "far": []
-    },
     {
      "label": "SpacesBetweenQuantityAndPriceText",
      "offset": 11828,
@@ -33451,14 +33630,6 @@
      "label": "RocketCharText",
      "offset": 6755,
      "size": 7,
-     "fixed": false,
-     "end_char": true,
-     "far": []
-    },
-    {
-     "label": "PlacePOKeText",
-     "offset": 6762,
-     "size": 5,
      "fixed": false,
      "end_char": true,
      "far": []
@@ -38450,6 +38621,796 @@
    "file": "rom_text/bank_01.asm",
    "labels": [
     {
+     "label": "RomText_0472b",
+     "offset": 18219,
+     "size": 12,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04737",
+     "offset": 18231,
+     "size": 11,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04742",
+     "offset": 18242,
+     "size": 11,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_0474d",
+     "offset": 18253,
+     "size": 10,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04757",
+     "offset": 18263,
+     "size": 9,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04760",
+     "offset": 18272,
+     "size": 8,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_0476e",
+     "offset": 18286,
+     "size": 12,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_0477a",
+     "offset": 18298,
+     "size": 8,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04782",
+     "offset": 18306,
+     "size": 11,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_0478d",
+     "offset": 18317,
+     "size": 9,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04796",
+     "offset": 18326,
+     "size": 10,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_047a0",
+     "offset": 18336,
+     "size": 9,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_047a9",
+     "offset": 18345,
+     "size": 10,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_047b3",
+     "offset": 18355,
+     "size": 12,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_047bf",
+     "offset": 18367,
+     "size": 13,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_047cc",
+     "offset": 18380,
+     "size": 11,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_047d7",
+     "offset": 18391,
+     "size": 13,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_047e4",
+     "offset": 18404,
+     "size": 13,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_047f1",
+     "offset": 18417,
+     "size": 7,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_047f8",
+     "offset": 18424,
+     "size": 13,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04805",
+     "offset": 18437,
+     "size": 13,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04812",
+     "offset": 18450,
+     "size": 13,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_0481f",
+     "offset": 18463,
+     "size": 13,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_0482c",
+     "offset": 18476,
+     "size": 10,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04836",
+     "offset": 18486,
+     "size": 11,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04841",
+     "offset": 18497,
+     "size": 13,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_0484e",
+     "offset": 18510,
+     "size": 11,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04859",
+     "offset": 18521,
+     "size": 12,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04865",
+     "offset": 18533,
+     "size": 6,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_0486b",
+     "offset": 18539,
+     "size": 10,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04875",
+     "offset": 18549,
+     "size": 11,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04880",
+     "offset": 18560,
+     "size": 13,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_0488d",
+     "offset": 18573,
+     "size": 12,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04899",
+     "offset": 18585,
+     "size": 6,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_0489f",
+     "offset": 18591,
+     "size": 8,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_048ac",
+     "offset": 18604,
+     "size": 7,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_048b3",
+     "offset": 18611,
+     "size": 8,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_048bb",
+     "offset": 18619,
+     "size": 11,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_048c6",
+     "offset": 18630,
+     "size": 12,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_048d2",
+     "offset": 18642,
+     "size": 13,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_048df",
+     "offset": 18655,
+     "size": 11,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_048f0",
+     "offset": 18672,
+     "size": 13,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_048fd",
+     "offset": 18685,
+     "size": 11,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04908",
+     "offset": 18696,
+     "size": 11,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04913",
+     "offset": 18707,
+     "size": 9,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_0491c",
+     "offset": 18716,
+     "size": 7,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04923",
+     "offset": 18723,
+     "size": 6,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04929",
+     "offset": 18729,
+     "size": 10,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04933",
+     "offset": 18739,
+     "size": 10,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_0493d",
+     "offset": 18749,
+     "size": 7,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04944",
+     "offset": 18756,
+     "size": 11,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_0494f",
+     "offset": 18767,
+     "size": 12,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_0495b",
+     "offset": 18779,
+     "size": 12,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04967",
+     "offset": 18791,
+     "size": 10,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04971",
+     "offset": 18801,
+     "size": 9,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_0497f",
+     "offset": 18815,
+     "size": 12,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_0498b",
+     "offset": 18827,
+     "size": 9,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04994",
+     "offset": 18836,
+     "size": 9,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_0499d",
+     "offset": 18845,
+     "size": 11,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_049a8",
+     "offset": 18856,
+     "size": 11,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_049b3",
+     "offset": 18867,
+     "size": 9,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_049bc",
+     "offset": 18876,
+     "size": 9,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_049c5",
+     "offset": 18885,
+     "size": 8,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_049cd",
+     "offset": 18893,
+     "size": 10,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_049d7",
+     "offset": 18903,
+     "size": 10,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_049e1",
+     "offset": 18913,
+     "size": 12,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_049ed",
+     "offset": 18925,
+     "size": 11,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_049f8",
+     "offset": 18936,
+     "size": 12,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04a04",
+     "offset": 18948,
+     "size": 11,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04a0f",
+     "offset": 18959,
+     "size": 9,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04a18",
+     "offset": 18968,
+     "size": 8,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04a20",
+     "offset": 18976,
+     "size": 8,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04a28",
+     "offset": 18984,
+     "size": 9,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04a31",
+     "offset": 18993,
+     "size": 10,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04a3b",
+     "offset": 19003,
+     "size": 6,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04a41",
+     "offset": 19009,
+     "size": 6,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04a47",
+     "offset": 19015,
+     "size": 10,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04a51",
+     "offset": 19025,
+     "size": 7,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_04a58",
+     "offset": 19032,
+     "size": 11,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
      "label": "RomText_0571f",
      "offset": 22303,
      "size": 16,
@@ -38520,9 +39481,39 @@
      "rom": true
     },
     {
+     "label": "RomText_0718f",
+     "offset": 29071,
+     "size": 8,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_07197",
+     "offset": 29079,
+     "size": 8,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
      "label": "RomText_07413",
      "offset": 29715,
      "size": 14,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_07468",
+     "offset": 29800,
+     "size": 33,
      "fixed": false,
      "bcd_hex": [],
      "movable": false,
@@ -38544,6 +39535,16 @@
   {
    "file": "rom_text/bank_03.asm",
    "labels": [
+    {
+     "label": "RomText_0c57e",
+     "offset": 50558,
+     "size": 8,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
     {
      "label": "RomText_0daea",
      "offset": 56042,
@@ -38617,6 +39618,21 @@
    ]
   },
   {
+   "file": "rom_text/bank_09.asm",
+   "labels": [
+    {
+     "label": "RomText_27ef5",
+     "offset": 163573,
+     "size": 11,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    }
+   ]
+  },
+  {
    "file": "rom_text/bank_0c.asm",
    "labels": [
     {
@@ -38633,6 +39649,461 @@
      "label": "RomText_33d02",
      "offset": 212226,
      "size": 9,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    }
+   ]
+  },
+  {
+   "file": "rom_text/bank_0e.asm",
+   "labels": [
+    {
+     "label": "RomText_399ff",
+     "offset": 236031,
+     "size": 10,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39a09",
+     "offset": 236041,
+     "size": 12,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39a1a",
+     "offset": 236058,
+     "size": 7,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39a21",
+     "offset": 236065,
+     "size": 12,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39a2d",
+     "offset": 236077,
+     "size": 12,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39a39",
+     "offset": 236089,
+     "size": 11,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39a44",
+     "offset": 236100,
+     "size": 11,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39a4f",
+     "offset": 236111,
+     "size": 6,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39a55",
+     "offset": 236117,
+     "size": 6,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39a5b",
+     "offset": 236123,
+     "size": 8,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39a63",
+     "offset": 236131,
+     "size": 9,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39a6c",
+     "offset": 236140,
+     "size": 8,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39a74",
+     "offset": 236148,
+     "size": 10,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39a7e",
+     "offset": 236158,
+     "size": 8,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39a86",
+     "offset": 236166,
+     "size": 9,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39a8f",
+     "offset": 236175,
+     "size": 8,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39a97",
+     "offset": 236183,
+     "size": 7,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39a9e",
+     "offset": 236190,
+     "size": 8,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39aa6",
+     "offset": 236198,
+     "size": 7,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39aad",
+     "offset": 236205,
+     "size": 8,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39ab5",
+     "offset": 236213,
+     "size": 6,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39abb",
+     "offset": 236219,
+     "size": 12,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39ac7",
+     "offset": 236231,
+     "size": 10,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39ad1",
+     "offset": 236241,
+     "size": 7,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39ad8",
+     "offset": 236248,
+     "size": 9,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39ae1",
+     "offset": 236257,
+     "size": 6,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39ae7",
+     "offset": 236263,
+     "size": 10,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39af1",
+     "offset": 236273,
+     "size": 9,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39afa",
+     "offset": 236282,
+     "size": 7,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39b01",
+     "offset": 236289,
+     "size": 13,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39b0e",
+     "offset": 236302,
+     "size": 13,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39b1b",
+     "offset": 236315,
+     "size": 6,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39b21",
+     "offset": 236321,
+     "size": 6,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39b27",
+     "offset": 236327,
+     "size": 6,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39b2d",
+     "offset": 236333,
+     "size": 9,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39b36",
+     "offset": 236342,
+     "size": 6,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39b41",
+     "offset": 236353,
+     "size": 7,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39b48",
+     "offset": 236360,
+     "size": 8,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39b50",
+     "offset": 236368,
+     "size": 10,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39b5a",
+     "offset": 236378,
+     "size": 7,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39b61",
+     "offset": 236385,
+     "size": 7,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39b68",
+     "offset": 236392,
+     "size": 8,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39b70",
+     "offset": 236400,
+     "size": 10,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39b7a",
+     "offset": 236410,
+     "size": 7,
+     "fixed": false,
+     "bcd_hex": [],
+     "movable": false,
+     "far": [],
+     "rom": true
+    },
+    {
+     "label": "RomText_39b81",
+     "offset": 236417,
+     "size": 6,
      "fixed": false,
      "bcd_hex": [],
      "movable": false,

@@ -158,6 +158,32 @@ def test_real_rom_moved_body_is_reached_through_its_far_reference(tmp_path):
         assert rom_text.decode(patched[offset:offset + size], names) == LONG_TEXT
 
 
+def test_real_rom_ukrainian_category_builds_and_reads_back_through_its_pointer(tmp_path):
+    rom_path = _rom("red")
+    project = tmp_path / "project"
+    rom_project.unpack(str(rom_path), str(project), lambda *_: None, lambda: False)
+    facts = json.loads((rom_project.FACTS_DIR / "pokered.json").read_text(encoding="utf-8"))
+    names = rom_project._names(facts)
+    item = next(item for item in facts["files"] for body in item["labels"] if body["label"] == "RhydonDexEntry")
+    body = next(b for b in item["labels"] if b["label"] == "RhydonDexEntry")
+    assert body["movable"] and body["pointers"]
+    source_file = project / rom_project.SOURCE_DIR / rom_project.unit_name(item["file"])
+    groups = rom_text.read_labels(source_file.read_text(encoding="utf-8"))
+    # six Ukrainian letters and @: longer than the 6 bytes of "DRILL@", so the category moves to its bank's free space
+    word = "Щдминк"
+    edited = "\n".join(rom_text.format_body(label, [("db", '"' + word + '@"')] if label == "RhydonDexEntry" else lines)
+                       for label, lines in groups if label)
+    source_file.write_text(edited, encoding="utf-8")
+    built = Path(rom_project.build(str(project / rom_project.SOURCE_DIR), str(tmp_path / "translation"),
+                                   str(tmp_path / "out"), lambda *_: None, lambda: False))
+    patched = built.read_bytes()
+    bank = gb_rom.bank_of(body["offset"])
+    site = body["pointers"][0]
+    offset = gb_rom.offset_of(bank, patched[site] | patched[site + 1] << 8)
+    assert patched[offset:offset + 7] == rom_text.encode([("db", '"' + word + '@"')], names)
+    assert rom_text.decode(patched[offset:offset + 6], names)[0] == ("db", '"' + word + '"')
+
+
 def test_db_lines_mix_numbers_and_strings():
     names = _names()
     # a credit's line type byte before its text, and a flag byte before a name: the numbers are raw bytes
@@ -203,3 +229,17 @@ def test_budget_check_flags_a_name_field_over_its_width(monkeypatch):
     assert rules.exceeds_byte_budget(0, 0, "Aaa") is True     # the second name's field is one byte
     assert rules.exceeds_byte_budget(0, 1, "a") is False
     assert rules.exceeds_byte_budget(0, 1, "aa") is True
+
+
+def test_ukrainian_letters_encode_to_their_font_cells():
+    facts = json.loads((rom_project.FACTS_DIR / "pokered.json").read_text(encoding="utf-8"))
+    names = rom_project._names(facts)
+    # the Ukrainian word "\u0407\u0436\u0430\u043a" (Ї, ж, а, к): Ї and к have their own cells on the font sheet
+    # (72 and 90), ж is the 's' cell (61) and а is the Latin a (32)
+    word = "\u0407\u0436\u0430\u043a"
+    assert rom_text.encode([("db", '"' + word + '"')], names) == bytes([0x80 + 72, 0x80 + 61, 0x80 + 32, 0x80 + 90])
+    assert rom_text.decode(bytes([0x80 + 64]), names) == [("db", '"\u0411"')]
+    # Gen 2: \u0411 has no cell of its own on the Gold font sheet; it takes the Latin D cell (index 3), as decided
+    gold = rom_project._names(json.loads((rom_project.FACTS_DIR.parent.parent / "pokemon_gsc" / "rom_facts"
+                                          / "pokegold.json").read_text(encoding="utf-8")))
+    assert rom_text.encode([("db", '"\u0411"')], gold) == bytes([0x80 + 3])

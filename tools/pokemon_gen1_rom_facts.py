@@ -378,6 +378,54 @@ def unlabelled_text_bodies(rom: bytes, out_files: list, names, charmap, build: s
     return [{"file": f"rom_text/bank_{bank:02x}.asm", "labels": entries} for bank, entries in sorted(groups.items())]
 
 
+# Ukrainian letters on the font sheet of the game's plugin (font_sources.json). The font's tile codes start at 0x80,
+# one per cell in the sheet's order. A letter the sheet has keeps its own cell; a Cyrillic letter that looks like a
+# Latin one takes the Latin cell; the rest take the cells the decision names (a cell whose English glyph the
+# translator draws over). These entries come after the game's own, so a byte still reads as the English it is.
+UA_LETTERS = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+UA_LOOKALIKE = {"А": "A", "В": "B", "Е": "E", "І": "I", "К": "K", "М": "M", "Н": "H", "О": "O", "Р": "P", "С": "C",
+                "Т": "T", "Х": "X", "а": "a", "е": "e", "і": "i", "о": "o", "р": "p", "с": "c", "у": "y", "х": "x"}
+UA_TARGETS_GEN1 = {"ґ": "'d", "є": "'l", "ж": "'s", "й": "'t", "ї": "'v", "ф": "'r", "ц": "'m", "ч": "é", "ш": "¥",
+                   "щ": "×", "ю": "<DOT>"}
+UA_TARGETS_GEN2 = {"Б": "D", "Г": "F", "Ґ": "G", "Д": "J", "Є": "L", "Ж": "N", "З": "Q", "И": "R", "Ї": "S", "Й": "U",
+                   "Л": "V", "П": "W", "У": "Y", "Ф": "Z", "Ц": "Ä", "Ч": "Ö", "Ш": "Ü", "Щ": "d", "Ь": "f", "Ю": "g",
+                   "Я": "h", "ґ": "k"}
+FONT_BASE = 0x80
+
+
+def ukrainian_cells(charmap: list, font_sources: Path, gen2: bool) -> list:
+    """The game's charmap with the Ukrainian letters appended (see UA_TARGETS_*)."""
+    chars = json.loads(font_sources.read_text(encoding="utf-8"))[0]["params"]["chars"]
+    index = {label: i for i, label in enumerate(chars)}
+    code_of: dict = {}
+    for token, code in charmap:
+        code_of.setdefault(token, int(code))
+    targets = UA_TARGETS_GEN2 if gen2 else UA_TARGETS_GEN1
+    extra = []
+    for letter in UA_LETTERS:
+        if letter in code_of:
+            continue
+        if letter in index:
+            code = FONT_BASE + index[letter]
+        elif letter in UA_LOOKALIKE:
+            code = code_of[UA_LOOKALIKE[letter]]
+        elif letter in targets:
+            code = FONT_BASE + index[targets[letter]]
+        else:
+            continue
+        extra.append([letter, code])
+    # The charmap's Japanese tokens share some of these codes (0xC0 is a katakana in the Japanese text table). A byte
+    # reads as its first entry, so the Ukrainian entries go before the Japanese ones and after the English ones.
+    first_japanese = next((i for i, (token, _code) in enumerate(charmap) if any(is_japanese(ch) for ch in token)),
+                          len(charmap))
+    return list(charmap[:first_japanese]) + extra + list(charmap[first_japanese:])
+
+
+def is_japanese(char: str) -> bool:
+    """A kana, a CJK or a half-width katakana character."""
+    return 0x3000 <= ord(char) <= 0x9FFF or 0xFF61 <= ord(char) <= 0xFF9F
+
+
 IDENT = re.compile(r"[A-Za-z_][\w.]*")
 DW_ARGS = re.compile(r"^\s+dw\s+(.*)$")
 TABLE_HEAD = re.compile(r"^\s+(table_width|assert_table_length|list_start)\b")
@@ -453,7 +501,9 @@ def main(argv: list) -> int:
     charmap = read_charmap(decomp)
     defs = read_constants(decomp)
     gen2 = build in GEN2_BUILDS
-    defines = {VERSION_MACRO[build]} if build in VERSION_MACRO else set()
+    font_sources = REPO / ("plugins/pokemon_gsc" if gen2 else "plugins/pokemon_gen1") / "font_sources.json"
+    charmap = ukrainian_cells(charmap, font_sources, gen2)
+    defines ={VERSION_MACRO[build]} if build in VERSION_MACRO else set()
     everything = rom_text.Names(charmap, ram_labels, rom_labels, gen2)
 
     sources = sorted((decomp / "text").glob("*.asm")) + name_files(decomp)
