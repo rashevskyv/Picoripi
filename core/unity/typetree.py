@@ -118,7 +118,7 @@ def read_value(node: Node, reader: Reader) -> Any:
     align = _aligned(node)
     if _is_primitive(node):
         value = _primitive(reader, node)
-    elif node.type in ("pair", "ReferencedObject"):
+    elif node.type == "ReferencedObject":
         raise TypeTreeError(f"{node.type} is not supported")
     elif _is_vector(node):
         if _aligned(node.children[0]):
@@ -157,7 +157,7 @@ def write_value(node: Node, value: Any, writer: Writer) -> None:
     align = _aligned(node)
     if _is_primitive(node):
         _write_primitive(writer, node, value)
-    elif node.type in ("pair", "ReferencedObject"):
+    elif node.type == "ReferencedObject":
         raise TypeTreeError(f"{node.type} is not supported")
     elif _is_vector(node):
         if _aligned(node.children[0]):

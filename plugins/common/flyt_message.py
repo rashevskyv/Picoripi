@@ -131,6 +131,83 @@ class Face:
             self._pil[key] = ImageFont.truetype(io.BytesIO(self._otf), size=max(1, round(px)))
         return self._pil[key]
 
+    def draw(self, image: Image.Image, ch: str, pen: float, baseline: float, px: float, colour: RGBA) -> None:
+        """One glyph: its pen position (left) and baseline, drawn with the outline font."""
+        ImageDraw.Draw(image).text((pen, baseline), ch, font=self.pil(px), fill=colour, anchor="ls")
+
+
+# The alpha of a TMP distance-field atlas: the edge is at 128; the ramp is 56 levels wide (a soft edge, not measured).
+_SDF_EDGE, _SDF_RAMP = 128.0, 56.0
+
+
+class TmpFace:
+    """A TextMesh Pro font asset: its glyph table, character map and atlas (the ``font/<bundle>/<name>.json`` and
+    ``.png`` of the workspace). Metrics are in the font's point size; a glyph at ``px`` pixels per em is scaled by
+    ``px / pointSize``. The atlas is a signed distance field: the glyph is where the value is above the edge."""
+
+    def __init__(self, asset: dict, atlas: Image.Image):
+        info = asset.get("m_FaceInfo") or {}
+        self.point = float(info.get("m_PointSize") or 0.0)
+        self.face_scale = float(info.get("m_Scale") or 1.0)
+        self.line_height = float(info.get("m_LineHeight") or 0.0)
+        self.ascent_line = float(info.get("m_AscentLine") or 0.0)
+        if self.point <= 0:
+            raise ValueError("the TMP font asset has no point size")
+        self.glyphs = {int(g["m_Index"]): g for g in asset.get("m_GlyphTable") or []}
+        self.cmap = {int(c["m_Unicode"]): (int(c["m_GlyphIndex"]), float(c.get("m_Scale") or 1.0))
+                     for c in asset.get("m_CharacterTable") or []}
+        self.padding = float(asset.get("m_AtlasPadding") or 0)
+        self.atlas = atlas.convert("L")
+
+    def _k(self, px: float) -> float:
+        return px / self.point * self.face_scale
+
+    def has(self, ch: str) -> bool:
+        entry = self.cmap.get(ord(ch))
+        return entry is not None and entry[0] in self.glyphs
+
+    def advance(self, ch: str, px: float) -> float:
+        index, char_scale = self.cmap[ord(ch)]
+        return self.glyphs[index]["m_Metrics"]["m_HorizontalAdvance"] * self._k(px) * char_scale
+
+    def ascent(self, px: float) -> float:
+        return self.ascent_line * self._k(px)
+
+    def draw(self, image: Image.Image, ch: str, pen: float, baseline: float, px: float, colour: RGBA) -> None:
+        """One glyph: its atlas rectangle (padding included) scaled to the glyph's metrics, thresholded as an SDF."""
+        index, char_scale = self.cmap[ord(ch)]
+        glyph = self.glyphs[index]
+        metrics, rect = glyph["m_Metrics"], glyph["m_GlyphRect"]
+        k = self._k(px) * char_scale
+        p = self.padding
+        width, height = float(rect["m_Width"]) + 2 * p, float(rect["m_Height"]) + 2 * p
+        if width <= 0 or height <= 0 or metrics["m_Width"] <= 0:
+            return
+        # The atlas origin is the bottom-left corner (Unity); the picture's origin is the top-left.
+        left_px = float(rect["m_X"]) - p
+        top_px = self.atlas.height - (float(rect["m_Y"]) + float(rect["m_Height"]) + p)
+        crop = self.atlas.crop((round(left_px), round(top_px), round(left_px + width), round(top_px + height)))
+        sx = float(metrics["m_Width"]) * k / float(rect["m_Width"]) if rect["m_Width"] else k
+        sy = float(metrics["m_Height"]) * k / float(rect["m_Height"]) if rect["m_Height"] else k
+        dest_w, dest_h = max(1, round(width * sx)), max(1, round(height * sy))
+        mask = crop.resize((dest_w, dest_h), Image.BILINEAR)
+        alpha = mask.point(lambda v: int(max(0.0, min(1.0, (v - _SDF_EDGE) / _SDF_RAMP + 0.5)) * 255))
+        alpha = alpha.point(lambda v: v * colour[3] // 255)
+        x = pen + float(metrics["m_HorizontalBearingX"]) * k - p * sx
+        y = baseline - float(metrics["m_HorizontalBearingY"]) * k - p * sy
+        layer = Image.new("RGBA", (dest_w, dest_h), colour[:3] + (0,))
+        layer.putalpha(alpha)
+        _composite(image, layer, round(x), round(y))
+
+
+def _composite(image: Image.Image, layer: Image.Image, x: int, y: int) -> None:
+    """Alpha-composites ``layer`` onto ``image`` at (x, y), clipped to the image."""
+    x0, y0 = max(0, -x), max(0, -y)
+    x1, y1 = min(layer.width, image.width - x), min(layer.height, image.height - y)
+    if x1 <= x0 or y1 <= y0:
+        return
+    image.alpha_composite(layer.crop((x0, y0, x1, y1)), (x + x0, y + y0))
+
 
 class FontChain:
     """The faces of one layout's font setting, in fallback order."""
@@ -186,7 +263,6 @@ def draw_pane(image: Image.Image, pane: TextPane, chain: FontChain, lines: List[
         top = y1 - block
     else:
         top = y0 + (y1 - y0 - block) / 2
-    draw = ImageDraw.Draw(image)
     too_wide: List[int] = []
     for index, line in enumerate(lines):
         width = chain.width(line, px, pane.char_space)
@@ -203,7 +279,7 @@ def draw_pane(image: Image.Image, pane: TextPane, chain: FontChain, lines: List[
             face = chain.face_of(ch)
             if face is None:
                 continue
-            draw.text((pen, baseline), ch, font=face.pil(px), fill=pane.colour, anchor="ls")
+            face.draw(image, ch, pen, baseline, px, pane.colour)
             pen += face.advance(ch, px) + pane.char_space
     return too_wide
 
