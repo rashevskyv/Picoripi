@@ -414,11 +414,13 @@ def ukrainian_cells(charmap: list, font_sources: Path, gen2: bool) -> list:
         else:
             continue
         extra.append([letter, code])
-    # The charmap's Japanese tokens share some of these codes (0xC0 is a katakana in the Japanese text table). A byte
-    # reads as its first entry, so the Ukrainian entries go before the Japanese ones and after the English ones.
-    first_japanese = next((i for i, (token, _code) in enumerate(charmap) if any(is_japanese(ch) for ch in token)),
-                          len(charmap))
-    return list(charmap[:first_japanese]) + extra + list(charmap[first_japanese:])
+    # The charmap's Japanese tokens share some of these codes (0xC0 is a katakana in the Japanese text table), and
+    # the Gold charmap lists some English letters after its first Japanese token. A byte reads as its first entry,
+    # so the Ukrainian entries go after the last English entry: every English letter wins its byte, and the
+    # Ukrainian ones win over the Japanese ones.
+    english_end = max((i for i, (token, _code) in enumerate(charmap)
+                       if not any(is_japanese(ch) for ch in token)), default=-1)
+    return list(charmap[:english_end + 1]) + extra + list(charmap[english_end + 1:])
 
 
 def is_japanese(char: str) -> bool:
