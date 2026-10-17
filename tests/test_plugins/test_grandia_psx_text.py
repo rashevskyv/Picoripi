@@ -49,9 +49,9 @@ def test_chain_breaks_at_a_gap_and_keeps_the_longer_side():
 
 
 def test_dialogue_runs_stop_at_control_bytes():
-    data = b"\x30\x7e She's really popular.\x01Hey, c'mon,\x07\x02\x0e Hi"
+    data = b"\x30\x7e Synthetic line one.\x01Synthetic line two,\x07\x02\x0e Hi"
     texts = [text for _, text in psx_text.dialogue_runs(data)]
-    assert texts == [b"0~ She's really popular.", b"Hey, c'mon,"]
+    assert texts == [b"0~ Synthetic line one.", b"Synthetic line two,"]
 
 
 def test_dialogue_is_detected_by_the_speaker_sequence():

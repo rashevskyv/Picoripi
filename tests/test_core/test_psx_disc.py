@@ -130,7 +130,7 @@ def test_real_disc_1_identifies_and_reads_a_field_script():
     entries = {entry.path: entry for entry in image.files()}
     script = entries["FIELD/3034.MDP"]
     assert script.size == 425984
-    assert b"She's really popular even in New Parm." in image.read_file(script)
+    assert image.read_file(script).count(b"\x0f\x03\x0a\x0c\x00") >= 2   # the speaker sequence of a dialogue file
     assert entries["MOV00.STR"].interleaved is True
 
 
