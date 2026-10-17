@@ -22,6 +22,7 @@ from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 
 GAME_ID = "T17716N"
 TEXT_DIR = "files/MAP/"
+TEXTURE_FILES = ("files/WINDOW/TITLE_DATA.AFS", "files/0GDTEX.PVR")   # the title screen and the shared UI textures
 REF_NAME = "source_image.ref"
 TARGET_ID = "disc_set"
 
@@ -51,7 +52,8 @@ class GameRules(BaseGameRules):
         if not base:
             return None
         written = images.extract(base, target_dir, progress, is_cancelled,
-                                 select=lambda path: path.startswith(TEXT_DIR) and path.upper().endswith(".AFS"))
+                                 select=lambda path: path in TEXTURE_FILES
+                                 or (path.startswith(TEXT_DIR) and path.upper().endswith(".AFS")))
         if written is None:
             return None
         Path(target_dir, REF_NAME).write_text(json.dumps({"game_id": GAME_ID, "cue": os.path.abspath(base)}),
@@ -81,15 +83,20 @@ class GameRules(BaseGameRules):
         return result
 
     def _replacements(self, source_dir: str, translation_dir: str) -> Dict[str, bytes]:
-        """The disc paths of the archives whose translated version differs from the source."""
+        """The disc paths of the files whose translated copy differs from the source (archives, textures)."""
         out: Dict[str, bytes] = {}
-        root = Path(source_dir)
-        for path in sorted(root.joinpath(*TEXT_DIR.split("/")[:-1]).glob("*.AFS")):
+        root = Path(translation_dir)
+        if not root.is_dir():
+            return out
+        for path in sorted(root.rglob("*")):
+            if not path.is_file():
+                continue
             rel = path.relative_to(root).as_posix()
-            source = path.read_bytes()
-            edited_path = Path(translation_dir, rel)
-            edited = edited_path.read_bytes() if edited_path.is_file() else source
-            if edited != source:
+            source_path = Path(source_dir, rel)
+            if not rel.startswith("files/") or not source_path.is_file():
+                continue
+            edited = path.read_bytes()
+            if edited != source_path.read_bytes():
                 out[rel] = edited
         return out
 
