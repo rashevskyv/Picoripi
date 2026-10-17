@@ -396,6 +396,19 @@ def encode(lines: Sequence[Line], names: Names, width: int = 0) -> bytes:
     return bytes(out)
 
 
+def encoded_length(lines: Sequence[Line], names: Names) -> int:
+    """The bytes the lines of one unit take. A ``dname`` field counts its text only (the padding is not text)."""
+    total = 0
+    for word, args in lines:
+        if word == "dname":
+            total += len(_string_bytes(names, args))
+        elif word == "li":
+            total += len(_string_bytes(names, args)) + 1
+        else:
+            total += len(encode([(word, args)], names))
+    return total
+
+
 def decode_names(region: bytes, names: Names, mode: str, width: int = 0) -> List[Line]:
     """The lines of a name table: ``dname`` fields of ``width`` bytes, or ``li`` entries ending at "@"."""
     def quoted(chunk: bytes) -> str:

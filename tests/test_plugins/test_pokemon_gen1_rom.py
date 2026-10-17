@@ -172,3 +172,34 @@ def test_db_body_splits_at_each_at_sign():
     lines = rom_text.decode(raw, names)
     assert lines == [("db", '"Ab@"'), ("db", '"a"'), ("text_end", "")]
     assert rom_text.encode(lines, names) == raw
+
+
+def test_pointer_unit_moves_inside_its_bank_and_its_table_entry_follows():
+    base = bytearray(0x8000)                         # banks 0 and 1
+    base[0x4000:0x4002] = bytes([0x00, 0x41])        # a table in bank 1 holding the body's address 0x4100
+    facts = {"files": [{"file": "x.asm", "labels": [
+        {"label": "Body", "offset": 0x4100, "size": 3, "fixed": False, "movable": True, "far": [], "pointers": [0x4000]}
+    ]}], "gaps": [[1, 0x4800, 0x5000, 0x00]]}
+    body = facts["files"][0]["labels"][0]
+    patched = rom_project._patched(bytes(base), facts, [(body, bytes([0x80] * 10))])
+    assert patched[0x4000:0x4002] == bytes([0x00, 0x48])     # 0x4800: the first free byte of bank 1
+    assert patched[0x4800:0x480A] == bytes([0x80] * 10)
+
+
+def test_fixed_name_length_counts_its_text_and_list_entries_keep_their_terminator():
+    names = _names()
+    assert rom_text.encoded_length([("dname", '"Aa"')], names) == 2     # the padding of a field is not text
+    assert rom_text.encoded_length([("li", '"Aa"')], names) == 3        # the entry's terminator is part of it
+
+
+def test_budget_check_flags_a_name_field_over_its_width(monkeypatch):
+    from plugins.pokemon_gen1 import asm_text
+    from plugins.pokemon_gen1.rules import GameRules
+    units = asm_text.parse('Names:\n\tdname "Aa"\n\tdname "a"\n')[1]
+    rules = GameRules(None)
+    monkeypatch.setattr(rules, "_file", lambda block_idx: ("names.asm", units))
+    monkeypatch.setattr(rules, "_budget_data", lambda block_idx: ({"Names#0": 2, "Names#1": 1}, _names()))
+    assert rules.exceeds_byte_budget(0, 0, "Aa") is False
+    assert rules.exceeds_byte_budget(0, 0, "Aaa") is True     # the second name's field is one byte
+    assert rules.exceeds_byte_budget(0, 1, "a") is False
+    assert rules.exceeds_byte_budget(0, 1, "aa") is True

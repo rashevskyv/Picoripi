@@ -22854,6 +22854,10 @@
      "size": 26,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987619
+     ],
      "far": []
     },
     {
@@ -22862,6 +22866,10 @@
      "size": 16,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987621
+     ],
      "far": []
     },
     {
@@ -22870,6 +22878,10 @@
      "size": 15,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987623
+     ],
      "far": []
     },
     {
@@ -22878,6 +22890,10 @@
      "size": 18,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987625
+     ],
      "far": []
     },
     {
@@ -22886,6 +22902,10 @@
      "size": 18,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987627
+     ],
      "far": []
     },
     {
@@ -22894,6 +22914,10 @@
      "size": 16,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987629
+     ],
      "far": []
     },
     {
@@ -22902,6 +22926,10 @@
      "size": 15,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987631
+     ],
      "far": []
     },
     {
@@ -22910,6 +22938,10 @@
      "size": 14,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987633
+     ],
      "far": []
     },
     {
@@ -22918,6 +22950,10 @@
      "size": 16,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987635
+     ],
      "far": []
     },
     {
@@ -22926,6 +22962,10 @@
      "size": 18,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987637
+     ],
      "far": []
     },
     {
@@ -22934,6 +22974,10 @@
      "size": 19,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987639
+     ],
      "far": []
     },
     {
@@ -22942,6 +22986,10 @@
      "size": 20,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987641
+     ],
      "far": []
     },
     {
@@ -22950,6 +22998,10 @@
      "size": 18,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987643
+     ],
      "far": []
     },
     {
@@ -22958,6 +23010,10 @@
      "size": 17,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987645
+     ],
      "far": []
     },
     {
@@ -22966,6 +23022,10 @@
      "size": 17,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987647
+     ],
      "far": []
     },
     {
@@ -22974,6 +23034,10 @@
      "size": 16,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987649
+     ],
      "far": []
     },
     {
@@ -22982,6 +23046,10 @@
      "size": 18,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987651
+     ],
      "far": []
     },
     {
@@ -22990,6 +23058,10 @@
      "size": 19,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987653
+     ],
      "far": []
     },
     {
@@ -22998,6 +23070,10 @@
      "size": 20,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987655
+     ],
      "far": []
     },
     {
@@ -23006,6 +23082,10 @@
      "size": 19,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987657
+     ],
      "far": []
     },
     {
@@ -23014,6 +23094,10 @@
      "size": 19,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987659
+     ],
      "far": []
     },
     {
@@ -23022,6 +23106,10 @@
      "size": 17,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987661
+     ],
      "far": []
     },
     {
@@ -23030,6 +23118,10 @@
      "size": 18,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987663
+     ],
      "far": []
     },
     {
@@ -23038,6 +23130,10 @@
      "size": 18,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987665
+     ],
      "far": []
     },
     {
@@ -23046,6 +23142,10 @@
      "size": 16,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987667
+     ],
      "far": []
     },
     {
@@ -23054,6 +23154,10 @@
      "size": 17,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987669
+     ],
      "far": []
     },
     {
@@ -23062,6 +23166,10 @@
      "size": 16,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987671
+     ],
      "far": []
     },
     {
@@ -23070,6 +23178,10 @@
      "size": 16,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987673
+     ],
      "far": []
     },
     {
@@ -23078,6 +23190,10 @@
      "size": 6,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987675
+     ],
      "far": []
     },
     {
@@ -23086,6 +23202,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987677
+     ],
      "far": []
     },
     {
@@ -23094,6 +23214,10 @@
      "size": 13,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987679
+     ],
      "far": []
     },
     {
@@ -23102,6 +23226,10 @@
      "size": 18,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987681
+     ],
      "far": []
     },
     {
@@ -23110,6 +23238,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987683
+     ],
      "far": []
     },
     {
@@ -23118,6 +23250,10 @@
      "size": 15,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987685
+     ],
      "far": []
     },
     {
@@ -23126,6 +23262,10 @@
      "size": 13,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987687
+     ],
      "far": []
     },
     {
@@ -23134,6 +23274,10 @@
      "size": 16,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987689
+     ],
      "far": []
     },
     {
@@ -23142,6 +23286,10 @@
      "size": 15,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987691
+     ],
      "far": []
     },
     {
@@ -23150,6 +23298,10 @@
      "size": 19,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987693
+     ],
      "far": []
     },
     {
@@ -23158,6 +23310,10 @@
      "size": 12,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987695
+     ],
      "far": []
     },
     {
@@ -23166,6 +23322,10 @@
      "size": 17,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987697
+     ],
      "far": []
     },
     {
@@ -23174,6 +23334,10 @@
      "size": 16,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987699
+     ],
      "far": []
     },
     {
@@ -23182,6 +23346,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987779
+     ],
      "far": []
     },
     {
@@ -23190,6 +23358,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987701
+     ],
      "far": []
     },
     {
@@ -23198,6 +23370,10 @@
      "size": 20,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987703
+     ],
      "far": []
     },
     {
@@ -23206,6 +23382,10 @@
      "size": 16,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987705
+     ],
      "far": []
     },
     {
@@ -23214,6 +23394,10 @@
      "size": 14,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987707
+     ],
      "far": []
     },
     {
@@ -23222,6 +23406,10 @@
      "size": 16,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987709
+     ],
      "far": []
     },
     {
@@ -23230,6 +23418,10 @@
      "size": 16,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987711
+     ],
      "far": []
     },
     {
@@ -23238,6 +23430,10 @@
      "size": 21,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987715
+     ],
      "far": []
     },
     {
@@ -23246,6 +23442,10 @@
      "size": 15,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987717
+     ],
      "far": []
     },
     {
@@ -23254,6 +23454,10 @@
      "size": 18,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987713
+     ],
      "far": []
     },
     {
@@ -23262,6 +23466,10 @@
      "size": 17,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987719
+     ],
      "far": []
     },
     {
@@ -23270,6 +23478,10 @@
      "size": 19,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987721
+     ],
      "far": []
     },
     {
@@ -23278,6 +23490,10 @@
      "size": 22,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987723
+     ],
      "far": []
     },
     {
@@ -23286,6 +23502,10 @@
      "size": 22,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987725
+     ],
      "far": []
     },
     {
@@ -23294,6 +23514,10 @@
      "size": 17,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987727
+     ],
      "far": []
     },
     {
@@ -23302,6 +23526,10 @@
      "size": 15,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987729
+     ],
      "far": []
     },
     {
@@ -23310,6 +23538,10 @@
      "size": 17,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987731
+     ],
      "far": []
     },
     {
@@ -23318,6 +23550,10 @@
      "size": 18,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987733
+     ],
      "far": []
     },
     {
@@ -23326,6 +23562,10 @@
      "size": 20,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987735
+     ],
      "far": []
     },
     {
@@ -23334,6 +23574,10 @@
      "size": 13,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987737
+     ],
      "far": []
     },
     {
@@ -23342,6 +23586,10 @@
      "size": 14,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987739
+     ],
      "far": []
     },
     {
@@ -23350,6 +23598,10 @@
      "size": 23,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987741
+     ],
      "far": []
     },
     {
@@ -23358,6 +23610,10 @@
      "size": 13,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987743
+     ],
      "far": []
     },
     {
@@ -23366,6 +23622,10 @@
      "size": 15,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987745
+     ],
      "far": []
     },
     {
@@ -23374,6 +23634,10 @@
      "size": 18,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987747
+     ],
      "far": []
     },
     {
@@ -23382,6 +23646,10 @@
      "size": 17,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987749
+     ],
      "far": []
     },
     {
@@ -23390,6 +23658,10 @@
      "size": 13,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987751
+     ],
      "far": []
     },
     {
@@ -23398,6 +23670,10 @@
      "size": 16,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987753
+     ],
      "far": []
     },
     {
@@ -23406,6 +23682,10 @@
      "size": 15,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987755
+     ],
      "far": []
     },
     {
@@ -23414,6 +23694,10 @@
      "size": 16,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987757
+     ],
      "far": []
     },
     {
@@ -23422,6 +23706,10 @@
      "size": 14,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987759
+     ],
      "far": []
     },
     {
@@ -23430,6 +23718,10 @@
      "size": 18,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987761
+     ],
      "far": []
     },
     {
@@ -23438,6 +23730,10 @@
      "size": 15,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987763
+     ],
      "far": []
     },
     {
@@ -23446,6 +23742,10 @@
      "size": 14,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987765
+     ],
      "far": []
     },
     {
@@ -23454,6 +23754,10 @@
      "size": 17,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987767
+     ],
      "far": []
     },
     {
@@ -23462,6 +23766,10 @@
      "size": 17,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987769
+     ],
      "far": []
     },
     {
@@ -23470,6 +23778,10 @@
      "size": 17,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987771
+     ],
      "far": []
     },
     {
@@ -23478,6 +23790,10 @@
      "size": 13,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987773
+     ],
      "far": []
     },
     {
@@ -23486,6 +23802,10 @@
      "size": 22,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987775
+     ],
      "far": []
     },
     {
@@ -23494,6 +23814,10 @@
      "size": 14,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987777
+     ],
      "far": []
     },
     {
@@ -23502,6 +23826,10 @@
      "size": 19,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987781
+     ],
      "far": []
     },
     {
@@ -23510,6 +23838,10 @@
      "size": 13,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987783
+     ],
      "far": []
     },
     {
@@ -23518,6 +23850,10 @@
      "size": 18,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987785
+     ],
      "far": []
     },
     {
@@ -23526,6 +23862,10 @@
      "size": 17,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987787
+     ],
      "far": []
     },
     {
@@ -23534,6 +23874,10 @@
      "size": 16,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      987789
+     ],
      "far": []
     }
    ]
@@ -24044,6 +24388,10 @@
      "size": 5,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263739
+     ],
      "far": []
     },
     {
@@ -24052,6 +24400,10 @@
      "size": 5,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263451
+     ],
      "far": []
     },
     {
@@ -24060,6 +24412,10 @@
      "size": 5,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263741
+     ],
      "far": []
     },
     {
@@ -24068,6 +24424,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263785
+     ],
      "far": []
     },
     {
@@ -24076,6 +24436,10 @@
      "size": 6,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263789
+     ],
      "far": []
     },
     {
@@ -24084,6 +24448,10 @@
      "size": 6,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263793
+     ],
      "far": []
     },
     {
@@ -24092,6 +24460,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263787
+     ],
      "far": []
     },
     {
@@ -24100,6 +24472,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263791
+     ],
      "far": []
     },
     {
@@ -24108,6 +24484,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263489
+     ],
      "far": []
     },
     {
@@ -24116,6 +24496,10 @@
      "size": 5,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263679
+     ],
      "far": []
     },
     {
@@ -24124,6 +24508,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263681
+     ],
      "far": []
     },
     {
@@ -24132,6 +24520,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263683
+     ],
      "far": []
     },
     {
@@ -24140,6 +24532,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263657
+     ],
      "far": []
     },
     {
@@ -24148,6 +24544,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263659
+     ],
      "far": []
     },
     {
@@ -24156,6 +24556,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263661
+     ],
      "far": []
     },
     {
@@ -24164,6 +24568,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263505
+     ],
      "far": []
     },
     {
@@ -24172,6 +24580,10 @@
      "size": 5,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263733
+     ],
      "far": []
     },
     {
@@ -24180,6 +24592,10 @@
      "size": 5,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263735
+     ],
      "far": []
     },
     {
@@ -24188,6 +24604,10 @@
      "size": 4,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263763
+     ],
      "far": []
     },
     {
@@ -24196,6 +24616,10 @@
      "size": 4,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263765
+     ],
      "far": []
     },
     {
@@ -24204,6 +24628,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263443
+     ],
      "far": []
     },
     {
@@ -24212,6 +24640,10 @@
      "size": 5,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263503
+     ],
      "far": []
     },
     {
@@ -24220,6 +24652,10 @@
      "size": 6,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263649
+     ],
      "far": []
     },
     {
@@ -24228,6 +24664,10 @@
      "size": 6,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263523
+     ],
      "far": []
     },
     {
@@ -24236,6 +24676,10 @@
      "size": 6,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263601
+     ],
      "far": []
     },
     {
@@ -24244,6 +24688,10 @@
      "size": 6,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263603
+     ],
      "far": []
     },
     {
@@ -24252,6 +24700,10 @@
      "size": 6,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263625
+     ],
      "far": []
     },
     {
@@ -24260,6 +24712,10 @@
      "size": 6,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263627
+     ],
      "far": []
     },
     {
@@ -24268,6 +24724,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263463
+     ],
      "far": []
     },
     {
@@ -24276,6 +24736,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263769
+     ],
      "far": []
     },
     {
@@ -24284,6 +24748,10 @@
      "size": 6,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263465
+     ],
      "far": []
     },
     {
@@ -24292,6 +24760,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263439
+     ],
      "far": []
     },
     {
@@ -24300,6 +24772,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263767
+     ],
      "far": []
     },
     {
@@ -24308,6 +24784,10 @@
      "size": 6,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263447
+     ],
      "far": []
     },
     {
@@ -24316,6 +24796,10 @@
      "size": 6,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263441
+     ],
      "far": []
     },
     {
@@ -24324,6 +24808,10 @@
      "size": 6,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263717
+     ],
      "far": []
     },
     {
@@ -24332,6 +24820,10 @@
      "size": 4,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263597
+     ],
      "far": []
     },
     {
@@ -24340,6 +24832,10 @@
      "size": 4,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263599
+     ],
      "far": []
     },
     {
@@ -24348,6 +24844,10 @@
      "size": 8,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263633
+     ],
      "far": []
     },
     {
@@ -24356,6 +24856,10 @@
      "size": 8,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263635
+     ],
      "far": []
     },
     {
@@ -24364,6 +24868,10 @@
      "size": 4,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263647
+     ],
      "far": []
     },
     {
@@ -24372,6 +24880,10 @@
      "size": 4,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263693
+     ],
      "far": []
     },
     {
@@ -24380,6 +24892,10 @@
      "size": 5,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263803
+     ],
      "far": []
     },
     {
@@ -24388,6 +24904,10 @@
      "size": 5,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263805
+     ],
      "far": []
     },
     {
@@ -24396,6 +24916,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263807
+     ],
      "far": []
     },
     {
@@ -24404,6 +24928,10 @@
      "size": 9,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263651
+     ],
      "far": []
     },
     {
@@ -24412,6 +24940,10 @@
      "size": 9,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263525
+     ],
      "far": []
     },
     {
@@ -24420,6 +24952,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263563
+     ],
      "far": []
     },
     {
@@ -24428,6 +24964,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263671
+     ],
      "far": []
     },
     {
@@ -24436,6 +24976,10 @@
      "size": 5,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263551
+     ],
      "far": []
     },
     {
@@ -24444,6 +24988,10 @@
      "size": 5,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263669
+     ],
      "far": []
     },
     {
@@ -24452,6 +25000,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263587
+     ],
      "far": []
     },
     {
@@ -24460,6 +25012,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263721
+     ],
      "far": []
     },
     {
@@ -24468,6 +25024,10 @@
      "size": 5,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263527
+     ],
      "far": []
     },
     {
@@ -24476,6 +25036,10 @@
      "size": 5,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263689
+     ],
      "far": []
     },
     {
@@ -24484,6 +25048,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263547
+     ],
      "far": []
     },
     {
@@ -24492,6 +25060,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263667
+     ],
      "far": []
     },
     {
@@ -24500,6 +25072,10 @@
      "size": 6,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263499
+     ],
      "far": []
     },
     {
@@ -24508,6 +25084,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263473
+     ],
      "far": []
     },
     {
@@ -24516,6 +25096,10 @@
      "size": 8,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263575
+     ],
      "far": []
     },
     {
@@ -24524,6 +25108,10 @@
      "size": 8,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263653
+     ],
      "far": []
     },
     {
@@ -24532,6 +25120,10 @@
      "size": 8,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263655
+     ],
      "far": []
     },
     {
@@ -24540,6 +25132,10 @@
      "size": 4,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263729
+     ],
      "far": []
     },
     {
@@ -24548,6 +25144,10 @@
      "size": 4,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263509
+     ],
      "far": []
     },
     {
@@ -24556,6 +25156,10 @@
      "size": 4,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263731
+     ],
      "far": []
     },
     {
@@ -24564,6 +25168,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263645
+     ],
      "far": []
     },
     {
@@ -24572,6 +25180,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263515
+     ],
      "far": []
     },
     {
@@ -24580,6 +25192,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263685
+     ],
      "far": []
     },
     {
@@ -24588,6 +25204,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263809
+     ],
      "far": []
     },
     {
@@ -24596,6 +25216,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263811
+     ],
      "far": []
     },
     {
@@ -24604,6 +25228,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263813
+     ],
      "far": []
     },
     {
@@ -24612,6 +25240,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263481
+     ],
      "far": []
     },
     {
@@ -24620,6 +25252,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263743
+     ],
      "far": []
     },
     {
@@ -24628,6 +25264,10 @@
      "size": 5,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263771
+     ],
      "far": []
     },
     {
@@ -24636,6 +25276,10 @@
      "size": 5,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263511
+     ],
      "far": []
     },
     {
@@ -24644,6 +25288,10 @@
      "size": 8,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263531
+     ],
      "far": []
     },
     {
@@ -24652,6 +25300,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263759
+     ],
      "far": []
     },
     {
@@ -24660,6 +25312,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263761
+     ],
      "far": []
     },
     {
@@ -24668,6 +25324,10 @@
      "size": 6,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263507
+     ],
      "far": []
     },
     {
@@ -24676,6 +25336,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263449
+     ],
      "far": []
     },
     {
@@ -24684,6 +25348,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263779
+     ],
      "far": []
     },
     {
@@ -24692,6 +25360,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263541
+     ],
      "far": []
     },
     {
@@ -24700,6 +25372,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263561
+     ],
      "far": []
     },
     {
@@ -24708,6 +25384,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263573
+     ],
      "far": []
     },
     {
@@ -24716,6 +25396,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263665
+     ],
      "far": []
     },
     {
@@ -24724,6 +25408,10 @@
      "size": 9,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263549
+     ],
      "far": []
     },
     {
@@ -24732,6 +25420,10 @@
      "size": 9,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263673
+     ],
      "far": []
     },
     {
@@ -24740,6 +25432,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263459
+     ],
      "far": []
     },
     {
@@ -24748,6 +25444,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263705
+     ],
      "far": []
     },
     {
@@ -24756,6 +25456,10 @@
      "size": 8,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263479
+     ],
      "far": []
     },
     {
@@ -24764,6 +25468,10 @@
      "size": 8,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263711
+     ],
      "far": []
     },
     {
@@ -24772,6 +25480,10 @@
      "size": 4,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263483
+     ],
      "far": []
     },
     {
@@ -24780,6 +25492,10 @@
      "size": 4,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263727
+     ],
      "far": []
     },
     {
@@ -24788,6 +25504,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263461
+     ],
      "far": []
     },
     {
@@ -24796,6 +25516,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263501
+     ],
      "far": []
     },
     {
@@ -24804,6 +25528,10 @@
      "size": 9,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263529
+     ],
      "far": []
     },
     {
@@ -24812,6 +25540,10 @@
      "size": 9,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263691
+     ],
      "far": []
     },
     {
@@ -24820,6 +25552,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263589
+     ],
      "far": []
     },
     {
@@ -24828,6 +25564,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263709
+     ],
      "far": []
     },
     {
@@ -24836,6 +25576,10 @@
      "size": 5,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263445
+     ],
      "far": []
     },
     {
@@ -24844,6 +25588,10 @@
      "size": 5,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263715
+     ],
      "far": []
     },
     {
@@ -24852,6 +25600,10 @@
      "size": 4,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263457
+     ],
      "far": []
     },
     {
@@ -24860,6 +25612,10 @@
      "size": 8,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263453
+     ],
      "far": []
     },
     {
@@ -24868,6 +25624,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263467
+     ],
      "far": []
     },
     {
@@ -24876,6 +25636,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263723
+     ],
      "far": []
     },
     {
@@ -24884,6 +25648,10 @@
      "size": 8,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263519
+     ],
      "far": []
     },
     {
@@ -24892,6 +25660,10 @@
      "size": 9,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263521
+     ],
      "far": []
     },
     {
@@ -24900,6 +25672,10 @@
      "size": 8,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263455
+     ],
      "far": []
     },
     {
@@ -24908,6 +25684,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263543
+     ],
      "far": []
     },
     {
@@ -24916,6 +25696,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263719
+     ],
      "far": []
     },
     {
@@ -24924,6 +25708,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263469
+     ],
      "far": []
     },
     {
@@ -24932,6 +25720,10 @@
      "size": 6,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263435
+     ],
      "far": []
     },
     {
@@ -24940,6 +25732,10 @@
      "size": 4,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263513
+     ],
      "far": []
     },
     {
@@ -24948,6 +25744,10 @@
      "size": 5,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263493
+     ],
      "far": []
     },
     {
@@ -24956,6 +25756,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263437
+     ],
      "far": []
     },
     {
@@ -24964,6 +25768,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263617
+     ],
      "far": []
     },
     {
@@ -24972,6 +25780,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263619
+     ],
      "far": []
     },
     {
@@ -24980,6 +25792,10 @@
      "size": 9,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263747
+     ],
      "far": []
     },
     {
@@ -24988,6 +25804,10 @@
      "size": 9,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263749
+     ],
      "far": []
     },
     {
@@ -24996,6 +25816,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263487
+     ],
      "far": []
     },
     {
@@ -25004,6 +25828,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263737
+     ],
      "far": []
     },
     {
@@ -25012,6 +25840,10 @@
      "size": 8,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263517
+     ],
      "far": []
     },
     {
@@ -25020,6 +25852,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263485
+     ],
      "far": []
     },
     {
@@ -25028,6 +25864,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263577
+     ],
      "far": []
     },
     {
@@ -25036,6 +25876,10 @@
      "size": 9,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263539
+     ],
      "far": []
     },
     {
@@ -25044,6 +25888,10 @@
      "size": 9,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263535
+     ],
      "far": []
     },
     {
@@ -25052,6 +25900,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263491
+     ],
      "far": []
     },
     {
@@ -25060,6 +25912,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263553
+     ],
      "far": []
     },
     {
@@ -25068,6 +25924,10 @@
      "size": 5,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263699
+     ],
      "far": []
     },
     {
@@ -25076,6 +25936,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263477
+     ],
      "far": []
     },
     {
@@ -25084,6 +25948,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263471
+     ],
      "far": []
     },
     {
@@ -25092,6 +25960,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263585
+     ],
      "far": []
     },
     {
@@ -25100,6 +25972,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263637
+     ],
      "far": []
     },
     {
@@ -25108,6 +25984,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263643
+     ],
      "far": []
     },
     {
@@ -25116,6 +25996,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263641
+     ],
      "far": []
     },
     {
@@ -25124,6 +26008,10 @@
      "size": 6,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263639
+     ],
      "far": []
     },
     {
@@ -25132,6 +26020,10 @@
      "size": 8,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263773
+     ],
      "far": []
     },
     {
@@ -25140,6 +26032,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263629
+     ],
      "far": []
     },
     {
@@ -25148,6 +26044,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263631
+     ],
      "far": []
     },
     {
@@ -25156,6 +26056,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263613
+     ],
      "far": []
     },
     {
@@ -25164,6 +26068,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263615
+     ],
      "far": []
     },
     {
@@ -25172,6 +26080,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263775
+     ],
      "far": []
     },
     {
@@ -25180,6 +26092,10 @@
      "size": 9,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263697
+     ],
      "far": []
     },
     {
@@ -25188,6 +26104,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263581
+     ],
      "far": []
     },
     {
@@ -25196,6 +26116,10 @@
      "size": 9,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263583
+     ],
      "far": []
     },
     {
@@ -25204,6 +26128,10 @@
      "size": 6,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263579
+     ],
      "far": []
     },
     {
@@ -25212,6 +26140,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263609
+     ],
      "far": []
     },
     {
@@ -25220,6 +26152,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263611
+     ],
      "far": []
     },
     {
@@ -25228,6 +26164,10 @@
      "size": 7,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263565
+     ],
      "far": []
     },
     {
@@ -25236,6 +26176,10 @@
      "size": 8,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263695
+     ],
      "far": []
     },
     {
@@ -25244,6 +26188,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263475
+     ],
      "far": []
     },
     {
@@ -25252,6 +26200,48 @@
      "size": 4,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      263495,
+      263497,
+      263533,
+      263537,
+      263545,
+      263555,
+      263557,
+      263559,
+      263567,
+      263569,
+      263571,
+      263591,
+      263593,
+      263595,
+      263605,
+      263607,
+      263621,
+      263623,
+      263663,
+      263675,
+      263677,
+      263687,
+      263701,
+      263703,
+      263707,
+      263713,
+      263725,
+      263745,
+      263751,
+      263753,
+      263755,
+      263757,
+      263777,
+      263781,
+      263783,
+      263795,
+      263797,
+      263799,
+      263801
+     ],
      "far": []
     }
    ]
@@ -33250,6 +34240,10 @@
      "size": 52,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      1005294
+     ],
      "far": []
     },
     {
@@ -33258,6 +34252,10 @@
      "size": 51,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      1005296
+     ],
      "far": []
     },
     {
@@ -33266,6 +34264,10 @@
      "size": 54,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      1005298
+     ],
      "far": []
     },
     {
@@ -34107,6 +35109,10 @@
      "size": 4,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      227495
+     ],
      "far": []
     },
     {
@@ -34115,6 +35121,10 @@
      "size": 4,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      227499
+     ],
      "far": []
     },
     {
@@ -34123,6 +35133,10 @@
      "size": 2,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      227503
+     ],
      "far": []
     },
     {
@@ -34131,6 +35145,12 @@
      "size": 3,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      227507,
+      227511,
+      227515
+     ],
      "far": []
     }
    ]
@@ -37513,6 +38533,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      332347
+     ],
      "far": []
     },
     {
@@ -37521,6 +38545,10 @@
      "size": 13,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      332345
+     ],
      "far": []
     },
     {
@@ -37529,6 +38557,10 @@
      "size": 11,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      332343
+     ],
      "far": []
     },
     {
@@ -37537,6 +38569,10 @@
      "size": 10,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      332341
+     ],
      "far": []
     },
     {
@@ -37545,6 +38581,10 @@
      "size": 13,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      332339
+     ],
      "far": []
     },
     {
@@ -37553,6 +38593,10 @@
      "size": 13,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      332337
+     ],
      "far": []
     },
     {
@@ -37561,6 +38605,10 @@
      "size": 13,
      "fixed": false,
      "end_char": true,
+     "movable": true,
+     "pointers": [
+      332335
+     ],
      "far": []
     },
     {

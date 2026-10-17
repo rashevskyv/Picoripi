@@ -378,6 +378,60 @@ def unlabelled_text_bodies(rom: bytes, out_files: list, names, charmap, build: s
     return [{"file": f"rom_text/bank_{bank:02x}.asm", "labels": entries} for bank, entries in sorted(groups.items())]
 
 
+IDENT = re.compile(r"[A-Za-z_][\w.]*")
+DW_ARGS = re.compile(r"^\s+dw\s+(.*)$")
+TABLE_HEAD = re.compile(r"^\s+(table_width|assert_table_length|list_start)\b")
+
+
+def dw_reference_counts(decomp: Path) -> Counter:
+    """How often each identifier is a ``dw`` argument (a pointer-table entry) in the decompilation."""
+    counts: Counter = Counter()
+    for path in decomp.rglob("*.asm"):
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            match = DW_ARGS.match(asm_text.split_comment(line)[0])
+            if match:
+                counts.update(arg.strip() for arg in match.group(1).split(",") if IDENT.fullmatch(arg.strip()))
+    return counts
+
+
+def table_pointer_sites(rom: bytes, decomp: Path, rom_labels: dict) -> Dict[str, List[int]]:
+    """ROM offsets of the pointer-table entries that hold a label's address, by label.
+
+    A table is a global label followed by ``dw`` lines; the argument k of the table sits at the table's offset plus
+    2k. Each site is checked against the ROM bytes (the label's CPU address, little endian), so a wrong position
+    never counts. Anything but ``dw`` lines ends the table.
+    """
+    sites: Dict[str, List[int]] = {}
+    for path in sorted(decomp.rglob("*.asm")):
+        table, index = None, 0
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            code = asm_text.split_comment(line)[0]
+            stripped = code.strip()
+            if not stripped:
+                continue
+            if not code[0].isspace() and DEFINITION.match(code):
+                name = stripped.rstrip(":")
+                table, index = (name if name in rom_labels else None), 0
+                continue
+            if TABLE_HEAD.match(code):
+                continue
+            match = DW_ARGS.match(code)
+            if not match or table is None:
+                table = None
+                continue
+            bank, cpu = rom_labels[table]
+            base = offset_of(bank, cpu)
+            for arg in match.group(1).split(","):
+                arg = arg.strip()
+                if IDENT.fullmatch(arg) and arg in rom_labels:
+                    site = base + 2 * index
+                    _lbank, lcpu = rom_labels[arg]
+                    if rom[site:site + 2] == bytes([lcpu & 0xFF, lcpu >> 8]):
+                        sites.setdefault(arg, []).append(site)
+                index += 1
+    return sites
+
+
 def main(argv: list) -> int:
     if len(argv) != 7:
         print(__doc__)
@@ -481,6 +535,8 @@ def main(argv: list) -> int:
     far_hits = far_reference_sites(rom, rom_text.GEN2_TX_FAR if gen2 else FAR_OPCODE)
     far_pret = pret_far_counts(decomp)
     other_refs = other_reference_counts(decomp)
+    dw_pret = dw_reference_counts(decomp)
+    pointer_sites = table_pointer_sites(rom, decomp, rom_labels)
     mismatch_far = []
     out_files = []
     for rel, entries, source in files:
@@ -519,16 +575,25 @@ def main(argv: list) -> int:
             bank, cpu = rom_labels[entry["label"]]
             # Only a movable body is ever relocated, so only its text_far sites matter. A body that code or a table
             # names stays where it is, and a stray 0x17 byte that happens to hold its address is not a reference.
-            entry["movable"] = other_refs[entry["label"]] == 0
+            label = entry["label"]
+            table_refs = dw_pret[label]
+            sites = pointer_sites.get(label, [])
+            # A pointer table's ``dw`` entries are references too. The body moves only when every one of them is a
+            # verified site (the entry's bytes hold the label's address), and it then stays in its own bank.
+            entry["movable"] = other_refs[label] - table_refs == 0 and len(sites) == table_refs
+            entry["pointers"] = sites if (entry["movable"] and table_refs) else []
             hits = far_hits.get((bank, cpu), []) if entry["movable"] else []
             expected = 0 if (entry["label"] in FAR_ABSENT_OK and not hits) else far_pret.get(entry["label"], 0)
+            if expected == 0 and hits:
+                hits = []     # the decompilation has no text_far to this body: these bytes only look like one
             if entry["movable"] and len(hits) != expected and entry["label"] not in FAR_COINCIDENCE_OK:
                 mismatch_far.append((entry["label"], len(hits), far_pret.get(entry["label"], 0)))
             entry["far"] = hits
         entries = [entry for entry in entries if not entry.get("drop")]
         out_files.append({"file": rel, "labels": [
             {key: value for key, value in entry.items()
-             if key not in ("lines",) and not (key in ("bcd_hex", "ram_args", "end_char", "movable") and not value)}
+             if key not in ("lines",) and not (key in ("bcd_hex", "ram_args", "end_char", "movable", "pointers")
+                                               and not value)}
             for entry in entries]})
 
     if mismatch_far:

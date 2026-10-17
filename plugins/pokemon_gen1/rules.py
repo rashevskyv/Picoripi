@@ -20,8 +20,9 @@ from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_debug, log_warning
 from utils.utils import clean_spaces
 
-from . import asm_text, rom_project
+from . import asm_text, rom_project, rom_text
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
+from .problem_analyzer import ProblemAnalyzer
 from .tag_manager import TagManager
 
 CHAR_WIDTH = 8
@@ -33,6 +34,12 @@ _CODE = re.compile(r"<[^<>]+>|\{[^{}]*\}|#|@")
 NAME_FILES = {"data/pokemon/names.asm": "Pokémon", "data/moves/names.asm": "Moves",
               "data/items/names.asm": "Items", "data/trainers/names.asm": "Trainer classes",
               "data/types/names.asm": "Types"}
+
+
+def _macro_line(raw: str) -> Tuple[str, str]:
+    """A rendered asm line as the codec reads it: its macro word and its arguments."""
+    word, _, args = raw.strip().partition(" ")
+    return word, args.strip()
 
 
 def text_width(text: str) -> int:
@@ -56,6 +63,7 @@ class GameRules(BaseGameRules):
     tag_style = "curly"
     analyze_whole_string_first = True
     show_spaces_as_dots_default = True
+    problem_analyzer_class = ProblemAnalyzer
     game_name = "Pokémon Red / Blue / Yellow (Game Boy)"
 
     def __init__(self, main_window_ref=None):
@@ -63,6 +71,7 @@ class GameRules(BaseGameRules):
         self._template: Optional[str] = None
         self._files: Dict[int, Tuple[str, List[asm_text.Unit]]] = {}
         self._context_cache: Optional[Tuple[str, Dict[str, Any]]] = None
+        self._budget_cache: Dict[str, Optional[Tuple[Dict[str, int], rom_text.Names]]] = {}
 
     def get_display_name(self) -> str:
         return self.game_name
@@ -156,6 +165,63 @@ class GameRules(BaseGameRules):
         rel, unit = self._unit(block_idx, string_idx)
         entry = self._context().get("labels", {}).get(unit.label, {}) if unit is not None and unit.label else {}
         return rel, unit, entry
+
+    # -- byte budgets ----------------------------------------------------------------------------
+
+    def _meta_path(self, block_idx: int) -> str:
+        """The rom/meta.json of the unpacked tree the block's text file belongs to (searched a few folders up)."""
+        try:
+            pm = self._project()
+            project_idx = (getattr(self.mw, "block_to_project_file_map", None) or {}).get(block_idx, block_idx)
+            source = Path(pm.get_absolute_path(pm.project.blocks[project_idx].source_file))
+        except (AttributeError, IndexError, KeyError, OSError, TypeError, ValueError):
+            return ""
+        for folder in list(source.parents)[:4]:
+            candidate = folder / rom_project.ROM_DIR / "meta.json"
+            if candidate.is_file():
+                return str(candidate)
+        return ""
+
+    def _budget_data(self, block_idx: int) -> Optional[Tuple[Dict[str, int], rom_text.Names]]:
+        """The budgets and names of the block's ROM project. Read once per meta.json (a small file)."""
+        path = self._meta_path(block_idx)
+        if not path:
+            return None
+        if path not in self._budget_cache:
+            self._budget_cache[path] = rom_project.read_budgets(path)
+        return self._budget_cache[path]
+
+    def exceeds_byte_budget(self, block_idx: int, string_idx: int, text: str) -> bool:
+        """True when a field the ROM keeps in place cannot hold this text.
+
+        The budget key is the unit's label and its index among the units of that label (``label#k``). A movable
+        body has no budget: it moves to free space when it grows.
+        """
+        _rel, units = self._file(block_idx)
+        try:
+            index = int(string_idx)
+        except (TypeError, ValueError):
+            return False
+        if not 0 <= index < len(units) or not units[index].label:
+            return False
+        unit = units[index]
+        data = self._budget_data(block_idx)
+        if data is None:
+            return False
+        budgets, names = data
+        ordinal = sum(1 for earlier in units[:index] if earlier.label == unit.label)
+        size = budgets.get(f"{unit.label}#{ordinal}")
+        if size is None:
+            return False
+        try:
+            if unit.single:      # a name field or a list entry: its own keyword and the text as one literal
+                lines = [(unit.lines[0].keyword, '"' + asm_text.escape(text) + '"')]
+            else:
+                lines = [_macro_line(raw) for raw in asm_text.render(asm_text.from_editor(text, unit), unit)
+                         if raw.strip()]
+            return rom_text.encoded_length(lines, names) > size
+        except (rom_text.CodecError, ValueError, IndexError):
+            return False
 
     # -- context hooks -----------------------------------------------------------------------------
 

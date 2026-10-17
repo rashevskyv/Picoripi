@@ -1,4 +1,6 @@
 """Problem definitions and defaults of the Pokémon Red / Blue / Yellow (pret decomps) plugin."""
+from PyQt6.QtGui import QColor
+
 from plugins.common.config_factory import generate_base_config
 
 PLUGIN_PREFIX = "PG1"
@@ -13,6 +15,9 @@ PROBLEM_EMPTY_FIRST_LINE_OF_PAGE = f"{PLUGIN_PREFIX}_EMPTY_FIRST_LINE_OF_PAGE"
 PROBLEM_BAD_SPACING = f"{PLUGIN_PREFIX}_BAD_SPACING"
 PROBLEM_MISSING_ICON_SPACING = f"{PLUGIN_PREFIX}_MISSING_ICON_SPACING"
 PROBLEM_BROKEN_ICON_HYPHEN = f"{PLUGIN_PREFIX}_BROKEN_ICON_HYPHEN"
+# A fixed field of the ROM (a name, a list entry, a single text unit that stays in place) longer than its budget.
+PROBLEM_BYTE_BUDGET = f"{PLUGIN_PREFIX}_BYTE_BUDGET"
+PRIORITY_BYTE_BUDGET = 1
 
 CONTROL_CODES = []
 DEFAULT_LINES_PER_PAGE = 4
@@ -24,6 +29,16 @@ PROBLEM_DEFINITIONS, DEFAULT_DETECTION_SETTINGS, DEFAULT_AUTOFIX_SETTINGS = gene
             "TAG_WARNING": False,
             "SINGLE_WORD_SUBLINE": False,
             "SINGLE_WORD_SUBLINE_NON_START": False,
+        },
+        "priorities": {"BYTE_BUDGET": PRIORITY_BYTE_BUDGET},
+    },
+    custom_problems={
+        "BYTE_BUDGET": {
+            "name": "Byte budget exceeded",
+            "color": QColor(220, 0, 80, 120),
+            "priority": PRIORITY_BYTE_BUDGET,
+            "description": "The text is longer than the field the ROM keeps in place (a name, a list entry, a "
+                           "menu string with no pointer). The build refuses it; shorten the text.",
         }
     },
 )
