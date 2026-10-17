@@ -105,5 +105,8 @@ def write(data: bytes, replacements: Mapping[int, bytes]) -> bytes:
     out.extend(b"\x00" * (_align(len(out)) - len(out)))
     for index, (offset, size) in table.items():
         PAIR.pack_into(out, HEADER + PAIR.size * index, offset, size)
+    for entry in entries:   # an empty entry keeps its offset unless the file got shorter than that offset
+        if entry.size == 0 and entry.offset > len(out):
+            PAIR.pack_into(out, HEADER + PAIR.size * entry.index, len(out), 0)
     PAIR.pack_into(out, HEADER + PAIR.size * count, trailer_offset, trailer_size)
     return bytes(out)

@@ -71,6 +71,15 @@ def test_a_shrunk_entry_keeps_the_archive_on_its_boundaries():
     assert len(out) % 0x800 == 0
 
 
+def test_an_empty_entry_past_the_new_end_is_moved_to_the_end():
+    data = bytearray(make_afs([b"a" * 5000, b""]))
+    struct.pack_into("<II", data, 8 + 8, 0x2000, 0)   # the empty entry points at the old end of the first
+    out = afs.write(bytes(data), {0: b"x"})
+    entries = afs.parse(out)
+    assert entries[0].size == 1
+    assert entries[1].size == 0 and entries[1].offset <= len(out)
+
+
 def test_the_trailer_block_follows_the_last_entry_when_that_entry_grows():
     trailer = bytes(range(64))
     data = make_afs([b"a" * 100, b"b" * 100], trailer=trailer)

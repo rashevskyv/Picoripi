@@ -21,7 +21,7 @@ from typing import Any, Callable, Container, Dict, Iterator, Optional, Sequence
 from core.containers import n3ds, switch_crypto, switch_images, wii_disc
 from core.containers.console_crypto import encrypted_error, key_path
 from core.containers.gcm import GameCubeImage, HEADER_SIZE, is_gamecube_header
-from core.containers.gdrom import GdRomImage, GdRomStream
+from core.containers.gdrom import GdRomImage, GdRomStream, parse_layout
 from core.containers.image_files import ImageError, ImageFile, ImageReader, copy_range
 from core.containers.nds import NdsImage, is_nds_header
 from core.containers.wia import WiaStream, is_wia_or_rvz
@@ -105,6 +105,11 @@ def unpack_room(path: str | Path) -> int:
     (the cache copy, then the extracted files). ponytail: estimated from the NCZ tables, not measured; the real use can
     differ by the size of the ExeFS and the table overhead."""
     size = os.path.getsize(path)
+    if (identify(path) or {}).get("kind") == KIND_GDROM:   # a cue sheet is small: its track files are the image
+        try:
+            return sum(os.path.getsize(path_) for path_ in {seg.path for seg in parse_layout(str(path))})
+        except (OSError, ValueError):
+            return size
     if (identify(path) or {}).get("kind") != KIND_SWITCH:
         return size
     try:

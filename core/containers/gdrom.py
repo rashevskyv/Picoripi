@@ -181,17 +181,18 @@ class GdRomImage(ImageReader):
         if not self._volumes:
             raise ImageError(tr("no ISO 9660 volume on the GD-ROM disc"))
 
-    def entries(self) -> List[ImageFile]:
+    def entries(self, where: Optional[Dict[str, int]] = None) -> List[ImageFile]:
+        """The files of both volumes. ``where``, when given, receives the stream offset of each file's directory record."""
         out: List[ImageFile] = []
         for prefix, base in self._volumes:
             pvd = self.read_at((base + PVD_SECTOR) * SECTOR, SECTOR)
             root = pvd[156:190]
             self._walk(prefix, struct.unpack_from("<I", root, 2)[0], struct.unpack_from("<I", root, 10)[0],
-                       0, set(), out)
+                       0, set(), out, where)
         return out
 
     def _walk(self, folder: str, extent: int, size: int, depth: int, ancestors: set,
-              out: List[ImageFile]) -> None:
+              out: List[ImageFile], where: Optional[Dict[str, int]] = None) -> None:
         """Append the files of the directory at ``extent`` under ``folder``, then recurse into its directories."""
         if depth > MAX_DEPTH:
             raise ImageError(tr("a directory is nested too deep"))
@@ -213,6 +214,7 @@ class GdRomImage(ImageReader):
             flags = data[at + 25]
             name_len = data[at + 32]
             raw_name = data[at + 33:at + 33 + name_len].decode("latin-1")
+            rec_offset = extent * SECTOR + at
             at += length
             if raw_name in ("\x00", "\x01"):
                 continue
@@ -223,6 +225,8 @@ class GdRomImage(ImageReader):
                 subdirs.append((f"{folder}/{name}", rec_extent, rec_size))
             else:
                 out.append(ImageFile(f"{folder}/{name}", rec_extent * SECTOR, rec_size))
+                if where is not None:
+                    where[f"{folder}/{name}"] = rec_offset
         for sub_folder, sub_extent, sub_size in subdirs:
-            self._walk(sub_folder, sub_extent, sub_size, depth + 1, ancestors, out)
+            self._walk(sub_folder, sub_extent, sub_size, depth + 1, ancestors, out, where)
         ancestors.discard(extent)

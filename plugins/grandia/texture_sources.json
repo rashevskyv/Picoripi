@@ -1,0 +1,15 @@
+[
+ {
+  "label": "Title screen menu and PRESS START BUTTON (two copies of the menu in one texture)",
+  "kind": "title_screen",
+  "format": "pvr",
+  "path": "files/WINDOW/TITLE_DATA.AFS",
+  "params": {"file_offset": 612352, "file_size": 524320}
+ },
+ {
+  "label": "Shared UI textures (0GDTEX.PVR)",
+  "kind": "menu_label",
+  "format": "pvr",
+  "path": "files/0GDTEX.PVR"
+ }
+]
