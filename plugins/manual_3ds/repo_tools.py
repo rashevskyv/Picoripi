@@ -48,6 +48,7 @@ class Tools:
     bcfnt: ModuleType
     lz10: ModuleType
     lz11: ModuleType
+    darc: Optional[ModuleType] = None  # the DARC archive reader; None when a test builds Tools without it
 
 
 def missing_part(root: str) -> Optional[str]:
@@ -84,7 +85,7 @@ def load_tools(root: str) -> Tools:
                 for name in _TOOL_MODULES:
                     sys.modules.pop(name, None)
                 # The folder's own modules, found through tools_dir; a broken or older folder is reported, not raised.
-                loaded = {name: importlib.import_module(name) for name in ("manual", "bcma", "bclyt", "bcfnt", "lz10", "lz11")}
+                loaded = {name: importlib.import_module(name) for name in ("manual", "bcma", "bclyt", "bcfnt", "lz10", "lz11", "darc")}
         except Exception as exc:
             raise ToolsError(f"the tools in {tools_dir} do not import: {exc!r}") from exc
         finally:
@@ -92,7 +93,7 @@ def load_tools(root: str) -> Tools:
             if sys.path and sys.path[0] == tools_dir:
                 sys.path.pop(0)
         tools = Tools(root=base, manual=loaded["manual"], bcma=loaded["bcma"], bclyt=loaded["bclyt"],
-                      bcfnt=loaded["bcfnt"], lz10=loaded["lz10"], lz11=loaded["lz11"])
+                      bcfnt=loaded["bcfnt"], lz10=loaded["lz10"], lz11=loaded["lz11"], darc=loaded["darc"])
         _LOADED[key] = tools
         return tools
 
