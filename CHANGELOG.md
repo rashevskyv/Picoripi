@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Skies of Arcadia writer (experimental): `core/containers/skies_script.py` re-assembles a script's text pages byte-exact and grows one page by N bytes, moving the label table and every aligned absolute word at or after the old page end (the emulator proof is still missing); tests in `tests/test_core/test_skies_script.py`.
 - Skies of Arcadia Legends (GameCube): `core/containers/aklz.py` decodes and encodes the `AKLZ` LZSS files (ring buffer 4096, flags LSB first) and `core/containers/skies_sct.py` reads the text pages of the `*.sct` scripts (`\h(` speaker `s`..`t`, `\c` next page, `\e` end); tests in `tests/test_core/test_aklz.py` and `tests/test_core/test_skies_sct.py`, real GameCube script when `PICORIPI_SKIES_LEGENDS_ME002A` is set.
 - Unpack: a Dreamcast GD-ROM cue sheet (`.cue` with its track files) is recognised as kind `gdrom` (product number from the SEGA IP.BIN as `game_id`) and read in place by the unpack step (`core/project_library/images.py`); the real Grandia II disc test covers it.
 - Archives: `core/containers/afs.py` reads CRI AFS archives (entry table, 0x800 alignment, trailer block) and rewrites them with replaced entries, longer ones included; an unchanged archive comes back byte for byte (all 281 AFS of the Grandia II Dreamcast disc checked); tests in `tests/test_core/test_afs_container.py`.
