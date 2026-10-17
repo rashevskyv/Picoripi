@@ -103,6 +103,10 @@ class GameRules(TwilightPrincessRules):
         """The whole disc is the source (the Twilight Princess base class names a subfolder)."""
         return None
 
+    def get_build_targets(self) -> list:
+        """No build yet. The Twilight Princess targets (disc, Dusklight mod, Wii U pack) are inherited, not Wind Waker's."""
+        return []
+
     def get_display_name(self) -> str:
         """Get the display name."""
         return "Zelda: The Wind Waker (GameCube BMG)"

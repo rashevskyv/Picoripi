@@ -9,6 +9,7 @@ from core.containers import yaz0
 from core.containers.gcm import GameCubeImage
 from core.containers.rarc_container import RarcContainer
 from gc_disc import build_disc
+from plugins.common.disc_source import disc_of_source, write_source_mark
 from plugins.super_mario_sunshine import build
 from plugins.super_mario_sunshine.rules import GameRules
 from rarc_fixture import build_rarc
@@ -124,7 +125,7 @@ def test_gc_iso_build_refuses_a_main_dol_that_is_not_the_retail_one(tmp_path):
     _write(src / "files/data/a.szs/m.bmg", bmg())
     _write(src / "files/data/b.bin", other)
     _write(src / "sys/main.dol", b"\x00" * 0x20)   # the synthetic executable is too short for the speech fix
-    build.write_source_mark(src, image)
+    write_source_mark(src, image)
     _write(trn / "files/data/a.szs/m.bmg", bmg(dat=b"EDIT"))
     with pytest.raises(ValueError, match="too short"):
         build.build_gc_iso(str(src), str(trn), str(out), _noop, _never)
@@ -165,4 +166,4 @@ def test_build_targets_and_an_unknown_target(tmp_path):
 
 def test_source_without_a_mark_cannot_build_the_disc(tmp_path):
     with pytest.raises(ValueError, match="no disc record"):
-        build.disc_of_source(tmp_path)
+        disc_of_source(tmp_path)

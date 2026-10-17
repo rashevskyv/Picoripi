@@ -2776,5 +2776,19 @@
   "Data too short to be Yaz0": "Дані занадто короткі для Yaz0",
   "Invalid Yaz0 magic: {0!r}": "Неправильна магія Yaz0: {0!r}",
   "The folder is not empty: {0}": "Тека не порожня: {0}",
-  "the Oodle library cannot be used: {0}": "бібліотеку Oodle не вдалося використати: {0}"
+  "the Oodle library cannot be used: {0}": "бібліотеку Oodle не вдалося використати: {0}",
+  "No translated file differs from the game: nothing to build.": "Жоден перекладений файл не відрізняється від гри: нічого збирати.",
+  "Dusklight mod (.dusk, needs the original disc)": "Мод для Dusklight (.dusk, потрібен оригінальний диск)",
+  "Wii U graphic pack and SDCafiine folder (HD)": "Графічний пакет Wii U і тека SDCafiine (HD)",
+  "Wii U": "Wii U",
+  "{0}: the project folder must be the res/Msguk or res/Msgus folder of the game.": "{0}: тека проєкту має бути теку res/Msguk або res/Msgus гри.",
+  "The size tables FileSizeList.txt and DecompressedSizeList.txt are missing in {0}.": "У {0} немає таблиць розмірів FileSizeList.txt і DecompressedSizeList.txt.",
+  "The font texture file is not a TMPK pack.": "Файл текстур шрифту не є пакетом TMPK.",
+  "The font texture format is {0}, not I8.": "Формат текстур шрифту {0}, а не I8.",
+  "The font file has no GLY1 section.": "У файлі шрифту немає секції GLY1.",
+  "The font archive holds no file.": "Архів шрифту не містить жодного файлу.",
+  "The font texture pack does not match the font's glyph sheets.": "Пакет текстур шрифту не збігається з аркушами гліфів.",
+  "The font sheet is {0} pixels wide; its texture layout is not checked.": "Аркуш шрифту завширшки {0} пікселів: його розкладку текстур не перевірено.",
+  "The font texture pack holds {0} textures, the font {1} sheets.": "Пакет текстур шрифту має {0} текстур, а шрифт {1} аркушів.",
+  "The font texture pack holds more than one file: a texture cannot be added.": "Пакет текстур шрифту має більше одного файлу: текстуру додати не можна."
 }

@@ -10,7 +10,6 @@ A changed archive member is written into a copy of its archive (read from the di
 disc's file. The port pack writes the changed members as they are, under ``files/<archive>/<member>``: the port's
 overlay rule. No container is registered with ``ContainerManager``: the scan and the other games are not changed.
 """
-import json
 import os
 import struct
 from pathlib import Path
@@ -22,10 +21,10 @@ from core.containers.gcm_writer import write_disc
 from core.containers.rarc_container import RarcContainer
 from core.containers.wia import open_disc
 from core.i18n import tr
+from plugins.common.disc_source import SOURCE_MARK, disc_of_source
 
 from . import dol_patch, dol_text
 
-SOURCE_MARK = ".picoripi_disc.json"
 TEXT_MEMBER = "sys/main_strings.dolstr"
 ISO_NAME = "Super Mario Sunshine (UA).iso"
 PACK_README = """Super Mario Sunshine: Ukrainian text (uk), an overlay for the PC and Switch ports.
@@ -47,27 +46,6 @@ The main.dol (game code) is not part of this pack: the ports do not read it from
 
 Progress = Callable[[int, str], None]
 Cancelled = Callable[[], bool]
-
-
-def write_source_mark(source_dir: str | os.PathLike, image: str | os.PathLike) -> None:
-    """Record the disc the source was unpacked from, so the build can copy it. Written atomically."""
-    path = Path(source_dir) / SOURCE_MARK
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(json.dumps({"image": os.path.abspath(str(image)), "size": os.path.getsize(image)}, indent=1),
-                   encoding="utf-8")
-    os.replace(tmp, path)
-
-
-def disc_of_source(source_dir: str | os.PathLike) -> Path:
-    """The disc the source was unpacked from. Raises ValueError when the mark is missing or the disc changed size."""
-    mark = Path(source_dir) / SOURCE_MARK
-    if not mark.is_file():
-        raise ValueError(tr("The source folder has no disc record: unpack the disc again."))
-    record = json.loads(mark.read_text(encoding="utf-8"))
-    image = Path(record["image"])
-    if not image.is_file() or image.stat().st_size != record["size"]:
-        raise ValueError(tr("The disc image is missing or changed: {0}", str(image)))
-    return image
 
 
 def fold_archives(target_dir: str | os.PathLike, is_cancelled: Cancelled = lambda: False) -> bool:

@@ -10,6 +10,7 @@ from typing import Any, Tuple, Dict, List, Set, Optional
 from core.i18n import tr
 from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
+from plugins.common.disc_source import write_source_mark
 from utils.logging_utils import log_info, log_warning, log_debug, log_error
 from utils.utils import convert_spaces_to_dots_for_display
 
@@ -211,17 +212,39 @@ class GameRules(BaseGameRules):
 
     # Project Manager: the GameCube disc (USA) is unpacked whole; the project's source is its res/Msgus folder.
     def get_platforms(self) -> list:
-        return [{"id": "gc", "label": tr("GameCube")}]
+        return [{"id": "gc", "label": tr("GameCube")}, {"id": "wiiu", "label": tr("Wii U")}]
 
     def identify_source(self, path: str) -> Optional[Dict[str, str]]:
         return images.base_identity(path, ("GZ2E01",))
 
     def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
         base = sources.get("base")
-        return images.extract(base, target_dir, progress, is_cancelled) if base else None
+        if not base:
+            return None
+        done = images.extract(base, target_dir, progress, is_cancelled)
+        if done is not None:
+            write_source_mark(target_dir, base)   # the build copies this disc (plugins/common/disc_source.py)
+        return done
 
     def get_source_subfolder(self) -> Optional[str]:
         return "files/res/Msgus"
+
+    def get_build_targets(self) -> List[Dict[str, Any]]:
+        return [
+            {"id": "gc_iso", "label": tr("GameCube disc image (ISO)"), "platforms": ["gc"], "kind": "patch"},
+            {"id": "dusk_mod", "label": tr("Dusklight mod (.dusk, needs the original disc)"), "platforms": ["gc"],
+             "kind": "patch"},
+            {"id": "wiiu_mod", "label": tr("Wii U graphic pack and SDCafiine folder (HD)"), "platforms": ["wiiu"],
+             "kind": "layeredfs"},
+        ]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress, is_cancelled) -> str:
+        from . import build, hd_pack
+        builders = {"gc_iso": build.build_gc_iso, "dusk_mod": build.build_dusk_mod, "wiiu_mod": hd_pack.build_wiiu_mod}
+        if target_id not in builders:
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        return builders[target_id](source_dir, translation_dir, output_dir, progress, is_cancelled)
 
     def get_file_formats(self) -> list:
         """Message files (.bmg) and bitmap fonts (.bfn) are binary."""
