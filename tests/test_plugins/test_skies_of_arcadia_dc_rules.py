@@ -158,6 +158,6 @@ def test_me201a_keeps_its_segment_lengths_and_other_scripts_may_grow():
     fixed = GameRules.fixed_scripts
     assert scripts.is_fixed("FIELD/ME201A.SCT", fixed)
     assert not scripts.is_fixed("FIELD/ME002A.SCT", fixed)
-    body = _script_le(b"\h(Hi\c\h(Bye\e")
+    body = _script_le(b"\\h(Hi\\c\\h(Bye\\e")
     _out, refused, _missing = scripts.write_strings(body, ["Hello there", "Bye"], fixed=True, big=False)
     assert refused == [0]
