@@ -64,7 +64,7 @@ def _dump():
                                    lua_text.Const(0, None)])
     main = lua_text.Proto(source=b"@x.lua", lines=bytes(8), counts=bytes([0, 0, 1, 2]), code=bytes(4),
                           consts=[lua_text.Const(4, b"name"),
-                                  lua_text.Const(4, b"Copyright 2013. All rights reserved."),
+                                  lua_text.Const(4, b"Test constant text."),
                                   lua_text.Const(1, b"\x01")],
                           protos=[inner], lineinfo=[1], locvars=[(b"self", 0, 3)], upvalues=[None])
     return lua_text.dump(main)
@@ -73,14 +73,14 @@ def _dump():
 def test_a_lua_dump_round_trips_and_its_text_constants_are_the_prose_ones():
     raw = _dump()
     assert lua_text.dump(lua_text.parse(raw)) == raw
-    assert lua_text.texts(raw) == ["Copyright 2013. All rights reserved."]
+    assert lua_text.texts(raw) == ["Test constant text."]
 
 
 def test_a_longer_text_constant_is_written_back_and_the_dump_still_reads():
     raw = _dump()
-    longer = lua_text.rebuild(raw, ["©2013 Pokémon. All rights reserved, please see below for more."])
+    longer = lua_text.rebuild(raw, ["Test constant text, changed for the rebuild."])
     assert len(longer) > len(raw)
-    assert lua_text.texts(longer) == ["©2013 Pokémon. All rights reserved, please see below for more."]
+    assert lua_text.texts(longer) == ["Test constant text, changed for the rebuild."]
     assert lua_text.rebuild(raw, lua_text.texts(raw)) == raw
 
 

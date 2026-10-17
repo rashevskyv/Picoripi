@@ -33,9 +33,9 @@ def test_aliases_are_unique_and_name_real_tags():
 
 def test_alias_and_tag_round_trip_on_a_sample():
     rules = load_rules("pokemon_bdsp", FakeMainWindow(_table()))
-    text = "{tag:10:1:0}’s {tag:0:1:1} used Pound!{scroll}\n<color=#F01E1EFF>A critical hit</color>{clear}"
+    text = "{tag:10:1:0}’s {tag:0:1:1} sample line!{scroll}\n<color=#F01E1EFF>Second line</color>{clear}"
     aliased = rules.replace_tags_with_aliases(text)
-    assert aliased == "[TRAINER]’s [POKEMON2] used Pound![SCROLL]\n[COLOR1]A critical hit[/COLOR][PAGE]"
+    assert aliased == "[TRAINER]’s [POKEMON2] sample line![SCROLL]\n[COLOR1]Second line[/COLOR][PAGE]"
     assert rules.replace_aliases_with_tags(aliased) == text
 
 

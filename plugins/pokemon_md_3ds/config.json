@@ -105,6 +105,6 @@
             245,
             245
         ],
-        "measured_on": "Super Mystery Dungeon boxed story text (no drawn panel), top screen. Azahar frame smd_mouse1/w076_t160.png (top screen at frame x 446, y 57). Line 1 ink x 82..307 rows 185..194 (text A new student transfers into your class.), line 2 ink x 148..252 rows 209..218 (What do you do?). Line pitch 24. Font Fot-TskuARdGothic_Std_B_14 at scale 1.0: advance 244 and 107 px per line, matching the ink (line 2 107 vs ink 105). Text origin x 78. Line-wrap width and the right limit are not measured."
+        "measured_on": "Super Mystery Dungeon boxed story text (no drawn panel), top screen. Azahar frame smd_mouse1/w076_t160.png (top screen at frame x 446, y 57). Line 1 ink x 82..307 rows 185..194 (first sample line), line 2 ink x 148..252 rows 209..218 (second sample line). Line pitch 24. Font Fot-TskuARdGothic_Std_B_14 at scale 1.0: advance 244 and 107 px per line, matching the ink (line 2 107 vs ink 105). Text origin x 78. Line-wrap width and the right limit are not measured."
     }
 }

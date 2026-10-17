@@ -102,7 +102,7 @@ def test_an_edited_label_is_written_back_and_nothing_else_changes(tmp_path):
     name = "english_dlp_adventure_note"
     table = json.loads((folder / "message" / f"{name}.bdmsg").read_text(encoding="utf-8"))
     word = table["labelDataArray"][0]["wordDataArray"][0]
-    word["str"] = "Your Adventure Begins Here"
+    word["str"] = "Test label value"
     (translation / "message" / f"{name}.bdmsg").write_text(
         json.dumps(table, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     out = tmp_path / "out"
@@ -114,7 +114,7 @@ def test_an_edited_label_is_written_back_and_nothing_else_changes(tmp_path):
     serialized = _serialized(written)
     names = bundles.tables(serialized)
     edited = serialized.read(names[name])
-    assert edited["labelDataArray"][0]["wordDataArray"][0]["str"] == "Your Adventure Begins Here"
+    assert edited["labelDataArray"][0]["wordDataArray"][0]["str"] == "Test label value"
     original = _serialized(BDSP / "romfs" / rel)
     original_names = bundles.tables(original)
     for other, path_id in names.items():

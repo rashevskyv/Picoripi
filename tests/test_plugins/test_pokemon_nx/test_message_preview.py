@@ -18,6 +18,9 @@ from plugins.common import switch_message_preview as mp
 ROOT = romhacking_root.under("Pokemon")
 SOURCE = ROOT / "Sword and Shield" / "source" if ROOT else None
 HAS_SOURCE = SOURCE is not None and (SOURCE / "bin/appli/msg/bin/msg_00.arc").is_file()
+# The field line is kept in the owner workspace (frame-side facts), not in the repository.
+FIELD_TEXT = ROOT / "Sword and Shield" / "reports" / "proof" / "field_line_text.json" if ROOT else None
+HAS_FIELD_TEXT = FIELD_TEXT is not None and FIELD_TEXT.is_file()
 
 
 def test_font_names_keep_otf_names_in_order():
@@ -112,7 +115,8 @@ def test_the_game_lines_pile_up_at_the_pane_edge_at_the_layout_size():
     assert sum(1 for r in ratios if r > 1.0) < 0.05 * len(ratios)
 
 
-@pytest.mark.skipif(not HAS_SOURCE, reason="needs the owner's Sword and Shield unpack with msg_00.arc")
+@pytest.mark.skipif(not (HAS_SOURCE and HAS_FIELD_TEXT),
+                    reason="needs the owner's Sword and Shield unpack with msg_00.arc and the field line facts file")
 def test_the_field_line_matches_the_measured_eden_frame():
     """Measured on the Eden frame (field bubble, 2026-10-17): ink box (414, 898)-(1334, 947) in canvas pixels.
 
@@ -123,8 +127,9 @@ def test_the_field_line_matches_the_measured_eden_frame():
     spec = mp.SWORD_SHIELD_BOX
     chain = fm.FontChain([fm.Face.from_bfotf(path.read_bytes())
                           for path in mp.font_files(SOURCE / "bin/font", mp.MESSAGE_FONTS)])
+    text = json.loads(FIELD_TEXT.read_text(encoding="utf-8"))["text"]
     canvas = Image.new("RGBA", (1920, 1080), spec.background)
-    fm.draw_pane_x_stretched(canvas, layout.panes[0], chain, ["Now I’ve got to run! See you at mine later!"],
+    fm.draw_pane_x_stretched(canvas, layout.panes[0], chain, [text],
                              spec.em_y)
     band = canvas.convert("L").crop((400, 885, 1350, 948))
     dark = [(x, y) for y in range(band.height) for x in range(band.width) if band.getpixel((x, y)) < 100]

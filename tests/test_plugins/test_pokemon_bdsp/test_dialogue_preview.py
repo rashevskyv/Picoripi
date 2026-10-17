@@ -9,6 +9,8 @@ from plugins.common import flyt_message as fm
 from plugins.pokemon_bdsp import dialogue_preview as dp
 
 FONT = romhacking_root.under("Pokemon") / "Brilliant Diamond and Shining Pearl" / "source" / "font" / "efigs_font"
+# A line of the game and its measured wrap are kept in the owner workspace, not in the repository.
+WRAP_FACTS = romhacking_root.under("Pokemon") / "Brilliant Diamond and Shining Pearl" / "reports" / "proof" / "dialogue_wrap_lines.json"
 
 
 def _tiny_face():
@@ -60,10 +62,10 @@ def test_the_measured_pitch_and_wrap_width_are_stored():
     assert facts["wrap_width"] < facts["wrap_width_max_exclusive"]
 
 
-@pytest.mark.skipif(not (FONT / "efigs_font.json").exists(), reason="the BDSP workspace is not on disk")
+@pytest.mark.skipif(not ((FONT / "efigs_font.json").exists() and WRAP_FACTS.is_file()),
+                    reason="needs the BDSP workspace and the wrap facts file under PICORIPI_ROMHACKING")
 def test_the_real_page_wraps_as_the_game_wraps_it():
     asset = json.loads((FONT / "efigs_font.json").read_text(encoding="utf-8"))
     face = fm.TmpFace(asset, Image.open(FONT / "efigs_font.png"))
-    text = "Some people use their Pok\u00e9mon to battle and develop closer bonds with them."
-    assert dp.wrap_lines(face, text, dp.load_facts()) == [
-        "Some people use their Pok\u00e9mon to battle and", "develop closer bonds with them."]
+    facts = json.loads(WRAP_FACTS.read_text(encoding="utf-8"))
+    assert dp.wrap_lines(face, facts["text"], dp.load_facts()) == facts["lines"]

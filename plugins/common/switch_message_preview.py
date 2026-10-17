@@ -60,7 +60,7 @@ class BoxSpec:
 # The text is drawn at each pane's own fontSize (the layout's value), unless the spec sets em_y. The font is UDKakugo;
 # that is an override, see MESSAGE_FONTS.
 # Sword / Shield: msg_00.bflyt, one frame with two text panes (1080 px). MEASURED on the Eden frame (2026-10-17,
-# field speech bubble, line "Now I've got to run! See you at mine later!"): the glyph height is 42 px and the X size
+# field speech bubble, its sample line kept in the owner workspace): the glyph height is 42 px and the X size
 # is the layout's 54 (UDKakugo bold). Frame ink box (414, 898)-(1334, 947); render (414, 899)-(1336, 947); centroid
 # within 1.2 px. The baseline follows UDKakugo's ascender at 42 px. The bubble picture is not drawn (flat box).
 SWORD_SHIELD_BOX = BoxSpec("bin/appli/msg/bin/msg_00.arc", "blyt/msg_00.bflyt", "fcpx/system54_jpn.bfcpx", "bin/font",

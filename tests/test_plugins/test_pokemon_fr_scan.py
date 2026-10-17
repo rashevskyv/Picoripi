@@ -54,13 +54,13 @@ def test_defined_selects_the_version_branch():
 
 def test_missing_literals_are_classed_by_their_cause():
     assert scan.missing_class("debug", "POS:") == "debug_build"
-    assert scan.missing_class("revision", "This can't be used") == "other_revision"
+    assert scan.missing_class("revision", "A test line") == "other_revision"
     assert scan.missing_class("", "{COLOR WHITE}{HIGHLIGHT TRANSPARENT}      ") == "fill"
     assert scan.missing_class("", "CHERRY") == "missing"
 
 
 def test_english_messages_are_text_and_graphics_bytes_are_not():
-    assert scan.english_message("Hits the foe hard.\\nThe user is safe.")
+    assert scan.english_message("A test line.\\nAnother test line.")
     assert scan.english_message("SEND OUT")
     assert not scan.english_message("iAA:igA:YiC ")
     assert not scan.english_message("zjAURh\u00e9")
@@ -76,7 +76,7 @@ def test_item_descriptions_are_c_strings_named_by_their_item(tmp_path):
 
 def test_a_message_in_code_data_is_a_unit_and_graphics_data_is_not():
     charmap = rom_text.Charmap.load(rom_text.FACTS_DIR / "charmap_gen3.json")
-    text = charmap.encode("Hits the foe hard.")
+    text = charmap.encode("A test line.")
     rom = bytearray(b"\xff" * 0x200)
     rom[0x10:0x10 + len(text)] = text
     covered = bytearray(len(rom))
@@ -89,7 +89,7 @@ def test_a_message_in_code_data_is_a_unit_and_graphics_data_is_not():
 
 def test_a_message_under_a_picture_symbol_is_not_a_unit():
     charmap = rom_text.Charmap.load(rom_text.FACTS_DIR / "charmap_gen3.json")
-    text = charmap.encode("Hits the foe hard.")
+    text = charmap.encode("A test line.")
     rom = bytearray(b"\xff" * 0x200)
     rom[0x10:0x10 + len(text)] = text
     sections = [(scan.BASE, 0x100, "src/graphics.o")]

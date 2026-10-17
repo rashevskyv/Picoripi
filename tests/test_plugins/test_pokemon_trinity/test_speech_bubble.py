@@ -3,7 +3,8 @@
 
 The fake face draws a solid block per glyph, so the layout and the render are tested without game files. The real
 font test reads the owner's Z-A unpack and skips without it; it checks the ink edges against the Eden frame measurement
-(Eden frame, 2026-10-17) within 2 px.
+(Eden frame, 2026-10-17) within 2 px. The two lines are read from a frame-side facts file under the
+owner's workspace (PICORIPI_ROMHACKING), so no game text is kept in the repository.
 """
 from types import SimpleNamespace
 
@@ -18,6 +19,8 @@ from plugins.pokemon_trinity import speech_bubble
 ROOT = romhacking_root.under("Pokemon")
 ZA_SOURCE = ROOT / "Legends Z-A" / "source" if ROOT else None
 HAS_FONT = ZA_SOURCE is not None and (ZA_SOURCE / "ui/font/bin/UniversNextPro-Cond.bfotf").is_file()
+FRAME_LINES = ROOT / "Legends Z-A" / "reports" / "proof" / "speech_bubble_lines.json" if ROOT else None
+HAS_FRAME_LINES = FRAME_LINES is not None and FRAME_LINES.is_file()
 
 # Frame ink boxes of the two bubble lines (frame pixels, inclusive) and the frame mapping of the 1920x1080 canvas.
 FRAME_INK = [(504, 620, 111, 133), (496, 604, 145, 162)]
@@ -67,7 +70,7 @@ def test_the_render_puts_each_line_of_ink_inside_its_pane_and_crops_to_the_box()
     facts = speech_bubble.load_facts()
     chain = fm.FontChain([SolidFace()])
     layout = mp.speech_layout(facts, chain)
-    image = fm.render_window(layout, chain, [["Lumiose"], ["We made"]], background=(0, 0, 0, 0),
+    image = fm.render_window(layout, chain, [["First"], ["Second"]], background=(0, 0, 0, 0),
                              em_y=facts["em_y"])
     x0, y0, x1, y1 = (round(v) for v in facts["box"])
     assert image.size == (x1 - x0, y1 - y0)
@@ -112,15 +115,19 @@ def test_the_box_switch_lists_the_boxes_and_switches_the_spec(qtbot):
     assert widget._spec is hud
 
 
-@pytest.mark.skipif(not HAS_FONT, reason="needs the owner's Legends: Z-A unpack (ui/font/bin)")
+@pytest.mark.skipif(not (HAS_FONT and HAS_FRAME_LINES),
+                    reason="needs the owner's Legends: Z-A unpack (ui/font/bin) and the frame lines file")
 def test_the_real_font_render_matches_the_eden_frame_ink_within_two_pixels():
+    import json
+
     facts = speech_bubble.load_facts()
+    frame_lines = json.loads(FRAME_LINES.read_text(encoding="utf-8"))["lines"]
     spec = mp.speech_spec(facts)
     chain = fm.FontChain([fm.Face.from_bfotf(path.read_bytes())
                           for path in mp.font_files(ZA_SOURCE / spec.font_dir, spec.fonts)])
     layout = mp.speech_layout(facts, chain)
     canvas = Image.new("RGBA", (1920, 1080), (0, 0, 0, 0))
-    for pane, text in zip(layout.panes, ["Lumiose City!", "We made it!"]):
+    for pane, text in zip(layout.panes, frame_lines):
         fm.draw_pane_x_stretched(canvas, pane, chain, [text], spec.em_y)
     alpha = canvas.split()[3]
     # map the canvas to the frame grid (1616 x 909 at x 120, y 57) and read the ink of each line back

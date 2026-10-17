@@ -67,7 +67,7 @@
         "text_width": 0,
         "box_lines": 2,
         "draw_box": false,
-        "measured_on": "Sun in-game dialogue, top screen, Azahar run sm_dlg1/w022_t067.png (window 1:1): 'So the day has finally come that you're / moving to Alola!' ink rows 209-216 and 230-237, x 57-289 and 57-148; rendered advance 233 and 94 px; no box border visible, so the width is not measured (0)"
+        "measured_on": "Sun in-game dialogue, top screen, Azahar run sm_dlg1/w022_t067.png (window 1:1): two sample lines, ink rows 209-216 and 230-237, x 57-289 and 57-148; rendered advance 233 and 94 px; no box border visible, so the width is not measured (0)"
     },
     "default_font_file": "default_font.json",
     "tag_color_rgba": "#ffff8c00",
