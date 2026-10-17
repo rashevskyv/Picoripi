@@ -56,7 +56,7 @@ def test_the_source_role_gives_the_english_original_and_the_translation_role_the
 def test_the_project_sync_parse_of_json_names_one_block_and_changes_nothing():
     rules = GameRules()
     assert rules.load_data_from_json_obj(json.loads(STRINGS)) == ([], {})
-    assert rules.export_runtime_state() == {"blocks": []}
+    assert rules.export_runtime_state() == {"blocks": [], "known": []}
 
 
 @pytest.mark.parametrize("raw", [STRINGS, COMPACT, LAYOUT])
@@ -130,9 +130,9 @@ def test_the_owners_budgets_limit_labels_and_panes_by_the_blocks_file():
                   "strings/area/EU_100.json", "strings/home_menu/_smdh.json")
     assert (rules.budget(0, 0), rules.budget(0, 1)) == (157, 126)  # lau_title_menu, lau_1b_start (budgets.json)
     assert rules.get_string_layout(1, 0) == {"max_width": 258, "warn_width": 258}  # the pane's widest other line
-    assert rules.budget(2, 0) is None  # area names: no MSBT budget
+    assert rules.budget(2, 0) == rules._budget_table()["areas"]["100"]  # area names: the file's own budget (validate_area)
     assert rules.budget(3, 0) is None  # validate.py skips "_" files
-    assert rules.get_string_layout(2, 0) is None
+    assert rules.get_string_layout(2, 0) == {"max_width": rules.budget(2, 0), "warn_width": rules.budget(2, 0)}
 
 
 def test_a_line_wider_than_its_budget_is_a_width_problem_with_its_numbers():

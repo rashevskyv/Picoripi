@@ -18,6 +18,7 @@ the decrypted titles): per MSBT label the widest official localisation, per layo
 languages. A string wider than its budget is a width problem, the same rule as the owner's validate.py; a string with
 no budget (no dump, or a part the owner checks another way) shows its width only.
 """
+import hashlib
 import json
 import os
 import re
@@ -25,10 +26,12 @@ from json.decoder import scanstring
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple
 
+from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
 from plugins.common.problem_analyzer import GenericProblemAnalyzer
 from plugins.manual_3ds import layout as manual_layout
 
+from . import build_mod
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS, WIDTH_PROBLEM
 
 _DATA_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -129,6 +132,11 @@ def _key(path: List[Any]) -> str:
     return key
 
 
+def _fingerprint(raw: Any) -> str:
+    """The digest of a file as it was read or written; a file that changed outside Picoripi has another one."""
+    return hashlib.sha256(bytes(raw)).hexdigest()
+
+
 def _text(raw: Any) -> str:
     return bytes(raw).decode("utf-8")
 
@@ -180,12 +188,31 @@ class GameRules(BaseGameRules):
         self._blocks: List[Dict[str, Any]] = []  # per data block, in load order: {"keys": [string ids]}
         self._load_role = "source"
         self._save_text: Optional[str] = None
+        self._known_texts: Set[str] = set()  # digests of the file texts read or written: a change outside is refused
         self._widths: Optional[manual_layout.Widths] = None
         self._budgets: Optional[Dict[str, Any]] = None
         self._details: Dict[Tuple[int, int], str] = {}  # (block, string) -> "N px, budget M px" of the last check
 
     def get_display_name(self) -> str:
         return "Nintendo 3DS system (Ukrainian)"
+
+    def get_platforms(self) -> list:
+        return [{"id": "3ds", "label": tr("Nintendo 3DS")}]
+
+    def get_build_targets(self) -> list:
+        return [
+            {"id": "build-ru", "label": tr("3DS mod over the Russian slot (dist/)"), "platforms": ["3ds"],
+             "kind": "layeredfs"},
+            {"id": "build-en", "label": tr("3DS mod over the English slot (dist_en/)"), "platforms": ["3ds"],
+             "kind": "layeredfs"},
+        ]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress, is_cancelled) -> str:
+        """The owner's Makefile runs on a staged copy (plugins/system_3ds/build_mod.py)."""
+        if target_id not in build_mod.TARGET_DIRS:
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        return str(build_mod.build(source_dir, translation_dir, target_id, output_dir, progress, is_cancelled))
 
     def get_file_formats(self) -> list:
         from core.formats import FileFormat
@@ -204,6 +231,7 @@ class GameRules(BaseGameRules):
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Dict[str, str]]:
         if not isinstance(json_obj, (bytes, bytearray)):
             return [], {}  # the project sync hands parsed JSON only to name blocks: one file is one block
+        self._known_texts.add(_fingerprint(json_obj))
         entries = read_entries(_text(json_obj))
         # The source and the translation are the same file: the host's load role says which column a parse fills.
         if self._load_role == "translation":
@@ -215,19 +243,27 @@ class GameRules(BaseGameRules):
         self._load_role = role
 
     def export_runtime_state(self) -> Any:
-        return {"blocks": [dict(block) for block in self._blocks]}
+        return {"blocks": [dict(block) for block in self._blocks], "known": sorted(self._known_texts)}
 
     def restore_runtime_state(self, state: Any) -> None:
         blocks = state.get("blocks") if isinstance(state, dict) else None
         if isinstance(blocks, list):
             self._blocks = [dict(block) for block in blocks if isinstance(block, dict)]
+        known = state.get("known") if isinstance(state, dict) else None
+        if isinstance(known, list):
+            self._known_texts.update(str(item) for item in known)
 
     def reset_runtime_state(self) -> None:
         self._blocks = []
         self._save_text = None
+        self._known_texts = set()
 
     def prepare_save_context(self, context: Any) -> None:
-        """The file is patched as it is on disk now (the translation copy is the source file itself)."""
+        """The file is patched as it is on disk now (the translation copy is the source file itself).
+
+        A file that changed on disk since Picoripi last read or wrote it is refused, not overwritten: the save stops
+        and names the file. The check needs a record of what was read; a session without one adopts the file as it is.
+        """
         self._save_text = None
         for version in context.existing_versions():
             try:
@@ -235,6 +271,11 @@ class GameRules(BaseGameRules):
                 read_entries(text)
             except (ValueError, UnicodeDecodeError):
                 continue
+            digest = _fingerprint(version)
+            if self._known_texts and digest not in self._known_texts:
+                raise ValueError(tr("{0} changed outside Picoripi. Reopen the project before saving.",
+                                    str(context.relative_path)))
+            self._known_texts.add(digest)
             self._save_text = text
             return
 
@@ -247,7 +288,9 @@ class GameRules(BaseGameRules):
         if len(texts) != len(entries):
             raise ValueError(f"3DS system: the file on disk has {len(entries)} strings and the editor {len(texts)}; "
                              "it changed outside Picoripi. Reopen the project before saving.")
-        return patch_ua(text, entries, texts).encode("utf-8")
+        out = patch_ua(text, entries, texts).encode("utf-8")
+        self._known_texts.add(_fingerprint(out))
+        return out
 
     # -- strings --------------------------------------------------------------------------
 
@@ -328,6 +371,8 @@ class GameRules(BaseGameRules):
         if key is None or not 0 <= block_idx < len(blocks):
             return None
         parts = str(blocks[block_idx].source_file).replace("\\", "/").split("/")
+        if len(parts) == 3 and parts[0] == "strings" and parts[1] == "area" and parts[2].startswith("EU_"):
+            return "areas", "", parts[2][3:].rsplit(".", 1)[0]  # the country or region code of the file
         if len(parts) == 3 and parts[0] == "strings" and not parts[2].startswith("_"):
             return "labels", parts[1], key
         if len(parts) == 2 and parts[0] == "layouts":
@@ -340,7 +385,10 @@ class GameRules(BaseGameRules):
         if place is None:
             return None
         table, part, key = place
-        value = self._budget_table()[table].get(part, {}).get(key)
+        if table == "areas":  # one budget per country or region file: the key is its code
+            value = self._budget_table().get("areas", {}).get(key)
+        else:
+            value = self._budget_table()[table].get(part, {}).get(key)
         return int(value) if value else None
 
     def line_budget(self, block_idx: int, string_idx: int) -> Optional[int]:
