@@ -190,7 +190,8 @@ def name_files(decomp: Path) -> list:
 
 
 # The version macro of each build: ``IF DEF(_RED)`` keeps the Red branch and drops the other.
-VERSION_MACRO = {"pokered": "_RED", "pokeblue": "_BLUE", "pokeyellow": "_YELLOW"}
+VERSION_MACRO = {"pokered": "_RED", "pokeblue": "_BLUE", "pokeyellow": "_YELLOW", "pokegold": "_GOLD",
+                 "pokesilver": "_SILVER"}
 
 
 def _condition(stripped: str, defines) -> Optional[bool]:
@@ -491,8 +492,15 @@ def main(argv: list) -> int:
                 lines = rom_text.decode_names(region, runtime, entry["mode"], entry["width"])
                 same = rom_text.encode(lines, runtime, entry["width"]) == region
             else:
-                lines = rom_text.decode(region, runtime, entry["bcd_hex"], entry.get("ram_args", ()),
-                                        entry.get("end_char", False))
+                try:
+                    lines = rom_text.decode(region, runtime, entry["bcd_hex"], entry.get("ram_args", ()),
+                                            entry.get("end_char", False))
+                except IndexError:
+                    if strict:
+                        fail(f"{rel} {entry['label']}: a command runs past the body's {entry['size']} bytes")
+                    entry["drop"] = True
+                    skipped.append((rel, entry["label"], "a command runs past the body"))
+                    continue
                 same = rom_text.encode(lines, runtime) == region
             mine_texts = asm_text.texts(rom_text.format_body(entry["label"], lines))
             pret_texts = asm_text.texts(rom_text.format_body(entry["label"], entry["lines"]))
