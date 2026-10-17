@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-15
+updated: 2026-10-18
 owns: unfinished work
 tokens: 37.9k
 purpose: Everything left open, one line each, by work package
@@ -292,23 +292,64 @@ Open after phase 3b:
 - `core/unreal/pak.py` (Unreal pak v8) has no plugin user yet; its zstd path needs Python 3.14+ (`compression.zstd`) or the `zstandard` package; otherwise it raises `PakError`. MGS2/3 Master Collection PC text is not read yet (only the PC `.ctxr` pictures).
 - `core/texture_formats/sources.resolve()` decodes every picture it lists: Bravely Second's 5,073 ETC1 pictures take about 100 s (its real-data test has a 600 s timeout).
 
-## Pokémon series: same text (measured 2026-10-17, branch feat/pokemon-series-ready)
+## Pokémon series: same text and series glossary (measured 2026-10-17, round 2 on 2026-10-18, branch feat/pokemon-series-ready)
 
 Measured by `python -I scripts/measure_series_text.py <series root> <out.json>` on the 23 projects of
 `E:\Emulators\RomHacking\Pokemon` (read-only, English source text, the Project Manager's parser; no archive member
-skipped). Numbers only; the table is on the Emu Radar page `pokemon-series-ready`.
+skipped). Numbers only; the tables are on the Emu Radar page `pokemon-series-ready`.
 
+Round 1 (2026-10-17):
 - Strings: 960,820 in 23 projects. Distinct exact texts: 630,769. Strings whose text repeats in the same project: 467,009.
 - Repeated texts that span blocks (files): 110,301. Repeated texts inside one block: 26,657. A fold per file misses most repeats.
 - Distinct exact texts across all projects: 374,734; in 2+ games: 119,956; in 5+ games: 16,979.
-- After tag normalisation (generic pattern, not the plugins' syntax): 334,037 distinct; 110,087 in 2+ games.
-- Shared texts in 2+ games: 34,635 are 2 words or fewer (31 %); 75,452 are longer (69 %).
-- Closest pairs (normalised shared): Sun and Moon / Ultra Sun and Ultra Moon 30,127; HeartGold and SoulSilver / Platinum
-  29,502; Black 2 and White 2 / Black and White 27,765. Gen 1 Red and Blue / Yellow share about 3,000.
-- Open: the tag pattern is a guess; the normalised counts are an upper bound for "differs only in tags" until each plugin
-  states its tag syntax (the D27 pattern).
-- Open: the 2-word share is the first candidate list for the series glossary, not yet a decision that names are safe.
-- Open: the owner decides whether sentences shared across games are offered (default: off, see the series reuse record once written).
+- After the generic tag pattern: 334,037 distinct; 110,087 in 2+ games. Shared in 2+ games: 34,635 are 2 words or fewer; 75,452 longer.
+- Closest pairs (generic shared): Sun and Moon / Ultra Sun and Ultra Moon 30,127; HeartGold and SoulSilver / Platinum 29,502;
+  Black 2 and White 2 / Black and White 27,765.
+
+Round 2 (2026-10-18), the same measurement with each plugin's own tag kinds (`neutral`): the exact and generic numbers
+reproduce round 1 (119,956; 110,087). Neutral: 350,749 distinct; 112,944 in 2+ games (2 words or fewer: 36,951; longer:
+75,993). The neutral count is not a superset of the exact count (about 7,000 exact-shared texts are not neutral-shared):
+the cause is not explained yet (open below). The per-pair neutral numbers were not recomputed.
+
+Round 2 built:
+- Tag kinds across generations (D43): `get_series_tag_map()` on every Pokémon plugin; a translation carries across games
+  when the kinds match in order; the tags are written in the target syntax; a tag without a kind or an ambiguous pairing
+  blocks it, and the memory bar says why. Same-syntax rows match only with the same tags.
+- Seeds (D42 hooks): Sun / Moon labelled by anchor names (the table was empty: 0 terms before); gen 2 (gsc), the
+  Ruby / Emerald / FireRed line (English files), gen 4 (DP, Platinum, HGSS banks), BDSP and Trinity seed their name
+  tables. Scratch series file, one run (2026-10-18), offered / added / already present: Black 2 and White 2 2022 / 2022 /
+  0; Black and White 1979 / 0 / 1979; Brilliant Diamond and Shining Pearl 2786 / 1032 / 1754; Crystal 760 / 69 / 691;
+  Diamond and Pearl 1601 / 53 / 1548; Emerald 1252 / 125 / 1127; FireRed and LeafGreen 957 / 13 / 944; Gold and Silver
+  755 / 0 / 755; HeartGold and SoulSilver 1689 / 9 / 1680; Legends Arceus 3582 / 631 / 2951; Legends Z-A 5831 / 2554 /
+  3277; Mystery Dungeon Gates to Infinity 2350 / 1630 / 720; Omega Ruby and Alpha Sapphire 4035 / 1521 / 2514; Platinum
+  1610 / 0 / 1610; Red and Blue 515 / 42 / 473; Ruby and Sapphire 1164 / 3 / 1161; Scarlet and Violet 5474 / 939 / 4535;
+  Sun and Moon 2633 / 34 / 2599; Super Mystery Dungeon 3287 / 1127 / 2160; Sword and Shield 3944 / 468 / 3476; Ultra Sun
+  and Ultra Moon 0 / 0 / 0; X and Y 3554 / 476 / 3078; Yellow 515 / 0 / 515. Total offered 52,295; added 12,748. The
+  whole run takes about 50 s (it took hours before `seed_entries`).
+- Editor and prompt (D43 family): a series term the project glossary does not translate is a hit in the translation
+  check once a series translation exists; the prompt already carried series rows. Two series glossaries that translate
+  one term differently are marked on both tabs of the glossary dialog (glossary level, not a string-level rule; no
+  inflection is compared).
+- Project Manager details: the series glossaries a project uses, with their term counts; read only.
+- Memory with context (D44): File > Update Translation Memory with Context (worker, cancel, backup, restore).
+
+Open:
+- Tag kinds are a judgement per codec (D43). The VAR family 01 is `name` in gen 5 and in the Switch codec. Owner decision:
+  accept a name pairing across codecs, or only the same variable code.
+- Ultra Sun / Ultra Moon: no seed terms. Its `a/0/3/2` archive differs from Sun / Moon's (the labels do not apply); its
+  labels are not derived.
+- Gen 4 bank numbers (`NAME_BANKS` in `plugins/pokemon_gen4/rules.py`) were found by the names each bank holds; a person
+  has not checked every number in game. Natures are not seeded (no section).
+- gen 5 hook (existing): Black 2 / White 2 seeds the term "None" from table 0064 (a placeholder in the data). Not fixed in
+  this round.
+- Mystery Dungeon (3DS) seeds carry the section "Names" (existing hook, not reviewed).
+- A seeded term has no translation, so it is no editor hit until a series translation exists.
+- The 7,000-text gap between the exact and the neutral count (round 2 above): cause not explained.
+- Memory with context: the context of a repeated text is read on the worker (D44); the plugin hooks behind it are not
+  audited for thread safety in every plugin. The speaker lookup of the save and restore paths (4.1) is not moved and not
+  measured in round 2.
+- Project Manager: the count of reusable repeated texts is not built (it needs every memory file of the series).
+- Owner decision: whether a sentence shared across games is offered (default: off, D41 rule for longer lines).
 
 ## Pokémon generation III-V (`plugins/pokemon_fr`, `pokemon_gen4`, `pokemon_gen5`, 2026-10-10)
 

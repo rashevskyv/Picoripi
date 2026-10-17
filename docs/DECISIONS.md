@@ -1047,3 +1047,33 @@ and glyph codes (`{CHAR E447}`) do not carry across. The series index is built o
 read. The memory bar shows why a carry is blocked. The batch Cached Translation window does not list a blocked text.
 The prompt still uses exact series text only. Owner decision: whether a kind pairing across games is accepted for a
 name (today: accepted) or only for the same variable code.
+
+## D44. The translation memory gets its context on a worker; the speaker lookup on the save path stays where it is (2026-10-18)
+
+**Context.** A row saved before D41 has no speaker, addressee or fold key, so a repeated text does not restore from it
+(OPEN_ITEMS 4.2). The context is the prompt composer's duplicate key: the speaker and addressee the plugin reports, the
+window, the plugin's translation context and the manual story override. Its lookup (OPEN_ITEMS 4.1) runs on the
+interface thread in the save and restore paths. Its cost was not measured in this round: a headless timing needs a
+loaded window.
+**Decision.**
+- `core/translation/memory_context.py` plans the rebuild from the saved translations (the position backup). A row with
+  the same source and translation as a saved place takes that place's context. A further context of the same text gets
+  its own row, so one row per context holds. A row with no matching place is left as it is and counted.
+- `handlers/memory_context_worker.py` runs the plan on a `QThread`, with progress and cancel. The memory is written
+  once, after the plan completes and was not cancelled: the previous file is copied to
+  `translation_memory.before_context.json` (written once, so it stays the memory before the first rebuild), and the new
+  file replaces the old atomically. **File > Restore Translation Memory Before the Context Update** puts the copy back.
+- The context of a repeated text is read on the worker by the composer's `saved_context`, the same function the save
+  path uses. Only a text that occurs more than once needs it.
+- The speaker lookup of the save and restore paths is not moved. Those paths need the answer at once; a worker would
+  need a second answer path, which is a design of its own. Open with its measurement (OPEN_ITEMS 4.1).
+**Cost and risk.** The plugin hooks behind `saved_context` (speaker, addressee, translation context, story override) run
+on the worker. They are plugin code that was written for the interface thread; no audit of every plugin has been made.
+The rebuild is opt-in, cancellable, and keeps the previous file. A plugin hook that touches a widget would be a bug
+that the backup limits to one run.
+**Series details (Project Manager).** The scan reads the project's series glossary chain beside each card
+(`core/project_library/series_facts.py`): the file names and the term counts. A count is reused while a file keeps its
+size and time. The registry and the project file are not written. The count of reusable repeated texts is not built: it
+needs every memory file of the series.
+**Seeding speed.** `GlossaryManager.seed_entries` gives the answers of `seed_entry` one term at a time, with the presence
+test built once for the batch. The per-term version scanned and copied the glossary for each term.

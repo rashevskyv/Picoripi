@@ -151,6 +151,9 @@ Glossaries shared by several projects: a game (its GC and HD projects), a genera
 - **In AI prompts:** the project glossary comes first and wins. Series rows are added only for terms of the text the project glossary does not translate, nearest level first and each term once, in a separate `series_glossary` field (batch) or **SERIES GLOSSARY** section (single line) marked as lower priority.
 - **Builds** write only the project glossary; the series file changes only through the series tab or **Promote to Series Glossary**. A term that a series glossary already translates is seeded with that translation (its status too), so the build does not decide it again. The game's own terms (species, moves, items and so on) come from the plugin's seed hook; a project can seed a series file headless with `python -I scripts/seed_series_glossary.py <project.uiproj> <series file>`, which adds only missing terms and writes no translation.
 
+- **Seeding (Pokémon):** the name tables of a Pokémon project (species, moves, items, abilities, types, trainer classes) seed the series file with one term each, with no translation. `scripts/seed_series_glossary.py` runs it on a copy; the file stays yours.
+- **Editor:** a series term that the project glossary does not translate is a hit in the translation check of a string, once the series file has a translation for it. Two series glossaries that translate one term differently are marked **Conflict** on both tabs.
+
 ### 5. Translate the text (`text`)
 
 Features embedded action buttons directly in the right pane:
