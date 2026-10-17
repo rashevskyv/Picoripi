@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import (
 )
 
 from core.i18n import tr
-from core.project_library import console_keys, images
+from core.project_library import images
 from core.project_library.icons import IMAGE_FILTER, load_image
 from ui.project_manager.jobs import BackgroundJob
 from ui.project_manager.tasks import FactsJob, PluginListJob, UnpackJob
@@ -403,9 +403,10 @@ class ProjectWizard(QDialog):
             console = str(status.get("key") or "")
             if choice["role"] and console and not status.get("key_ready") and console not in needed:
                 needed.append(console)
-            if choice["role"]:
+            if choice["role"]:   # readiness of the libraries was read with the file, on the worker
+                ready = set(status.get("libraries_ready") or [])
                 for library in status.get("libraries") or []:
-                    if library not in needed and console_keys.path_for(library) is None:
+                    if library not in needed and library not in ready:
                         needed.append(library)
         picked: Dict[str, str] = {}
         for console in needed:

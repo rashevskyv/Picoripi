@@ -103,7 +103,8 @@ def identify_sources(rules: Any, paths: Sequence[str], is_cancelled: Cancelled =
         console = _key_console(rules, path)
         result.append({"path": path, "role": role, "platform": platform, "key": console,
                        "key_ready": bool(console) and console_keys.path_for(console) is not None,
-                       "libraries": libraries})
+                       "libraries": libraries,
+                       "libraries_ready": [item for item in libraries if console_keys.path_for(item) is not None]})
     return result
 
 

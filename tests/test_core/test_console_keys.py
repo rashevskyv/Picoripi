@@ -207,6 +207,12 @@ def test_a_library_the_unpack_loads_is_reported_only_when_the_game_lists_it(tmp_
     assert item["role"] == "base"
     assert item["libraries"] == ["oodle"]    # "wii" is not an unpack console of this game
     assert item["key"] == ""
+    assert item["libraries_ready"] == []
+    library = tmp_path / "oo2core_placeholder.dll"
+    library.write_bytes(b"not a library")
+    console_keys.set_path("oodle", str(library))
+    [item] = plugin_facts.identify_sources(Rules(), [str(image)])
+    assert item["libraries_ready"] == ["oodle"]    # the wizard asks for a library only when this list lacks it
 
 
 def test_states_reports_each_console_with_its_stored_path_and_whether_the_file_exists(data_folder, tmp_path):
