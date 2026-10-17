@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Skies of Arcadia (Dreamcast, USA): the GD-ROM set build writes a same-length marker and reads it back exactly (tracks 1 and 2 byte-identical, track 3 changed). `FIELD/ME201A.SCT` keeps its segment lengths (`fixed_scripts`, as the GameCube file); other scripts may grow, not yet proven in game.
 - Skies of Arcadia (Dreamcast, USA): field scripts open as editor text (one string per text segment, little-endian words). The 406 scripts of both USA discs round trip unchanged (59,250 segments). 22,605 of 22,980 pages of the 227 scripts that exist on the GameCube disc have the same text there.
 - Skies of Arcadia (Dreamcast, USA): plugin `plugins/skies_of_arcadia_dc` identifies the USA MK-51052 disc by its IP.BIN area symbol (EU refused), unpacks its field scripts (`FIELD/*.SCT`, plain, little endian) and builds a translated GD-ROM set through `gdrom_writer`; the script codec takes the byte order (`scripts.py` `big`).
 - GD-ROM identity: `images.identify` returns the IP.BIN area symbol as `region` (`U`, `E`, `J`).

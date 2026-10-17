@@ -152,3 +152,12 @@ def test_the_plugin_opens_a_dreamcast_script_as_editor_text_and_saves_the_edit()
     assert data == [["Hello", "Bye"]]
     saved = rules.save_data_to_json_obj([["Hullo", "Bye"]], {})
     assert scripts.read_strings(saved, big=False) == ["Hullo", "Bye"]
+
+
+def test_me201a_keeps_its_segment_lengths_and_other_scripts_may_grow():
+    fixed = GameRules.fixed_scripts
+    assert scripts.is_fixed("FIELD/ME201A.SCT", fixed)
+    assert not scripts.is_fixed("FIELD/ME002A.SCT", fixed)
+    body = _script_le(b"\h(Hi\c\h(Bye\e")
+    _out, refused, _missing = scripts.write_strings(body, ["Hello there", "Bye"], fixed=True, big=False)
+    assert refused == [0]

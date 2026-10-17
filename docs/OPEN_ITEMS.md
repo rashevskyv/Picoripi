@@ -1320,3 +1320,17 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - Skies open: textures `ts*.gvr`, `ea_mc_*.tpl`, `opening.bnr` are AKLZ-compressed on the disc. Not opened.
 - Skies open: text groups battle, bchara, beff, title, ending hold no `\h(` pages that match the field format. Weak hits:
   two `battle/*.sml` files and two `field/*.mld` files. Not verified; not opened.
+
+## Skies of Arcadia Dreamcast (USA, MK-51052): status 2026-10-17
+
+- Done: plugin `plugins/skies_of_arcadia_dc` identifies the USA disc (IP.BIN area `U`), unpacks `FIELD/*.SCT`, opens them
+  as editor text (LE codec), and builds a GD-ROM set through `core/containers/gdrom_writer.py`.
+- Done: text is on the same pages as GameCube. 227 script names exist on both discs; 22,605 of 22,980 pages match the
+  GameCube text exactly. The 406 USA scripts (both discs) round trip unchanged.
+- Open: in-game proof. Flycast (private copy `D:\RomHacking_tmp\skies\flycast`) runs the marked disc: title, New Game
+  (C key), narration and the opening cinematic were reached. No dialogue box was reached yet. The cinematic returns to
+  the title; the first gameplay dialogue is not reached by script. Owner shortcut: `Dreamcast\play_to_first_dialogue.bat`.
+- Open: growth. Only `FIELD/ME201A.SCT` is fixed (as on GameCube, not tested on Dreamcast). Other scripts may grow but
+  no grown script was run in game.
+- Open: other text groups (`BATTLE/*.SML`, `FIELD/*.MLD`, `1ST_READ.BIN` with 23 `\h(` pages) are not editor text yet.
+- Open: Disc 2 (USA) is identified and extracts the same way; its build is not proven in game.
