@@ -1,6 +1,12 @@
 {
     "display_name": "Grandia II (Dreamcast, USA)",
-    "default_tag_mappings": {},
+    "default_tag_mappings": {
+        "{BR}": "<01>",
+        "{BOX}": "<02>",
+        "{WAIT}": "<07>",
+        "{CODE0E}": "<0E>",
+        "{SPEAKER}": "<0F><03><0A><0C><00>"
+    },
     "block_names": {},
     "block_color_markers": {},
     "newline_display_symbol": "↵",
