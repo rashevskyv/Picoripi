@@ -1279,3 +1279,11 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - FFTARecomp: upstream runs a translated ROM "Unpatched" (whole-ROM hash: no widescreen patches). A one-line fork
   (`ffta_rom::eligible` = `verify_hooks`) shows it in 16:9 with the patches on (checked headless, 2026-10-15); the fork
   is local and unpublished, and its installer still checks `KNOWN_SHA1`.
+
+## Skies of Arcadia (GameCube Legends, Dreamcast): script writer (2026-10-17)
+
+- Open: the `*.sct` writer. Text pages sit inside the bytecode, so a longer page moves the bytecode after it.
+  The 32-bit words of the script do not point at page starts (4 matches, about 5 by chance on `field/me002a.sct`),
+  so relocation needs the bytecode decoder first. The same layout holds on Dreamcast (little endian).
+- Open: the GD-ROM image kind is not wired into the Project Manager wizard (`core/containers/gdrom.py` only).
+- Open: the other text groups of the GameCube disc (battle, bchara, beff, title, ending) and the AFNT font are not read.
