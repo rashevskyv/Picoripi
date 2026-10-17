@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 import threading
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, List, Optional, Tuple
 
@@ -50,6 +50,8 @@ class BoxSpec:
     offset: Tuple[float, float] = (0.0, 0.0)            # the outer layout's parts placement (x right, y up)
     panes: Optional[Tuple[str, ...]] = None            # the message pane names; None picks them by string buffer
     fonts: Optional[Tuple[str, ...]] = None            # the font chain; None uses MESSAGE_FONTS
+    shift_y: float = 0.0          # canvas px the game draws the box above its layout position (measured)
+    font_px: Optional[float] = None  # glyph px the game draws when it differs from the layout's fontSize (measured)
 
 
 # The text is drawn at each pane's own fontSize (the layout's value), unless the spec sets em_y. The font is UDKakugo;
@@ -61,9 +63,13 @@ class BoxSpec:
 SWORD_SHIELD_BOX = BoxSpec("bin/appli/msg/bin/msg_00.arc", "blyt/msg_00.bflyt", "fcpx/system54_jpn.bfcpx", "bin/font",
                            em_y=42.0)
 # Scarlet / Violet: msg_sub_00.bflyt from the sub-window archive (appli/data/msg_sub), two 840 px text panes, no frame.
-# Not yet checked that this is the field dialogue (msg_btl_00 is the battle box, also two panes).
+# MEASURED on the Eden frame (2026-10-17, field: "It's a Skwovet plush made with care using nice, / soft material.",
+# shown by an object in the bedroom): the box sits 85 px above the layout (the out animation holds a -85 keyframe;
+# the link is not parsed yet) and the glyphs are 41.6 px. Ink-box fit: every edge within 2.2 px (left and top
+# within 0.7 px; right of line 1 within 0.2 px; right of line 2 within 2.2 px).
 SCARLET_VIOLET_SUB_BOX = BoxSpec("appli/data/msg_sub/msg_sub_body_00.arc", "blyt/msg_sub_00.bflyt",
-                                 "fcpx/system32_jpn.bfcpx", "appli/font/bin", background=(38, 42, 52, 255))
+                                 "fcpx/system32_jpn.bfcpx", "appli/font/bin", background=(38, 42, 52, 255),
+                                 shift_y=-85.0, font_px=41.6)
 # Legends: Arceus field dialogue: msg_00.bflyt (the same archive as Sword / Shield; the wizard writes it for Arceus). Window
 # (405, 790)-(1515, 1016), two panes at x 540, layout size 42 x 52. MEASURED on Eden frames (2026-10-17, field, name
 # Laventon, lines "Yes, Pokémon suc" and "My name is Laven" while typing): UDKakugo, X 42 (fit 40.5 to 41.5), glyph
@@ -127,6 +133,20 @@ def _font_file(font_dir: Path, name: str) -> Optional[Path]:
     return None
 
 
+def placed(layout: fm.MessageLayout, spec: BoxSpec) -> fm.MessageLayout:
+    """The layout moved by the spec's measured shift, with the spec's glyph size on its message panes."""
+    if not spec.shift_y and spec.font_px is None:
+        return layout
+
+    def move(rect: fm.Rect) -> fm.Rect:
+        return (rect[0], rect[1] + spec.shift_y, rect[2], rect[3] + spec.shift_y)
+
+    panes = [replace(pane, rect=move(pane.rect), size=(spec.font_px or pane.size[0], pane.size[1]))
+             for pane in layout.panes]
+    window = move(layout.window) if layout.window else None
+    return replace(layout, panes=panes, window=window)
+
+
 class LayoutLoader(WorkerThread):
     """Reads one box's layout and fonts. ``loaded`` carries ``(project folder, (layout, chain) or None)``."""
 
@@ -150,8 +170,8 @@ class LayoutLoader(WorkerThread):
                 raise FileNotFoundError("the project file has no source folder")
             root = Path(self._source_dir)
             arc = Sarc((root / self._spec.arc).read_bytes())
-            layout = fm.read_layout(arc.files[self._spec.member], arc.files[self._spec.fcpx], self._spec.offset,
-                                    self._spec.panes)
+            layout = placed(fm.read_layout(arc.files[self._spec.member], arc.files[self._spec.fcpx],
+                                           self._spec.offset, self._spec.panes), self._spec)
             faces = [fm.Face.from_bfotf(path.read_bytes())
                      for path in font_files(root / self._spec.font_dir, self._spec.fonts or MESSAGE_FONTS)]
             result = (layout, fm.FontChain(faces))

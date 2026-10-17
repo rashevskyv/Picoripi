@@ -161,6 +161,16 @@ def test_real_scarlet_violet_sub_box_has_two_840_px_panes_and_a_name_pane():
     assert layout.panes[0].rect[2] - layout.panes[0].rect[0] == 840.0
 
 
+def test_placed_moves_the_scarlet_box_and_sets_its_glyph_size_and_keeps_the_input():
+    pane = fm.TextPane("T_00", (540.0, 874.0, 1380.0, 1002.0), 0, 0, (42.0, 52.0), 0.0, 0.0, 1, 0, (255, 255, 255, 255))
+    layout = fm.MessageLayout((1920.0, 1080.0), None, [pane], [], None)
+    moved = mp.placed(layout, mp.SCARLET_VIOLET_SUB_BOX)
+    assert moved.panes[0].rect == (540.0, 789.0, 1380.0, 917.0)
+    assert moved.panes[0].size == (41.6, 52.0)
+    assert layout.panes[0].rect == (540.0, 874.0, 1380.0, 1002.0)
+    assert mp.placed(layout, mp.SWORD_SHIELD_BOX) is layout
+
+
 class _FixedWidth:
     """A chain double: every character is 10 px wide."""
 
