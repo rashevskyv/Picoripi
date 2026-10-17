@@ -22,6 +22,7 @@ from core.i18n import tr
 SECTOR = 2048
 RAW_2352 = 2352
 DATA_OFFSET_2352 = 16
+MODE2_FORM1_OFFSET = 24
 HD_BASE = 45000
 PVD_SECTOR = 16
 MAX_DEPTH = 16
@@ -82,6 +83,8 @@ def parse_layout(cue_path: str) -> List[Segment]:
             raw, data_offset = RAW_2352, DATA_OFFSET_2352
         elif mode == "MODE1/2048":
             raw, data_offset = SECTOR, 0
+        elif mode == "MODE2/2352":   # PlayStation 1 data track: Form 1 user data after the 12-byte sync, 4-byte header and 8-byte subheader
+            raw, data_offset = RAW_2352, MODE2_FORM1_OFFSET
         else:
             raise ImageError(tr("unsupported track mode {0}", mode))
         if size % raw:

@@ -22,6 +22,7 @@ from core.containers import n3ds, switch_crypto, switch_images, wii_disc
 from core.containers.console_crypto import encrypted_error, key_path
 from core.containers.gcm import GameCubeImage, HEADER_SIZE, is_gamecube_header
 from core.containers.gdrom import GdRomImage, GdRomStream, parse_layout
+from core.containers.psx_disc import PsxDiscImage, identify_psx
 from core.containers.image_files import ImageError, ImageFile, ImageReader, copy_range
 from core.containers.nds import NdsImage, is_nds_header
 from core.containers.wia import WiaStream, is_wia_or_rvz
@@ -36,9 +37,10 @@ KIND_3DS = "3ds"
 KIND_SWITCH = "switch"
 KIND_WII = "wii"
 KIND_GDROM = "gdrom"
+KIND_PSX = "psx"
 CONSOLE_OF_KIND = {KIND_3DS: "3ds", KIND_SWITCH: "switch", KIND_WII: "wii"}
 CONSOLE_LABEL = {"3ds": "Nintendo 3DS", "switch": "Nintendo Switch", "wii": "Wii", "oodle": "Oodle library"}
-UNPACK_KINDS = frozenset((KIND_GC, KIND_NDS, KIND_3DS, KIND_SWITCH, KIND_WII, KIND_GDROM))   # the kinds an unpack step can read
+UNPACK_KINDS = frozenset((KIND_GC, KIND_NDS, KIND_3DS, KIND_SWITCH, KIND_WII, KIND_GDROM, KIND_PSX))   # the kinds an unpack step can read
 SEGA_MAGIC = b"SEGA SEGAKATANA "   # the first bytes of a Dreamcast IP.BIN; the product number follows at 0x40
 WII_MAGIC_AT = wii_disc.WII_MAGIC_AT
 WII_MAGIC = wii_disc.WII_MAGIC
@@ -77,6 +79,15 @@ def _is_cue(path: str | Path) -> bool:
     return Path(path).suffix.lower() == ".cue"
 
 
+def _cue_reader(stream: GdRomStream) -> ImageReader:
+    """The reader of a cue-sheet disc: a Dreamcast GD-ROM (SEGA IP.BIN at the start) or a PlayStation 1 disc."""
+    head = stream.read(0x50)
+    stream.seek(0)
+    if head[:len(SEGA_MAGIC)] == SEGA_MAGIC:
+        return GdRomImage(stream)
+    return PsxDiscImage(stream)
+
+
 def _describe_gdrom(path: str | Path) -> Optional[Dict[str, Any]]:
     """The fields of a Dreamcast GD-ROM disc named by its cue sheet, or None when the disc has no SEGA IP.BIN."""
     stream = GdRomStream(str(path))
@@ -94,7 +105,7 @@ def identify(path: str | Path) -> Optional[Dict[str, Any]]:
     """The fields of a supported image (``kind``, ``game_id``, ``encrypted``, ``title_id``), or None for any other file."""
     try:
         if _is_cue(path):
-            return _describe_gdrom(path)
+            return _describe_gdrom(path) or identify_psx(str(path))
         with open(path, "rb") as stream:
             return _describe(stream, stream.read(HEADER_SIZE))
     except (OSError, ValueError, struct.error, MemoryError):   # ImageError is a ValueError: a broken image is not identified
@@ -106,7 +117,7 @@ def unpack_room(path: str | Path) -> int:
     (the cache copy, then the extracted files). ponytail: estimated from the NCZ tables, not measured; the real use can
     differ by the size of the ExeFS and the table overhead."""
     size = os.path.getsize(path)
-    if (identify(path) or {}).get("kind") == KIND_GDROM:   # a cue sheet is small: its track files are the image
+    if (identify(path) or {}).get("kind") in (KIND_GDROM, KIND_PSX):   # a cue sheet is small: its track files are the image
         try:
             return sum(os.path.getsize(path_) for path_ in {seg.path for seg in parse_layout(str(path))})
         except (OSError, ValueError):
@@ -187,10 +198,10 @@ def open_image(path: str | Path, cache_dir: Optional[str | Path] = None,
     ``cache_dir`` holds the decompressed copy of a Switch .nsz program; the copy is deleted when the block ends.
     ``is_cancelled`` stops that decompression and ``progress`` reports it.
     """
-    if _is_cue(path):   # a Dreamcast GD-ROM set: the cue sheet names its track files, read in place
+    if _is_cue(path):   # a GD-ROM or PlayStation 1 set: the cue sheet names its track files, read in place
         stream = GdRomStream(str(path))
         try:
-            yield GdRomImage(stream)
+            yield _cue_reader(stream)
         finally:
             stream.close()
         return
