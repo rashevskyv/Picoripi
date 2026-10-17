@@ -1,6 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Settings: a Console keys tab stores the key file path of each console (3DS, Switch, Wii, Oodle library) with Browse, Clear and a check that the file exists; paths only, never the key contents.
+- Plugin hook `classify_resource(path)` (optional, `plugins/base_game_rules.py`): a game names the kind of a source file for the Project Manager's file counts; the extension rule stays the default.
+- Pokémon Brilliant Diamond / Shining Pearl, Pokémon Switch (NX) and Pokémon Trinity declare the Switch platform, so the wizard sets it and Run in emulator finds its command.
+- Project Manager: the grid view shows the selected project's details under the grid, the same details as the list's expanded row.
+- Project Manager: Emulator... lists only the platforms that a build uses; the "No platform" line appears only for a build with no platform.
+- Project Manager wizard: a refused "existing translation folder" create (a game of one file) no longer leaves an empty translation folder behind.
+- Image readers and plugin unpack files: every `ImageError` message and the unpack `ValueError` texts (GameCube, Wii, 3DS, Switch, Nintendo DS, RomFS, Layton DS, Castlevania DS, Metal Gear Solid: The Twin Snakes, Final Fantasy Tactics Advance 2) go through `tr()`, with Ukrainian entries.
 - Project Manager details: the source files chosen in the wizard are listed with their roles (base, update ...).
 - Project Manager details: the source folder's files by kind (text, font, texture, other) are counted on a worker when a row first opens, and "needs attention" lists the blocks with no translation file yet.
 - Project Manager: the error texts of the GameCube reader, the shared image helpers and the image identify layer go through `tr()`; the wizard's "Unpacking failed" line shows them in Ukrainian.

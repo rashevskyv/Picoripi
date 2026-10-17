@@ -37,7 +37,7 @@ def _project_with_files(root, name, project_id, files):
 
 def test_resource_job_counts_the_source_folder_on_a_worker(qtbot, tmp_path):
     project = _project_with_files(tmp_path, "Aria", "p-aria", {"menu.json": b"12345", "font.bfn": b"abc"})
-    job = ResourceJob(project)
+    job = ResourceJob(project, _loader)
 
     with qtbot.waitSignal(job.done, timeout=10000) as blocker:
         job.start()
@@ -53,7 +53,7 @@ def test_a_project_whose_source_is_one_file_counts_that_file_only(qtbot, tmp_pat
     data = json.loads(open(project, encoding="utf-8").read())
     data["metadata"]["source_path"] = str(tmp_path / "games" / "Aria" / "source" / "game.gb")
     open(project, "w", encoding="utf-8").write(json.dumps(data))
-    job = ResourceJob(project)
+    job = ResourceJob(project, _loader)
 
     with qtbot.waitSignal(job.done, timeout=10000) as blocker:
         job.start()
@@ -65,7 +65,7 @@ def test_a_project_whose_source_is_one_file_counts_that_file_only(qtbot, tmp_pat
 
 
 def test_resource_job_reports_a_project_file_that_is_not_there(qtbot, tmp_path):
-    job = ResourceJob(str(tmp_path / "gone" / "project.uiproj"))
+    job = ResourceJob(str(tmp_path / "gone" / "project.uiproj"), _loader)
 
     with qtbot.waitSignal(job.failed, timeout=10000):
         job.start()
@@ -76,11 +76,11 @@ def test_resource_job_reports_a_project_file_that_is_not_there(qtbot, tmp_path):
 def test_cancelled_resource_job_reports_nothing(qtbot, tmp_path, monkeypatch):
     project = _project_with_files(tmp_path, "Aria", "p-aria", {"a.json": b"x"})
     done, failed = [], []
-    job = ResourceJob(project)
+    job = ResourceJob(project, _loader)
     job.done.connect(done.append)
     job.failed.connect(failed.append)
 
-    def walk_that_is_cancelled(source, is_cancelled):
+    def walk_that_is_cancelled(source, is_cancelled, classify=None):
         job.requestInterruption()   # the user closes the window during the walk
         return None if is_cancelled() else {}
 
@@ -138,3 +138,45 @@ def test_expanded_row_names_the_files_the_wizard_took_by_role(qtbot, tmp_path):
     texts = [label.text() for label in detail.findChildren(QLabel)]
 
     assert "base: /games/aria.iso\nupdate: /games/aria-update.nsp" in texts
+
+
+class ClassifyingGame(BaseGameRules):
+    """A game whose hook names ``.dat`` files as textures; any other file keeps the extension rule."""
+
+    def classify_resource(self, path):
+        return resources.TEXTURE if path.endswith(".dat") else None
+
+
+class BrokenClassifyingGame(BaseGameRules):
+    """A game whose hook fails: the file falls back to the extension rule."""
+
+    def classify_resource(self, path):
+        raise RuntimeError("plugin bug")
+
+
+def test_the_plugins_classifier_names_the_kind_before_the_extension(qtbot, tmp_path):
+    project = _project_with_files(tmp_path, "Aria", "p-aria", {"blob.dat": b"123", "menu.json": b"12"})
+    job = ResourceJob(project, lambda name: ClassifyingGame())
+
+    with qtbot.waitSignal(job.done, timeout=10000) as blocker:
+        job.start()
+
+    assert blocker.args[0]["texture"] == {"files": 1, "bytes": 3}
+    assert blocker.args[0]["text"] == {"files": 1, "bytes": 2}
+    qtbot.waitUntil(lambda: job.isFinished(), timeout=5000)
+
+
+def test_a_failing_classifier_leaves_the_extension_rule_in_place(qtbot, tmp_path):
+    project = _project_with_files(tmp_path, "Aria", "p-aria", {"blob.dat": b"123", "menu.json": b"12"})
+    job = ResourceJob(project, lambda name: BrokenClassifyingGame())
+
+    with qtbot.waitSignal(job.done, timeout=10000) as blocker:
+        job.start()
+
+    assert blocker.args[0]["other"] == {"files": 1, "bytes": 3}
+    assert blocker.args[0]["text"] == {"files": 1, "bytes": 2}
+    qtbot.waitUntil(lambda: job.isFinished(), timeout=5000)
+
+
+def test_the_base_hook_keeps_the_extension_rule():
+    assert BaseGameRules(None).classify_resource("menu.json") is None

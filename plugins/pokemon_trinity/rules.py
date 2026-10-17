@@ -69,6 +69,9 @@ class GameRules(BaseGameRules):
     def get_source_subfolder(self) -> Optional[str]:
         return unpack.SOURCE_DIR
 
+    def get_platforms(self) -> List[Dict[str, str]]:
+        return [{"id": "switch", "label": tr("Nintendo Switch")}]
+
     def get_build_targets(self) -> List[Dict[str, Any]]:
         return [{"id": "switch_layeredfs", "label": tr("Switch: Atmosphere LayeredFS mod (the game of the image)"),
                  "platforms": ["switch"], "kind": "layeredfs"}]

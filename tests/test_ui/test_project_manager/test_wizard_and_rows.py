@@ -149,6 +149,7 @@ def test_wizard_refuses_an_existing_translation_folder_for_a_one_file_project(qt
     qtbot.waitUntil(lambda: "cannot use an existing translation folder" in wizard._progress_text.text(), timeout=10000)
 
     assert created == []
+    assert not (tmp_path / "Aria" / "translation").exists()   # a refused create leaves no empty translation folder
 
 
 def test_wizard_asks_for_an_existing_translation_folder_that_exists(qtbot, tmp_path):

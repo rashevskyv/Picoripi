@@ -380,7 +380,8 @@ class ProjectWizard(QDialog):
         self._set_busy(True)
         self._progress.setValue(0)
         self._progress_text.setText(tr("Unpacking..."))
-        job = UnpackJob(self._game.currentData(), sources, folder, self._load_rules, key_paths)
+        job = UnpackJob(self._game.currentData(), sources, folder, self._load_rules, key_paths,
+                        existing_translation=self._existing_translation())
         job.progress.connect(self._on_progress)
         job.cancelled.connect(self._on_unpack_cancelled)
         job.done.connect(lambda unpacked, s=sources, c=choices: self._on_unpacked(unpacked, s, c))

@@ -186,25 +186,40 @@ Done on `feat/pm-phase3` (2026-10-17):
   "Audit r17" line in the phase 2c section for the readers still in English.
 
 Found while doing it (not fixed):
-- Run in emulator is checked for each target. `pokemon_bdsp`, `pokemon_nx` and `pokemon_trinity` declare no platform
-  in `get_platforms()`, but their `switch_layeredfs` target names `switch`. The lookup works (the target's platform
-  is used), but the wizard cannot set the platform for those games.
+- Fixed in phase 3b: `pokemon_bdsp`, `pokemon_nx` and `pokemon_trinity` declare `switch` in `get_platforms()`. `test_plugin_platforms.py` checks that every build target names only declared platforms.
 - `super_mario_sunshine`'s `port_pack` target names no platform. It uses the project's platform (`gc`).
-- The one-file refusal of the wizard's existing translation folder runs after `UnpackJob` made `project_dir/translation`, so a refused create leaves that empty folder behind.
+- Fixed in phase 3b: `UnpackJob` makes `translation` only when the project keeps its own folder, so a refused one-file create leaves none.
 - Real builds of each of the 16 targets are not run here (they need the owner's data). Tests cover the dispatch
   with a fake target. Check each target once on the owner's machine.
 - The resource counts are kept for the window's life. A file added to a source folder shows after the window
   reopens.
 
 Missing, outside phase 3 (for the owner's decision):
-- No settings page for console keys. Keys are asked by the wizard only, one per file (the design says one page).
-- No count of opens. Only the last opened time is kept.
-- The grid view has no details pane (Build, Export, Run and the flags are in the list view only).
+- Done in phase 3b: the Console keys tab in Settings holds the key file path of each console (paths only). The wizard still asks for a missing key and stores it there.
+- Decided 2026-10-17: no opens counter. The design's "opens" is the project-opens flag (last opened time), which the registry already keeps.
+- Done in phase 3b: the grid shows the selected project's details under the grid (the list's detail widget, the same code).
 - No zip export. Single-file export works (`build.export_build` copies a file).
 - macOS `.app` bundles: the emulator command needs the path of the program inside the bundle (no helper yet).
 - `metroid_prime_trilogy` has no `identify_source`, so its wizard takes the role from the user.
 - Icons changed while the window is open show at the next scan (no file watcher).
-- Resource kinds come from the extension only. A font or texture in an unknown format counts as other.
+- Resource kinds: the plugin hook `classify_resource(path)` names a kind first (done in phase 3b); the extension rule is the default. No plugin overrides it yet, so a font or texture in an unknown format still counts as other for every game.
+
+## Project Manager phase 3b (2026-10-17, branch `feat/pm-phase3`)
+
+Done in this round: the Switch platform of three Pokémon games, the refused one-file create, the emulator lines, the grid
+details, the Console keys tab, the `classify_resource` hook, and the `ImageError` texts listed under "ImageError texts" below.
+Decisions of the coordinator (2026-10-17): keys live on one settings page per console, paths only; no opens counter.
+
+Open after phase 3b:
+- The Console keys tab lists the slots in `core/project_library/console_keys.py` (`CONSOLES`), not the consoles found by
+  loading every plugin (that would import all plugins on the UI thread). `test_every_console_a_plugin_names_has_a_slot`
+  fails when a plugin names a console without a slot; a new console needs a slot first.
+- `classify_resource` is optional. No plugin overrides it yet.
+- Real builds of each target are not run here (owner's data), as before.
+- Done in phase 3b: every `ImageError` text of `core/containers/` and `plugins/*/unpack.py` goes through `tr()`; `tests/test_core/test_image_error_text.py` keeps it so.
+- Done in phase 3b: the unpack and container error texts (`ValueError`, `RuntimeError`, `OSError`) of `core/containers/` and `plugins/*/unpack.py` go through `tr()` (87 messages), with Ukrainian entries.
+- Still English: the `OodleError` texts of `core/unreal/oodle.py` (4 f-strings: library not loaded, no `OodleLZ_Decompress`, no `OodleLZ_Compress`, nothing compressed). The Pokémon Switch unpack wraps them as "the Oodle library cannot be used: {0}" (`tr()`), so the English detail still shows inside the Ukrainian line.
+- Still English: 9 developer messages that reach the log, not the wizard: `core/containers/wia.py` (2, seek on a closed stream) and `core/project_library/` (7: project file not an object, unknown console, unknown flags, missing entries object). Count with `grep -rn 'raise \(ValueError\|RuntimeError\)(' core/containers core/project_library`.
 
 ## Project Manager phase 2 (2026-10-12)
 

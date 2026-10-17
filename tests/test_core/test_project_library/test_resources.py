@@ -63,3 +63,22 @@ def test_symbolic_links_are_not_followed(tmp_path):
     counts = resources.count_resources(tmp_path)
 
     assert counts[resources.TEXTURE] == {"files": 1, "bytes": 2}
+
+
+def test_a_classifier_names_the_kind_first_and_an_unknown_answer_keeps_the_extension(tmp_path):
+    (tmp_path / "menu.json").write_bytes(b"12345")   # text by extension, the hook has no answer
+    (tmp_path / "script.dat").write_bytes(b"123")    # other by extension, the hook says texture
+    (tmp_path / "title.png").write_bytes(b"1234")    # texture by extension, the hook names no known kind
+
+    def classify(path):
+        if path.endswith("script.dat"):
+            return resources.TEXTURE
+        if path.endswith("title.png"):
+            return "not-a-kind"
+        return None
+
+    counts = resources.count_resources(tmp_path, classify=classify)
+
+    assert counts[resources.TEXT] == {"files": 1, "bytes": 5}
+    assert counts[resources.TEXTURE] == {"files": 2, "bytes": 7}
+    assert counts[resources.OTHER] == {"files": 0, "bytes": 0}

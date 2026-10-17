@@ -17,8 +17,8 @@ from PyQt6.QtCore import QProcess, QRect, QSize, Qt, QTimer, QUrl
 from PyQt6.QtGui import QColor, QDesktopServices, QIcon, QImage, QKeySequence, QPainter, QPixmap, QShortcut
 from PyQt6.QtWidgets import (
     QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QInputDialog, QLabel, QLineEdit,
-    QListWidget, QListWidgetItem, QMenu, QMessageBox, QProgressBar, QPushButton, QStackedWidget, QStyledItemDelegate,
-    QToolButton, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+    QListWidget, QListWidgetItem, QMenu, QMessageBox, QProgressBar, QPushButton, QScrollArea, QSplitter,
+    QStackedWidget, QStyledItemDelegate, QToolButton, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 
 from core.i18n import tr
@@ -317,6 +317,7 @@ class ProjectManagerDialog(QDialog):
         self._resource_trees: Dict[str, QTreeWidget] = {}  # row key -> the resource tree shown in its details
         self._resource_cache: Dict[str, Dict[str, Dict[str, int]]] = {}  # row key -> counts (kept for this window)
         self._resource_jobs: Dict[str, ResourceJob] = {}
+        self._grid_detail_signature: Optional[str] = None  # the row the grid's details pane shows
         self._icon_images: Dict[str, QImage] = {}
         self._icons: Dict[str, QIcon] = {}
         self._tiles: Dict[Tuple[str, str], QIcon] = {}
@@ -447,13 +448,23 @@ class ProjectManagerDialog(QDialog):
         self._grid.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._grid.customContextMenuRequested.connect(partial(self._context_menu, self._grid))
         self._grid.itemDoubleClicked.connect(self._on_grid_double_click)
+        self._grid.itemSelectionChanged.connect(self._refresh_grid_detail)
+        # the grid's details: the same widget as the list's expanded row, under the grid for the selected project
+        self._grid_details = QScrollArea()
+        self._grid_details.setWidgetResizable(True)
+        self._grid_details.hide()
+        self._grid_page = QSplitter(Qt.Orientation.Vertical)
+        self._grid_page.addWidget(self._grid)
+        self._grid_page.addWidget(self._grid_details)
+        self._grid_page.setStretchFactor(0, 3)
+        self._grid_page.setStretchFactor(1, 2)
 
         self._empty = _message_page(tr("No projects yet. Press + to add a project."))
         self._no_match = _message_page(tr("No project matches this search."))
 
         self._stack = QStackedWidget()
         self._stack.addWidget(self._tree)
-        self._stack.addWidget(self._grid)
+        self._stack.addWidget(self._grid_page)
         self._stack.addWidget(self._empty)
         self._stack.addWidget(self._no_match)
         layout.addWidget(self._stack, 1)
@@ -701,7 +712,7 @@ class ProjectManagerDialog(QDialog):
         elif not shown:
             self._stack.setCurrentWidget(self._no_match)
         else:
-            self._stack.setCurrentWidget(self._grid if self._mode == "grid" else self._tree)
+            self._stack.setCurrentWidget(self._grid_page if self._mode == "grid" else self._tree)
         if shape == self._shown and self._items:
             self._update_in_place(shape, rows_by_key)
         else:
@@ -761,6 +772,7 @@ class ProjectManagerDialog(QDialog):
         self._tree.updateGeometries()
         self._tree.verticalScrollBar().setValue(scroll)
         self._restore_selection(selected)
+        self._refresh_grid_detail()
 
     def _update_in_place(self, shape: List[Tuple[str, str, List[str]]], rows_by_key: Dict[str, Dict[str, Any]]) -> None:
         """The same projects in the same order: only the cells, icons and details that changed are set."""
@@ -772,6 +784,27 @@ class ProjectManagerDialog(QDialog):
                 self._fill_grid(self._grid_items[key], row)
                 if item.isExpanded():
                     self._refresh_detail(item, row)
+        self._refresh_grid_detail()
+
+    def _refresh_grid_detail(self) -> None:
+        """Show the selected project's details under the grid. Rebuilt only when that project's row changed."""
+        row = self._row_by_key(self._selected_key()) if self._mode == "grid" else None
+        if row is None:
+            self._grid_detail_signature = None
+            old = self._grid_details.takeWidget()
+            if old is not None:
+                old.deleteLater()
+            self._grid_details.hide()
+            return
+        signature = repr(sorted((name, repr(value)) for name, value in row.items()))
+        if signature == self._grid_detail_signature:
+            return
+        self._grid_detail_signature = signature
+        old = self._grid_details.takeWidget()
+        if old is not None:
+            old.deleteLater()
+        self._grid_details.setWidget(self._detail_widget(row))
+        self._grid_details.show()
 
     def _refresh_detail(self, item: QTreeWidgetItem, row: Dict[str, Any]) -> None:
         signature = repr(sorted((name, repr(value)) for name, value in row.items()))
@@ -1068,7 +1101,7 @@ class ProjectManagerDialog(QDialog):
         return tree
 
     def _start_resources(self, key: str, project_file: str) -> None:
-        job = ResourceJob(project_file)
+        job = ResourceJob(project_file, self._load_rules)
         self._resource_jobs[key] = job
         self._jobs.append(job)
         job.done.connect(lambda counts, k=key, j=job: self._resources_ended(k, j, counts))
@@ -1183,13 +1216,12 @@ class ProjectManagerDialog(QDialog):
         return emulator_template_for(self._document.get("settings") or {}, platform)
 
     def _known_platforms(self) -> List[str]:
-        """Every platform a project, a build target or a stored emulator command names, sorted. "" is a project
-        or target with no platform: its command is the shared one."""
+        """Every platform a build runs on, plus each stored emulator command, sorted. "" is a build with no platform
+        (its target and project name none): its line appears only then, and its command is the shared one."""
         names = set()
         for row in self._rows():
-            names.add(row.get("platform") or "")
             for target in row.get("targets") or []:
-                names.update(target.get("platforms") or [])
+                names.add(emulator_platform(target.get("platforms") or [], row.get("platform") or ""))
         names.update(name[len(EMULATOR_PREFIX):] for name in self._document.get("settings") or {}
                      if name.startswith(EMULATOR_PREFIX))
         return sorted(names)

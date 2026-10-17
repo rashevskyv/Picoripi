@@ -31,7 +31,7 @@ class EmulatorDialog(QDialog):
             self._before[platform] = value
         layout.addLayout(form)
         if not platforms:
-            layout.addWidget(QLabel(tr("No platform yet. Add a project first.")))
+            layout.addWidget(QLabel(tr("No build target yet. Add a project with a build target first.")))
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)

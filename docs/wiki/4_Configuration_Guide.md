@@ -75,6 +75,10 @@ Connection to the mobile review backend. See [12. Picoripi Companion](12_Picorip
 | Test Connection | Tests whether the server is reachable and accepting tokens |
 | Automatically sync on project open and close | Background auto-pull on project open; auto-push on save/exit |
 
+### Console keys
+
+The key file of each console: 3DS, Switch, Wii and the Oodle library. Picoripi keeps only the path of each file. It never shows, logs or copies the key contents. **Browse...** sets a path and **Clear** forgets it. The state line shows whether the stored file still exists. The Project Manager wizard asks for a missing key file and stores it here. Changes apply at once.
+
 ### Logging
 
 | Control | |
