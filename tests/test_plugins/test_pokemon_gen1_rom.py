@@ -243,3 +243,18 @@ def test_ukrainian_letters_encode_to_their_font_cells():
     gold = rom_project._names(json.loads((rom_project.FACTS_DIR.parent.parent / "pokemon_gsc" / "rom_facts"
                                           / "pokegold.json").read_text(encoding="utf-8")))
     assert rom_text.encode([("db", '"\u0411"')], gold) == bytes([0x80 + 3])
+
+
+def test_gsc_budget_check_uses_the_text_units_of_its_own_parser(monkeypatch):
+    from plugins.pokemon_gsc import pret_text
+    from plugins.pokemon_gsc.rules import GameRules as GscRules
+    source = 'Body:\n\ttext "Aa"\n\tdone\n'
+    units = pret_text.parse(source)
+    assert len(units) == 1 and units[0].label == "Body"
+    rules = GscRules(None)
+    monkeypatch.setattr(rules, "_unit", lambda block_idx, string_idx: ("body.asm", units[0], {}))
+    monkeypatch.setattr(rules, "_block_file", lambda block_idx: ("body.asm", "/project/text/body.asm"))
+    rules._file_cache["/project/text/body.asm"] = (0, units, {})
+    monkeypatch.setattr(rules, "_budget_data", lambda path: ({"Body#0": 3}, _names()))
+    assert rules.exceeds_byte_budget(0, 0, "Aa") is False
+    assert rules.exceeds_byte_budget(0, 0, "Aaa") is True
