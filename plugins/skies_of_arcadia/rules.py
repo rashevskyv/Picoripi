@@ -29,6 +29,8 @@ class GameRules(BaseGameRules):
     problem_analyzer_class = ProblemAnalyzer
     tag_manager_class = TagManager
     tag_style = "curly"   # the byte tokens are {xx}
+    big_endian = scripts.BIG_ENDIAN   # the byte order of the script's words (GameCube: big endian)
+    fixed_scripts = scripts.FIXED_SIZE   # the scripts whose text keeps its length (see scripts.py)
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
@@ -79,7 +81,7 @@ class GameRules(BaseGameRules):
             return super().load_data_from_json_obj(json_obj)
         self._last_loaded = bytes(json_obj)
         try:
-            texts = scripts.read_strings(self._last_loaded)
+            texts = scripts.read_strings(self._last_loaded, self.big_endian)
         except (ValueError, IndexError, struct.error) as error:
             log_debug(f"skies_of_arcadia: not a field script ({error})")
             return [[]], {}
@@ -89,14 +91,14 @@ class GameRules(BaseGameRules):
         """Every save starts from the source file (the last version offered), so offsets never drift."""
         versions = list(context.existing_versions())
         self._save_source = versions[-1] if versions else None
-        self._save_fixed = scripts.is_fixed(context.relative_path)
+        self._save_fixed = scripts.is_fixed(context.relative_path, self.fixed_scripts)
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
         source = self._save_source if self._save_source is not None else self._last_loaded
         if source is None:
             return super().save_data_to_json_obj(data, block_names)
         strings = [str(t) for t in (data[0] if data else [])]
-        out, refused, missing = scripts.write_strings(source, strings, self._save_fixed)
+        out, refused, missing = scripts.write_strings(source, strings, self._save_fixed, self.big_endian)
         if refused:
             log_warning(f"skies_of_arcadia: {len(refused)} text(s) are longer than their fixed-size page; "
                         "they keep the original text")
@@ -108,13 +110,13 @@ class GameRules(BaseGameRules):
     def exceeds_byte_budget(self, block_idx: int, string_idx: int, text_value: str) -> bool:
         """True when a fixed-size script's text is longer than the segment it replaces (the source length)."""
         source = source_of(self.mw, block_idx)
-        if source is None or not scripts.is_fixed(source[0]):
+        if source is None or not scripts.is_fixed(source[0], self.fixed_scripts):
             return False
         try:
             index = int(string_idx)
         except (TypeError, ValueError):
             return False
-        lengths = self._budgets.get(block_idx, lambda: _segment_lengths(source[1]))
+        lengths = self._budgets.get(block_idx, lambda: _segment_lengths(source[1], self.big_endian))
         if lengths is None or not 0 <= index < len(lengths):
             return False
         return len(text.encode(text_value)[0]) > lengths[index]
@@ -125,10 +127,10 @@ class GameRules(BaseGameRules):
         self._budgets.clear()
 
 
-def _segment_lengths(path: Path) -> Optional[List[int]]:
+def _segment_lengths(path: Path, big: bool) -> Optional[List[int]]:
     """Byte length of each text segment of a source script (None when it cannot be read)."""
     try:
         body = Path(path).read_bytes()
-        return [end - start for start, end in scripts.segments(body)]
+        return [end - start for start, end in scripts.segments(body, big)]
     except (OSError, ValueError, IndexError, struct.error):
         return None

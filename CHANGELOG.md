@@ -1,6 +1,8 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Skies of Arcadia (Dreamcast, USA): plugin `plugins/skies_of_arcadia_dc` identifies the USA MK-51052 disc by its IP.BIN area symbol (EU refused), unpacks its field scripts (`FIELD/*.SCT`, plain, little endian) and builds a translated GD-ROM set through `gdrom_writer`; the script codec takes the byte order (`scripts.py` `big`).
+- GD-ROM identity: `images.identify` returns the IP.BIN area symbol as `region` (`U`, `E`, `J`).
 - Skies of Arcadia Legends (GameCube, USA): plugin `plugins/skies_of_arcadia` identifies the USA disc, unpacks it (field scripts decoded) and builds a translated disc copy (changed scripts compressed again, files written in place).
 - Skies of Arcadia Legends: field scripts open in the editor, one string per text segment; bytes shown as `{xx}` tokens, space as byte 0x7f, `\n` as the line break; `me201a.sct` keeps each segment's length (in-place saves only), other scripts may grow.
 - Skies of Arcadia Legends: the editor flags `SOA_BYTE_BUDGET` when a `me201a.sct` text is longer than its source segment (the plugin's problem analyzer, `plugins/skies_of_arcadia/problem_analyzer.py`).

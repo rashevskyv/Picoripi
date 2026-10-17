@@ -86,7 +86,8 @@ def _describe_gdrom(path: str | Path) -> Optional[Dict[str, Any]]:
         stream.close()
     if head[:len(SEGA_MAGIC)] != SEGA_MAGIC:
         return None
-    return {"kind": KIND_GDROM, "game_id": head[0x40:0x4A].decode("ascii", "replace").strip(), "encrypted": False}
+    return {"kind": KIND_GDROM, "game_id": head[0x40:0x4A].decode("ascii", "replace").strip(), "encrypted": False,
+            "region": head[0x30:0x38].decode("ascii", "replace").strip()}   # the area symbol: U, E or J
 
 
 def identify(path: str | Path) -> Optional[Dict[str, Any]]:

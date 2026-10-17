@@ -18,27 +18,28 @@ BIG_ENDIAN = True   # GameCube
 FIXED_SIZE = ("field/me201a.sct",)
 
 
-def is_fixed(rel_path: str) -> bool:
+def is_fixed(rel_path: str, names: Tuple[str, ...] = FIXED_SIZE) -> bool:
     key = rel_path.replace("\\", "/")
-    return any(key == name or key.endswith("/" + name) for name in FIXED_SIZE)
+    return any(key == name or key.endswith("/" + name) for name in names)
 
 
-def segments(body: bytes) -> List[Tuple[int, int]]:
-    """(start, end) byte offsets of each text segment, in file order."""
-    return [(start, end) for _page, start, end in skies_script.text_segments(body, BIG_ENDIAN)]
+def segments(body: bytes, big: bool = BIG_ENDIAN) -> List[Tuple[int, int]]:
+    """(start, end) byte offsets of each text segment, in file order. ``big`` is the script's byte order."""
+    return [(start, end) for _page, start, end in skies_script.text_segments(body, big)]
 
 
-def read_strings(body: bytes) -> List[str]:
-    return [text.decode(body[start:end]) for start, end in segments(body)]
+def read_strings(body: bytes, big: bool = BIG_ENDIAN) -> List[str]:
+    return [text.decode(body[start:end]) for start, end in segments(body, big)]
 
 
-def write_strings(source: bytes, strings: Sequence[str], fixed: bool) -> Tuple[bytes, List[int], Set[str]]:
+def write_strings(source: bytes, strings: Sequence[str], fixed: bool,
+                  big: bool = BIG_ENDIAN) -> Tuple[bytes, List[int], Set[str]]:
     """The body with the edited strings written in. Returns (new body, refused string indices, missing characters).
 
     Every string is compared with the source text, so an unchanged string keeps its bytes. The source body is the only
     base: the offsets come from it, never from a previous save.
     """
-    spans = segments(source)
+    spans = segments(source, big)
     if len(strings) != len(spans):
         raise ValueError(f"expected {len(spans)} strings, got {len(strings)}")
     replacements = {}
@@ -62,5 +63,5 @@ def write_strings(source: bytes, strings: Sequence[str], fixed: bool) -> Tuple[b
         for (start, end), new in replacements.items():
             out[start:end] = new
         return bytes(out), refused, missing
-    out, _delta = skies_script.grow_regions(source, replacements, BIG_ENDIAN)
+    out, _delta = skies_script.grow_regions(source, replacements, big)
     return out, refused, missing

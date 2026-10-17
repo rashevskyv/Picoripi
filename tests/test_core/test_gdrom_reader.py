@@ -185,7 +185,7 @@ def test_real_grandia_cue_is_identified_and_extracted_by_the_unpack_step(tmp_pat
     from core.project_library import images
 
     found = images.identify(REAL_CUE)
-    assert found == {"kind": "gdrom", "game_id": "T17716N", "encrypted": False}
+    assert found["kind"] == "gdrom" and found["game_id"] == "T17716N" and found["encrypted"] is False
     assert images.needs_key(REAL_CUE) is None
     out = images.extract(REAL_CUE, str(tmp_path), lambda *_: None, lambda: False,
                          select=lambda path: path in ("files/BTL/SYS.AFS", "ld/COPYRIGH.TXT"))
