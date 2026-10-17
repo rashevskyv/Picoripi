@@ -144,3 +144,11 @@ def test_real_usa_disc_is_identified_and_unpacked_as_field_scripts(tmp_path):
     rules.unpack_sources({"base": REAL_USA_CUE}, str(out), lambda *_: None, lambda: False)
     assert len(list((out / "FIELD").glob("*.SCT"))) == 185
     assert (out / "FIELD" / "ME201A.SCT").stat().st_size == 60746
+
+
+def test_the_plugin_opens_a_dreamcast_script_as_editor_text_and_saves_the_edit():
+    rules = GameRules()
+    data, _ = rules.load_data_from_json_obj(_script_le(b"\\h(Hello\\c\\h(Bye\\e"))
+    assert data == [["Hello", "Bye"]]
+    saved = rules.save_data_to_json_obj([["Hullo", "Bye"]], {})
+    assert scripts.read_strings(saved, big=False) == ["Hullo", "Bye"]
