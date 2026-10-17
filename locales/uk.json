@@ -2155,6 +2155,7 @@
         "Originals: not copied; the project refers to them by path.": "Оригінали не копіюються; проєкт посилається на них за шляхом.",
         "Started the emulator with {0}": "Емулятор запущено з {0}",
         "Emulator...": "Емулятор...",
+        "Source files": "Файли гри",
         "Resource": "Ресурс",
         "Files": "Файли",
         "Counting the files...": "Рахую файли...",

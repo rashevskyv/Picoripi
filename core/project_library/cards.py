@@ -28,6 +28,14 @@ def _exists(base: Path, value: str) -> bool:
     return candidate.exists()
 
 
+def _source_roles(metadata: Dict[str, Any]) -> Dict[str, str]:
+    """The files the wizard took, by role (``base``, ``update`` ...): the originals, named by path. Empty if none."""
+    roles = metadata.get("source_roles")
+    if not isinstance(roles, dict):
+        return {}
+    return {str(role): str(path) for role, path in roles.items() if role and path}
+
+
 def read_card(project_file: str | Path) -> Dict[str, Any]:
     """The card of one project. Raises ``OSError`` when the file is missing, ``ValueError`` when it is not JSON.
 
@@ -57,6 +65,7 @@ def read_card(project_file: str | Path) -> Dict[str, Any]:
         "modified": str(data.get("modified_at") or ""),
         "issues": issues,
         "flags": flags_of(metadata),
+        "source_roles": _source_roles(metadata),
         "mtime_ns": stat.st_mtime_ns,
         "size": stat.st_size,
     }

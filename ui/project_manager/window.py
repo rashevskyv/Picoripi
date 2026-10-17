@@ -665,6 +665,7 @@ class ProjectManagerDialog(QDialog):
                 "last_opened": entry.get("last_opened") or "",
                 "added": entry.get("added") or "",
                 "plugin": card.get("plugin", ""),
+                "source_roles": dict(card.get("source_roles") or {}),
                 "refreshing": key not in self._scanned,
                 "targets": list(cached.get("targets") or []),
                 "groups": dict(cached.get("groups") or {}),
@@ -982,6 +983,11 @@ class ProjectManagerDialog(QDialog):
         form = QFormLayout()
         form.addRow(tr("Platform"), QLabel(row["platform"] or "—"))
         form.addRow(tr("Plugin"), QLabel(row["plugin"] or "—"))
+        if row.get("source_roles"):
+            roles = QLabel("\n".join(f"{role}: {path}" for role, path in row["source_roles"].items()))
+            roles.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            roles.setWordWrap(True)
+            form.addRow(tr("Source files"), roles)
         form.addRow(tr("Lines"), QLabel("—" if row["lines"] is None else f"{row['lines']:,}"))
         form.addRow(tr("Translated"), QLabel("—" if row["translated"] is None else f"{row['translated']} %"))
         form.addRow(tr("Blocks"), QLabel("—" if row["blocks"] is None else str(row["blocks"])))

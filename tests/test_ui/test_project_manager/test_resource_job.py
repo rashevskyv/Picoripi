@@ -100,3 +100,25 @@ def test_expanded_row_shows_the_resource_kinds_and_the_missing_translation_count
     assert rows == {"Text files": "1", "Font files": "1", "Texture files": "1", "Other files": "0"}
     attention = [label.text() for label in detail.findChildren(QLabel) if label.text().startswith("Needs attention")]
     assert "2 blocks have no translation file yet." in attention[0]
+
+
+def test_expanded_row_names_the_files_the_wizard_took_by_role(qtbot, tmp_path):
+    project = _project_with_files(tmp_path, "Aria", "p-aria", {"menu.json": b"1"})
+    data = json.loads(open(project, encoding="utf-8").read())
+    data["metadata"]["source_roles"] = {"base": "/games/aria.iso", "update": "/games/aria-update.nsp"}
+    open(project, "w", encoding="utf-8").write(json.dumps(data))
+    key = registry.project_key(project)
+    registry.mutate(tmp_path, lambda reg: reg.add(project))
+    card = {"source_roles": {"base": "/games/aria.iso", "update": "/games/aria-update.nsp"}}
+    index.merge(tmp_path, {key: {"counted_mtime": os.stat(project).st_mtime_ns, "targets": [], "card": card}})
+    dialog = ProjectManagerDialog(None, str(tmp_path), [].append, lambda: None,
+                                  lambda path, updates: None, lambda name, value: None, _loader)
+    qtbot.addWidget(dialog)
+    qtbot.waitUntil(lambda: dialog._loaded and key in dialog._items, timeout=5000)
+
+    item = dialog._items[key]
+    item.setExpanded(True)
+    detail = dialog._tree.itemWidget(item.child(0), 0)
+    texts = [label.text() for label in detail.findChildren(QLabel)]
+
+    assert "base: /games/aria.iso\nupdate: /games/aria-update.nsp" in texts

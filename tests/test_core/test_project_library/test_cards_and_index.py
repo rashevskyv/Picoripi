@@ -89,3 +89,17 @@ def test_unreadable_index_is_set_aside(tmp_path):
 
     assert index.read(tmp_path) == {}
     assert index.index_path(tmp_path).with_name("project_index.json.unreadable").exists()
+
+
+def test_card_keeps_the_role_files_the_wizard_took_and_drops_anything_else(tmp_path):
+    folder = tmp_path / "picoripi"
+    folder.mkdir()
+    project = folder / "project.uiproj"
+    project.write_text(json.dumps({"plugin_name": "fake", "blocks": [], "metadata": {
+        "source_roles": {"base": "/games/aria.iso", "": "/x", "update": ""}}}), encoding="utf-8")
+
+    assert read_card(project)["source_roles"] == {"base": "/games/aria.iso"}
+
+    project.write_text(json.dumps({"plugin_name": "fake", "blocks": [], "metadata": {"source_roles": ["a"]}}),
+                       encoding="utf-8")
+    assert read_card(project)["source_roles"] == {}
