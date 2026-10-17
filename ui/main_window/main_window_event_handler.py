@@ -735,24 +735,30 @@ class MainWindowEventHandler:
             return
 
         game_rules = getattr(self.mw, 'current_game_rules', None)
-        ref_langs = ReferenceManager.load_multi_reference(
-            dir_path,
-            self.mw.data_store.block_names,
-            game_rules=game_rules
-        )
-        self.mw.data_store.reference_languages_data = ref_langs
-        primary_ref = (
-            ref_langs.get("Russian (RU)")
-            or (next(iter(ref_langs.values())) if ref_langs else {})
-        )
-        self.mw.data_store.reference_data = primary_ref
 
-        if hasattr(self.mw, 'ui_updater'):
-            self.mw.ui_updater.update_text_views()
+        def loaded(ref_langs) -> None:
+            self.mw.data_store.reference_languages_data = ref_langs
+            primary_ref = (
+                ref_langs.get("Russian (RU)")
+                or (next(iter(ref_langs.values())) if ref_langs else {})
+            )
+            self.mw.data_store.reference_data = primary_ref
 
-        if hasattr(self.mw, 'show_toast'):
-            if ref_langs:
-                summary = ", ".join(f"{k} ({len(v)})" for k, v in ref_langs.items())
-                self.mw.show_toast(tr("Loaded reference languages: {summary}", summary=summary))
-            else:
-                self.mw.show_toast(tr("No reference translation strings found in selected folder."))
+            if hasattr(self.mw, 'ui_updater'):
+                self.mw.ui_updater.update_text_views()
+
+            if hasattr(self.mw, 'show_toast'):
+                if ref_langs:
+                    summary = ", ".join(f"{k} ({len(v)})" for k, v in ref_langs.items())
+                    self.mw.show_toast(tr("Loaded reference languages: {summary}", summary=summary))
+                else:
+                    self.mw.show_toast(tr("No reference translation strings found in selected folder."))
+
+        # The parse runs on a worker thread when the plugin supports it; the result is applied on this thread.
+        if not ReferenceManager.load_in_background(dir_path, self.mw.data_store.block_names, game_rules, self.mw,
+                                                   loaded):
+            loaded(ReferenceManager.load_multi_reference(
+                dir_path,
+                self.mw.data_store.block_names,
+                game_rules=game_rules
+            ))

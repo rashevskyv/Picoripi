@@ -166,6 +166,16 @@ class ProblemIDs:
     PROBLEM_MISSING_ICON_SPACING = PROBLEM_MISSING_ICON_SPACING
     PROBLEM_STAR_TAG_RULES = PROBLEM_STAR_TAG_RULES
 
+class _ParseWindow:
+    """The main window as a reference parse on a worker thread sees it: a copy of the editor's tag mapping, nothing else.
+
+    The window's widgets are never read from another thread; the parse only reads and registers tag aliases.
+    """
+
+    def __init__(self, window: Any):
+        self.default_tag_mappings = dict(getattr(window, "default_tag_mappings", None) or {})
+
+
 class GameRules(BaseGameRules):
     """Game rules and translation logic for Game."""
 
@@ -1349,6 +1359,16 @@ class GameRules(BaseGameRules):
         return load_zelda_bmg_multi_reference(
             patch_path, block_names=block_names, game_rules=self
         )
+
+    def reference_worker_rules(self):
+        """Rules for a reference parse on a worker thread, and the window copy they read: (rules, window).
+
+        The same game with its own copy of the tag mapping. The parse registers aliases into that copy; the host copies
+        them into the editor's mapping on the window's thread (ReferenceManager.adopt_aliases). Build this on the
+        window's thread.
+        """
+        window = _ParseWindow(self.mw)
+        return GameRules(main_window_ref=window), window
 
     def get_glossary_seed_entries(self) -> List[Dict[str, Any]]:
         """Terms TP names itself: location plates, boss cards, item windows.
