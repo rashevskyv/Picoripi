@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Unpack: a Dreamcast GD-ROM cue sheet (`.cue` with its track files) is recognised as kind `gdrom` (product number from the SEGA IP.BIN as `game_id`) and read in place by the unpack step (`core/project_library/images.py`); the real Grandia II disc test covers it.
 - Archives: `core/containers/afs.py` reads CRI AFS archives (entry table, 0x800 alignment, trailer block) and rewrites them with replaced entries, longer ones included; an unchanged archive comes back byte for byte (all 281 AFS of the Grandia II Dreamcast disc checked); tests in `tests/test_core/test_afs_container.py`.
 - Image readers: `core/containers/gdrom.py` reads Dreamcast GD-ROM BIN/CUE sets (raw MODE1/2352 tracks, absolute sector addressing: LD from 0, HD from 45000) and lists the files of both ISO 9660 volumes (`files/` for the HD volume, `ld/` for the LD volume); tests in `tests/test_core/test_gdrom_reader.py` (synthetic discs plus real Grandia II and Skies of Arcadia discs when present).
 - Pokémon plugins (Gen 1, Gen 2, Gen 5, Gen 3 Mystery Dungeon 3DS, Switch, French): the asm, message, text and ROM budget files of a string are read on a worker (`plugins/common/block_loader.py`), so the editor's budget check, context and speaker lookups and the message attribute hooks never read a file on the UI thread; the block's problem scan runs again when its read ends.

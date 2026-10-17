@@ -178,3 +178,17 @@ def test_real_grandia_disc_lists_the_game_files():
     assert "files/GR2.IDX" in entries
     head = image.read_at(entries["files/GR2.AFS"].offset, 4)
     assert head == b"AFS\x00"
+
+
+@pytest.mark.skipif(not os.path.isfile(REAL_CUE), reason="the owner's Grandia II image is not on disk")
+def test_real_grandia_cue_is_identified_and_extracted_by_the_unpack_step(tmp_path):
+    from core.project_library import images
+
+    found = images.identify(REAL_CUE)
+    assert found == {"kind": "gdrom", "game_id": "T17716N", "encrypted": False}
+    assert images.needs_key(REAL_CUE) is None
+    out = images.extract(REAL_CUE, str(tmp_path), lambda *_: None, lambda: False,
+                         select=lambda path: path in ("files/BTL/SYS.AFS", "ld/COPYRIGH.TXT"))
+    assert out == str(tmp_path)
+    assert (tmp_path / "files" / "BTL" / "SYS.AFS").stat().st_size == 2484224
+    assert (tmp_path / "ld" / "COPYRIGH.TXT").stat().st_size == 29
