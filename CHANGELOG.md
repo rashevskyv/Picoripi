@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Pokémon plugins (Gen 1, Gen 2, Gen 5, Gen 3 Mystery Dungeon 3DS, Switch, French): the asm, message, text and ROM budget files of a string are read on a worker (`plugins/common/block_loader.py`), so the editor's budget check, context and speaker lookups and the message attribute hooks never read a file on the UI thread; the block's problem scan runs again when its read ends.
 - Pokémon Legends: Z-A (Switch): the message preview has a box switch (field box, NPC speech bubble, lower-left message window); the speech bubble is drawn in UniversNext Cond at 29.5 by 29 px with every ink edge within 1 px of the Eden frame (`speech_bubble` and `hud_message` in `plugins/pokemon_trinity/config.json`, `plugins/pokemon_trinity/speech_bubble.py`, `speech_layout` in `plugins/common/switch_message_preview.py`; the HUD window is layout-derived, frame pending).
 - Pokémon Brilliant Diamond / Shining Pearl (Switch): the field dialogue preview wraps and draws two lines (line pitch 61 px; wrap width in [848.5, 1010.8) px, from the Eden frame; `config.json` `dialogue_box`, `plugins/pokemon_bdsp/dialogue_preview.py`).
 - Pokémon Brilliant Diamond / Shining Pearl (Switch): the field dialogue preview draws the first line in the game's TextMesh Pro efigs face at the measured size (45.5 px, pen x 485.5, baseline 855; facts in `config.json` `dialogue_box`, `plugins/pokemon_bdsp/dialogue_preview.py`); the box picture and the wrap width are not measured yet.

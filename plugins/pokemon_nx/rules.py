@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
 from plugins.common import gfmsg, message_block
+from plugins.common.block_loader import ReadThrough, rescan_block
 from utils.constants import user_plugin_file_or_shipped
 from utils.logging_utils import log_debug, log_warning
 from utils.utils import clean_spaces
@@ -68,7 +69,7 @@ class GameRules(BaseGameRules):
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
         self._file: Optional[bytes] = None        # the message file a save writes over (line flags)
-        self._located: Dict[int, Optional[Tuple[str, List[int], List[str]]]] = {}
+        self._located = ReadThrough(f"{_PLUGIN} message", lambda block_idx: rescan_block(self.mw, block_idx))
         self._map_stamp: Optional[tuple] = None
         self.translation_map: Dict[str, str] = {}
         self.reverse_translation_map: Dict[str, str] = {}
@@ -169,12 +170,8 @@ class GameRules(BaseGameRules):
     # -- where a block comes from ------------------------------------------------
 
     def _locate(self, block_idx: int) -> Optional[Tuple[str, List[int], List[str]]]:
-        """``(relative path, line flags, line labels)`` of a data block; cached per load."""
-        if block_idx in self._located:
-            return self._located[block_idx]
-        found = message_block.locate(self.mw, block_idx, _PLUGIN)
-        self._located[block_idx] = found
-        return found
+        """``(relative path, line flags, line labels)`` of a data block, from memory (read off the UI thread)."""
+        return message_block.cached(self._located, self.mw, block_idx)
 
     def get_message_attributes(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
         """The line's label (from the ``.tbl``), its index and flags."""
