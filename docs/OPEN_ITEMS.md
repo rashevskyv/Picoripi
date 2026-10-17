@@ -10,6 +10,19 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Grandia PS1, PC HD Remaster and Grandia II HD (`plugins/grandia`, 2026-10-17)
+
+- Grandia PS1: the Grandia plugin does not list a PS1 platform yet; the wizard does not unpack the discs
+  (`core/containers/psx_disc.py` and `images.identify` are ready). The input is two RAR archives: Picoripi has no RAR
+  reader, so one extract step runs outside it until the owner decides otherwise.
+- Grandia PS1 text: dialogue is ASCII in `FIELD/*.MDP` and `BATLE/*.BBG`, with control codes. A pointer test found no
+  table of text offsets, so the text is probably inline in a command stream. A longer string needs the stream's jumps
+  fixed; the writer waits for that decision.
+- Grandia PS1 emulator proof: DuckStation has no BIOS on the owner's PC; try PCSX-Redux with its own OpenBIOS.
+- Grandia HD Remaster (PC, scene release): the game data is inside `skidrow.bin`, an installer payload with no known
+  format. Owner question: a copy of the installed game folder.
+- Grandia II HD Remaster (PC, scene release): the image is UDF, not ISO 9660; Picoripi has no UDF reader.
+
 ## Super Mario Galaxy 1 and 2 (`plugins/super_mario_galaxy`, 2026-10-15, D39)
 
 - The Wii fonts get the Ukrainian mod's Cyrillic glyphs, scaled from the Switch fonts (`font_port.py`); the mod has
