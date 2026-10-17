@@ -54,3 +54,27 @@ def test_project_folders_hold_every_message_once_with_the_planned_counts():
                        "HD Msguk only": 413, "HD Msgus only": 405}
     assert sum(folders.values()) == 19531
     assert plan.shared_files == {"Fontus/fontres.arc": ("wii",)}
+
+
+def test_shared_font_is_the_translated_base_copy_not_the_source(tmp_path):
+    """The Wii takes the GameCube font as it ships (translated), byte for byte; the source copy is not used."""
+    from core.family_projects.model import FamilyMember, FamilyPlan
+    from plugins.zelda_bmg.family import copy_shared_files
+
+    source = tmp_path / "source" / "res"
+    translated = tmp_path / "translation" / "res"
+    for res, text in ((source, b"english font"), (translated, b"translated font")):
+        (res / "Fontus").mkdir(parents=True)
+        (res / "Fontus" / "fontres.arc").write_bytes(text)
+    plan = FamilyPlan(
+        members=(FamilyMember("gc", "GameCube", str(source / "Msgus"), base=True),
+                 FamilyMember("wii", "Wii", str(tmp_path / "wii" / "Msgus"), parents=("gc",))),
+        read=lambda key: [],
+        shared_files={"Fontus/fontres.arc": ("wii",)},
+    )
+    out = tmp_path / "out" / "res"
+    assert copy_shared_files(plan, "wii", out, translated) == ["Fontus/fontres.arc"]
+    assert (out / "Fontus" / "fontres.arc").read_bytes() == b"translated font"
+    assert copy_shared_files(plan, "gc", tmp_path / "gc_out") == []
+    assert copy_shared_files(plan, "wii", out) == ["Fontus/fontres.arc"]
+    assert (out / "Fontus" / "fontres.arc").read_bytes() == b"english font"
