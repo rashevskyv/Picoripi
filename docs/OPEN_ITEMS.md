@@ -164,17 +164,31 @@ Exists:
   and file identity from `identify_source` (30 plugins). Several files; unpack on create with cancel; key files
   asked per console (`unpack_key_consoles`: 8 plugins).
 
-Missing (phase 3 work package, in this order):
-- (a) One emulator command for every platform (`settings.emulator_command` in the registry). The owner wants one
-  command per platform.
-- (b) The row has no resource tree by kind (texts, fonts, textures, other). The tree is by source folder only.
-- (c) The wizard has no "use an existing translation folder" option (the old `NewProjectDialog` had one).
-  `metadata.source_roles` is written by the wizard and read by no code. A project that is not unpacked uses only the
-  base file.
-- (d) Fixed-extension file dialogs: `components/project_dialogs.py` `NewProjectDialog` (no longer opened) and
-  `ui/settings/path_picker_mixin.py`. The wizard and the icon dialogs already list all files.
-- (e) `ImageError` texts (about 228 raise sites in `core/containers/`, `core/project_library/images.py` and the
-  plugins' `unpack.py`) are not translated. The wizard shows them in "Unpacking failed".
+Done on `feat/pm-phase3` (2026-10-17):
+- (a) One emulator command per platform: `emulator_command.<platform>` in the registry; Run uses the command of the
+  target's platform; the old shared `emulator_command` still applies to platforms with no line of their own. A
+  platform with no platform (plain text) uses the shared one. Run is off for a target with no command. Test:
+  `test_run_starts_the_emulator_of_the_platform_the_build_is_for` (no real emulator starts).
+- (b) Row details: the source folder's files by kind (text, font, texture, other), counted on a worker when the row
+  opens (`ResourceJob`, cancellable; cached for the window's life, so a file added later shows after a reopen). Needs
+  attention lists blocks with no translation file yet (`missing_translations`, counted in the scan). Kinds come from
+  the file extension (`core/project_library/resources.py`).
+- (c) Wizard: "Use an existing translation folder" (folder projects only; refused for a one-file project). The
+  source files and their roles are listed in the row details. The roles still reach `unpack_sources` as before.
+- (d) `NewProjectDialog` is removed. The Import block and settings file pickers use `formats.dialog_filter`. The
+  wizard and the icon dialogs list all files, as before.
+- (e) GameCube reader, shared image helpers and identify layer: `ImageError` texts through `tr()`. See the
+  "Audit r17" line in the phase 2c section for the readers still in English.
+
+Found while doing it (not fixed):
+- Run in emulator is checked for each target. `pokemon_bdsp`, `pokemon_nx` and `pokemon_trinity` declare no platform
+  in `get_platforms()`, but their `switch_layeredfs` target names `switch`. The lookup works (the target's platform
+  is used), but the wizard cannot set the platform for those games.
+- `super_mario_sunshine`'s `port_pack` target names no platform. It uses the project's platform (`gc`).
+- Real builds of each of the 16 targets are not run here (they need the owner's data). Tests cover the dispatch
+  with a fake target. Check each target once on the owner's machine.
+- The resource counts are kept for the window's life. A file added to a source folder shows after the window
+  reopens.
 
 Missing, outside phase 3 (for the owner's decision):
 - No settings page for console keys. Keys are asked by the wizard only, one per file (the design says one page).
@@ -184,6 +198,7 @@ Missing, outside phase 3 (for the owner's decision):
 - macOS `.app` bundles: the emulator command needs the path of the program inside the bundle (no helper yet).
 - `metroid_prime_trilogy` has no `identify_source`, so its wizard takes the role from the user.
 - Icons changed while the window is open show at the next scan (no file watcher).
+- Resource kinds come from the extension only. A font or texture in an unknown format counts as other.
 
 ## Project Manager phase 2 (2026-10-12)
 
