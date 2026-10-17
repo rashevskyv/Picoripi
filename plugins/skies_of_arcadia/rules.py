@@ -2,16 +2,20 @@
 from __future__ import annotations
 
 import struct
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.formats import DEFAULT_FORMATS, FileFormat
 from core.i18n import tr
 from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
+from plugins.common.block_loader import ReadThrough, rescan_block, source_of
 from utils.logging_utils import log_debug, log_warning
 
-from . import build, scripts, unpack
+from . import build, scripts, text, unpack
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
+from .problem_analyzer import ProblemAnalyzer
+from .tag_manager import TagManager
 
 GAME_ID = "GEAE8P"
 TARGET_ID = "gc_iso"
@@ -22,12 +26,17 @@ class GameRules(BaseGameRules):
 
     problem_prefix = PLUGIN_PREFIX
     problem_definitions = PROBLEM_DEFINITIONS
+    problem_analyzer_class = ProblemAnalyzer
+    tag_manager_class = TagManager
+    tag_style = "curly"   # the byte tokens are {xx}
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
         self._save_source: Optional[bytes] = None
         self._save_fixed = False
         self._last_loaded: Optional[bytes] = None
+        # Segment lengths of a fixed-size script, read off the UI thread (a miss returns None until the read ends).
+        self._budgets = ReadThrough("skies_of_arcadia budgets", lambda block_idx: rescan_block(self.mw, block_idx))
 
     def get_display_name(self) -> str:
         return "Skies of Arcadia Legends (GameCube)"
@@ -96,6 +105,30 @@ class GameRules(BaseGameRules):
                         + "".join(sorted(missing)))
         return out
 
+    def exceeds_byte_budget(self, block_idx: int, string_idx: int, text_value: str) -> bool:
+        """True when a fixed-size script's text is longer than the segment it replaces (the source length)."""
+        source = source_of(self.mw, block_idx)
+        if source is None or not scripts.is_fixed(source[0]):
+            return False
+        try:
+            index = int(string_idx)
+        except (TypeError, ValueError):
+            return False
+        lengths = self._budgets.get(block_idx, lambda: _segment_lengths(source[1]))
+        if lengths is None or not 0 <= index < len(lengths):
+            return False
+        return len(text.encode(text_value)[0]) > lengths[index]
+
     def reset_runtime_state(self) -> None:
         self._save_source = self._last_loaded = None
         self._save_fixed = False
+        self._budgets.clear()
+
+
+def _segment_lengths(path: Path) -> Optional[List[int]]:
+    """Byte length of each text segment of a source script (None when it cannot be read)."""
+    try:
+        body = Path(path).read_bytes()
+        return [end - start for start, end in scripts.segments(body)]
+    except (OSError, ValueError, IndexError, struct.error):
+        return None

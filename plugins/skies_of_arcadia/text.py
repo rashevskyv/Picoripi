@@ -4,7 +4,7 @@ Each byte is one character in the editor, so a byte count and a character count 
 
 - printable ASCII (0x21 to 0x7e) is itself, except backslash and left brace;
 - the space is byte 0x7f;
-- the pair 0x5c 0x6e (backslash, n) is one line break, shown as ``\n``;
+- the pair 0x5c 0x6e (backslash, n) is one line break, shown as backslash and n;
 - every other byte is a token ``{xx}`` (two lowercase hex digits), so the editor's tag checks see it as a tag.
 
 ``decode`` and ``encode`` are exact inverses for every byte string: ``encode(decode(b)) == b``. A character the game
