@@ -2377,6 +2377,7 @@
   "The disc image is missing or changed: {0}": "Образ диска відсутній або змінився: {0}",
   "{0}: the archive holds no member {1} (new files are not written)": "{0}: в архіві немає файлу {1} (нові файли не записуються)",
   "{0}: not on the disc (new files are not written)": "{0}: немає на диску (нові файли не записуються)",
+  "{0}: the compressed script does not decode to the same bytes": "{0}: стиснутий сценарій не розпаковується в ті самі байти",
   "GameCube disc image (ISO)": "Образ диска GameCube (ISO)",
   "PC and Switch port pack (mods/uk)": "Пакет для портів PC і Switch (mods/uk)",
   "main.dol is too short for the speech fix ({0})": "main.dol закороткий для виправлення мовлення ({0})",

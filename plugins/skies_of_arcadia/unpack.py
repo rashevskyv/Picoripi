@@ -1,6 +1,6 @@
 """The files the unpack step takes from Skies of Arcadia Legends (GameCube, USA GEAE8P).
 
-Everything under ``files/`` of the disc is written without that prefix, so ``source\game\`` is the disc's file tree.
+Everything under ``files/`` of the disc is written without that prefix, so ``source/game/`` is the disc's file tree.
 The text scripts ``field/*.sct`` (AKLZ) are written decompressed, so the editor reads their bytecode and text pages;
 ``core.containers.aklz`` compresses them again on build. Every other file is written as it is.
 """
