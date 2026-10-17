@@ -24,6 +24,7 @@ from . import asm_text, rom_project, rom_text
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .problem_analyzer import ProblemAnalyzer
 from .tag_manager import TagManager
+from .tag_manager import SERIES_TAG_MAP
 
 CHAR_WIDTH = 8
 LINE_CHARS = 18
@@ -88,6 +89,10 @@ class GameRules(BaseGameRules):
     show_spaces_as_dots_default = True
     problem_analyzer_class = ProblemAnalyzer
     game_name = "Pokémon Red / Blue / Yellow (Game Boy)"
+
+    def get_series_tag_map(self):
+        """The control tags of this game, with a kind each, for the series reuse (plugins/common/series_tags.py)."""
+        return SERIES_TAG_MAP
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)

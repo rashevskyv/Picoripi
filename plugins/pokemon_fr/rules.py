@@ -10,6 +10,7 @@ from typing import Callable, Dict, Any, Tuple, Set, Optional, List
 from collections import OrderedDict
 from plugins.base_game_rules import BaseGameRules
 from plugins.common.block_loader import ReadThrough, rescan_block, source_of
+from plugins.common.series_tags import TagMap, body_kind
 from .config import (
     PROBLEM_DEFINITIONS,
     PROBLEM_WIDTH_EXCEEDED,
@@ -85,6 +86,9 @@ def _budgets_in(text_dir: str) -> Optional[Tuple[Dict[str, int], Any]]:
     return ready if ready is not None else rom_project.old_project_budgets(text_dir)
 
 
+SERIES_TAG_MAP = TagMap(name="fr", pattern=pret_text.TAG_RE, kind_of=body_kind)
+
+
 class GameRules(BaseGameRules):
     """Game rules and translation logic for Game."""
     problem_prefix = "PKFR"
@@ -93,6 +97,10 @@ class GameRules(BaseGameRules):
     problem_analyzer_class = ProblemAnalyzer
     text_fixer_class = TextFixer
     PROBLEM_MISSING_ICON_SPACING = PROBLEM_MISSING_ICON_SPACING
+
+    def get_series_tag_map(self):
+        """The control tags of this game, with a kind each, for the series reuse (plugins/common/series_tags.py)."""
+        return SERIES_TAG_MAP
 
     def __init__(self, main_window_ref=None):
         """Initialize a new instance."""

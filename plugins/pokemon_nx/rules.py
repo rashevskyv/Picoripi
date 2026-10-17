@@ -17,6 +17,7 @@ from utils.utils import clean_spaces
 from . import build, unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
+from plugins.common.gfmsg import SERIES_TAG_MAP
 
 _PLUGIN = "pokemon_nx"
 # file name (without .dat) -> (content role, instruction, glossary section); the first match wins
@@ -65,6 +66,10 @@ class GameRules(BaseGameRules):
     tag_style = "curly"
     analyze_whole_string_first = True
     show_spaces_as_dots_default = True
+
+    def get_series_tag_map(self):
+        """The control tags of this game, with a kind each, for the series reuse (plugins/common/series_tags.py)."""
+        return SERIES_TAG_MAP
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)

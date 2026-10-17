@@ -1025,3 +1025,25 @@ The seed hooks read the game through `self.mw.project_manager`, which exists onl
 **Cost.** Seeds reach only the plugins that have a seed hook (gen1, gen5, gen6, gen7, md_3ds and nx on this data).
 Seeding a series file means reading every game's name tables: about two to four minutes per game.
 A term the AI pass proposes is not checked against the series file (open). Owner decision: whether sentences from other games are offered at all (today: offered, off by default).
+
+## D43. Series tag kinds: a translation carries across games only when their tag kinds match (2026-10-18)
+
+**Context.** Round 1 measured 16,067 exact and 19,433 normalised shared texts between Legends Z-A and Scarlet/Violet.
+The generic normalisation drops every `[..]` and `{..}` chunk, so texts that differ only in tags look equal. A
+translation saved in one game would then be written into another game with the first game's tags.
+**Decision.** A plugin returns a `TagMap` from `get_series_tag_map()` (base default None). The map has the syntax name,
+a regex that finds one tag, and a kind for each tag. A common kind (line, page, scroll, wait, colour, name, number,
+form, speed) is used only where the codec means the same thing. Any other tag gets a kind that names the tag itself
+(`icon:E447`, `tag:text_ram wStringBuffer`), so it matches only the same tag. A memory row saved by a game with a map
+keeps `syntax`, `tags` and `neutral` (the text with each tag replaced by its kind, folded). The series index keys the
+rows of other games by a hash of `neutral`. A row of another syntax carries when the kinds match in order: each kind
+pairs with the one target tag of that kind, the translation's tags are replaced, and the result must have exactly the
+target's tags and pass `compare_tags`. A row of the same syntax carries only with identical tags. A kind that occurs
+with two different tags on one side blocks the carry, because the pairing is not known. A row saved before this record
+has no `neutral`; it matches as before.
+**Cost.** The kinds are a judgement per codec. The VAR family 01 is `name` in gen 5 and in the Switch codec, because
+both documents say so; the exact variable code is not compared across games. Grammar branches (`{GENDER ..|..|..}`)
+and glyph codes (`{CHAR E447}`) do not carry across. The series index is built on the load worker from rows already
+read. The memory bar shows why a carry is blocked. The batch Cached Translation window does not list a blocked text.
+The prompt still uses exact series text only. Owner decision: whether a kind pairing across games is accepted for a
+name (today: accepted) or only for the same variable code.

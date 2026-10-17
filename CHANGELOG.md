@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Series translation reuse across syntaxes: a plugin's `get_series_tag_map()` (`plugins/common/series_tags.py`) gives each control tag a kind; a translation of another game of the series carries across when the kinds match, with its tags written in this game's syntax, and a tag that cannot be mapped blocks it and the memory bar says why (D43). Declared by Pokémon Gen 1, Gen 2, Gen 3, Gen 4, Gen 5, Gen 6/7, Switch, Trinity and Mystery Dungeon 3DS / Brilliant Diamond plugins.
 - Translation memory bar: **Apply here** and **Apply to places with the same context** use the speaker and window rule (D41); "Apply to places" writes only where the text fits the window and runs the issue check on each place.
 - Series glossary: `scripts/seed_series_glossary.py` (`core/glossary/series_seeds.py`) adds the game's own terms from a plugin's seed hook to a series glossary file, headless and without translations; existing entries stay.
 - Glossary build: a structural seed whose term a series glossary already translates takes that translation and status (the build does not decide it again).

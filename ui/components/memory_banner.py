@@ -78,18 +78,28 @@ class MemoryBanner(QFrame):
             if row["translation"].strip() and row["translation"] != current:
                 self._suggestion, where = row["translation"], tr('this project')
                 break
+        mapped = False
         if self._suggestion is None:
             for row in series_rows:
                 if row["translation"].strip() and row["translation"] != current:
                     self._suggestion, where = row["translation"], row["project"]
+                    mapped = row.get("origin") == "series_mapped"
                     break
-        if self._suggestion is not None:
+        blocked = None if self._suggestion is not None else saved_mgr.blocked_series_reason(block_idx, string_idx, source)
+        if self._suggestion is not None and mapped:
+            self.label.setText(tr('Translated in {where}, tags converted: "{translation}"', where=where, translation=_short(self._suggestion)))
+            self.apply_button.show()
+        elif self._suggestion is not None:
             self.label.setText(
                 tr('Translated in {where}: "{translation}"', where=where, translation=_short(self._suggestion))
             )
             self.apply_button.show()
         elif translated and self._same_source:
             self.label.setText(tr('The same text is in {count} other place(s) of this project.', count=len(self._same_source)))
+            self.apply_button.hide()
+        elif blocked is not None:
+            # the text of another game exists but its tags cannot be written in this game: say why, offer nothing
+            self.label.setText(tr('Not carried over from {where}: {reason}', where=blocked[0] or tr('another game'), reason=blocked[1]))
             self.apply_button.hide()
         else:
             self.hide()

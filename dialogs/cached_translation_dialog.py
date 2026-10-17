@@ -62,6 +62,8 @@ class CachedTranslationDialog(QDialog):
         # 2. Source Label
         if cached_count == 1 and cached_info[0].get('origin') == 'series':
             self.source_label = QLabel(tr('Source: saved for the same text in another project of the series'), self)
+        elif cached_count == 1 and cached_info[0].get('origin') == 'series_mapped':
+            self.source_label = QLabel(tr('Source: saved for the same text in another project of the series, tags converted'), self)
         elif cached_count == 1 and cached_info[0].get('from_memory'):
             self.source_label = QLabel(tr('Source: saved for the same text elsewhere in the project'), self)
         else:
@@ -140,6 +142,8 @@ class CachedTranslationDialog(QDialog):
         """Where a remembered row comes from: another project of the series, or another place of this project."""
         if item.get('origin') == 'series':
             return tr('(same text in another project of the series)')
+        if item.get('origin') == 'series_mapped':
+            return tr('(same text in another project of the series, tags converted)')
         return tr('(same text elsewhere)')
 
     def accepted_positions(self) -> list:

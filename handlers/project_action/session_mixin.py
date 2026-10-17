@@ -257,6 +257,10 @@ class SessionMixin:
             saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
             if saved_mgr is not None:
                 saved_mgr.series_memory = result.get('series_memory') or {}
+                saved_mgr.series_neutral = result.get('series_neutral') or {}
+                # the tag kinds of this game: the rows this game saves, and the series rows it may carry, use them
+                getter = getattr(getattr(self.mw, 'current_game_rules', None), 'get_series_tag_map', None)
+                saved_mgr.series_tag_map = getter() if callable(getter) else None
                 saved_mgr.source_positions = result.get('source_positions') or {}
 
             # The state as it was after the source files, before the translations were parsed.

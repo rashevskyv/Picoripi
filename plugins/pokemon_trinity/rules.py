@@ -38,6 +38,10 @@ class GameRules(BaseGameRules):
     tag_manager_class = TagManager
     tag_style = "curly"
 
+    def get_series_tag_map(self):
+        """The control tags of this game, with a kind each, for the series reuse (plugins/common/series_tags.py)."""
+        return gfmsg.SERIES_TAG_MAP
+
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
         self._loaded: Optional[bytes] = None      # the last message file loaded

@@ -2781,5 +2781,17 @@
   "Data too short to be Yaz0": "Дані занадто короткі для Yaz0",
   "Invalid Yaz0 magic: {0!r}": "Неправильна магія Yaz0: {0!r}",
   "The folder is not empty: {0}": "Тека не порожня: {0}",
-  "the Oodle library cannot be used: {0}": "бібліотеку Oodle не вдалося використати: {0}"
+  "the Oodle library cannot be used: {0}": "бібліотеку Oodle не вдалося використати: {0}",
+  "A tag of the current text has no kind in this game.": "Тег поточного тексту не має виду в цій грі.",
+  "The tags of the other game's text are not the tags of this text.": "Теги тексту іншої гри не збігаються з тегами цього тексту.",
+  "The tags of the two texts do not have the same kinds in the same order.": "Теги двох текстів не мають однакових видів у тому самому порядку.",
+  "Two different tags of kind {kind} in one text: the pairing is not known.": "В одному тексті два різні теги виду {kind}: пари невідомі.",
+  "The translation has a tag that is not a tag of the current text.": "У перекладі є тег, якого немає в поточному тексті.",
+  "The translation has a tag that this game does not have: {tag}": "У перекладі є тег, якого немає в цій грі: {tag}",
+  "Translated in {where}, tags converted: \"{translation}\"": "Перекладено в {where}, теги перетворено: «{translation}»",
+  "Not carried over from {where}: {reason}": "Не перенесено з {where}: {reason}",
+  "another game": "інша гра",
+  "Source: saved for the same text in another project of the series, tags converted": "Джерело: збережено для того самого тексту в іншому проєкті серії, теги перетворено",
+  "(same text in another project of the series, tags converted)": "(той самий текст в іншому проєкті серії, теги перетворено)",
+  "The translation lacks a tag of the current text: {tag}": "У перекладі немає тега поточного тексту: {tag}"
 }

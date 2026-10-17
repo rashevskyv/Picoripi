@@ -24,7 +24,8 @@ import struct
 from dataclasses import dataclass
 from typing import List, Optional, Sequence
 
-from plugins.common.gfmsg import _crypt  # the same line cipher as the Switch files
+from plugins.common.gfmsg import _crypt, series_kind  # the same line cipher and the same tag kinds as the Switch files
+from plugins.common.series_tags import TagMap
 
 NAMES = {0xBE00: "SCROLL", 0xBE01: "PAGE", 0xBE02: "WAIT", 0xBDFF: "NULL", 0xFF00: "COLOR"}
 CODES = {name: code for code, name in NAMES.items()}
@@ -193,3 +194,6 @@ def describe(tag: str) -> str:
     """Tooltip of an editor tag."""
     return next((text for pattern, text in _DESCRIPTIONS if re.fullmatch(pattern, tag or "")),
                 "Game command" if (tag or "").startswith("{VAR ") else "")
+
+
+SERIES_TAG_MAP = TagMap(name="gen5msg", pattern=TAG_RE, kind_of=series_kind)

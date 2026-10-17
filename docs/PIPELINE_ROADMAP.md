@@ -455,6 +455,8 @@ UI не вигадуємо: у програмі вже є інфраструкт
 | `speaker_attribution` | `get_speaker_for_string` | крок **Name the speakers** |
 | `strict_tags` | — | відповідь ШІ з загубленим, зайвим чи зміненим `{тегом}` відхиляється й запитується знову |
 
+Not a capability: `get_series_tag_map()` returns a `TagMap` (`plugins/common/series_tags.py`) that lets a translation carry across the games of a series when the games share tag kinds. Without the hook only identical text matches across games.
+
 Плагін, що не заявив нічого, бачить шість кроків замість семи, і жоден із них не
 падає на півдорозі. Розмітка скрипта не потребує здібності, але потребує самого
 скрипта: якщо його немає, крок каже `no script found for this game`, а не тягне

@@ -24,6 +24,7 @@ from utils.utils import clean_spaces
 from . import ds_text, message_preview, unpack
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
+from .tag_manager import SERIES_TAG_MAP
 
 LINES_PER_BOX = 2
 BUILD_TARGET = "nds_rom"
@@ -97,6 +98,10 @@ class GameRules(BaseGameRules):
     tag_style = "curly"
     analyze_whole_string_first = True
     show_spaces_as_dots_default = True
+
+    def get_series_tag_map(self):
+        """The control tags of this game, with a kind each, for the series reuse (plugins/common/series_tags.py)."""
+        return SERIES_TAG_MAP
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)

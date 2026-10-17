@@ -142,6 +142,8 @@ Everything above is the required minimum. Beyond it a plugin can mine the game's
 | `message_window_preview` | `get_preview_window_style()` and the `get_window_*` hooks | In-game message windows in the preview, per-window limits in Settings |
 | `strict_tags` | — | An AI reply that loses, adds or changes a `{tag}` of its source is refused and asked again (games whose control codes all matter) |
 
+**Series tags (`get_series_tag_map()`, not a capability).** A plugin that returns a `TagMap` (`plugins/common/series_tags.py`) gives each of its control tags a kind: a line break, a page, a scroll, a wait, a colour, a name the game inserts, a number, a word form, or a kind that names the tag itself. When two games of one series have the same kinds in the same order, a translation saved in one carries to the other, and its tags are written in the other game's syntax. A tag without a kind blocks the carry-over for that text, and the memory bar says why. Without the hook, a series row matches only the same text.
+
 Do not declare a capability the plugin cannot deliver.
 
 **Slots, not values.** `get_translation_context_for_string` returns metadata under keys the engine publishes — `window_type`, `content_role`, `role_instruction`, `has_speaker`, `glossary_section`, `force_glossary`, `layout_class` (`"prose"`: Picoripi breaks the lines of each page itself; `"lines"`: one source line is one output line — menus, names, choices; omitted: guessed from the source text). The values are the plugin's: `content_role` may be `"BossName"` or anything the game needs, and `role_instruction` is the sentence that tells the model what the role means. The engine never compares a value to a specific game, and engine code must not learn one.

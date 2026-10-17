@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
 from core.translation.run_memory import normalize_source
+from plugins.common.series_tags import neutral_key
 from utils.atomic_io import atomic_write_json
 from utils.logging_utils import log_debug
 
@@ -85,8 +86,24 @@ def load_series_memory(chain: Iterable[Path], own_memory_path: Optional[Path]) -
                         entry = {"source": row["source"], "translation": row["translation"], "project": str(project_name)}
                         # speaker and addressee say under whom the row was saved; rows saved before they existed have neither
                         entry.update({k: str(row[k]) for k in ("speaker", "addressee") if isinstance(row.get(k), str)})
+                        # the tag kinds the row was saved with (plugins/common/series_tags.py): another game's syntax carries across
+                        entry.update({k: row[k] for k in ("syntax", "tags", "neutral") if k in row})
                         bucket.append(entry)
     return memory
+
+
+def index_neutral_rows(memory: Dict[str, List[Dict[str, Any]]]) -> Dict[str, List[Dict[str, Any]]]:
+    """``neutral key -> rows``: the rows of ``load_series_memory`` that were saved with a neutral text (tag kinds).
+
+    Built once per project load, from the same row objects; a row without tag kinds is not in the index.
+    """
+    index: Dict[str, List[Dict[str, Any]]] = {}
+    for rows in memory.values():
+        for row in rows:
+            neutral = row.get("neutral")
+            if isinstance(neutral, str):
+                index.setdefault(neutral_key(neutral), []).append(row)
+    return index
 
 
 def index_source_positions(data: Any) -> Dict[str, List[tuple]]:

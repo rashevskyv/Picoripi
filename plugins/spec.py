@@ -118,6 +118,8 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
              call=(), returns=dict),
         Hook("get_syntax_highlighting_rules", "List of (regex, QTextCharFormat) for the editor.", call=(), returns=list),
         Hook("get_legitimate_tags", "Tags that may appear in a translation.", call=(), returns=set),
+        Hook("get_series_tag_map", "The control tags of the game with a kind each, so a translation carries across the games of a series "
+             "(plugins/common/series_tags.py TagMap). None: exact text only.", call=(), optional=True),
         Hook("get_tag_tooltip", "Explanation shown for a tag.", call=("{tag}",), returns=str),
         Hook("get_problem_detail", "Detail for one problem of one string (block, string, problem id), shown under "
              "its name in the editor tooltip. Empty: no detail.", call=(0, 0, "X"), returns=str),

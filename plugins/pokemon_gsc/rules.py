@@ -28,6 +28,7 @@ from plugins.pokemon_gen1.problem_analyzer import ProblemAnalyzer
 ROM_FACTS_DIR = Path(__file__).with_name("rom_facts")
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
+from .tag_manager import SERIES_TAG_MAP
 
 LINE_TILES = 18          # a text box line: 18 tiles of 8 pixels
 TILE = 8
@@ -95,6 +96,10 @@ class GameRules(BaseGameRules):
     problem_analyzer_class = ProblemAnalyzer
     show_spaces_as_dots_default = True
     game_name = "Pokémon Gold, Silver and Crystal (pret)"
+
+    def get_series_tag_map(self):
+        """The control tags of this game, with a kind each, for the series reuse (plugins/common/series_tags.py)."""
+        return SERIES_TAG_MAP
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)

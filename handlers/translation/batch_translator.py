@@ -26,6 +26,8 @@ from core.translation.layout_contract import (
 PREVIEW_ITEMS = 12
 # A text from another game with more words than this is a sentence: its series row starts unchecked in the dialog.
 SERIES_SENTENCE_WORDS = 2
+# Origins of a row from another game of the series (exact text, or carried to this game's tags).
+SERIES_ORIGINS = ('series', 'series_mapped')
 
 
 class AIBatchTranslator(BaseTranslationHandler):
@@ -141,7 +143,7 @@ class AIBatchTranslator(BaseTranslationHandler):
         # Then what another project of the series saved for exactly this text, said by the same speaker.
         for row in series_rows:
             if fits(row.get("translation")):
-                return row["translation"], "series"
+                return row["translation"], row.get("origin", "series")
         return None, None
 
     def _extract_single_translation(self, response: ProviderResponse) -> str:
@@ -239,7 +241,7 @@ class AIBatchTranslator(BaseTranslationHandler):
                     'from_memory': origin != "saved",
                     'origin': origin,
                     # A sentence from another game is off by default (the user ticks it); a name or a menu word is on.
-                    'series_sentence': origin == 'series' and len(str(item.get('text', '')).split()) > sentence_words,
+                    'series_sentence': origin in SERIES_ORIGINS and len(str(item.get('text', '')).split()) > sentence_words,
                 })
 
         if force_prompt:

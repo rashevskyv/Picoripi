@@ -4,7 +4,9 @@ from PyQt6.QtCore import pyqtSignal
 from core import formats
 from core.containers import ContainerManager
 from core.glossary.series import series_chain
-from core.translation.series_memory import MEMORY_NAME, index_source_positions, load_series_memory, register_project
+from core.translation.series_memory import (
+    MEMORY_NAME, index_neutral_rows, index_source_positions, load_series_memory, register_project,
+)
 from utils.logging_utils import log_error
 from utils.logging_utils import log_debug
 from utils.thread_utils import WorkerThread
@@ -257,13 +259,15 @@ class ProjectLoadWorker(WorkerThread):
 
             self.project_manager.clear_archive_cache()
 
+            series_memory = self._series_memory()
             self.finished_with_result.emit({
                 'data': data,
                 'edited_file_data': edited_file_data,
                 'block_names': block_names,
                 'block_to_project_file_map': block_to_project_file_map,
                 'plugin_keys_backup': plugin_keys_backup,
-                'series_memory': self._series_memory(),
+                'series_memory': series_memory,
+                'series_neutral': index_neutral_rows(series_memory),
                 'source_positions': index_source_positions(data),
             })
         except Exception as e:
