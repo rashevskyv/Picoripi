@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- 3DS system menus: width budgets now cover the country and region names (`area`, the owner's validate_area: one budget per file) and the New 3DS browser and Health and Safety, read from the owner's work folder where no decrypted dump exists.
 - 3DS system menus: a save refuses a string file that changed on disk since Picoripi read or wrote it, and names the file, instead of writing its own text over the change.
 - 3DS system menus (Project Manager): the project declares the Nintendo 3DS platform and two build targets, `build-ru` and `build-en`. Build runs the 3ds-ua repo's own Makefile on a staged copy (the repo is never written; `work/` is linked read-only), streams its log, cancels its own process tree and reads the result from `dist/` or `dist_en/`. Needs GNU make on PATH.
 - Pokémon plugins (Gen 1, Gen 2, Gen 5, Gen 3 Mystery Dungeon 3DS, Switch, French): the asm, message, text and ROM budget files of a string are read on a worker (`plugins/common/block_loader.py`), so the editor's budget check, context and speaker lookups and the message attribute hooks never read a file on the UI thread; the block's problem scan runs again when its read ends.

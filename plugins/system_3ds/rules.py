@@ -371,6 +371,8 @@ class GameRules(BaseGameRules):
         if key is None or not 0 <= block_idx < len(blocks):
             return None
         parts = str(blocks[block_idx].source_file).replace("\\", "/").split("/")
+        if len(parts) == 3 and parts[0] == "strings" and parts[1] == "area" and parts[2].startswith("EU_"):
+            return "areas", "", parts[2][3:].rsplit(".", 1)[0]  # the country or region code of the file
         if len(parts) == 3 and parts[0] == "strings" and not parts[2].startswith("_"):
             return "labels", parts[1], key
         if len(parts) == 2 and parts[0] == "layouts":
@@ -383,7 +385,10 @@ class GameRules(BaseGameRules):
         if place is None:
             return None
         table, part, key = place
-        value = self._budget_table()[table].get(part, {}).get(key)
+        if table == "areas":  # one budget per country or region file: the key is its code
+            value = self._budget_table().get("areas", {}).get(key)
+        else:
+            value = self._budget_table()[table].get(part, {}).get(key)
         return int(value) if value else None
 
     def line_budget(self, block_idx: int, string_idx: int) -> Optional[int]:
