@@ -18,6 +18,8 @@ the line when it is done or moved into a plan.
 - Grandia PS1 text: dialogue is ASCII in `FIELD/*.MDP` and `BATLE/*.BBG`, with control codes. A pointer test found no
   table of text offsets, so the text is probably inline in a command stream. A longer string needs the stream's jumps
   fixed; the writer waits for that decision.
+- Grandia PS1 battle strings: `BATLE/B*.BBG` hold NUL-terminated names with a 0x03 separator (Magic, Items, Attack,
+  Killer Moves). Not opened yet; check whether the slots are fixed-size before a longer string is written.
 - Grandia PS1 emulator proof: DuckStation has no BIOS on the owner's PC; try PCSX-Redux with its own OpenBIOS.
 - Grandia HD Remaster (PC, scene release): the game data is inside `skidrow.bin`, an installer payload with no known
   format. Owner question: a copy of the installed game folder.
