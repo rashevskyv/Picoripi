@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Project Manager: the error texts of the GameCube reader, the shared image helpers and the image identify layer go through `tr()`; the wizard's "Unpacking failed" line shows them in Ukrainian.
 - Project Manager wizard: "Use an existing translation folder" keeps a folder of translations as it is (no translation files are created in it); refused for a game of one file.
 - Project Manager: the unused `NewProjectDialog` is removed; the Import block and settings file pickers list the game's own formats (`formats.dialog_filter`) instead of a fixed list.
 - Project Manager: Emulator... sets one command per platform (`emulator_command.<platform>` in the registry); Run in emulator uses the command of the target's platform, and the older shared command still applies to platforms without their own line.
