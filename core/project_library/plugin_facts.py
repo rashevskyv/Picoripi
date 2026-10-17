@@ -19,7 +19,7 @@ from utils.constants import APP_VERSION, plugins_root
 from utils.logging_utils import log_warning
 from utils.plugin_import import PLUGIN_IMPORT_LOCK
 
-LoadRules = Callable[[str], Any]
+LoadRules = Callable[..., Any]  # (plugin name, optional main window) -> GameRules
 Cancelled = Callable[[], bool]
 PLUGIN_MISSING = "plugin_missing"  # the count error of a project whose game plugin is not installed
 
@@ -28,15 +28,16 @@ class PluginMissing(Exception):
     """The project names a game plugin that is not installed. Not an error of the project; shown as a flag."""
 
 
-def default_load_rules(plugin_name: str) -> Any:
-    """The plugin's ``GameRules`` built without a main window.
+def default_load_rules(plugin_name: str, main_window: Any = None) -> Any:
+    """The plugin's ``GameRules`` built without a main window, unless ``main_window`` is given.
 
     Imports the plugin on the calling thread, under ``PLUGIN_IMPORT_LOCK``, so the main window's load of the same
-    plugin (which drops and re-imports its modules) cannot run in the middle.
+    plugin (which drops and re-imports its modules) cannot run in the middle. A headless caller gives a holder with
+    the attributes its hooks read (the seed hooks read ``project_manager``).
     """
     with PLUGIN_IMPORT_LOCK:
         module = importlib.import_module(f"plugins.{plugin_name}.rules")
-        return module.GameRules(None)
+        return module.GameRules(main_window)
 
 
 def roles_of(rules: Any) -> List[Dict[str, str]]:

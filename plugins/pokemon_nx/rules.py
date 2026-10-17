@@ -8,7 +8,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
-from plugins.common import gfmsg, message_block
+from plugins.common import gfmsg, message_block, name_seeds
+from plugins.common.name_seeds import TABLE_ROLES
 from plugins.common.block_loader import ReadThrough, rescan_block
 from utils.constants import user_plugin_file_or_shipped
 from utils.logging_utils import log_debug, log_warning
@@ -17,26 +18,9 @@ from utils.utils import clean_spaces
 from . import build, unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
+from plugins.common.gfmsg import SERIES_TAG_MAP
 
 _PLUGIN = "pokemon_nx"
-# file name (without .dat) -> (content role, instruction, glossary section); the first match wins
-_ROLES = (
-    (r"monsname|ride_poke_name", "Pokémon name", "The name of a Pokémon species.", "Pokémon"),
-    (r"g?wazaname", "Move name", "The name of a move.", "Moves"),
-    (r"g?wazainfo", "Move description", "The description of a move.", ""),
-    (r"itemname.*|nuts_name|dressup_item_name|kisekae_item_name", "Item name", "The name of an item.", "Items"),
-    (r"iteminfo", "Item description", "The description of an item.", ""),
-    (r"tokusei", "Ability name", "The name of an Ability.", "Abilities"),
-    (r"tokuseiinfo", "Ability description", "The description of an Ability.", ""),
-    (r"place_name.*", "Place name", "The name of a place.", "Places"),
-    (r"trname|tower_trname", "Trainer name", "The name of a trainer.", "Characters"),
-    (r"trtype", "Trainer class", "A trainer class (Youngster, Gym Leader...).", "Characters"),
-    (r"typename", "Type name", "The name of a Pokémon type.", "Types"),
-    (r"seikaku", "Nature", "The name of a Pokémon nature.", ""),
-    (r"zukan_comment_.*", "Pokédex entry", "A Pokédex description of a Pokémon.", ""),
-    (r"btl_.*", "Battle message", "A message of the battle screen.", ""),
-    (r"staff_list", "Staff credits", "A line of the staff credits.", ""),
-)
 # script file prefix -> part of the story
 _STORY = (("rigel1", "The Isle of Armor (DLC)"), ("rigel2", "The Crown Tundra (DLC)"),
           ("main_event", "Main story"), ("sub_event", "Side story"), ("demo", "Cutscene"))
@@ -65,6 +49,10 @@ class GameRules(BaseGameRules):
     tag_style = "curly"
     analyze_whole_string_first = True
     show_spaces_as_dots_default = True
+
+    def get_series_tag_map(self):
+        """The control tags of this game, with a kind each, for the series reuse (plugins/common/series_tags.py)."""
+        return SERIES_TAG_MAP
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
@@ -201,7 +189,7 @@ class GameRules(BaseGameRules):
         rel, _message, labels = located
         stem = _stem(rel)
         context: Dict[str, Any] = {}
-        for pattern, role, instruction, section in _ROLES:
+        for pattern, role, instruction, section in TABLE_ROLES:
             if re.fullmatch(pattern, stem):
                 context.update(content_role=role, role_instruction=instruction)
                 if section:
@@ -236,32 +224,7 @@ class GameRules(BaseGameRules):
 
     def get_glossary_seed_entries(self) -> List[Dict[str, Any]]:
         """Pokémon, moves, items, Abilities, places, trainer names and types from the game's own name tables."""
-        entries, seen = [], set()
-        pm = getattr(self.mw, "project_manager", None) if self.mw else None
-        try:
-            blocks = list(pm.project.blocks)
-        except (AttributeError, TypeError):
-            return []
-        for block in blocks:
-            rel = str(block.source_file).replace("\\", "/")
-            stem = _stem(rel)
-            section = next((s for pattern, _r, _i, s in _ROLES if s and re.fullmatch(pattern, stem)), "")
-            if not section or "/common/" not in f"/{rel}":
-                continue
-            try:
-                texts = [gfmsg.to_editor(units) for units, _flags
-                         in gfmsg.read(Path(pm.get_absolute_path(block.source_file)).read_bytes())]
-            except (OSError, ValueError) as error:
-                log_debug(f"{_PLUGIN}: no glossary terms from {rel}: {error}")
-                continue
-            for row, term in enumerate(texts):
-                term = term.strip()
-                if not term or term in seen or "{" in term or len(term) > 40:
-                    continue
-                seen.add(term)
-                entries.append({"term": term, "section": section, "description": f"{stem} table",
-                                "source_ref": f"{rel} line {row}"})
-        return entries
+        return name_seeds.gfmsg_seed_entries(getattr(self.mw, "project_manager", None) if self.mw else None, _PLUGIN)
 
     def get_capabilities(self) -> Set[str]:
         return {"glossary_seed"}

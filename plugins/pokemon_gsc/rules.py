@@ -18,7 +18,9 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from plugins.base_game_rules import BaseGameRules
+from plugins.common import name_seeds
 from plugins.common.block_loader import ReadThrough, rescan_block, source_of
+from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
 
 from . import pret_context, pret_text
@@ -28,6 +30,13 @@ from plugins.pokemon_gen1.problem_analyzer import ProblemAnalyzer
 ROM_FACTS_DIR = Path(__file__).with_name("rom_facts")
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
+from .tag_manager import SERIES_TAG_MAP
+
+# pret name tables: file (slash path in the project) -> (section, description)
+_GSC_NAME_TABLES = {"data/pokemon/names.asm": ("Pokémon", "Pokémon name"), "data/moves/names.asm": ("Moves", "Move name"),
+                    "data/items/names.asm": ("Items", "Item name"),
+                    "data/trainers/class_names.asm": ("Characters", "Trainer class")}
+_GSC_NAME_LINE = re.compile(r'^\s*(?:li|dname|db)\s+"([^"]*)"', re.MULTILINE)
 
 LINE_TILES = 18          # a text box line: 18 tiles of 8 pixels
 TILE = 8
@@ -96,6 +105,10 @@ class GameRules(BaseGameRules):
     show_spaces_as_dots_default = True
     game_name = "Pokémon Gold, Silver and Crystal (pret)"
 
+    def get_series_tag_map(self):
+        """The control tags of this game, with a kind each, for the series reuse (plugins/common/series_tags.py)."""
+        return SERIES_TAG_MAP
+
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
         self._save_source: Optional[str] = None
@@ -116,8 +129,31 @@ class GameRules(BaseGameRules):
         from core.formats import FileFormat
         return [FileFormat((".asm",), "text", "pret decompilation asm")]
 
+    def get_glossary_seed_entries(self) -> List[Dict[str, Any]]:
+        """Pokémon, moves, items and trainer classes from the pret name tables (``data/*/names.asm``)."""
+        pm = getattr(self.mw, "project_manager", None) if self.mw else None
+        try:
+            blocks = list(pm.project.blocks)
+        except (AttributeError, TypeError):
+            return []
+        collector = name_seeds.TermCollector()
+        for block in blocks:
+            rel = str(block.source_file).replace("\\", "/")
+            table = _GSC_NAME_TABLES.get(rel)
+            if table is None:
+                continue
+            section, _description = table
+            try:
+                text = Path(pm.get_absolute_path(block.source_file)).read_text(encoding="utf-8", errors="replace")
+            except OSError as error:
+                log_debug(f"pokemon_gsc: no glossary terms from {rel}: {error}")
+                continue
+            texts = [match.group(1) for match in _GSC_NAME_LINE.finditer(text)]
+            collector.add_table(rel, texts, section, f"{Path(rel).stem} table")
+        return collector.entries
+
     def get_capabilities(self) -> Set[str]:
-        return {"speaker_attribution"}
+        return {"speaker_attribution", "glossary_seed"}
 
     # -- loading and saving ---------------------------------------------------------------
 

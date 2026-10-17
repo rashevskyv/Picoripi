@@ -532,3 +532,23 @@ class TestASweepFragmentNeverReplacesADescription:
         GlossaryBuildCoordinator(manager, FakeAI(), PROMPTS).build(DATASET, MODE_DRAFT)
 
         assert manager.get_entry("Ordon").notes == "a village"
+
+
+class TestASeriesDecisionIsTakenNotDecidedAgain:
+    """A seed a series glossary already translated gets that translation; the seed mode asks no model."""
+
+    def test_the_series_translation_is_written_with_the_series_status(self):
+        manager = _manager()
+        seeds = [{"term": "Ordon Village", "section": "Places",
+                  "series_decision": {"translation": "Село Ордон", "status": "confirmed"}}]
+        GlossaryBuildCoordinator(manager, _no_ai, PROMPTS, structural_seeds=seeds).build([["x"]], MODE_SEED)
+
+        entry = manager.get_entry("Ordon Village")
+        assert entry.translation == "Село Ордон"
+        assert entry.status == "confirmed"
+
+    def test_a_seed_without_a_decision_stays_untranslated(self):
+        manager = _manager()
+        GlossaryBuildCoordinator(manager, _no_ai, PROMPTS, structural_seeds=[{"term": "Diababa"}]).build([["x"]], MODE_SEED)
+
+        assert manager.get_entry("Diababa").translation == ""

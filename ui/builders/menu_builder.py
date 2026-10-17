@@ -109,6 +109,14 @@ class MenuBuilder:
         self.mw.export_translations_action.setEnabled(False)
         file_menu.addAction(self.mw.export_translations_action)
 
+        self.mw.update_memory_context_action = QAction(tr('Update Translation Memory with Context'), self.mw)
+        self.mw.update_memory_context_action.setEnabled(False)
+        file_menu.addAction(self.mw.update_memory_context_action)
+
+        self.mw.restore_memory_context_action = QAction(tr('Restore Translation Memory Before the Context Update'), self.mw)
+        self.mw.restore_memory_context_action.setEnabled(False)
+        file_menu.addAction(self.mw.restore_memory_context_action)
+
         self.mw.export_original_action = QAction(QIcon.fromTheme("document-export"), tr('&Export Original to JSON...'), self.mw)
         self.mw.export_original_action.setEnabled(False)
         file_menu.addAction(self.mw.export_original_action)

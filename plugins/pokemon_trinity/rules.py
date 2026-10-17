@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
-from plugins.common import gfmsg, message_block
+from plugins.common import gfmsg, message_block, name_seeds
 from plugins.common.block_loader import ReadThrough, rescan_block
 from plugins.common.tag_manager import GenericTagManager
 
@@ -37,6 +37,13 @@ class GameRules(BaseGameRules):
     problem_definitions = PROBLEM_DEFINITIONS
     tag_manager_class = TagManager
     tag_style = "curly"
+
+    def get_capabilities(self) -> Set[str]:
+        return {"glossary_seed"}
+
+    def get_series_tag_map(self):
+        """The control tags of this game, with a kind each, for the series reuse (plugins/common/series_tags.py)."""
+        return gfmsg.SERIES_TAG_MAP
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
@@ -125,6 +132,10 @@ class GameRules(BaseGameRules):
         if index < len(labels):
             attributes["label"] = labels[index]
         return attributes
+
+    def get_glossary_seed_entries(self) -> List[Dict[str, Any]]:
+        """Pokémon, moves, items, Abilities, places, trainer names and types from the game's own name tables."""
+        return name_seeds.gfmsg_seed_entries(getattr(self.mw, "project_manager", None) if self.mw else None, "pokemon_trinity")
 
     def get_tag_tooltip(self, tag: str) -> str:
         return gfmsg.describe(str(tag))

@@ -19,6 +19,7 @@ from typing import Any, Optional
 from PyQt6 import sip
 from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal
 
+from core.glossary.series import series_rows_for
 from handlers.analyzer_context import analyzer_string_context
 from utils.logging_utils import log_error
 from utils.logging_utils import log_debug
@@ -57,8 +58,9 @@ class AsyncIssueScanner(QRunnable):
         glossary_enabled: bool = True,
         editor_text: str = "",
         logical_hard_limit: Optional[int] = None,
+        series_glossaries: Any = (),
     ):
-        """Initialize a new instance."""
+        """Initialize a new instance. ``series_glossaries``: the series glossaries, nearest first (read only)."""
         super().__init__()
         self.setAutoDelete(True)
         self.signals = _ScannerSignals()
@@ -77,6 +79,7 @@ class AsyncIssueScanner(QRunnable):
         self.glossary_enabled = glossary_enabled
         self.editor_text = editor_text if editor_text else text
         self.logical_hard_limit = logical_hard_limit
+        self.series_glossaries = list(series_glossaries or ())
 
         self._cancel_event = threading.Event()
 
@@ -253,7 +256,10 @@ class AsyncIssueScanner(QRunnable):
         try:
             from utils.utils import convert_dots_to_spaces_from_editor
             source_text_clean = convert_dots_to_spaces_from_editor(self.source_text)
-            source_matches = self.glossary_manager.get_relevant_terms(source_text_clean)
+            source_matches = list(self.glossary_manager.get_relevant_terms(source_text_clean))
+            if self.series_glossaries:
+                # the series terms the project glossary does not translate (the same rule as the prompt)
+                source_matches += series_rows_for(source_text_clean, self.series_glossaries, self.glossary_manager)
             for entry in source_matches:
                 if self.is_cancelled():
                     return translation_matches

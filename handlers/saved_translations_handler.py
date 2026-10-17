@@ -1,15 +1,19 @@
 """Save and restore per-string translations; export and import project text as JSON."""
 # handlers/saved_translations_handler.py
 from utils.atomic_io import atomic_write_json
+import copy
 import json
 import datetime
 from collections.abc import Mapping
 from pathlib import Path
 from typing import List, Tuple
-from PyQt6.QtWidgets import QMessageBox, QFileDialog
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QMessageBox, QFileDialog, QProgressDialog
 
 from handlers.base_handler import BaseHandler
+from handlers.memory_context_worker import MemoryContextWorker
 from core.i18n import tr
+from core.translation import memory_context
 
 class SavedTranslationsHandler(BaseHandler):
     """Handler for saved translations operations."""
@@ -214,6 +218,65 @@ class SavedTranslationsHandler(BaseHandler):
             return
 
         self.restore_translation(block_idx, string_idx)
+
+    def update_memory_with_context_action(self) -> None:
+        """Give the rows of the translation memory the context they were made under (D41), on a worker thread.
+
+        The memory is replaced only when the plan completes and is not cancelled; the previous file is kept beside it.
+        """
+        manager = self.ctx.saved_translations_manager
+        path = manager.memory_file()
+        if path is None or not path.is_file():
+            QMessageBox.information(self.ctx, tr('Update Translation Memory'), tr('This project has no translation memory yet.'))
+            return
+        if manager.context_for is None:
+            QMessageBox.information(self.ctx, tr('Update Translation Memory'), tr('Open the project before its translation memory is updated.'))
+            return
+        if getattr(self, '_memory_worker', None) is not None and self._memory_worker.isRunning():
+            return
+        memory = copy.deepcopy(manager.load_translation_memory())
+        data = [list(block) if isinstance(block, list) else [] for block in (self.data_store.data or [])]
+        worker = MemoryContextWorker(
+            path, memory, data, manager.block_key_prefixes(len(data)), dict(manager.load_all_saved_translations()),
+            manager.context_for, manager.tag_fields_of, parent=self.ctx,
+        )
+        dialog = QProgressDialog(tr('Giving the translation memory the context of its rows...'), tr('Cancel'), 0, 0, self.ctx)
+        dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        dialog.setMinimumDuration(0)
+        worker.progress.connect(lambda done, total: (dialog.setRange(0, max(total, 1)), dialog.setValue(done)),
+                                Qt.ConnectionType.QueuedConnection)
+        dialog.canceled.connect(worker.cancel)
+        worker.done.connect(lambda result: self._memory_context_done(result, dialog, path), Qt.ConnectionType.QueuedConnection)
+        worker.failed.connect(lambda text: self._memory_context_failed(text, dialog), Qt.ConnectionType.QueuedConnection)
+        worker.finished.connect(worker.deleteLater)
+        self._memory_worker = worker
+        worker.start()
+
+    def _memory_context_done(self, result, dialog, path: Path) -> None:
+        dialog.close()
+        if result is None:
+            QMessageBox.information(self.ctx, tr('Update Translation Memory'), tr('Cancelled. The translation memory is unchanged.'))
+            return
+        self.ctx.saved_translations_manager.clear_cache()
+        backup = Path(path).with_name(memory_context.BACKUP_NAME)
+        QMessageBox.information(self.ctx, tr('Update Translation Memory'), tr(
+            'Rows updated: {updated}. Rows split by context: {split}. Rows given tag kinds: {tagged}. '
+            'Saved strings without a row (left as they are): {missing}. Backup: {backup}.',
+            updated=result.updated, split=result.split, tagged=result.tagged, missing=result.missing, backup=str(backup)))
+
+    def _memory_context_failed(self, text: str, dialog) -> None:
+        dialog.close()
+        QMessageBox.warning(self.ctx, tr('Update Translation Memory'), tr('The translation memory was not updated: {error}', error=text))
+
+    def restore_memory_before_context_action(self) -> None:
+        """Put the translation memory back from the copy kept before the context update."""
+        manager = self.ctx.saved_translations_manager
+        path = manager.memory_file()
+        if path is None or not memory_context.restore_backup(path):
+            QMessageBox.information(self.ctx, tr('Update Translation Memory'), tr('No copy of the translation memory from before the update exists.'))
+            return
+        manager.clear_cache()
+        QMessageBox.information(self.ctx, tr('Update Translation Memory'), tr('The translation memory is restored from its copy.'))
 
     def export_translations_to_json_action(self) -> None:
         """Export translations to json action."""

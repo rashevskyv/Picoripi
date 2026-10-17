@@ -17,12 +17,17 @@ from core.translation.run_memory import RunMemory, fold_duplicates
 from core.translation.layout_contract import (
     editor_text_for_layout,
     resolve_lines_per_window,
+    text_fits_place,
     validate_translation_layout,
 )
 
 
 # How many items the prompt preview is built from: one chunk's worth.
 PREVIEW_ITEMS = 12
+# A text from another game with more words than this is a sentence: its series row starts unchecked in the dialog.
+SERIES_SENTENCE_WORDS = 2
+# Origins of a row from another game of the series (exact text, or carried to this game's tags).
+SERIES_ORIGINS = ('series', 'series_mapped')
 
 
 class AIBatchTranslator(BaseTranslationHandler):
@@ -102,25 +107,25 @@ class AIBatchTranslator(BaseTranslationHandler):
         block_idx: int,
         string_idx: int,
     ) -> bool:
-        rules = getattr(self.mw, "current_game_rules", None)
-        source_editor = editor_text_for_layout(source_item.get("text", ""), rules)
-        saved_editor = editor_text_for_layout(saved_text, rules)
-        lines_per_window = resolve_lines_per_window(
-            self.mw, block_idx, string_idx
-        )
+        return text_fits_place(self.mw, source_item.get("text", ""), saved_text, block_idx, string_idx)
+
+    def _series_sentence_words(self) -> int:
+        """Texts longer than this many words, from another game, start unchecked. Config key ``series_sentence_words``."""
+        config = getattr(self.mw, 'translation_config', None)
+        value = config.get('series_sentence_words', SERIES_SENTENCE_WORDS) if isinstance(config, dict) else SERIES_SENTENCE_WORDS
         try:
-            validate_translation_layout(
-                source_editor,
-                saved_editor,
-                lines_per_window,
-                allow_reflow=True,
-            )
-        except ValueError:
-            return False
-        return True
+            return max(int(value), 0)
+        except (TypeError, ValueError):
+            return SERIES_SENTENCE_WORDS
 
     def _restorable_text(self, saved_mgr, saved_translations, item, block_idx, string_idx):
-        """``(saved text that fits the row, True when it comes from the same source elsewhere)`` or ``(None, False)``."""
+        """``(saved text that fits the row, origin)`` or ``(None, None)``.
+
+        Origin: ``"saved"`` (this position's own backup), ``"memory"`` (the same text saved elsewhere in the
+        project under the same context), ``"series"`` (another project of the series, same speaker and addressee).
+        A text that repeats in the project restores from memory only under the context the duplicate fold uses:
+        the same text said by another speaker is not offered (OPEN_ITEMS 4.2).
+        """
         def fits(text):
             return (
                 isinstance(text, str) and bool(text.strip())
@@ -129,17 +134,17 @@ class AIBatchTranslator(BaseTranslationHandler):
 
         saved_text = saved_translations.get(saved_mgr._get_string_unique_key(block_idx, string_idx))
         if fits(saved_text):
-            return saved_text, False
-        find_by_source = getattr(saved_mgr, 'find_by_source', None)
-        remembered = find_by_source(item.get("text", "")) if callable(find_by_source) else None
-        if fits(remembered):
-            return remembered, True
-        # Then what another project of the series saved for exactly this text (nearest level first).
-        series_by_source = getattr(saved_mgr, 'series_by_source', None)
-        for row in (series_by_source(item.get("text", "")) if callable(series_by_source) else []):
+            return saved_text, "saved"
+        source = item.get("text", "")
+        own_rows, series_rows = saved_mgr.acceptable_rows(block_idx, string_idx, source)
+        for row in own_rows:
             if fits(row.get("translation")):
-                return row["translation"], True
-        return None, False
+                return row["translation"], "memory"
+        # Then what another project of the series saved for exactly this text, said by the same speaker.
+        for row in series_rows:
+            if fits(row.get("translation")):
+                return row["translation"], row.get("origin", "series")
+        return None, None
 
     def _extract_single_translation(self, response: ProviderResponse) -> str:
         cleaned = self.main_handler.ai_lifecycle_manager._clean_model_output(
@@ -204,8 +209,10 @@ class AIBatchTranslator(BaseTranslationHandler):
         if not saved_translations and not getattr(saved_mgr, 'series_memory', None):
             return source_items, temp_id_map
 
-        # Collect cached items info
+        # Collect cached items info. ``offered`` holds the text per (block, string) that may be restored.
         cached_items_info = []
+        offered: Dict[Tuple[Any, Any], str] = {}
+        sentence_words = self._series_sentence_words()
         for item in source_items:
             item_id = item.get("id")
             if temp_id_map and item_id in temp_id_map:
@@ -217,8 +224,9 @@ class AIBatchTranslator(BaseTranslationHandler):
                 except (ValueError, TypeError):
                     r_string_idx = item_id
 
-            saved_text, from_memory = self._restorable_text(saved_mgr, saved_translations, item, r_block_idx, r_string_idx)
+            saved_text, origin = self._restorable_text(saved_mgr, saved_translations, item, r_block_idx, r_string_idx)
             if saved_text:
+                offered[(r_block_idx, r_string_idx)] = saved_text
                 block_name = None
                 if hasattr(self.mw, 'data_store') and self.mw.data_store.block_names:
                     block_name = self.mw.data_store.block_names.get(str(r_block_idx))
@@ -230,23 +238,29 @@ class AIBatchTranslator(BaseTranslationHandler):
                     'string_idx': r_string_idx,
                     'text': saved_text,
                     # saved for the same source text at another place, not for this row
-                    'from_memory': from_memory,
+                    'from_memory': origin != "saved",
+                    'origin': origin,
+                    # A sentence from another game is off by default (the user ticks it); a name or a menu word is on.
+                    'series_sentence': origin in SERIES_ORIGINS and len(str(item.get('text', '')).split()) > sentence_words,
                 })
 
         if force_prompt:
             # Ctrl+click: skip cache entirely, translate everything anew
             return source_items, temp_id_map
 
+        accepted = set(offered)
         if cached_items_info:
             dialog = CachedTranslationDialog(self.mw, cached_items_info)
             res = dialog.exec()
-            
+
             if res == 2:
                 # User wants to translate everything anew (Translate Anew)
                 return source_items, temp_id_map
             elif res != 1:
                 # User cancelled or closed the dialog (Cancel)
                 return [], {}
+            # Only the rows left checked are restored; an unchecked row is translated anew (per row).
+            accepted = set(dialog.accepted_positions())
 
         filtered_source_items = []
         filtered_temp_id_map = {}
@@ -263,7 +277,8 @@ class AIBatchTranslator(BaseTranslationHandler):
                 except (ValueError, TypeError):
                     r_string_idx = item_id
 
-            saved_text, _from_memory = self._restorable_text(saved_mgr, saved_translations, item, r_block_idx, r_string_idx)
+            position = (r_block_idx, r_string_idx)
+            saved_text = offered.get(position) if position in accepted else None
             if saved_text:
                 restored_items.append((r_block_idx, r_string_idx, saved_text))
             else:

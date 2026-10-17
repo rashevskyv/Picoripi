@@ -6,6 +6,7 @@ from typing import Any, List, Optional, Tuple
 from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton
 
 from core.i18n import tr
+from core.translation.layout_contract import text_fits_place
 
 # How much of a remembered translation the bar shows.
 PREVIEW_CHARS = 80
@@ -44,7 +45,7 @@ class MemoryBanner(QFrame):
         layout.addWidget(self.apply_button)
         self.apply_all_button = QPushButton(self)
         self.apply_all_button.setToolTip(
-            tr('Put this translation into every string of the project with the same source text (unsaved edits you can undo).')
+            tr('Put this translation into every string of the project with the same source text, speaker and window, where it fits (unsaved edits you can undo).')
         )
         self.apply_all_button.clicked.connect(self.apply_everywhere)
         layout.addWidget(self.apply_all_button)
@@ -72,17 +73,23 @@ class MemoryBanner(QFrame):
         self._same_source = [p for p in saved_mgr.positions_of_source(source) if p != (block_idx, string_idx)]
 
         where = ""
-        for row in saved_mgr.similar_by_source(source):
-            if row.get("source") == source and row["translation"].strip() and row["translation"] != current:
+        own_rows, series_rows = saved_mgr.acceptable_rows(block_idx, string_idx, source)
+        for row in own_rows:
+            if row["translation"].strip() and row["translation"] != current:
                 self._suggestion, where = row["translation"], tr('this project')
                 break
+        mapped = False
         if self._suggestion is None:
-            for row in saved_mgr.series_by_source(source):
+            for row in series_rows:
                 if row["translation"].strip() and row["translation"] != current:
                     self._suggestion, where = row["translation"], row["project"]
+                    mapped = row.get("origin") == "series_mapped"
                     break
-
-        if self._suggestion is not None:
+        blocked = None if self._suggestion is not None else saved_mgr.blocked_series_reason(block_idx, string_idx, source)
+        if self._suggestion is not None and mapped:
+            self.label.setText(tr('Translated in {where}, tags converted: "{translation}"', where=where, translation=_short(self._suggestion)))
+            self.apply_button.show()
+        elif self._suggestion is not None:
             self.label.setText(
                 tr('Translated in {where}: "{translation}"', where=where, translation=_short(self._suggestion))
             )
@@ -90,11 +97,15 @@ class MemoryBanner(QFrame):
         elif translated and self._same_source:
             self.label.setText(tr('The same text is in {count} other place(s) of this project.', count=len(self._same_source)))
             self.apply_button.hide()
+        elif blocked is not None:
+            # the text of another game exists but its tags cannot be written in this game: say why, offer nothing
+            self.label.setText(tr('Not carried over from {where}: {reason}', where=blocked[0] or tr('another game'), reason=blocked[1]))
+            self.apply_button.hide()
         else:
             self.hide()
             return
         self.apply_all_button.setVisible(bool(self._same_source))
-        self.apply_all_button.setText(tr('Apply to all {count} places', count=len(self._same_source) + 1))
+        self.apply_all_button.setText(tr('Apply to places with the same context'))
         self.show()
 
     # ── actions ─────────────────────────────────────────────────────────
@@ -117,10 +128,25 @@ class MemoryBanner(QFrame):
             text, _ = self.mw.data_processor.get_current_string_text(block_idx, string_idx)
         if not text or not text.strip():
             return
+        # Only the places said under the same context (the speaker and window the fold uses), and only where the text fits.
+        source = self.mw.saved_translations_manager._source_text(block_idx, string_idx)
+        places = [(block_idx, string_idx)]
+        skipped = 0
+        for b_idx, s_idx in self.mw.saved_translations_manager.places_with_same_context(block_idx, string_idx, source):
+            if text_fits_place(self.mw, source, text, b_idx, s_idx):
+                places.append((b_idx, s_idx))
+            else:
+                skipped += 1
         touched = set()
-        for b_idx, s_idx in [(block_idx, string_idx), *self._same_source]:
+        for b_idx, s_idx in places:
             self.mw.data_processor.update_edited_data(b_idx, s_idx, text, action_type="MEMORY_APPLY", skip_ui_refresh=True)
+            text_operation = getattr(self.mw, "text_operation_handler", None)
+            if text_operation is not None:
+                text_operation._rescan_issues_for_current_string(b_idx, s_idx, text)
             touched.add(b_idx)
         for b_idx in touched:
             self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
         self.mw.ui_updater.update_text_views()
+        status_bar = getattr(self.mw, "statusBar", None)
+        if status_bar is not None and skipped:
+            status_bar.showMessage(tr('{count} other places did not take the text: it does not fit their window.', count=skipped), 4000)

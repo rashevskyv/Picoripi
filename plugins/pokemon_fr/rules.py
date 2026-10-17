@@ -6,10 +6,14 @@ source file, saved in place so ``2_build.bat`` only copies the translated files 
 """
 import json
 import os
+import re
+from pathlib import Path
 from typing import Callable, Dict, Any, Tuple, Set, Optional, List
 from collections import OrderedDict
 from plugins.base_game_rules import BaseGameRules
+from plugins.common import name_seeds
 from plugins.common.block_loader import ReadThrough, rescan_block, source_of
+from plugins.common.series_tags import TagMap, body_kind
 from .config import (
     PROBLEM_DEFINITIONS,
     PROBLEM_WIDTH_EXCEEDED,
@@ -85,6 +89,28 @@ def _budgets_in(text_dir: str) -> Optional[Tuple[Dict[str, int], Any]]:
     return ready if ready is not None else rom_project.old_project_budgets(text_dir)
 
 
+SERIES_TAG_MAP = TagMap(name="fr", pattern=pret_text.TAG_RE, kind_of=body_kind)
+
+# pret name tables of the Ruby / Emerald / FireRed line: file stem (English files only) -> (section, description)
+_FR_NAME_TABLES = {"species_names": ("Pokémon", "Pokémon name"), "move_names": ("Moves", "Move name"),
+                   "abilities": ("Abilities", "Ability name"), "ability_names": ("Abilities", "Ability name"),
+                   "items": ("Items", "Item name"), "type_names": ("Types", "Type name"),
+                   "trainer_class_names": ("Characters", "Trainer class")}
+_OTHER_LANGUAGE = re.compile(r"_(de|fr|es|it|ge|sp|ja|ko|zh)$")
+_C_NAME = re.compile(r'_\("((?:[^"\\]|\\.)*)"\)')
+_ITEM_NAME = re.compile(r'\.name\s*=\s*_\("((?:[^"\\]|\\.)*)"\)')
+_DOT_STRING = re.compile(r'\.string\s+"((?:[^"\\]|\\.)*)"')
+
+
+def _fr_name_texts(stem: str, text: str) -> List[str]:
+    """The rows of one name table: ``_("NAME")`` in C, ``.name = _(...)`` in items.h, ``.string "NAME$"`` in an .inc."""
+    if stem == "items":
+        return _ITEM_NAME.findall(text)
+    texts = _C_NAME.findall(text)
+    texts += [s[:-1] if s.endswith("$") else s for s in _DOT_STRING.findall(text)]
+    return texts
+
+
 class GameRules(BaseGameRules):
     """Game rules and translation logic for Game."""
     problem_prefix = "PKFR"
@@ -93,6 +119,10 @@ class GameRules(BaseGameRules):
     problem_analyzer_class = ProblemAnalyzer
     text_fixer_class = TextFixer
     PROBLEM_MISSING_ICON_SPACING = PROBLEM_MISSING_ICON_SPACING
+
+    def get_series_tag_map(self):
+        """The control tags of this game, with a kind each, for the series reuse (plugins/common/series_tags.py)."""
+        return SERIES_TAG_MAP
 
     def __init__(self, main_window_ref=None):
         """Initialize a new instance."""
@@ -317,8 +347,33 @@ class GameRules(BaseGameRules):
         rel, unit, scripts, _speakers = self._pret_unit(block_idx, string_idx)
         return f"{rel}:{scripts[0]}" if unit is not None and len(scripts) == 1 else None
 
+    def get_glossary_seed_entries(self) -> List[Dict[str, Any]]:
+        """Pokémon, moves, items, abilities, types and trainer classes from the decomp's name tables (English files)."""
+        pm = getattr(self.mw, "project_manager", None) if self.mw else None
+        try:
+            blocks = list(pm.project.blocks)
+        except (AttributeError, TypeError):
+            return []
+        collector = name_seeds.TermCollector()
+        for block in blocks:
+            rel = str(block.source_file).replace("\\", "/")
+            stem = Path(rel).stem
+            if _OTHER_LANGUAGE.search(stem):
+                continue
+            stem = stem[:-3] if stem.endswith("_en") else stem
+            if stem not in _FR_NAME_TABLES:
+                continue
+            section, _description = _FR_NAME_TABLES[stem]
+            try:
+                text = Path(pm.get_absolute_path(block.source_file)).read_text(encoding="utf-8", errors="replace")
+            except OSError as error:
+                log_debug(f"pokemon_fr: no glossary terms from {rel}: {error}")
+                continue
+            collector.add_table(rel, _fr_name_texts(stem, text), section, f"{stem} table")
+        return collector.entries
+
     def get_capabilities(self) -> Set[str]:
-        return {"speaker_attribution"}
+        return {"speaker_attribution", "glossary_seed"}
 
     def get_text_representation_for_preview(self, data_string: str) -> str:
         """Get the text representation for preview."""

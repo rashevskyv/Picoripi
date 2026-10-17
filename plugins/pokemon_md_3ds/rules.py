@@ -29,6 +29,7 @@ from . import build as build_mod
 from . import lua_text, message, unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
+from .tag_manager import SERIES_TAG_MAP
 
 _CONFIG = Path(__file__).resolve().parent / "config.json"
 PSMD_MARKER = "message_en.bin"
@@ -44,6 +45,10 @@ class GameRules(BaseGameRules):
     tag_style = "square"
     analyze_whole_string_first = True
     show_spaces_as_dots_default = True
+
+    def get_series_tag_map(self):
+        """The control tags of this game, with a kind each, for the series reuse (plugins/common/series_tags.py)."""
+        return SERIES_TAG_MAP
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)

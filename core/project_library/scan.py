@@ -26,6 +26,7 @@ from core.project_library import index, plugin_facts
 from core.project_library.cards import fallback_name, read_card
 from core.project_library.icons import ICON_SIZE, scale_image_bytes, scale_image_file
 from core.project_library.plugin_facts import default_load_rules
+from core.project_library.series_facts import series_facts
 from utils.logging_utils import log_debug
 
 ICON_FILE_NAME = "icon.png"  # beside project.uiproj, inside the project's picoripi folder
@@ -188,7 +189,10 @@ def run(data_dir: str, projects: Iterable[Tuple[str, str]], emit: Emit, is_cance
         card = _card_for(project_file, cached.get("card"))
         if card is not cached.get("card"):
             batch.add(key, {"card": card})
-        emit({"event": "card", "key": key, "card": card})
+        series = series_facts(project_file, cached.get("series_glossaries"))
+        if series != cached.get("series_glossaries"):
+            batch.add(key, {"series_glossaries": series})
+        emit({"event": "card", "key": key, "card": card, "series": series})
         cards.append((key, project_file, card))
     batch.flush()
     for position, (key, project_file, card) in enumerate(cards):

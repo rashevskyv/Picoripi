@@ -19,7 +19,9 @@ from __future__ import annotations
 
 import re
 import struct
-from typing import List, Tuple
+from typing import List, Optional, Tuple
+
+from plugins.common.series_tags import TagMap
 
 NAMES = {0xBE00: "SCROLL", 0xBE01: "PAGE", 0xBE02: "WAIT", 0xBDFF: "NULL", 0xFF00: "COLOR"}
 BRANCHES = {0x1100: "GENDER", 0x1101: "PLURAL", 0x1107: "VERSION"}
@@ -173,3 +175,42 @@ def describe(tag: str) -> str:
     """Tooltip of an editor tag."""
     return next((text for pattern, text in _DESCRIPTIONS if re.fullmatch(pattern, tag or "")),
                 "Game command" if (tag or "").startswith("{VAR ") else "")
+
+
+def series_kind(tag: str) -> Optional[str]:
+    """The neutral kind of a tag of this codec (plugins/common/series_tags.py); None when it has none.
+
+    A grammar branch (``{GENDER 00FF|aster|iss}``) carries its own text, so it has no kind. A glyph
+    (``{CHAR E447}``) keeps its code: two games draw different glyphs under one code only by chance.
+    """
+    body = (tag or "")[1:-1]
+    if "|" in body or not body.strip():
+        return None
+    name, *args = body.split()
+    if name == "SCROLL":
+        return "scroll"
+    if name == "PAGE":
+        return "page"
+    if name == "WAIT":
+        return "wait"
+    if name == "NULL":
+        return "null"
+    if name == "COLOR":
+        return "colour"
+    if name == "VAR" and args:
+        code = args[0]
+        if code.startswith("01"):
+            return "name"
+        if code.startswith("02"):
+            return "number"
+        if code.startswith("11"):
+            return "form"
+        if code == "BE05":
+            return "speed"
+        return f"var:{code}"
+    if name == "CHAR" and args:
+        return f"icon:{args[0]}"
+    return None
+
+
+SERIES_TAG_MAP = TagMap(name="gfmsg", pattern=TAG_RE, kind_of=series_kind)

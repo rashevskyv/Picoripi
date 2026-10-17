@@ -1,6 +1,7 @@
 """Prompt for a batch of strings: payload, context rows, run memory."""
 from __future__ import annotations
 
+import hashlib
 import json
 from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple
@@ -214,6 +215,16 @@ class BatchMixin:
             json.dumps(translation_context, ensure_ascii=False, sort_keys=True, default=str),
             json.dumps(manual, ensure_ascii=False, sort_keys=True, default=str),
         )
+
+    def saved_context(self, block_idx: int, string_idx: int, source: str) -> Dict[str, str]:
+        """``{"speaker", "addressee", "fold"}`` of a saved row: the duplicate key, split for the restore.
+
+        ``fold`` is a hash of the whole key (the same test as the duplicate fold); the restore compares
+        ``speaker`` and ``addressee`` alone for a row from another project of the series.
+        """
+        key = self.duplicate_context_key({"id": string_idx, "text": source}, block_idx, None)
+        fold = hashlib.sha1(json.dumps(key, ensure_ascii=False, default=str).encode("utf-8")).hexdigest()[:16]
+        return {"speaker": key[0], "addressee": key[1], "fold": fold}
 
     def _run_memory_rows(self, source_items: List[Any]) -> List[Dict[str, str]]:
         """Earlier translations of this run whose source matches one of ``source_items``, as the model sees text."""

@@ -17,6 +17,7 @@ from utils.utils import clean_spaces
 from . import unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
+from plugins.common.gfmsg import SERIES_TAG_MAP
 
 BUILD_TARGET = "layeredfs"
 BASE_CODES = ("BNDA", "BNEA", "A2AA", "A2BA")   # Sun, Moon, Ultra Sun, Ultra Moon (product codes)
@@ -58,19 +59,24 @@ def locate(rel: str) -> Optional[Tuple[str, str, int]]:
     return game, kind, int(m.group(2))
 
 
-def table_name(rel: str) -> str:
-    """The block name of a text table: ``080 Species names``, ``Story 012``, ``Keyboard row 3``."""
+def table_game(project_name: Any) -> str:
+    """The key of the text tables (tables.json) of a project: Ultra's a/0/3/2 is another archive than Sun / Moon's."""
+    return "ultra" if "ultra" in str(project_name or "").lower() else "sm"
+
+
+def table_name(rel: str, game_key: str = "sm") -> str:
+    """The block name of a text table: ``055 Species names``, ``Story 012``, ``Keyboard row 3``."""
     where = locate(rel)
     if where is None:
         return Path(_rel(rel)).stem
-    game, kind, index = where
+    _game, kind, index = where
     if kind == "ultra":
         return f"Ultra text {index:03d}"
     if kind == "story":
         return f"Story {index:03d}"
     if kind == "keyboard":
         return f"Keyboard {index:03d}"
-    label = _tables().get(game, {}).get(str(index), ["Game text", ""])[0]
+    label = _tables().get(game_key, {}).get(str(index), ["Game text", ""])[0]
     return f"{index:03d} {label}"
 
 
@@ -122,6 +128,10 @@ class GameRules(BaseGameRules):
     tag_style = "curly"
     analyze_whole_string_first = True
     show_spaces_as_dots_default = True
+
+    def get_series_tag_map(self):
+        """The control tags of this game, with a kind each, for the series reuse (plugins/common/series_tags.py)."""
+        return SERIES_TAG_MAP
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
@@ -241,7 +251,7 @@ class GameRules(BaseGameRules):
             index = int(string_idx)
         except (TypeError, ValueError):
             return None
-        return {"file": rel, "line": index, "table": table_name(rel)}
+        return {"file": rel, "line": index, "table": table_name(rel, self._table_game())}
 
     # -- AI and story context ----------------------------------------------------
 
@@ -251,7 +261,7 @@ class GameRules(BaseGameRules):
         if where is None:
             return {}
         game, kind, index = where
-        context: Dict[str, Any] = {"table": table_name(rel)}
+        context: Dict[str, Any] = {"table": table_name(rel, self._table_game())}
         if kind == "story":
             context["content_role"] = "Dialogue"
             return context
@@ -259,7 +269,7 @@ class GameRules(BaseGameRules):
             context.update(content_role="Keyboard row",
                            role_instruction="Characters of the name-entry keyboard; keep the same count.")
             return context
-        label, section = _tables().get(game, {}).get(str(index), ["", ""])
+        label, section = _tables().get(self._table_game(), {}).get(str(index), ["", ""])
         for word, role, instruction in _ROLE_WORDS:
             if word in label:
                 context.update(content_role=role, role_instruction=instruction)
@@ -272,7 +282,7 @@ class GameRules(BaseGameRules):
         rel = self._source_of(block_idx)
         if not rel:
             return {}
-        return {"resource": rel, "label": table_name(rel)}
+        return {"resource": rel, "label": table_name(rel, self._table_game())}
 
     def get_ai_flow_context_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
         context = self.get_scene_context_for_string(block_idx, string_idx)
@@ -291,7 +301,7 @@ class GameRules(BaseGameRules):
             where = locate(rel)
             if where is None or where[1] != "game":
                 continue
-            label, section = _tables().get(where[0], {}).get(str(where[2]), ["", ""])
+            label, section = _tables().get(self._table_game(), {}).get(str(where[2]), ["", ""])
             if not section or "(plural" in label or "(dash)" in label or "(menu)" in label:
                 continue
             try:
@@ -311,6 +321,11 @@ class GameRules(BaseGameRules):
 
     def get_capabilities(self) -> Set[str]:
         return {"glossary_seed"}
+
+    def _table_game(self) -> str:
+        """The key of this project's text tables (see ``table_game``)."""
+        project = getattr(getattr(self.mw, "project_manager", None), "project", None) if self.mw else None
+        return table_game(getattr(project, "name", ""))
 
     # -- message window ------------------------------------------------------------
 

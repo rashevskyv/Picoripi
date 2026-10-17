@@ -134,11 +134,11 @@ class TestRestore:
         places = {0: (7, 10), 1: (7, 9)}
 
         with patch.object(CachedTranslationDialog, 'exec', return_value=1), \
-             patch.object(CachedTranslationDialog, '__init__', return_value=None) as dialog:
+             patch.object(CachedTranslationDialog, '__init__', autospec=True, side_effect=CachedTranslationDialog.__init__) as dialog:
             remaining, remaining_places = handler._filter_already_saved_translations(items, places)
 
-        assert dialog.call_args.args[1] == [
-            {'block_idx': 7, 'block_name': 'Block7', 'string_idx': 10, 'text': 'Так', 'from_memory': True}
+        assert dialog.call_args.args[2] == [
+            {'block_idx': 7, 'block_name': 'Block7', 'string_idx': 10, 'text': 'Так', 'from_memory': True, 'origin': 'memory', 'series_sentence': False}
         ]
         assert remaining == [{"id": 1, "text": "x"}] and remaining_places == {1: (7, 9)}
         assert window.data_processor.get_current_string_text(7, 10)[0] == "Так"
@@ -149,10 +149,10 @@ class TestRestore:
         manager.save_translation(0, 3, "Так")           # newer, and for the same text elsewhere
 
         with patch.object(CachedTranslationDialog, 'exec', return_value=1), \
-             patch.object(CachedTranslationDialog, '__init__', return_value=None) as dialog:
+             patch.object(CachedTranslationDialog, '__init__', autospec=True, side_effect=CachedTranslationDialog.__init__) as dialog:
             handler._filter_already_saved_translations([{"id": 0, "text": "Yes"}], {0: (7, 10)})
 
-        assert dialog.call_args.args[1][0]['text'] == "Атож" and dialog.call_args.args[1][0]['from_memory'] is False
+        assert dialog.call_args.args[2][0]['text'] == "Атож" and dialog.call_args.args[2][0]['from_memory'] is False
 
     def test_a_remembered_text_that_does_not_fit_the_row_is_not_offered(self, handler, window):
         window.saved_translations_manager.save_translation(0, 3, "Так")
@@ -200,3 +200,96 @@ class TestSingleStringPrompt:
         window.saved_translations_manager.save_translation(0, 3, "Так")
 
         assert 'TRANSLATION MEMORY' not in self._compose(handler, request_type='variation_list')
+
+
+def _speaker_context(speakers):
+    """An explicit stand-in for the composer's context: the speaker of each (block, string) is given."""
+    def context(block_idx, string_idx, source):
+        speaker = speakers[(block_idx, string_idx)]
+        return {"speaker": speaker, "addressee": "", "fold": f"fold-{speaker}"}
+    return context
+
+
+class TestContextOfARow:
+    """OPEN_ITEMS 4.2: a text that repeats in the project is restored only under the context it was saved under."""
+
+    @pytest.fixture
+    def repeated(self, window):
+        from core.translation.series_memory import index_source_positions
+        window.saved_translations_manager.source_positions = index_source_positions(window.data_store.data)
+        window.saved_translations_manager.context_for = _speaker_context({(0, 3): "Ann", (7, 10): "Bob"})
+        return window
+
+    def test_the_same_text_said_by_another_speaker_is_not_offered(self, handler, repeated):
+        repeated.saved_translations_manager.save_translation(0, 3, "Так")  # said by Ann
+
+        with patch.object(CachedTranslationDialog, 'exec', side_effect=AssertionError("no offer expected")):
+            remaining, _ = handler._filter_already_saved_translations([{"id": 0, "text": "Yes"}], {0: (7, 10)})
+
+        assert remaining == [{"id": 0, "text": "Yes"}]
+        assert repeated.data_processor.get_current_string_text(7, 10)[0] == "Yes"
+
+    def test_the_same_speaker_gets_the_saved_text_and_the_row_says_so(self, handler, repeated):
+        repeated.saved_translations_manager.save_translation(0, 3, "Так")
+        repeated.saved_translations_manager.context_for = _speaker_context({(0, 3): "Ann", (7, 10): "Ann"})
+
+        with patch.object(CachedTranslationDialog, 'exec', return_value=1), \
+             patch.object(CachedTranslationDialog, '__init__', autospec=True, side_effect=CachedTranslationDialog.__init__) as dialog:
+            remaining, _ = handler._filter_already_saved_translations([{"id": 0, "text": "Yes"}], {0: (7, 10)})
+
+        assert dialog.call_args.args[2][0]["origin"] == "memory" and remaining == []
+        assert repeated.data_processor.get_current_string_text(7, 10)[0] == "Так"
+
+    def test_an_unchecked_line_is_translated_anew_and_the_others_are_restored(self, handler, repeated):
+        manager = repeated.saved_translations_manager
+        manager.context_for = _speaker_context({(0, 3): "Ann", (7, 10): "Ann", (3, 2): "Ann"})
+        manager.save_translation(0, 3, "Так")
+        manager.save_translation(7, 10, "Так, знову")
+
+        def exec_with_second_unchecked(self):
+            self._row_boxes[1][1].setChecked(False)
+            return 1
+
+        items = [{"id": 0, "text": "Yes"}, {"id": 1, "text": "Yes"}]
+        with patch.object(CachedTranslationDialog, 'exec', new=exec_with_second_unchecked):
+            remaining, remaining_places = handler._filter_already_saved_translations(items, {0: (0, 3), 1: (7, 10)})
+
+        assert remaining == [{"id": 1, "text": "Yes"}] and remaining_places == {1: (7, 10)}
+        assert repeated.data_processor.get_current_string_text(0, 3)[0] == "Так"
+
+    def test_a_row_saved_before_contexts_existed_is_not_offered_for_a_repeated_text(self, handler, repeated):
+        manager = repeated.saved_translations_manager
+        from core.translation.series_memory import source_hash
+        manager._memory = {source_hash("Yes"): [{"source": "Yes", "translation": "Так"}]}  # no context fields
+        manager._memory_path_loaded = manager._memory_path()
+
+        with patch.object(CachedTranslationDialog, 'exec', side_effect=AssertionError("no offer expected")):
+            remaining, _ = handler._filter_already_saved_translations([{"id": 0, "text": "Yes"}], {0: (7, 10)})
+
+        assert remaining == [{"id": 0, "text": "Yes"}]
+
+
+class TestRememberKeepsContexts:
+    def test_one_row_per_source_and_context_the_newest_wins(self):
+        from core.saved_translations_manager import SavedTranslationsManager as Manager
+        memory = {}
+        Manager._remember(memory, "Yes", "Так", {"speaker": "Ann", "addressee": "", "fold": "a"})
+        Manager._remember(memory, "Yes", "Ні", {"speaker": "Bob", "addressee": "", "fold": "b"})
+        Manager._remember(memory, "Yes", "Так, знову", {"speaker": "Ann", "addressee": "", "fold": "a"})
+
+        rows = memory[next(iter(memory))]
+        assert [(r["translation"], r["fold"]) for r in rows] == [("Ні", "b"), ("Так, знову", "a")]
+
+    def test_a_line_said_by_six_speakers_keeps_six_rows_while_legacy_rows_stay_capped(self):
+        from core.saved_translations_manager import MEMORY_VARIANTS, SavedTranslationsManager as Manager
+        memory = {}
+        for index in range(6):
+            Manager._remember(memory, "Yes", f"t{index}", {"speaker": f"S{index}", "addressee": "", "fold": f"f{index}"})
+        rows = memory[next(iter(memory))]
+        assert [r["fold"] for r in rows] == [f"f{index}" for index in range(6)]
+
+        legacy = {}
+        spellings = ["No", "no", "NO", "nO", "No ", "no ", "NO ", "nO "]  # one normalised key, eight exact texts
+        for index, spelling in enumerate(spellings):
+            Manager._remember(legacy, spelling, f"v{index}")
+        assert len(legacy[next(iter(legacy))]) == MEMORY_VARIANTS

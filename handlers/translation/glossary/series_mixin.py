@@ -2,7 +2,7 @@
 import json
 from functools import partial
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from PyQt6.QtGui import QCursor
 from PyQt6.QtWidgets import QFileDialog, QMenu, QMessageBox
@@ -17,6 +17,7 @@ from core.glossary.series import (
     linked_series_paths,
     series_chain,
     series_dir,
+    series_pair_conflicts,
     set_series_links,
 )
 from core.glossary_manager import GlossaryEntry, GlossaryManager
@@ -123,20 +124,34 @@ class SeriesMixin:
         return path.stem
 
     def _refresh_series_conflicts(self) -> None:
-        """Mark, in every tab, the terms the project and a series glossary translate differently."""
+        """Mark, in every tab, the terms the project and a series glossary translate differently, and the terms two
+        series glossaries translate differently."""
         if getattr(self, "dialog", None) is None:
             return
         project_conflicts = {}
-        for page, manager in zip(self.series_pages, self.series_glossary_managers):
+        page_conflicts: List[Dict[str, str]] = [{} for _ in self.series_pages]
+        for index, manager in enumerate(self.series_glossary_managers):
             conflicts = find_conflicts(self.glossary_manager.get_entries(), manager.get_entries())
             for key, (_mine, theirs) in conflicts.items():
                 project_conflicts.setdefault(
                     key, tr('Conflict: the series glossary translates this as "{translation}".', translation=theirs)
                 )
-            page.set_conflicts({
+            page_conflicts[index].update({
                 key: tr('Conflict: the project glossary translates this as "{translation}".', translation=mine)
                 for key, (mine, _theirs) in conflicts.items()
             })
+        managers = self.series_glossary_managers
+        for first, second, key, mine, theirs in series_pair_conflicts(managers):
+            name_first = self._series_label(managers[first].glossary_path)
+            name_second = self._series_label(managers[second].glossary_path)
+            page_conflicts[first].setdefault(key, tr(
+                'Conflict: the series glossary {name} translates this as "{translation}".',
+                name=name_second, translation=theirs))
+            page_conflicts[second].setdefault(key, tr(
+                'Conflict: the series glossary {name} translates this as "{translation}".',
+                name=name_first, translation=mine))
+        for page, conflicts in zip(self.series_pages, page_conflicts):
+            page.set_conflicts(conflicts)
         self.dialog.set_conflicts(project_conflicts)
 
     def _handle_series_entry_update(

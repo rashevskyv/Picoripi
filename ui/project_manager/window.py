@@ -202,6 +202,15 @@ def format_modified(value: str) -> str:
         return value
 
 
+def series_summary(series: Optional[Dict[str, Any]]) -> str:
+    """The series glossaries a project links (its own and the folders above), with their term count."""
+    files = list((series or {}).get("files") or [])
+    if not files:
+        return tr("None")
+    names = ", ".join(str(entry.get("name") or "") for entry in files)
+    return tr("{0} ({1:,} terms)", names, int((series or {}).get("terms") or 0))
+
+
 def series_of(path: str) -> str:
     """The series folder of a project, read from its folder layout.
 
@@ -548,6 +557,8 @@ class ProjectManagerDialog(QDialog):
             key = str(event.get("key"))
             self._cards[key] = dict(event.get("card") or {})
             self._scanned.add(key)
+            if "series" in event:
+                self._entries.setdefault(key, {})["series_glossaries"] = dict(event.get("series") or {})
             self._schedule_render()
         elif kind == "checked":
             if not self._planned:
@@ -685,6 +696,7 @@ class ProjectManagerDialog(QDialog):
                 "missing_translations": int(cached.get("missing_translations") or 0),
                 "count_error": str(cached.get("count_error") or ""),
                 "counted_at": cached.get("counted_at") or "",
+                "glossary_series": dict(cached.get("series_glossaries") or {}),
                 "flags": self._flag_state.get(key) or card.get("flags") or flags_of({}),
             })
         return rows
@@ -1022,6 +1034,7 @@ class ProjectManagerDialog(QDialog):
             roles.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             roles.setWordWrap(True)
             form.addRow(tr("Source files"), roles)
+        form.addRow(tr("Series glossary"), QLabel(series_summary(row.get("glossary_series"))))
         form.addRow(tr("Lines"), QLabel("—" if row["lines"] is None else f"{row['lines']:,}"))
         form.addRow(tr("Translated"), QLabel("—" if row["translated"] is None else f"{row['translated']} %"))
         form.addRow(tr("Blocks"), QLabel("—" if row["blocks"] is None else str(row["blocks"])))

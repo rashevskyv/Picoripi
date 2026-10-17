@@ -30,6 +30,7 @@ from plugins.pokemon_gen4 import message_preview
 from . import unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
+from plugins.common.gen5msg import SERIES_TAG_MAP
 
 BUILD_TARGET = "nds_rom"
 
@@ -64,6 +65,10 @@ class GameRules(BaseGameRules):
     tag_style = "curly"
     analyze_whole_string_first = True
     show_spaces_as_dots_default = True
+
+    def get_series_tag_map(self):
+        """The control tags of this game, with a kind each, for the series reuse (plugins/common/series_tags.py)."""
+        return SERIES_TAG_MAP
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)

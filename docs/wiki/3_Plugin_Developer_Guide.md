@@ -138,11 +138,13 @@ Everything above is the required minimum. Beyond it a plugin can mine the game's
 
 | Name | Hook it promises | What appears |
 |---|---|---|
-| `glossary_seed` | `get_glossary_seed_entries()` | Glossary terms taken from game data without an AI request (`term`, `description`, `section`, `icon`, `source_ref`, `blocks`) |
+| `glossary_seed` | `get_glossary_seed_entries()` | Glossary terms taken from game data without an AI request (`term`, `description`, `section`, `icon`, `source_ref`, `blocks`). The hook reads only `self.mw.project_manager`: a headless seed run (`scripts/seed_series_glossary.py`) gives that attribute and nothing else. |
 | `external_lore` | `get_external_lore(term)` | Outside knowledge for glossary descriptions |
 | `speaker_attribution` | `get_speaker_for_string()` | The **Name the speakers** step and the Speaker field |
 | `message_window_preview` | `get_preview_window_style()` and the `get_window_*` hooks | In-game message windows in the preview, per-window limits in Settings |
 | `strict_tags` | — | An AI reply that loses, adds or changes a `{tag}` of its source is refused and asked again (games whose control codes all matter) |
+
+**Series tags (`get_series_tag_map()`, not a capability).** A plugin that returns a `TagMap` (`plugins/common/series_tags.py`) gives each of its control tags a kind: a line break, a page, a scroll, a wait, a colour, a name the game inserts, a number, a word form, or a kind that names the tag itself. When two games of one series have the same kinds in the same order, a translation saved in one carries to the other, and its tags are written in the other game's syntax. A tag without a kind blocks the carry-over for that text, and the memory bar says why. Without the hook, a series row matches only the same text.
 
 Do not declare a capability the plugin cannot deliver.
 

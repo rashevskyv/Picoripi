@@ -1,7 +1,7 @@
 """Offer a saved or remembered translation for the current string."""
 # dialogs/cached_translation_dialog.py
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QLabel, QTextEdit, QHBoxLayout, QPushButton
+    QDialog, QVBoxLayout, QLabel, QTextEdit, QHBoxLayout, QPushButton, QCheckBox, QScrollArea
 )
 from PyQt6.QtCore import Qt
 from core.i18n import tr
@@ -21,6 +21,7 @@ class CachedTranslationDialog(QDialog):
         from PyQt6.QtWidgets import QWidget
         parent_widget = parent if isinstance(parent, QWidget) else None
         super().__init__(parent_widget)
+        self._cached_info = list(cached_info)
         cached_count = len(cached_info)
         
         # Set Window Title
@@ -59,7 +60,11 @@ class CachedTranslationDialog(QDialog):
         layout.addWidget(self.info_label)
         
         # 2. Source Label
-        if cached_count == 1 and cached_info[0].get('from_memory'):
+        if cached_count == 1 and cached_info[0].get('origin') == 'series':
+            self.source_label = QLabel(tr('Source: saved for the same text in another project of the series'), self)
+        elif cached_count == 1 and cached_info[0].get('origin') == 'series_mapped':
+            self.source_label = QLabel(tr('Source: saved for the same text in another project of the series, tags converted'), self)
+        elif cached_count == 1 and cached_info[0].get('from_memory'):
             self.source_label = QLabel(tr('Source: saved for the same text elsewhere in the project'), self)
         else:
             self.source_label = QLabel(tr('Source: Loaded from cache'), self)
@@ -78,11 +83,30 @@ class CachedTranslationDialog(QDialog):
             # Multi-line overview
             lines_desc = []
             for item in cached_info:
-                origin = " " + tr('(same text elsewhere)') if item.get('from_memory') else ""
+                origin = " " + self._origin_label(item) if item.get('from_memory') else ""
                 lines_desc.append(f"[{item['block_name']}] Line {item['string_idx'] + 1}{origin}:\n{item['text']}\n" + "-"*40)
             self.text_edit.setPlainText("\n".join(lines_desc))
-            
+
         layout.addWidget(self.text_edit)
+
+        # One check box per line: checked lines take the saved text; an unchecked line is translated anew.
+        self._row_boxes: list = []
+        if cached_count > 1 or any(item.get("series_sentence") for item in cached_info):
+            rows_widget = QWidget(self)
+            rows_layout = QVBoxLayout(rows_widget)
+            rows_layout.setContentsMargins(0, 0, 0, 0)
+            for item in cached_info:
+                box = QCheckBox(f"[{item['block_name']}] Line {item['string_idx'] + 1}", rows_widget)
+                box.setChecked(not item.get("series_sentence"))
+                box.setToolTip(tr('Checked: use the saved text. Unchecked: translate this line anew.'))
+                self._row_boxes.append((item, box))
+                rows_layout.addWidget(box)
+            rows_layout.addStretch()
+            scroll = QScrollArea(self)
+            scroll.setWidgetResizable(True)
+            scroll.setMaximumHeight(160)
+            scroll.setWidget(rows_widget)
+            layout.addWidget(scroll)
         
         # 4. Action Buttons Layout
         btn_layout = QHBoxLayout()
@@ -110,5 +134,21 @@ class CachedTranslationDialog(QDialog):
         )
         self.cancel_btn.clicked.connect(lambda: self.done(0))
         btn_layout.addWidget(self.cancel_btn)
-        
+
         layout.addLayout(btn_layout)
+
+    @staticmethod
+    def _origin_label(item: dict) -> str:
+        """Where a remembered row comes from: another project of the series, or another place of this project."""
+        if item.get('origin') == 'series':
+            return tr('(same text in another project of the series)')
+        if item.get('origin') == 'series_mapped':
+            return tr('(same text in another project of the series, tags converted)')
+        return tr('(same text elsewhere)')
+
+    def accepted_positions(self) -> list:
+        """``(block_idx, string_idx)`` of every line whose saved text is to be used (the checked lines)."""
+        if not self._row_boxes:
+            # one line: its text is the choice (OK restores it, Translate Anew and Cancel never reach here)
+            return [(item['block_idx'], item['string_idx']) for item in self._cached_info]
+        return [(item['block_idx'], item['string_idx']) for item, box in self._row_boxes if box.isChecked()]

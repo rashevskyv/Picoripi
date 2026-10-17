@@ -6,15 +6,26 @@ SDF fonts: ``<asset>.json`` + ``<asset>.png``, and the font files of the dynamic
 ``texture\\<bundle>\\*.png`` (the English picture bundles: logos, menu words). Each table is one block, each
 label one string. ``2_build.bat`` puts every edited file back into its bundle, for both games.
 """
-from typing import Any, Dict, List, Optional, Tuple
+import re
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
+from plugins.common import name_seeds
+from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
 
 from . import build, msg, unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
+from .tag_manager import SERIES_TAG_MAP
+
+_PLUGIN_NAME = "pokemon_bdsp"
+# the name tables of the message banks (file stem without its language and series prefix) -> glossary section
+_BDSP_NAME_TABLES = {"monsname": "Pokémon", "wazaname": "Moves", "itemname": "Items", "tokusei": "Abilities",
+                     "typename": "Types"}
+_BDSP_PREFIX = re.compile(r"^english_(?:ss|dp|dlp)_")
 
 _GROUPS = {1: "a name or word the game fills in", 2: "a number the game fills in",
            19: "a word form the game picks (by gender or number); the forms follow after |"}
@@ -29,6 +40,10 @@ class GameRules(BaseGameRules):
     tag_style = "curly"
     analyze_whole_string_first = True
     show_spaces_as_dots_default = True
+
+    def get_series_tag_map(self):
+        """The control tags of this game, with a kind each, for the series reuse (plugins/common/series_tags.py)."""
+        return SERIES_TAG_MAP
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
@@ -102,6 +117,31 @@ class GameRules(BaseGameRules):
         self._table = None
 
     # -- editor ----------------------------------------------------------------
+
+    def get_glossary_seed_entries(self) -> List[Dict[str, Any]]:
+        """Pokémon, moves, items, abilities and types from the game's name tables (``message/english_*_name.bdmsg``)."""
+        pm = getattr(self.mw, "project_manager", None) if self.mw else None
+        try:
+            blocks = list(pm.project.blocks)
+        except (AttributeError, TypeError):
+            return []
+        collector = name_seeds.TermCollector()
+        for block in blocks:
+            rel = str(block.source_file).replace("\\", "/")
+            stem = _BDSP_PREFIX.sub("", Path(rel).stem)
+            section = _BDSP_NAME_TABLES.get(stem)
+            if section is None:
+                continue
+            try:
+                texts = msg.load_table(Path(pm.get_absolute_path(block.source_file)).read_bytes())[2]
+            except (OSError, ValueError) as error:
+                log_debug(f"{_PLUGIN_NAME}: no glossary terms from {rel}: {error}")
+                continue
+            collector.add_table(rel, texts, section, f"{stem} table")
+        return collector.entries
+
+    def get_capabilities(self) -> Set[str]:
+        return {"glossary_seed"}
 
     def get_tag_tooltip(self, tag: str) -> str:
         tag = str(tag)

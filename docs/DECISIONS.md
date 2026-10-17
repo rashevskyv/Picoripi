@@ -982,3 +982,98 @@ English document by flow index, and the English layout orders flows differently 
 a page where every paragraph has the same kind in English and Russian (`rules.pairs_agree`: a lone marker, or text with
 its tag kinds). Other pages show no English, so a wrong English line never shows. The check is per page, the stricter
 reading: per flow would show 304 more keys of the owner's files.
+
+## D41. A saved row of a repeated text carries the context it was made under; the restore uses that context (2026-10-17)
+
+**Context.** The duplicate fold (4.1) sends one of several identical strings and gives its translation to the others
+only when speaker, addressee, window and story context are equal. The translation memory (OPEN_ITEMS 4.2) kept only
+the source text, so "I'm ready" saved for a woman was offered for a man's identical line. The Cached Translation window
+was all or nothing, so the only way out was Translate Anew for every line.
+**Decision.** A memory row stores `speaker`, `addressee` and `fold` (a hash of the whole fold key) when it is saved.
+The context is read only for a text that repeats in the project (`SavedTranslationsManager.repeats_in_project`); a
+text that occurs once has no other place to be confused with and restores as before. A repeated text restores from
+its own project's memory only when the row's `fold` equals the current one. A row from another project of the series
+restores only when `speaker` and `addressee` equal. A row with a context is never trimmed (one row per context, so a line
+said by six speakers keeps six rows); rows without a context keep the five-row cap. Rows saved before this record have no context: they are not offered
+for a repeated text until the line is saved again. The Cached Translation window has one check box per line, checked
+by default; an unchecked line is translated anew. The backup by position (`saved_translations.json`) is unchanged. The memory bar (**Apply here**, **Apply to places with
+the same context**) uses the same rule, and its apply writes only into the places where the text fits the window.
+**Cost.** A save of a repeated text calls the composer's fold key on the interface thread (one speaker lookup per saved
+repeated string). The fold has the same cost today (OPEN_ITEMS 4.1). A context change between save and restore (for
+example a renamed speaker) is not seen: the old row is then not offered. Series rows of another game compare English
+speaker names only.
+**Series reuse (goal 3 of the Pokémon series work).** This record is the speaker rule that the series memory uses too;
+the series itself is not extended here. Whether sentences shared across games are offered is still the owner's choice.
+
+## D42. A series glossary takes the game's terms headless, and decides a seed that it already translates (2026-10-17)
+
+**Context.** The Pokémon series has 23 projects. Each project glossary was built from its own game data, so the same
+species, move or item was seeded and decided again in every game. The series glossary file was only written by hand.
+The seed hooks read the game through `self.mw.project_manager`, which exists only in the window.
+**Decision.**
+- `core/glossary/series_seeds.py` loads a project in memory (no window), gives the plugin's seed hook a holder with that
+  project manager, and writes each missing term to a series file. Seeded terms have an empty translation and the
+  status "seeded" (or "fragments" with a description). Existing entries are never changed.
+  `default_load_rules(plugin_name, main_window)` builds the plugin with that holder; the holder is passed at
+  construction, because the base rules only store it.
+- A structural seed whose term a series file translates (the first file of the chain with a settled translation) carries
+  that translation into the build. The build does not decide it again. The series file stays read-only for builds.
+- A series row for a text of more than two words is off by default in the Cached Translation window (D41). A name or a
+  menu word is on.
+- One `Pokemon\_glossary\glossary.json` above the game folders links every Pokémon project (the folder rule of wiki 8).
+  No `.uiproj` is edited. The file is created by the owner; deleting it undoes the link.
+**Cost.** Seeds reach only the plugins that have a seed hook (gen1, gen5, gen6, gen7, md_3ds and nx on this data).
+Seeding a series file means reading every game's name tables: about two to four minutes per game.
+A term the AI pass proposes is not checked against the series file (open). Owner decision: whether sentences from other games are offered at all (today: offered, off by default).
+
+## D43. Series tag kinds: a translation carries across games only when their tag kinds match (2026-10-18)
+
+**Context.** Round 1 measured 16,067 exact and 19,433 normalised shared texts between Legends Z-A and Scarlet/Violet.
+The generic normalisation drops every `[..]` and `{..}` chunk, so texts that differ only in tags look equal. A
+translation saved in one game would then be written into another game with the first game's tags.
+**Decision.** A plugin returns a `TagMap` from `get_series_tag_map()` (base default None). The map has the syntax name,
+a regex that finds one tag, and a kind for each tag. A common kind (line, page, scroll, wait, colour, name, number,
+form, speed) is used only where the codec means the same thing. Any other tag gets a kind that names the tag itself
+(`icon:E447`, `tag:text_ram wStringBuffer`), so it matches only the same tag. A memory row saved by a game with a map
+keeps `syntax`, `tags` and `neutral` (the text with each tag replaced by its kind, folded). The series index keys the
+rows of other games by a hash of `neutral`. A row of another syntax carries when the kinds match in order: each kind
+pairs with the one target tag of that kind, the translation's tags are replaced, and the result must have exactly the
+target's tags and pass `compare_tags`. A row of the same syntax carries only with identical tags. A kind that occurs
+with two different tags on one side blocks the carry, because the pairing is not known. A row saved before this record
+has no `neutral`; it matches as before.
+**Cost.** The kinds are a judgement per codec. The VAR family 01 is `name` in gen 5 and in the Switch codec, because
+both documents say so; the exact variable code is not compared across games. Grammar branches (`{GENDER ..|..|..}`)
+and glyph codes (`{CHAR E447}`) do not carry across. The series index is built on the load worker from rows already
+read. The memory bar shows why a carry is blocked. The batch Cached Translation window does not list a blocked text.
+The prompt still uses exact series text only. Owner decision: whether a kind pairing across games is accepted for a
+name (today: accepted) or only for the same variable code.
+
+## D44. The translation memory gets its context on a worker; the speaker lookup on the save path stays where it is (2026-10-18)
+
+**Context.** A row saved before D41 has no speaker, addressee or fold key, so a repeated text does not restore from it
+(OPEN_ITEMS 4.2). The context is the prompt composer's duplicate key: the speaker and addressee the plugin reports, the
+window, the plugin's translation context and the manual story override. Its lookup (OPEN_ITEMS 4.1) runs on the
+interface thread in the save and restore paths. Its cost was not measured in this round: a headless timing needs a
+loaded window.
+**Decision.**
+- `core/translation/memory_context.py` plans the rebuild from the saved translations (the position backup). A row with
+  the same source and translation as a saved place takes that place's context. A further context of the same text gets
+  its own row, so one row per context holds. A row with no matching place is left as it is and counted.
+- `handlers/memory_context_worker.py` runs the plan on a `QThread`, with progress and cancel. The memory is written
+  once, after the plan completes and was not cancelled: the previous file is copied to
+  `translation_memory.before_context.json` (written once, so it stays the memory before the first rebuild), and the new
+  file replaces the old atomically. **File > Restore Translation Memory Before the Context Update** puts the copy back.
+- The context of a repeated text is read on the worker by the composer's `saved_context`, the same function the save
+  path uses. Only a text that occurs more than once needs it.
+- The speaker lookup of the save and restore paths is not moved. Those paths need the answer at once; a worker would
+  need a second answer path, which is a design of its own. Open with its measurement (OPEN_ITEMS 4.1).
+**Cost and risk.** The plugin hooks behind `saved_context` (speaker, addressee, translation context, story override) run
+on the worker. They are plugin code that was written for the interface thread; no audit of every plugin has been made.
+The rebuild is opt-in, cancellable, and keeps the previous file. A plugin hook that touches a widget would be a bug
+that the backup limits to one run.
+**Series details (Project Manager).** The scan reads the project's series glossary chain beside each card
+(`core/project_library/series_facts.py`): the file names and the term counts. A count is reused while a file keeps its
+size and time. The registry and the project file are not written. The count of reusable repeated texts is not built: it
+needs every memory file of the series.
+**Seeding speed.** `GlossaryManager.seed_entries` gives the answers of `seed_entry` one term at a time, with the presence
+test built once for the batch. The per-term version scanned and copied the glossary for each term.

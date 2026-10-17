@@ -798,6 +798,17 @@ class BaseGameRules:
         tag_manager = getattr(self, "tag_manager", None)
         return tag_manager.get_legitimate_tags() if tag_manager is not None else set()
 
+    def get_series_tag_map(self) -> Optional[Any]:
+        """How this game writes its control tags, for the reuse of a translation across the games of a series.
+
+        Returns a ``plugins.common.series_tags.TagMap``: the syntax name, a regex that finds one tag, and a kind
+        for each tag. Two games carry a translation across only when their kinds match in order; the tags of the
+        carried text are then written in this game's syntax. A tag whose ``kind_of`` returns None keeps its text out
+        of every cross-game match. Default: None, meaning the game declares no tag kinds and its series rows match
+        on exact text only.
+        """
+        return None
+
     def get_tag_tooltip(self, tag: str) -> str:
         """Return an optional human-readable explanation for an editor tag."""
         return ""

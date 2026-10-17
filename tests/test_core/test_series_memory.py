@@ -16,7 +16,7 @@ from core.translation.series_memory import (
 )
 from dialogs.cached_translation_dialog import CachedTranslationDialog
 from handlers.translation_handler import TranslationHandler
-from test_core.test_translation_memory import _window
+from test_core.test_translation_memory import _speaker_context, _window
 from ui.components.memory_banner import MemoryBanner
 
 
@@ -87,9 +87,10 @@ def window(tmp_path):
     data[3][2] = "Yes"
     mw = _window(tmp_path, data)
     manager = mw.saved_translations_manager
+    # Rows carry the speaker and addressee they were saved under; this window resolves no speaker ("NONE").
     manager.series_memory = {source_hash("Yes"): [
-        {"source": "Yes", "translation": "Так (HD)", "project": "TP HD"},
-        {"source": "yes", "translation": "атож", "project": "WW"},
+        {"source": "Yes", "translation": "Так (HD)", "project": "TP HD", "speaker": "NONE", "addressee": ""},
+        {"source": "yes", "translation": "атож", "project": "WW", "speaker": "NONE", "addressee": ""},
     ]}
     manager.source_positions = index_source_positions(data)
     return mw
@@ -121,12 +122,12 @@ class TestLookup:
 class TestBatchRun:
     def test_a_text_another_game_translated_is_restored_without_a_request(self, handler, window):
         with patch.object(CachedTranslationDialog, 'exec', return_value=1), \
-             patch.object(CachedTranslationDialog, '__init__', return_value=None) as dialog:
+             patch.object(CachedTranslationDialog, '__init__', autospec=True, side_effect=CachedTranslationDialog.__init__) as dialog:
             remaining, _ = handler._filter_already_saved_translations(
                 [{"id": 0, "text": "Yes"}, {"id": 1, "text": "x"}], {0: (7, 10), 1: (7, 9)}
             )
 
-        assert dialog.call_args.args[1][0]['text'] == "Так (HD)" and dialog.call_args.args[1][0]['from_memory'] is True
+        assert dialog.call_args.args[2][0]['text'] == "Так (HD)" and dialog.call_args.args[2][0]['from_memory'] is True
         assert remaining == [{"id": 1, "text": "x"}]
         assert window.data_processor.get_current_string_text(7, 10)[0] == "Так (HD)"
 
@@ -134,10 +135,10 @@ class TestBatchRun:
         window.saved_translations_manager.save_translation(0, 3, "Так")
 
         with patch.object(CachedTranslationDialog, 'exec', return_value=1), \
-             patch.object(CachedTranslationDialog, '__init__', return_value=None) as dialog:
+             patch.object(CachedTranslationDialog, '__init__', autospec=True, side_effect=CachedTranslationDialog.__init__) as dialog:
             handler._filter_already_saved_translations([{"id": 0, "text": "Yes"}], {0: (7, 10)})
 
-        assert dialog.call_args.args[1][0]['text'] == "Так"
+        assert dialog.call_args.args[2][0]['text'] == "Так"
 
 
 class TestPrompts:
@@ -172,19 +173,19 @@ class TestBanner:
         qtbot.addWidget(banner)
         return banner
 
-    def test_it_offers_the_series_translation_and_applies_it_here(self, qtbot, window):
+    def test_it_offers_the_series_translation_and_applies_it_here(self, qtbot, handler, window):
         banner = self._banner(qtbot, window)
 
         banner.refresh(7, 10)
 
         assert not banner.isHidden()
         assert banner.label.text() == 'Translated in TP HD: "Так (HD)"'
-        assert banner.apply_all_button.text() == "Apply to all 3 places"
+        assert banner.apply_all_button.text() == "Apply to places with the same context"
         banner.apply_here()
         assert window.data_processor.get_current_string_text(7, 10)[0] == "Так (HD)"
         assert window.data_processor.get_current_string_text(0, 3)[0] == "Yes"
 
-    def test_the_project_s_own_memory_wins_and_apply_everywhere_fills_every_copy(self, qtbot, window):
+    def test_the_project_s_own_memory_wins_and_apply_everywhere_fills_every_copy(self, qtbot, handler, window):
         banner = self._banner(qtbot, window)
         window.saved_translations_manager.save_translation(0, 3, "Так")
 
@@ -194,7 +195,7 @@ class TestBanner:
 
         assert [window.data_processor.get_current_string_text(b, s)[0] for b, s in ((0, 3), (3, 2), (7, 10))] == ["Так"] * 3
 
-    def test_a_translated_text_with_copies_offers_to_spread_its_own_translation(self, qtbot, window):
+    def test_a_translated_text_with_copies_offers_to_spread_its_own_translation(self, qtbot, handler, window):
         banner = self._banner(qtbot, window)
         window.saved_translations_manager.series_memory = {}
         window.data_processor.update_edited_data(7, 10, "Еге ж")
@@ -212,3 +213,24 @@ class TestBanner:
         banner.refresh(7, 10)
         banner.refresh(1, 0)  # "x": copies exist, but no translation yet
         assert banner.isHidden()
+
+    def test_apply_everywhere_skips_a_copy_said_by_another_speaker(self, qtbot, handler, window):
+        banner = self._banner(qtbot, window)
+        window.saved_translations_manager.context_for = _speaker_context({(0, 3): "Ann", (3, 2): "Bob", (7, 10): "Ann"})
+        window.data_processor.update_edited_data(7, 10, "Еге ж")
+
+        banner.refresh(7, 10)
+        banner.apply_everywhere()
+
+        assert window.data_processor.get_current_string_text(0, 3)[0] == "Еге ж"
+        assert window.data_processor.get_current_string_text(3, 2)[0] == "Yes"
+
+
+class TestSeriesRowsNeedTheSameSpeaker:
+    def test_a_series_row_said_by_another_speaker_is_not_offered(self, handler, window):
+        window.saved_translations_manager.context_for = _speaker_context({(7, 10): "Bob"})  # the series rows say "NONE"
+
+        with patch.object(CachedTranslationDialog, 'exec', side_effect=AssertionError("no offer expected")):
+            remaining, _ = handler._filter_already_saved_translations([{"id": 0, "text": "Yes"}], {0: (7, 10)})
+
+        assert remaining == [{"id": 0, "text": "Yes"}]
