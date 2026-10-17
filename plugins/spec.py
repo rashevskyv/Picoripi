@@ -284,7 +284,7 @@ KNOWN_CONFIG_KEYS = frozenset({
     "message_window", "dialogue_window", "dialogue_xy", "dialogue_oras", "language_xy", "language_oras",
     "dialogue_gti", "dialogue_psmd",
     # read by the plugin itself, not by the host
-    "CONTROL_CODES", "PROBLEM_DEFINITIONS", "dialogue_box",
+    "CONTROL_CODES", "PROBLEM_DEFINITIONS", "dialogue_box", "speech_bubble", "hud_message",
 })
 
 # Sections of ``translation_prompts/prompts.json``. A plugin file may hold any

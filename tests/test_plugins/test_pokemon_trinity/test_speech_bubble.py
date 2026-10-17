@@ -3,7 +3,7 @@
 
 The fake face draws a solid block per glyph, so the layout and the render are tested without game files. The real
 font test reads the owner's Z-A unpack and skips without it; it checks the ink edges against the Eden frame measurement
-(pkC8/shots/za_dialogue/za_npc_bubble_run9.png, 2026-10-17) within 2 px.
+(Eden frame, 2026-10-17) within 2 px.
 """
 from types import SimpleNamespace
 
@@ -45,7 +45,7 @@ def test_the_bubble_facts_name_two_lines_inside_the_canvas_and_a_wrap_of_the_mea
     assert len(facts["lines"]) == 2
     x0, y0, x1, y1 = facts["box"]
     assert 0 <= x0 < x1 <= facts["canvas"][0] and 0 <= y0 < y1 <= facts["canvas"][1]
-    # 'Lumiose City!' is 139 px of ink at the measured size: the wrap bound must hold it on one line
+    # the measured first line is 139 px of ink at the measured size: the wrap bound must hold it on one line
     assert facts["wrap_width"] >= 139.0
 
 
