@@ -4,6 +4,7 @@ from __future__ import annotations
 import copy
 import json
 import os
+import re
 import threading
 import uuid
 from datetime import datetime
@@ -31,7 +32,23 @@ def _empty_document() -> Dict[str, Any]:
 
 
 # The settings the Project Manager keeps. Keys for AI services are not here: they live on the AI settings page only.
-SETTING_NAMES = ("emulator_command",)
+# ``emulator_command`` is the command of every platform before per-platform commands existed; a platform's own
+# command is stored as ``emulator_command.<platform id>`` (see ``emulator_setting``).
+EMULATOR_KEY = "emulator_command"
+EMULATOR_PREFIX = EMULATOR_KEY + "."
+SETTING_NAMES = (EMULATOR_KEY,)
+_PLATFORM_ID = re.compile(r"[A-Za-z0-9_.-]{1,40}")
+
+
+def emulator_setting(platform: str) -> str:
+    """The settings name of one platform's emulator command."""
+    return EMULATOR_PREFIX + platform
+
+
+def _known_setting(name: str) -> bool:
+    if name in SETTING_NAMES:
+        return True
+    return name.startswith(EMULATOR_PREFIX) and bool(_PLATFORM_ID.fullmatch(name[len(EMULATOR_PREFIX):]))
 
 
 def _set_aside(path: Path, reason: str) -> None:
@@ -171,11 +188,13 @@ class Registry:
 
     # ----- settings -----
     def settings(self) -> Dict[str, Any]:
-        return {name: self.document["settings"].get(name, "") for name in SETTING_NAMES}
+        stored = self.document["settings"]
+        names = list(SETTING_NAMES) + sorted(name for name in stored if _known_setting(name) and name not in SETTING_NAMES)
+        return {name: stored.get(name, "") for name in names}
 
     def set_setting(self, name: str, value: str) -> bool:
         """Store one Project Manager setting. Unknown names are refused."""
-        if name not in SETTING_NAMES:
+        if not _known_setting(name):
             return False
         self.document["settings"][name] = str(value)
         return True

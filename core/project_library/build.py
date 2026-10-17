@@ -15,6 +15,7 @@ from typing import Any, Callable, Dict, List, Optional
 from core.containers import console_crypto
 from core.i18n import tr
 from core.project_library import images
+from core.project_library.registry import EMULATOR_KEY, emulator_setting
 from utils.logging_utils import log_info
 
 Progress = Callable[[int, str], None]
@@ -181,6 +182,28 @@ def export_build(build_path: str | os.PathLike, destination: str | os.PathLike, 
         _remove_own(temporary)
         raise
     return str(target if source.is_dir() else target / source.name)
+
+
+def emulator_platform(target_platforms: List[str], project_platform: str) -> str:
+    """The platform a build's result runs on: the target's only platform, else the project's platform, else "".
+
+    A target that names several platforms (or none) takes the project's platform.
+    """
+    names = [name for name in target_platforms if name]
+    if len(names) == 1:
+        return names[0]
+    return project_platform or ""
+
+
+def emulator_template_for(settings: Dict[str, Any], platform: str) -> str:
+    """The emulator command of ``platform``. A platform with its own setting (even an empty one) uses that setting;
+    a platform without one uses the older shared command, so a registry written before per-platform commands keeps
+    working until each platform has its own.
+    """
+    name = emulator_setting(platform) if platform else EMULATOR_KEY
+    if name in settings:
+        return str(settings.get(name) or "").strip()
+    return str(settings.get(EMULATOR_KEY) or "").strip()
 
 
 def emulator_argv(template: str, path: str, posix: Optional[bool] = None) -> List[str]:

@@ -1120,7 +1120,7 @@ when you create, open or import it.
 - **Details:** expand a row to see the path, the stats, a list of the folders with their blocks and lines, and what needs attention. Two flags, **Built** and **Verified in game**, are set only when you tick them.
 - **Build mod:** builds the game's targets into the project's `build` folder. A game that declares no target shows the button off.
 - **Export mod:** copies a built target to a folder you choose. The folder must be empty.
-- **Run in emulator:** builds the target and starts your emulator on it. Set the command once with **Emulator...**. Write `{path}` where the built file or folder goes, for example `"C:\Emu\emu.exe" {path}`.
+- **Run in emulator:** builds the target and starts the emulator of the target's platform on it. Set one command for each platform with **Emulator...** (one line per platform). Write `{path}` where the built file or folder goes, for example `"C:\Emu\emu.exe" {path}`. The item is off for a platform with no command. A command saved before per-platform commands applies to every platform until that platform has its own line.
 - **Icon:** a project can show a picture of its game. It is the file `picoripi/icon.png` next to `project.uiproj` (PNG, up to 256 px). A project without the file has no picture. `scripts/harvest_project_icons.py` fills missing icons from the game's own files; it never replaces an existing `icon.png`, and without `--apply` it only prints a table.
 - **Remove from manager** never deletes project files.
 

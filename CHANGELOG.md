@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Project Manager: Emulator... sets one command per platform (`emulator_command.<platform>` in the registry); Run in emulator uses the command of the target's platform, and the older shared command still applies to platforms without their own line.
 - Pokémon Brilliant Diamond / Shining Pearl (Switch): the field dialogue preview wraps and draws two lines (line pitch 61 px; wrap width in [848.5, 1010.8) px, from the Eden frame; `config.json` `dialogue_box`, `plugins/pokemon_bdsp/dialogue_preview.py`).
 - Pokémon Brilliant Diamond / Shining Pearl (Switch): the field dialogue preview draws the first line in the game's TextMesh Pro efigs face at the measured size (45.5 px, pen x 485.5, baseline 855; facts in `config.json` `dialogue_box`, `plugins/pokemon_bdsp/dialogue_preview.py`); the box picture and the wrap width are not measured yet.
 

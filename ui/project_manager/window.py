@@ -23,13 +23,15 @@ from PyQt6.QtWidgets import (
 
 from core.i18n import tr
 from core.project_library import index, registry, views
-from core.project_library.build import emulator_argv
+from core.project_library.build import emulator_argv, emulator_platform, emulator_template_for
 from core.project_library.cards import fallback_name, percent_translated, read_card
 from core.project_library.discovery import find_projects, platform_from_parts
 from core.project_library.flags import FLAG_NAMES, flags_of
 from core.project_library.icons import ICON_SIZE, IMAGE_FILTER, save_user_icon
 from core.project_library.plugin_facts import PLUGIN_MISSING, default_load_rules
+from core.project_library.registry import EMULATOR_PREFIX
 from core.project_library.scan import ICON_FILE_NAME
+from ui.project_manager.emulator_dialog import EmulatorDialog
 from ui.project_manager.jobs import BackgroundJob
 from ui.project_manager.scan_process import ScanProcess
 from ui.project_manager.tasks import ActionJob
@@ -303,6 +305,7 @@ class ProjectManagerDialog(QDialog):
         self._status_labels: Dict[str, QLabel] = {}
         self._action_text: Dict[str, str] = {}
         self._action_jobs: Dict[str, ActionJob] = {}
+        self._action_platform: Dict[str, str] = {}  # job key -> platform whose emulator command Run uses
         self._icon_images: Dict[str, QImage] = {}
         self._icons: Dict[str, QIcon] = {}
         self._tiles: Dict[Tuple[str, str], QIcon] = {}
@@ -350,7 +353,7 @@ class ProjectManagerDialog(QDialog):
         new_folder.clicked.connect(self._new_folder_clicked)
         bar.addWidget(new_folder)
         emulator = QPushButton(tr("Emulator..."))
-        emulator.setToolTip(tr("The command that starts your emulator. Used by Run in emulator."))
+        emulator.setToolTip(tr("One emulator command per platform. Run in emulator uses the command of its platform."))
         emulator.clicked.connect(self._emulator_clicked)
         bar.addWidget(emulator)
         bar.addStretch(1)
@@ -1034,15 +1037,19 @@ class ProjectManagerDialog(QDialog):
         button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         menu = QMenu(button)
         for target in row["targets"]:
+            platform = emulator_platform(target["platforms"], row["platform"])
             action = menu.addAction(str(target["label"]))
-            action.triggered.connect(_call(self._start_action, row["path"], target["id"], mode))
+            action.triggered.connect(_call(self._start_action, row["path"], target["id"], mode, platform))
+            if mode == "run" and not self._emulator_template(platform):
+                action.setEnabled(False)
+                action.setToolTip(tr("Set the emulator command for this platform first (Emulator... button)."))
         button.setMenu(menu)
         if not row["targets"]:
             button.setEnabled(False)
             button.setToolTip(tr("This game declares no build target yet."))
-        elif mode == "run" and not self._emulator_command():
+        elif mode == "run" and not any(action.isEnabled() for action in menu.actions()):
             button.setEnabled(False)
-            button.setToolTip(tr("Set the emulator command first (Emulator... button)."))
+            button.setToolTip(tr("Set the emulator command for this platform first (Emulator... button)."))
         return button
 
     @staticmethod
@@ -1096,20 +1103,29 @@ class ProjectManagerDialog(QDialog):
         self._schedule_render()
 
     # ----- build, export and run -----
-    def _emulator_command(self) -> str:
-        return str((self._document.get("settings") or {}).get("emulator_command") or "").strip()
+    def _emulator_template(self, platform: str) -> str:
+        return emulator_template_for(self._document.get("settings") or {}, platform)
+
+    def _known_platforms(self) -> List[str]:
+        """Every platform a project, a build target or a stored emulator command names, sorted."""
+        names = set()
+        for row in self._rows():
+            names.add(row.get("platform") or "")
+            for target in row.get("targets") or []:
+                names.update(target.get("platforms") or [])
+        names.update(name[len(EMULATOR_PREFIX):] for name in self._document.get("settings") or {}
+                     if name.startswith(EMULATOR_PREFIX))
+        return sorted(name for name in names if name)
 
     def _emulator_clicked(self) -> None:
-        text, ok = QInputDialog.getText(
-            self, tr("Emulator command"),
-            tr("Command that starts your emulator. Write {path} where the built file or folder goes."),
-            text=self._emulator_command())
-        if ok:
-            value = text.strip()
-            self._document.setdefault("settings", {})["emulator_command"] = value
-            self._save_setting("emulator_command", value)
+        dialog = EmulatorDialog(self, self._known_platforms(), self._document.get("settings") or {})
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        for name, value in dialog.changes().items():
+            self._document.setdefault("settings", {})[name] = value
+            self._save_setting(name, value)
 
-    def _start_action(self, project_file: str, target_id: str, mode: str) -> None:
+    def _start_action(self, project_file: str, target_id: str, mode: str, platform: str = "") -> None:
         key = registry.project_key(project_file)
         if key in self._action_jobs:
             self._status.setText(tr("This project is already building."))
@@ -1121,6 +1137,7 @@ class ProjectManagerDialog(QDialog):
                 return
         job = ActionJob(project_file, target_id, self._load_rules, export_to)
         self._action_jobs[key] = job
+        self._action_platform[key] = platform
         self._set_action_text(key, tr("Working..."))
         job.progress.connect(lambda percent, text, k=key: self._set_action_text(k, f"{text} ({percent} %)"))
         job.done.connect(lambda path, k=key, m=mode: self._on_action_done(k, m, path))
@@ -1130,8 +1147,9 @@ class ProjectManagerDialog(QDialog):
 
     def _on_action_done(self, key: str, mode: str, path: str) -> None:
         self._action_jobs.pop(key, None)
+        platform = self._action_platform.pop(key, "")
         if mode == "run":
-            self._set_action_text(key, self._launch_emulator(path))
+            self._set_action_text(key, self._launch_emulator(path, platform))
         elif mode == "export":
             self._set_action_text(key, tr("Exported to {0}", path))
         else:
@@ -1139,6 +1157,7 @@ class ProjectManagerDialog(QDialog):
 
     def _on_action_ended(self, key: str, text: str) -> None:
         self._action_jobs.pop(key, None)
+        self._action_platform.pop(key, None)
         self._set_action_text(key, text)
 
     def _set_action_text(self, key: str, text: str) -> None:
@@ -1147,11 +1166,11 @@ class ProjectManagerDialog(QDialog):
         if label is not None:
             label.setText(text)
 
-    def _launch_emulator(self, path: str) -> str:
-        """Start the emulator detached, with the path as argument. No shell is used."""
-        argv = emulator_argv(self._emulator_command(), path)
+    def _launch_emulator(self, path: str, platform: str = "") -> str:
+        """Start the platform's emulator detached, with the path as argument. No shell is used."""
+        argv = emulator_argv(self._emulator_template(platform), path)
         if not argv:
-            return tr("Set the emulator command first (Emulator... button).")
+            return tr("Set the emulator command for this platform first (Emulator... button).")
         started, _pid = QProcess.startDetached(argv[0], argv[1:])
         if not started:
             return tr("The emulator did not start: {0}", argv[0])
