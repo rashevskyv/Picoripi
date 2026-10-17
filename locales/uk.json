@@ -2155,6 +2155,7 @@
         "Originals: not copied; the project refers to them by path.": "Оригінали не копіюються; проєкт посилається на них за шляхом.",
         "Started the emulator with {0}": "Емулятор запущено з {0}",
         "Emulator...": "Емулятор...",
+        "The source file will be copied to the project's 'sources/' directory.\nIf you don't specify a translation file, the source will be copied to 'translation/'.": "Вихідний файл буде скопійовано в теку 'sources/' проєкту.\nЯкщо ви не вкажете файл перекладу, вихідний файл буде скопійовано в 'translation/'.",
         "Source files": "Файли гри",
         "Resource": "Ресурс",
         "Files": "Файли",

@@ -178,6 +178,18 @@ class ActionJob(WorkerThread):
         self.progress.emit(int(percent), str(text))
 
 
+def _resource_source(project_file: str) -> str:
+    """The source the project names, as it is: a folder, or one file (not its folder). Empty: the project's folder."""
+    path = Path(project_file)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("project file is not a JSON object")
+    source = str((data.get("metadata") or {}).get("source_path") or "")
+    if source and not Path(source).is_absolute():
+        source = str(path.parent / source)
+    return source or str(path.parent)
+
+
 class ResourceJob(WorkerThread):
     """Counts the texts, fonts, textures and other files of one project's source folder. The walk stops on cancel."""
 
@@ -190,8 +202,7 @@ class ResourceJob(WorkerThread):
 
     def run(self) -> None:
         try:
-            _plugin, source, _translation = _project_paths(self._project_file)
-            counts = resources.count_resources(source, self.isInterruptionRequested)
+            counts = resources.count_resources(_resource_source(self._project_file), self.isInterruptionRequested)
         except Exception as exc:  # a project that cannot be read shows a line in its row, not an error box
             log_warning(f"Resources of {self._project_file} not counted: {exc}")
             self.failed.emit(str(exc))

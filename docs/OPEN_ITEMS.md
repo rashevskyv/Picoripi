@@ -167,7 +167,7 @@ Exists:
 Done on `feat/pm-phase3` (2026-10-17):
 - (a) One emulator command per platform: `emulator_command.<platform>` in the registry; Run uses the command of the
   target's platform; the old shared `emulator_command` still applies to platforms with no line of their own. A
-  platform with no platform (plain text) uses the shared one. Run is off for a target with no command. Test:
+  project with no platform (plain text) uses the shared one. Run is off for a target with no command. Test:
   `test_run_starts_the_emulator_of_the_platform_the_build_is_for` (no real emulator starts).
 - (b) Row details: the source folder's files by kind (text, font, texture, other), counted on a worker when the row
   opens (`ResourceJob`, cancellable; cached for the window's life, so a file added later shows after a reopen). Needs
@@ -185,6 +185,7 @@ Found while doing it (not fixed):
   in `get_platforms()`, but their `switch_layeredfs` target names `switch`. The lookup works (the target's platform
   is used), but the wizard cannot set the platform for those games.
 - `super_mario_sunshine`'s `port_pack` target names no platform. It uses the project's platform (`gc`).
+- The one-file refusal of the wizard's existing translation folder runs after `UnpackJob` made `project_dir/translation`, so a refused create leaves that empty folder behind.
 - Real builds of each of the 16 targets are not run here (they need the owner's data). Tests cover the dispatch
   with a fake target. Check each target once on the owner's machine.
 - The resource counts are kept for the window's life. A file added to a source folder shows after the window

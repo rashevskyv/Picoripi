@@ -48,6 +48,22 @@ def test_resource_job_counts_the_source_folder_on_a_worker(qtbot, tmp_path):
     qtbot.waitUntil(lambda: job.isFinished(), timeout=5000)
 
 
+def test_a_project_whose_source_is_one_file_counts_that_file_only(qtbot, tmp_path):
+    project = _project_with_files(tmp_path, "Aria", "p-aria", {"game.gb": b"12345678", "other.json": b"x"})
+    data = json.loads(open(project, encoding="utf-8").read())
+    data["metadata"]["source_path"] = str(tmp_path / "games" / "Aria" / "source" / "game.gb")
+    open(project, "w", encoding="utf-8").write(json.dumps(data))
+    job = ResourceJob(project)
+
+    with qtbot.waitSignal(job.done, timeout=10000) as blocker:
+        job.start()
+
+    counts = blocker.args[0]
+    assert sum(bucket["files"] for bucket in counts.values()) == 1
+    assert counts["other"] == {"files": 1, "bytes": 8}   # the .gb is not a known kind: it counts as other
+    qtbot.waitUntil(lambda: job.isFinished(), timeout=5000)
+
+
 def test_resource_job_reports_a_project_file_that_is_not_there(qtbot, tmp_path):
     job = ResourceJob(str(tmp_path / "gone" / "project.uiproj"))
 
