@@ -41,8 +41,8 @@ _PLATFORM_ID = re.compile(r"[A-Za-z0-9_.-]{1,40}")
 
 
 def emulator_setting(platform: str) -> str:
-    """The settings name of one platform's emulator command."""
-    return EMULATOR_PREFIX + platform
+    """The settings name of one platform's emulator command. No platform (""): the shared command."""
+    return EMULATOR_PREFIX + platform if platform else EMULATOR_KEY
 
 
 def _known_setting(name: str) -> bool:

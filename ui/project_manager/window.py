@@ -1177,7 +1177,8 @@ class ProjectManagerDialog(QDialog):
         return emulator_template_for(self._document.get("settings") or {}, platform)
 
     def _known_platforms(self) -> List[str]:
-        """Every platform a project, a build target or a stored emulator command names, sorted."""
+        """Every platform a project, a build target or a stored emulator command names, sorted. "" is a project
+        or target with no platform: its command is the shared one."""
         names = set()
         for row in self._rows():
             names.add(row.get("platform") or "")
@@ -1185,7 +1186,7 @@ class ProjectManagerDialog(QDialog):
                 names.update(target.get("platforms") or [])
         names.update(name[len(EMULATOR_PREFIX):] for name in self._document.get("settings") or {}
                      if name.startswith(EMULATOR_PREFIX))
-        return sorted(name for name in names if name)
+        return sorted(names)
 
     def _emulator_clicked(self) -> None:
         dialog = EmulatorDialog(self, self._known_platforms(), self._document.get("settings") or {})

@@ -191,6 +191,9 @@ def test_registry_keeps_only_known_settings(tmp_path):
 
 
 def test_registry_keeps_one_emulator_command_per_platform(tmp_path):
+    assert registry.emulator_setting("switch") == "emulator_command.switch"
+    assert registry.emulator_setting("") == "emulator_command"
+
     def operation(reg):
         assert reg.set_setting(registry.emulator_setting("switch"), "emus {path}")
         assert reg.set_setting(registry.emulator_setting("3ds"), "emu3 {path}")

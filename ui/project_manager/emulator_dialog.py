@@ -26,7 +26,7 @@ class EmulatorDialog(QDialog):
         for platform in platforms:
             value = emulator_template_for(settings, platform)
             field = QLineEdit(value)
-            form.addRow(platform, field)
+            form.addRow(platform or tr("No platform"), field)
             self._fields[platform] = field
             self._before[platform] = value
         layout.addLayout(form)

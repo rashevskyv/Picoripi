@@ -366,6 +366,14 @@ def test_emulator_dialog_returns_only_the_platform_lines_that_changed(qtbot):
     assert dialog.changes() == {"emulator_command.switch": "emus {path}"}
 
 
+def test_a_project_with_no_platform_edits_the_shared_command(qtbot):
+    dialog = EmulatorDialog(None, [""], {"emulator_command": "shared {path}"})
+    qtbot.addWidget(dialog)
+    dialog._fields[""].setText("shared2 {path}")
+
+    assert dialog.changes() == {"emulator_command": "shared2 {path}"}
+
+
 def test_run_starts_the_emulator_of_the_platform_the_build_is_for(qtbot, tmp_path, monkeypatch):
     dialog, key, _menu = _run_action_menu(
         qtbot, tmp_path, {"emulator_command.3ds": "emu3 {path}", "emulator_command.switch": "emus {path}"}, ["switch"])
