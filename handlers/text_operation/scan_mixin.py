@@ -5,6 +5,7 @@ from PyQt6.QtCore import QObject, pyqtSlot
 from PyQt6.QtGui import QTextCursor
 from handlers.analyzer_context import analyzer_string_context
 from handlers.async_issue_scanner import AsyncIssueScanner, get_scanner_thread_pool
+from core.glossary.series import series_managers_of
 from utils.logging_utils import log_debug
 
 
@@ -143,6 +144,7 @@ class ScanMixin:
             width_threshold=width_threshold,
             analyzer=analyzer,
             glossary_manager=getattr(getattr(edited_edit, 'highlighter', None), '_glossary_manager', None),
+            series_glossaries=series_managers_of(self.mw),
             spellchecker_manager=getattr(self.mw, 'spellchecker_manager', None),
             source_text=source_text,
             active_word="",
@@ -211,6 +213,7 @@ class ScanMixin:
             width_threshold=width_threshold_for_string,
             analyzer=analyzer,
             glossary_manager=getattr(getattr(edited_edit, 'highlighter', None), '_glossary_manager', None),
+            series_glossaries=series_managers_of(self.mw),
             spellchecker_manager=getattr(self.mw, 'spellchecker_manager', None),
             source_text=source_text,
             active_word=active_word,

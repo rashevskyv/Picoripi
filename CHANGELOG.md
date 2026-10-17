@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Series glossary in the editor: a series term that the project glossary does not translate is a hit in the translation check (scan and preview of a string); two series glossaries that translate one term differently are marked on both tabs of the glossary dialog (`series_pair_conflicts`, `core/glossary/series.py`).
 - Pokémon glossary seeds: Sun / Moon names are labelled by their anchor names (species, items, moves, abilities, types, trainer classes), so a series glossary gets their terms (it had none); Gold / Silver / Crystal, Ruby / Sapphire / Emerald / FireRed / LeafGreen (English files), Diamond / Pearl / Platinum / HeartGold / SoulSilver, Brilliant Diamond / Shining Pearl and Scarlet / Violet / Legends Z-A seed their name tables (`plugins/common/name_seeds.py`).
 - Pokémon glossary seeds: the Switch name tables seed their base tables only (a plural or accusative form gives context, no term) and a term keeps the first table that gives it; a clothing item named after a type no longer takes the type's section.
 - Pokémon Ultra Sun / Ultra Moon: no glossary seed terms yet (its text tables are another archive than Sun / Moon's; its labels are not derived).

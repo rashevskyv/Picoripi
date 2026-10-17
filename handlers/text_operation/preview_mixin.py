@@ -3,6 +3,7 @@ from __future__ import annotations
 from PyQt6.QtGui import QTextCursor
 from utils.logging_utils import log_debug
 from utils.utils import convert_dots_to_spaces_from_editor
+from core.glossary.series import series_managers_of
 from handlers.async_issue_scanner import AsyncIssueScanner, get_scanner_thread_pool
 from ui.components.custom_preview import custom_preview_of
 
@@ -328,6 +329,7 @@ class PreviewMixin:
                 width_threshold=width_threshold_for_string,
                 analyzer=analyzer,
                 glossary_manager=getattr(getattr(edited_edit, 'highlighter', None), '_glossary_manager', None),
+                series_glossaries=series_managers_of(self.mw),
                 spellchecker_manager=getattr(self.mw, 'spellchecker_manager', None),
                 source_text=source_text,
                 active_word=active_word,

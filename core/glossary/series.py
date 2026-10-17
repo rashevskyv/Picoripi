@@ -13,7 +13,8 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from itertools import combinations
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 import utils.constants as constants
 from core.glossary.manager import GlossaryManager
@@ -188,6 +189,24 @@ def series_rows_for(
                 seen.add(key)
             rows.append(entry)
     return rows
+
+
+def series_managers_of(main_window: Any) -> List[GlossaryManager]:
+    """The series glossaries of the open project, nearest first (empty when no project is open)."""
+    handler = getattr(getattr(main_window, "translation_handler", None), "glossary_handler", None)
+    return [manager for manager in (getattr(handler, "series_glossary_managers", None) or ()) if manager is not None]
+
+
+def series_pair_conflicts(managers: Sequence[GlossaryManager]) -> List[Tuple[int, int, str, str, str]]:
+    """Terms two series glossaries translate differently: ``(first, second, key, translation, translation)``.
+
+    Exact spelling after case folding; no inflection is compared. The indices are positions in ``managers``.
+    """
+    found: List[Tuple[int, int, str, str, str]] = []
+    for first, second in combinations(range(len(managers)), 2):
+        conflicts = find_conflicts(managers[first].get_entries(), managers[second].get_entries())
+        found.extend((first, second, key, mine, theirs) for key, (mine, theirs) in conflicts.items())
+    return found
 
 
 def find_conflicts(

@@ -2793,5 +2793,6 @@
   "another game": "інша гра",
   "Source: saved for the same text in another project of the series, tags converted": "Джерело: збережено для того самого тексту в іншому проєкті серії, теги перетворено",
   "(same text in another project of the series, tags converted)": "(той самий текст в іншому проєкті серії, теги перетворено)",
-  "The translation lacks a tag of the current text: {tag}": "У перекладі немає тега поточного тексту: {tag}"
+  "The translation lacks a tag of the current text: {tag}": "У перекладі немає тега поточного тексту: {tag}",
+  "Conflict: the series glossary {name} translates this as \"{translation}\".": "Конфлікт: серійний глосарій {name} перекладає це як «{translation}»."
 }
