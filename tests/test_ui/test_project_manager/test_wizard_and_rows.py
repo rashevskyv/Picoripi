@@ -95,6 +95,74 @@ def test_wizard_refuses_a_folder_that_already_holds_a_project(qtbot, tmp_path):
     assert wizard._problem() == "This folder already holds a project."
 
 
+class UnpackingGame(FakeGame):
+    """The fake game with an unpack: the chosen file becomes a folder with one file in it."""
+
+    def unpack_sources(self, sources, target_dir, progress, is_cancelled):
+        with open(os.path.join(target_dir, "data.txt"), "w", encoding="utf-8") as handle:
+            handle.write("data")
+        return target_dir
+
+
+def test_wizard_uses_an_existing_translation_folder_for_a_folder_project(qtbot, tmp_path):
+    source = tmp_path / "game.bin"
+    source.write_bytes(b"game")
+    existing = tmp_path / "my_translation"
+    existing.mkdir()
+    created = []
+    wizard = ProjectWizard(None, lambda name: UnpackingGame(), created.append)
+    qtbot.addWidget(wizard)
+    _wait_for_plugins(qtbot, wizard)
+    wizard.add_paths([str(source)])
+    qtbot.waitUntil(lambda: wizard._files_status.text() == "Files: 1", timeout=10000)
+    wizard._name.setText("Aria")
+    wizard._folder.setText(str(tmp_path / "Aria"))
+    wizard._use_existing.setChecked(True)
+    wizard._existing_folder.setText(str(existing))
+    assert wizard._problem() == ""
+
+    wizard._create_clicked()
+    qtbot.waitUntil(lambda: bool(created), timeout=10000)
+
+    assert created[0]["translation_path"] == str(existing)
+    assert created[0]["auto_create_translations"] is False
+    assert created[0]["is_directory_mode"] is True
+
+
+def test_wizard_refuses_an_existing_translation_folder_for_a_one_file_project(qtbot, tmp_path):
+    source = tmp_path / "base.bin"
+    source.write_bytes(b"base")
+    existing = tmp_path / "my_translation"
+    existing.mkdir()
+    created = []
+    wizard = ProjectWizard(None, _loader, created.append)
+    qtbot.addWidget(wizard)
+    _wait_for_plugins(qtbot, wizard)
+    wizard.add_paths([str(source)])
+    qtbot.waitUntil(lambda: wizard._files_status.text() == "Files: 1", timeout=10000)
+    wizard._name.setText("Aria")
+    wizard._folder.setText(str(tmp_path / "Aria"))
+    wizard._use_existing.setChecked(True)
+    wizard._existing_folder.setText(str(existing))
+
+    wizard._create_clicked()
+    qtbot.waitUntil(lambda: "cannot use an existing translation folder" in wizard._progress_text.text(), timeout=10000)
+
+    assert created == []
+
+
+def test_wizard_asks_for_an_existing_translation_folder_that_exists(qtbot, tmp_path):
+    wizard = ProjectWizard(None, _loader, lambda info: None)
+    qtbot.addWidget(wizard)
+    wizard._name.setText("Aria")
+    wizard._folder.setText(str(tmp_path / "Aria"))
+    wizard._use_existing.setChecked(True)
+
+    assert wizard._problem() == "Choose the existing translation folder."
+    wizard._existing_folder.setText(str(tmp_path / "missing"))
+    assert wizard._problem() == "The translation folder does not exist."
+
+
 def test_wizard_needs_a_role_for_every_file_and_no_two_files_share_one(qtbot, tmp_path):
     first = tmp_path / "one.bin"
     second = tmp_path / "two.bin"

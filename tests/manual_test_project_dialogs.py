@@ -15,7 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from PyQt6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QWidget, QLabel, QDialog
-from components.project_dialogs import NewProjectDialog, OpenProjectDialog, ImportBlockDialog
+from components.project_dialogs import OpenProjectDialog, ImportBlockDialog
 
 
 class TestWindow(QWidget):
@@ -33,11 +33,6 @@ class TestWindow(QWidget):
         title.setStyleSheet("font-weight: bold; font-size: 14pt;")
         layout.addWidget(title)
 
-        # Button: Test New Project Dialog
-        btn_new = QPushButton("Test: New Project Dialog", self)
-        btn_new.clicked.connect(self.test_new_project_dialog)
-        layout.addWidget(btn_new)
-
         # Button: Test Open Project Dialog
         btn_open = QPushButton("Test: Open Project Dialog", self)
         btn_open.clicked.connect(self.test_open_project_dialog)
@@ -49,30 +44,6 @@ class TestWindow(QWidget):
         layout.addWidget(btn_import)
 
         layout.addStretch()
-
-    def test_new_project_dialog(self):
-        """Test NewProjectDialog."""
-        print("\n=== Testing NewProjectDialog ===")
-
-        # Example plugins data
-        available_plugins = {
-            "Zelda: Minish Cap": "zelda_mc",
-            "Zelda: Wind Waker": "zelda_ww",
-            "Pokemon FireRed": "pokemon_fr"
-        }
-
-        dialog = NewProjectDialog(self, available_plugins=available_plugins)
-        result = dialog.exec()
-
-        if result == QDialog.DialogCode.Accepted:
-            info = dialog.get_project_info()
-            print("Dialog accepted!")
-            print(f"  Name: {info['name']}")
-            print(f"  Directory: {info['directory']}")
-            print(f"  Plugin: {info['plugin']}")
-            print(f"  Description: {info['description']}")
-        else:
-            print("Dialog cancelled")
 
     def test_open_project_dialog(self):
         """Test OpenProjectDialog."""

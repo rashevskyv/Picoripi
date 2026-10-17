@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, List, Optional
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QImage, QPixmap
 from PyQt6.QtWidgets import (
-    QComboBox, QDialog, QFileDialog, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QMessageBox, QProgressBar,
+    QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QMessageBox, QProgressBar,
     QPushButton, QStackedWidget, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 
@@ -164,6 +164,22 @@ class ProjectWizard(QDialog):
         row.addWidget(self._folder, 1)
         row.addWidget(browse)
         layout.addLayout(row)
+        self._use_existing = QCheckBox(tr("Use an existing translation folder"))
+        self._use_existing.setToolTip(tr("The project reads its translations from this folder. Picoripi does not "
+                                         "create the missing files in it."))
+        self._use_existing.toggled.connect(self._existing_toggled)
+        layout.addWidget(self._use_existing)
+        existing_row = QHBoxLayout()
+        self._existing_folder = QLineEdit()
+        self._existing_folder.setPlaceholderText(tr("Choose the translation folder"))
+        self._existing_folder.setEnabled(False)
+        self._existing_folder.textChanged.connect(self._update_summary)
+        self._browse_existing_button = QPushButton(tr("Browse..."))
+        self._browse_existing_button.setEnabled(False)
+        self._browse_existing_button.clicked.connect(self._browse_existing)
+        existing_row.addWidget(self._existing_folder, 1)
+        existing_row.addWidget(self._browse_existing_button)
+        layout.addLayout(existing_row)
         self._summary = QLabel("")
         self._summary.setWordWrap(True)
         self._summary.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
@@ -315,16 +331,37 @@ class ProjectWizard(QDialog):
         if folder:
             self._folder.setText(folder)
 
+    def _existing_toggled(self, checked: bool) -> None:
+        self._existing_folder.setEnabled(checked)
+        self._browse_existing_button.setEnabled(checked)
+        self._update_summary()
+
+    def _browse_existing(self) -> None:
+        folder = QFileDialog.getExistingDirectory(self, tr("Existing translation folder"), str(Path.home()))
+        if folder:
+            self._existing_folder.setText(folder)
+
+    def _existing_translation(self) -> str:
+        """The chosen existing translation folder, or "" when the project makes its own."""
+        return self._existing_folder.text().strip() if self._use_existing.isChecked() else ""
+
     def _update_summary(self, *_args: Any) -> None:
         folder = self._folder.text().strip()
         if not folder:
             self._summary.setText(tr("Choose the project folder."))
             return
         root = Path(folder)
+        existing = self._existing_translation()
+        if self._use_existing.isChecked() and not existing:
+            translation = tr("Translation files: choose the existing translation folder.")
+        elif existing:
+            translation = tr("Translation files: {0} (already there; not changed)", existing)
+        else:
+            translation = tr("Translation files: {0} (created now)", str(root / TRANSLATION_FOLDER))
         self._summary.setText("\n".join([
             tr("Project file: {0}", str(root / PROJECT_FILE_NAME)),
             tr("Unpacked files: {0} (only when the game needs unpacking)", str(root / "unpacked")),
-            tr("Translation files: {0} (created now)", str(root / TRANSLATION_FOLDER)),
+            translation,
             tr("Originals: not copied; the project refers to them by path."),
         ]))
 
@@ -389,6 +426,12 @@ class ProjectWizard(QDialog):
             return tr("Choose the project folder.")
         if (Path(self._folder.text().strip()) / PROJECT_FILE_NAME).exists():
             return tr("This folder already holds a project.")
+        if self._use_existing.isChecked():
+            existing = self._existing_translation()
+            if not existing:
+                return tr("Choose the existing translation folder.")
+            if not Path(existing).is_dir():
+                return tr("The translation folder does not exist.")
         choices = self._file_choices()
         if not choices:
             return tr("Add at least one file.")
@@ -431,7 +474,13 @@ class ProjectWizard(QDialog):
         base = sources.get("base") or next(iter(sources.values()))
         source = unpacked or base
         is_directory = Path(source).is_dir()
-        translation = str(folder / TRANSLATION_FOLDER)
+        existing = self._existing_translation()
+        if existing and not is_directory:
+            # A project of one file has a translation file, not a folder: nothing is created.
+            self._progress_text.setText(tr("This game is one file, so it cannot use an existing translation folder. "
+                                           "Uncheck that option and create the project again."))
+            return
+        translation = existing or str(folder / TRANSLATION_FOLDER)
         if not is_directory:
             translation = str(folder / TRANSLATION_FOLDER / Path(source).name)
         platform = next((c["platform"] for c in choices.values() if c["platform"]), "")
@@ -443,7 +492,7 @@ class ProjectWizard(QDialog):
             "source_path": source,
             "translation_path": translation,
             "is_directory_mode": is_directory,
-            "auto_create_translations": True,
+            "auto_create_translations": not existing,
             "platform": platform,
             "icon_source": self._icon_path,
             "metadata": {
