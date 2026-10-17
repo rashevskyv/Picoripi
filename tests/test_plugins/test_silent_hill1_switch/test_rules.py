@@ -13,9 +13,9 @@ def test_display_name_and_text_rules_come_from_the_ps1_rules():
 def test_font_grid_is_the_pal_six_row_sheet():
     rules = GameRules.__new__(GameRules)
     fonts = rules.get_font_sources()
-    assert len(fonts) == 1
+    assert [f["path"] for f in fonts] == ["1ST/FONT16.TIM", "1ST/FONT8NOC.TIM", "TIM/FONT8.TIM", "TIM/FONT24.TIM"]
     params = fonts[0]["params"]
-    assert fonts[0]["path"] == "1ST/FONT16.TIM"
+    assert len(params["chars"]) == 126 and params["chars"][66] == "і"
     assert params["columns"] == 21
     assert len(params["rows_at"]) == 6
     assert params["rows_at"][-1] == [0, 80]

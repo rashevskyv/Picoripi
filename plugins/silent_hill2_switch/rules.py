@@ -1,0 +1,82 @@
+"""Silent Hill 2 (Switch port data): the PC message files, with the Ukrainian glyph table for the translation.
+
+The source file (English) keeps the PC codec: byte 0x21..0x7E is the ASCII character. The translation file uses the
+glyph table of the Switch font atlas: byte = atlas cell, so Cyrillic is 0x80..0x9F and so on (``mes.decode_uk``).
+Saving writes the translation, so it always uses the Ukrainian table.
+"""
+from typing import Any, Optional, Tuple
+
+from plugins.silent_hill2_pc import mes
+from plugins.silent_hill2_pc.rules import GameRules as PcGameRules
+from utils.logging_utils import log_debug, log_warning
+
+
+HEADER = b"\x00\x80"  # every message starts with it; it is not text
+
+
+TAILS = (b"\x00\x80", b"\x00\x90")  # the next header, or the end marker before the next message
+
+
+def _split(message: bytes):
+    """(head, body, tail): the bytes shown as text are the body; head and tail come back on save."""
+    head = HEADER if message[:2] == HEADER else b""
+    body = message[len(head):]
+    tail = b""
+    if len(body) >= 2 and body[-2:] in TAILS:
+        tail, body = body[-2:], body[:-2]
+    return head, body, tail
+
+
+class GameRules(PcGameRules):
+    """Silent Hill 2 (Switch port, Ukrainian translation)."""
+
+    def __init__(self, main_window_ref=None):
+        super().__init__(main_window_ref)
+        self._role = "source"
+        self._save_copy: Optional[bytes] = None
+
+    def get_display_name(self) -> str:
+        return "Silent Hill 2 (Switch, Ukrainian)"
+
+    def set_load_role(self, role: str) -> None:
+        self._role = role
+
+    def load_data_from_json_obj(self, json_obj: Any) -> Tuple[list, dict]:
+        if not isinstance(json_obj, (bytes, bytearray)):
+            return super().load_data_from_json_obj(json_obj)
+        data = bytes(json_obj)
+        self._last_loaded = data
+        try:
+            messages = mes.split(data)
+        except ValueError as error:
+            log_debug(f"silent_hill2_switch: not a message file ({error})")
+            return [[]], {}
+        decode = mes.decode_uk if self._role == "translation" else mes.decode
+        return [[decode(_split(m)[1]) for m in messages]], {"0": "messages"}
+
+    def prepare_save_context(self, context) -> None:
+        """The translation copy (newest version) gives the bytes of a message that cannot be encoded."""
+        versions = list(context.existing_versions())
+        self._save_source = versions[-1] if versions else None
+        self._save_copy = versions[0] if len(versions) > 1 else None
+
+    def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
+        template = self._save_copy if self._save_copy is not None else self._save_source
+        if template is None:
+            template = self._last_loaded
+        if template is None:
+            return super().save_data_to_json_obj(data, block_names)
+        originals = mes.split(template)
+        lines = (data[0] if data else []) or []
+        if len(lines) != len(originals):
+            log_warning(f"silent_hill2_switch: message count changed ({len(lines)} for {len(originals)}); file not saved")
+            return template
+        out = []
+        for index, (original, text) in enumerate(zip(originals, lines)):
+            head, _, tail = _split(original)
+            try:
+                out.append(head + mes.encode_uk(text) + tail)
+            except ValueError as error:
+                log_warning(f"silent_hill2_switch: message {index} kept as it was: {error}")
+                out.append(original)
+        return mes.build(out)
