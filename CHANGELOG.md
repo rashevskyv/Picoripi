@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Series glossary seeding adds a batch of terms in one pass (`GlossaryManager.seed_entries`, the presence test of `_index_of` built once): the per-term scan made a seed of tens of thousands of game terms quadratic.
 - Project Manager details: the series glossaries a project uses (the folder glossaries above it and an explicit link) with their term count, read by the scan beside the card (`core/project_library/series_facts.py`); the manager writes nothing to the registry or the project file. The count of reusable repeated texts is not built (it needs every memory file of the series).
 - File > Update Translation Memory with Context: the rows saved before D41 take the speaker, addressee and fold key of their saved place (a worker thread with progress and cancel; the previous file is kept as `translation_memory.before_context.json`, and the File menu restores it). Rows also get the tag kinds of their source (`core/translation/memory_context.py`).
 - Series glossary in the editor: a series term that the project glossary does not translate is a hit in the translation check (scan and preview of a string); two series glossaries that translate one term differently are marked on both tabs of the glossary dialog (`series_pair_conflicts`, `core/glossary/series.py`).

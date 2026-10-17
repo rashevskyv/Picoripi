@@ -56,23 +56,21 @@ def seed_series_file(project_file: Path, series_file: Path,
     text = series_file.read_text(encoding="utf-8-sig") if series_file.is_file() else "[]"
     glossary = GlossaryManager()
     glossary.load_from_text(plugin_name=None, glossary_path=series_file, raw_text=text)
-    added = present = 0
+    batch = []
     for seed in seeds:
         term = str(seed.get("term") or "").strip()
         if not term:
             continue
-        if glossary.find_entry(term) is not None:
-            present += 1
-            continue
         description = str(seed.get("description") or "").strip()
-        glossary.seed_entry(
-            term,
-            section=seed.get("section") or None,
-            status=STATUS_FRAGMENTS if description else STATUS_SEEDED,
-            description=description,
-            icon=str(seed.get("icon") or ""),
-        )
-        added += 1
+        batch.append({
+            "term": term,
+            "section": seed.get("section") or None,
+            "status": STATUS_FRAGMENTS if description else STATUS_SEEDED,
+            "description": description,
+            "icon": str(seed.get("icon") or ""),
+        })
+    # one pass over the file for the whole batch (a term per call would scan the glossary once per term)
+    added, present = glossary.seed_entries(batch)
     if added:
         glossary.save_to_disk()
     return {"offered": len(seeds), "added": added, "present": present}

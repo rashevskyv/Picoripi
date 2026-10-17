@@ -411,6 +411,56 @@ class MutationMixin:
         self._persist()
         return new_entry
 
+    def seed_entries(self, seeds: List[Dict[str, Any]]) -> Tuple[int, int]:
+        """``seed_entry`` for many terms at once: returns ``(added, already present)``.
+
+        The same gap-filling rule as ``seed_entry`` (an existing term is never changed). The presence test is the one
+        ``_index_of`` makes -- the exact spelling, the normalised spelling, an alias, the canonical key -- but it is
+        built once for the whole batch, so a large seed of game terms is one pass and not a scan per term. Seeds of
+        one call are checked against each other too. Each seed is a dict with ``term``, and optionally ``section``,
+        ``description``, ``status`` and ``icon``.
+        """
+        exact: set = set()
+        spelled: set = set()
+        canonical: set = set()
+
+        def add_keys(original: str, aliases: List[str]) -> None:
+            exact.add(original)
+            spelled.add(self.normalize_term(original))
+            spelled.update(self.normalize_term(alias) for alias in aliases)
+            canonical.add(self.canonical_key(original))
+
+        for entry in self._entries:
+            add_keys(entry.original, list(entry.aliases or []))
+        added: List[GlossaryEntry] = []
+        present = 0
+        for seed in seeds:
+            term = str(seed.get("term") or "").strip()
+            if not term:
+                continue
+            if term in exact or self.normalize_term(term) in spelled or self.canonical_key(term) in canonical:
+                present += 1
+                continue
+            add_keys(term, [])
+            self._unbury(term)
+            entry = GlossaryEntry(
+                original=term,
+                translation="",
+                notes=str(seed.get("description") or "").strip(),
+                section=seed.get("section") or None,
+                status=str(seed.get("status") or STATUS_SEEDED),
+                icon=str(seed.get("icon") or "").strip(),
+                updated_at=datetime.now(timezone.utc).isoformat(),
+                id=new_entry_id(),
+            )
+            self._session_changes[term] = entry
+            added.append(entry)
+        if added:
+            self._entries = list(self._entries) + added
+            self._occurrence_index = {}
+            self._persist()
+        return len(added), present
+
     def import_entry(self, source: GlossaryEntry) -> Optional[GlossaryEntry]:
         """Copy an entry from another glossary (project <-> series glossary).
 
