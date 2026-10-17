@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Pokémon Red, Blue and Yellow ROM mode: every text run of the ROM is in a unit (census 3,241 of 3,245 Red runs, 3,244 of 3,245 Blue, 3,414 of 3,417 Yellow; the rest are map-table coordinate bytes and picture or tilemap data). Credits, Pokédex categories, trade names and the dead menus open; a `db` body that lists names splits at each `@`; text the decompilation builds with macros comes from the ROM bytes with a fixed size.
 - Pokémon Game Boy ROM mode: strings a `db "...@"` line builds (menus, map and type names, the Pokédex categories' neighbours, the trainer classes' data) and the local `.Label` bodies join the facts, with the `home/` text and a label on the db line; the census of the Red ROM covers 3,013 of 3,245 text runs (the rest is listed in the report).
 - Pokémon Generation III ROM mode (audit r38): the byte budgets and the charmap are written to `rom/meta.json` at unpack, so the editor's budget check no longer reads the facts JSON on the UI thread; a project unpacked before this change reads its facts once in a worker.
 - Pokémon Game Boy ROM mode (Red, Blue, Yellow, Gold, Silver, Crystal): the message-box preview draws the selected text in the game's own font, read from the ROM (font tiles found by their bytes, `tools/pokemon_gb_font_facts.py`), two rows with the game's scroll and clear, the box frame from the font tiles; the Oak line matches the mGBA frame of each game.

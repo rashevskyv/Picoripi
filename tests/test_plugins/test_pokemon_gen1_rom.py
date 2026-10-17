@@ -156,3 +156,19 @@ def test_real_rom_moved_body_is_reached_through_its_far_reference(tmp_path):
     for site in target["far"]:
         offset = gb_rom.offset_of(patched[site + 2], patched[site] | patched[site + 1] << 8)
         assert rom_text.decode(patched[offset:offset + size], names) == LONG_TEXT
+
+
+def test_db_lines_mix_numbers_and_strings():
+    names = _names()
+    # a credit's line type byte before its text, and a flag byte before a name: the numbers are raw bytes
+    assert rom_text.encode([("db", '-6, "A@"')], names) == bytes([0xFA, 0x80, 0x50])
+    assert rom_text.encode([("db", '$76, "A", $76, "@"')], names) == bytes([0x76, 0x80, 0x76, 0x50])
+
+
+def test_db_body_splits_at_each_at_sign():
+    names = _names()
+    # ``db "Ab@"`` then ``db "a@"``: a list of names in one body keeps one line per name
+    raw = bytes([0x80, 0xA1, 0x50, 0xA0, 0x50])
+    lines = rom_text.decode(raw, names)
+    assert lines == [("db", '"Ab@"'), ("db", '"a"'), ("text_end", "")]
+    assert rom_text.encode(lines, names) == raw

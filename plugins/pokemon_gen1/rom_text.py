@@ -226,6 +226,11 @@ def decode(region: bytes, names: Names, bcd_hex: Sequence[int] = (), ram_args: S
             flush()
             out.append(("dex", ""))
             at += 2
+        elif code == TX_END and word is None and at < end - 1:
+            # In a db body each "@" ends one string: ``db "CUT@"`` then ``db "FLY@"`` (a menu's list of names).
+            chars.append("@")
+            flush()
+            at += 1
         elif code == TEXT_ASM:
             flush()
             out.append(("text_asm", ""))
@@ -290,6 +295,33 @@ def _ram_addr(names: Names, value: str) -> int:
     raise CodecError(tr("Unknown RAM name {0}.", value))
 
 
+def _db_bytes(names: Names, args: str) -> bytes:
+    """The bytes of a ``db`` line: strings and numbers in turn (``db -6, "NAME@"``, ``db $76, "BADGES"``)."""
+    out = bytearray()
+    rest = args.strip()
+    while rest:
+        if rest.startswith('"'):
+            end = rest.find('"', 1)
+            if end < 0:
+                raise CodecError(tr("A string literal is expected, got {0}.", args))
+            out += _string_bytes(names, rest[:end + 1])
+            rest = rest[end + 1:]
+        else:
+            item, comma, after = rest.partition(",")
+            try:
+                value = int(item.strip()[1:], 16) if item.strip().startswith("$") else int(item.strip(), 0)
+            except ValueError:
+                raise CodecError(tr("A string literal is expected, got {0}.", args))
+            out.append(value & 0xFF)
+            rest = comma + after          # the comma stays for the separator check below
+        rest = rest.lstrip()
+        if rest:
+            if not rest.startswith(","):
+                raise CodecError(tr("A string literal is expected, got {0}.", args))
+            rest = rest[1:].lstrip()
+    return bytes(out)
+
+
 def _far_bytes(names: Names, value: str) -> bytes:
     if value in names.far:
         bank, cpu = names.far[value]
@@ -351,7 +383,7 @@ def encode(lines: Sequence[Line], names: Names, width: int = 0) -> bytes:
             out.append(FLOW_CODE[word])
             out += _string_bytes(names, args) if args.strip() else b""
         elif word == "db":
-            out += _string_bytes(names, args)
+            out += _db_bytes(names, args)
         elif word in TERMINATOR:
             out += TERMINATOR[word]
         elif word == "text_asm":

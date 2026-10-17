@@ -20,6 +20,7 @@ import re
 import sys
 from collections import Counter
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
@@ -52,7 +53,7 @@ FAR_COINCIDENCE_OK = {"PCCharText"}
 DEFINITION = re.compile(r"^[A-Za-z_][\w.]*::?\s*$")
 NAME_LINE = re.compile(r'^\s+(li|dname)\s+"')
 # A string the code or a table builds: ``db "...@"``, with or without a label on the same line.
-DB_LINE = re.compile(r'^(\s+|[A-Za-z_.][\w.]*:+\s+)db\s+"[^"]*@"')
+DB_LINE = re.compile(r'^(\s+|[A-Za-z_.][\w.]*:+\s+)db\s+(-?\$?\w+\s*,\s*)?"[^"]*@"')
 TEXT_LINE = re.compile(r'^\s+(text|line|cont|para|next|page|done|prompt|dex|text_end)\b')
 
 
@@ -188,23 +189,52 @@ def name_files(decomp: Path) -> list:
     return found
 
 
-def normal_build(source: str) -> str:
-    """The source as the normal (not Virtual Console) build sees it: the ``IF ..._VC`` branch is dropped, its ``ELSE``
-    branch kept. Other conditionals are not supported and show up as an unknown macro."""
-    out, state = [], None
+# The version macro of each build: ``IF DEF(_RED)`` keeps the Red branch and drops the other.
+VERSION_MACRO = {"pokered": "_RED", "pokeblue": "_BLUE", "pokeyellow": "_YELLOW"}
+
+
+def _condition(stripped: str, defines) -> Optional[bool]:
+    """The value of an ``IF`` line for this build, or None when the tool does not evaluate it."""
+    match = re.match(r"IF\s+DEF\((\w+)\)\s*$", stripped)
+    if match:
+        return match.group(1) in defines
+    if re.match(r"IF\b.*_VC", stripped):          # the Virtual Console build is never this one
+        return False
+    return None
+
+
+def _live(stack) -> bool:
+    """True when every known frame shows its branch: the IF branch unless ELSE is set."""
+    for frame in stack:
+        if frame["cond"] is not None and frame["cond"] == frame["else"]:
+            return False
+    return True
+
+
+def normal_build(source: str, defines=frozenset()) -> str:
+    """The source as this build sees it: conditionals that depend on the version or the VC build are resolved.
+    Other conditionals are kept as written (their lines show up as an unknown macro)."""
+    out, stack = [], []
     for line in source.splitlines():
         stripped = line.strip()
-        if state is None and re.match(r"IF\b.*_VC", stripped):
-            state = "vc"
+        word = stripped.split(None, 1)[0] if stripped else ""
+        if word == "IF":
+            cond = _condition(stripped, defines)
+            stack.append({"cond": cond, "else": False})
+            if cond is None and _live(stack[:-1]):
+                out.append(line)
             continue
-        if state == "vc":
-            if stripped == "ELSE":
-                state = "else"
+        if word == "ELSE" and stack:
+            stack[-1]["else"] = True
+            if stack[-1]["cond"] is None and _live(stack[:-1]):
+                out.append(line)
             continue
-        if state == "else" and stripped == "ENDC":
-            state = None
+        if word == "ENDC" and stack:
+            frame = stack.pop()
+            if frame["cond"] is None and _live(stack):
+                out.append(line)
             continue
-        if stripped.startswith("vc_patch"):
+        if stripped.startswith("vc_patch") or not _live(stack):
             continue
         out.append(line)
     return "\n".join(out) + "\n"
@@ -224,12 +254,19 @@ def ram_arguments(lines, everything, runtime) -> list:
     return names
 
 
+# ``db -6, "NAME@"``: a number byte before the text (a credit's line type). The charmap shows it as a digit cell.
+NUMERIC_LEAD = re.compile(r'^-?\$?[0-9A-Fa-f]+\s*,\s*"')
+
+
 def text_prefix(lines):
     """The leading text macros of a label. ``text_asm`` ends the text: the code after it is not text."""
     out = []
-    for word, args in lines:
+    for index, (word, args) in enumerate(lines):
         if word == "text_far" or (word not in BODY_WORDS and not word.startswith("assert")):
             break
+        if word == "db" and not args.startswith('"'):     # ``db 6,3``: the numbers after a name are not text
+            if not (index == 0 and NUMERIC_LEAD.match(args)):
+                break
         out.append((word, args))
         if word == "text_asm":
             break
@@ -245,6 +282,99 @@ def body_mode(lines, defs):
     if "li" in words:
         return "li", 0
     return "", 0
+
+
+def numeric_lead(lines) -> bool:
+    return bool(lines) and lines[0][0] == "db" and NUMERIC_LEAD.match(lines[0][1]) is not None
+
+
+def encodable(lines, names, width: int) -> bool:
+    try:
+        rom_text.encode(lines, names, width)
+    except rom_text.CodecError:
+        return False
+    return True
+
+
+# Characters the text census counts as text (the printable ones, and the game's own two-character cells).
+RUN_CHARS = set(" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]abcdefghijklmnopqrstuvwxyz"
+                ) | {"é", "'d", "'l", "'s", "'t", "'v", "'r", "'m", "♂", "♀", "▷", "▶", "▼", "×", "¥", "’", "‘", "“",
+                     "”", "…", "·", "→", "←", "ぃ"}
+# Runs the census reads as letters that are picture or tile data (their bytes spell letters by chance), by build.
+GRAPHICS_RUNS = {
+    "pokered": {0x321B3: "Muk back picture", 0x33D02: "Starmie front picture", 0x41BB2: "intro graphics"},
+    "pokeyellow": {0xE9BD4: "Diploma Mew tilemap (INCBIN)"},
+}
+
+
+def text_runs(rom: bytes, charmap) -> List[Tuple[int, int]]:
+    """``[(start, end)]`` of the text runs of the ROM: four or more letters, ended by a terminator (the census rule)."""
+    chars = {}
+    for token, code in charmap:
+        if token in RUN_CHARS:
+            chars.setdefault(int(code), token)
+    chars[0x50] = "@"
+    terms, flow = {0x50, 0x57, 0x58}, {0x4E, 0x4F, 0x51, 0x55, 0x49}
+    runs, i, n = [], 0, len(rom)
+    while i < n:
+        if rom[i] in chars and rom[i] != 0x50:
+            j = i
+            while j < n and ((rom[j] in chars and rom[j] not in terms) or rom[j] in flow) and rom[j] != 0x50:
+                j += 1
+            if j < n and rom[j] in terms:
+                letters = sum(1 for k in range(i, j) if rom[k] in chars and chars[rom[k]].isalpha())
+                if letters >= 4 and j - i >= 5:
+                    runs.append((i, j + 1))
+                i = j + 1
+                continue
+            i = max(j, i + 1)
+        else:
+            i += 1
+    return runs
+
+
+def unlabelled_text_bodies(rom: bytes, out_files: list, names, charmap, build: str, used_ram: dict, used_far: dict,
+                           rom_labels: dict) -> list:
+    """Text runs of the ROM that no kept labelled body covers, as bodies read from the ROM bytes.
+
+    The decompilation builds these with macros (FOR loops, constants) the tool does not expand, so their lines come
+    from the ROM. The bytes must still decode and encode back to the same ROM bytes. A body like this cannot move:
+    its size is its budget. The RAM and far names the new bodies use are added to ``used_ram`` and ``used_far``.
+    """
+    covered = sorted((body["offset"], body["offset"] + body["size"]) for item in out_files for body in item["labels"])
+    graphics = GRAPHICS_RUNS.get(build, {})
+    groups: Dict[int, list] = {}
+    for run_start, run_end in text_runs(rom, charmap):
+        if run_start in graphics:
+            continue
+        # A kept body may cover the start or the end of the run: only the part it does not cover is new text.
+        start, end = run_start, run_end
+        for low, high in covered:
+            if low < end and start < high:
+                if low <= start:
+                    start = high
+                elif high >= end:
+                    end = low
+                else:
+                    start = end = run_start      # covered in the middle: the run stays as the body that covers it
+                    break
+        if end - start < 2:
+            continue
+        region = rom[start:end]
+        lines = rom_text.decode(region, names, (), (), False)
+        if rom_text.encode(lines, names) != region:
+            continue
+        for word, args in lines:
+            if word == "text_far":
+                used_far[args.strip()] = rom_labels.get(args.strip())
+            elif word in names.command_by_name and word != "text_far":
+                for token in re.findall(r"[A-Za-z_]\w*", args):
+                    if token in names.ram:
+                        used_ram[token] = names.ram[token]
+        groups.setdefault(start // BANK_SIZE, []).append({
+            "label": f"RomText_{start:05x}", "offset": start, "size": len(region), "fixed": False,
+            "bcd_hex": [], "movable": False, "far": [], "rom": True})
+    return [{"file": f"rom_text/bank_{bank:02x}.asm", "labels": entries} for bank, entries in sorted(groups.items())]
 
 
 def main(argv: list) -> int:
@@ -268,6 +398,7 @@ def main(argv: list) -> int:
     charmap = read_charmap(decomp)
     defs = read_constants(decomp)
     gen2 = build in GEN2_BUILDS
+    defines = {VERSION_MACRO[build]} if build in VERSION_MACRO else set()
     everything = rom_text.Names(charmap, ram_labels, rom_labels, gen2)
 
     sources = sorted((decomp / "text").glob("*.asm")) + name_files(decomp)
@@ -276,19 +407,19 @@ def main(argv: list) -> int:
     skipped = []
     total_bodies = total_bytes = 0
     for path in sources:
-        source = normal_build(path.read_text(encoding="utf-8"))
+        source = normal_build(path.read_text(encoding="utf-8"), defines)
         groups = rom_text.read_labels(source)
         rel = path.relative_to(decomp).as_posix()
         entries = []
         parent = ""
         for label, lines in groups:
+            if label and not label.startswith(".") and label in rom_labels:
+                parent = label      # a global label owns the local labels after it, even when it holds code
             lines = text_prefix(lines)
             if not lines:
                 continue
             if not label:
                 continue
-            if not label.startswith(".") and label in rom_labels:
-                parent = label
             if label.startswith(".") and parent + label in rom_labels:
                 label = parent + label      # a local label: the symbol file names it after its global label
             if label not in rom_labels:
@@ -365,20 +496,27 @@ def main(argv: list) -> int:
                 same = rom_text.encode(lines, runtime) == region
             mine_texts = asm_text.texts(rom_text.format_body(entry["label"], lines))
             pret_texts = asm_text.texts(rom_text.format_body(entry["label"], entry["lines"]))
-            if not same or mine_texts != pret_texts:
+            # The text check needs the decompilation's text in the game's charmap. A number lead or a character the
+            # charmap lacks (Japanese kana in a dead menu) leaves only the byte check, which still must hold.
+            check_text = not numeric_lead(entry["lines"]) and encodable(entry["lines"], everything, entry.get("width", 0))
+            if not same or (check_text and mine_texts != pret_texts):
                 if strict:
                     fail(f"{rel} {entry['label']}: decoded text {mine_texts[:2]} differs from {pret_texts[:2]}")
                 entry["drop"] = True
                 skipped.append((rel, entry["label"], "decoded text differs"))
                 continue
             decoded_source.append(rom_text.format_body(entry["label"], lines))
+            if entry.get("rom"):          # no symbol and no text_far reference: the entry is fixed in place
+                continue
             bank, cpu = rom_labels[entry["label"]]
-            hits = far_hits.get((bank, cpu), [])
+            # Only a movable body is ever relocated, so only its text_far sites matter. A body that code or a table
+            # names stays where it is, and a stray 0x17 byte that happens to hold its address is not a reference.
+            entry["movable"] = other_refs[entry["label"]] == 0
+            hits = far_hits.get((bank, cpu), []) if entry["movable"] else []
             expected = 0 if (entry["label"] in FAR_ABSENT_OK and not hits) else far_pret.get(entry["label"], 0)
-            if len(hits) != expected and entry["label"] not in FAR_COINCIDENCE_OK:
+            if entry["movable"] and len(hits) != expected and entry["label"] not in FAR_COINCIDENCE_OK:
                 mismatch_far.append((entry["label"], len(hits), far_pret.get(entry["label"], 0)))
             entry["far"] = hits
-            entry["movable"] = other_refs[entry["label"]] == 0
         entries = [entry for entry in entries if not entry.get("drop")]
         out_files.append({"file": rel, "labels": [
             {key: value for key, value in entry.items()
@@ -388,6 +526,9 @@ def main(argv: list) -> int:
     if mismatch_far:
         fail(f"text_far counts differ (label, rom, decomp): {mismatch_far[:10]} ({len(mismatch_far)} labels)")
 
+    # Text no kept body covers (macro-built tables, dead menus): bodies read from the ROM bytes, fixed in size.
+    out_files.extend(unlabelled_text_bodies(rom, out_files, everything, charmap, build, used_ram, used_far,
+                                            rom_labels))
     gaps = read_free_runs(map_path, rom)
     facts = {
         "build_name": build,
@@ -405,7 +546,7 @@ def main(argv: list) -> int:
         if "font" in previous:
             facts["font"] = previous["font"]
     out_path.write_text(json.dumps(facts, ensure_ascii=False, indent=1), encoding="utf-8", newline="\n")
-    for rel, label, reason in skipped[:40]:
+    for rel, label, reason in skipped:
         print(f"  skipped {rel} {label}: {reason}")
     print(f"skipped {len(skipped)} labels outside text/")
     print(f"OK {build}: {len(out_files)} files, {total_bodies} bodies, {total_bytes} bytes,"
