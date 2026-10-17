@@ -2,11 +2,11 @@
 from utils.atomic_io import atomic_write_json
 import json
 from pathlib import Path
-from typing import Optional, Dict, List, Any, Tuple
+from typing import Optional, Dict, List, Any, Tuple, Callable
 
 from core.translation.run_memory import normalize_source
 from core.translation.series_memory import source_hash as _source_hash
-from utils.logging_utils import log_info, log_error
+from utils.logging_utils import log_info, log_error, log_warning
 
 # Translations kept per source text (the newest last): the same words in another
 # place of the game may have been translated differently on purpose.
@@ -34,6 +34,9 @@ class SavedTranslationsManager:
         # of the series translated, and where each source text sits in this project.
         self.series_memory: Dict[str, List[Dict[str, str]]] = {}
         self.source_positions: Dict[str, List[Tuple[int, int]]] = {}
+        # Set by the translation handler: (block, string, source) -> {"speaker", "addressee", "fold"}, the
+        # context a translation is made under (the same key the duplicate fold uses). See context_of().
+        self.context_for: Optional[Callable[[int, int, str], Optional[Dict[str, str]]]] = None
 
     def clear_cache(self) -> None:
         """Clear the in-memory cache."""
@@ -60,15 +63,23 @@ class SavedTranslationsManager:
         return value if isinstance(value, str) else None
 
     @staticmethod
-    def _remember(memory: Dict[str, List[Dict[str, str]]], source: Optional[str], translation: str) -> bool:
+    def _remember(memory: Dict[str, List[Dict[str, str]]], source: Optional[str], translation: str,
+                  context: Optional[Dict[str, str]] = None) -> bool:
+        """Add a row for ``source``. ``context`` (speaker, addressee, fold) is stored with the row when given.
+
+        One row per exact source and context: the newest. The same text said under another speaker keeps its own row.
+        """
         if not source or not normalize_source(source) or not str(translation or "").strip():
             return False
         rows = memory.setdefault(_source_hash(source), [])
         row = {"source": source, "translation": translation}
+        if context:
+            row.update({key: str(context.get(key) or "") for key in ("speaker", "addressee", "fold")})
         if rows and rows[-1] == row:
             return False
-        # one translation per exact source: the newest; other spellings of the source keep theirs
-        rows[:] = [existing for existing in rows if existing.get("source") != source][-(MEMORY_VARIANTS - 1):] + [row]
+        fold = row.get("fold")
+        rows[:] = [existing for existing in rows
+                   if not (existing.get("source") == source and existing.get("fold") == fold)][-(MEMORY_VARIANTS - 1):] + [row]
         return True
 
     def _memory_from_saved_translations(self) -> Dict[str, List[Dict[str, str]]]:
@@ -126,6 +137,33 @@ class SavedTranslationsManager:
             if isinstance(row, dict) and row.get("source") == source and isinstance(row.get("translation"), str):
                 return row["translation"]
         return None
+
+    def rows_by_source(self, source: Any) -> List[Dict[str, str]]:
+        """Saved rows of exactly this source text, newest first. Each row has its context fields when it was saved with them."""
+        if not isinstance(source, str) or not normalize_source(source):
+            return []
+        return [row for row in reversed(self.load_translation_memory().get(_source_hash(source), []))
+                if isinstance(row, dict) and row.get("source") == source and isinstance(row.get("translation"), str)]
+
+    def repeats_in_project(self, source: Any) -> bool:
+        """Whether this exact source text sits at more than one place in the project (only then the context matters)."""
+        return len(self.positions_of_source(source)) > 1
+
+    def context_of(self, block_idx: int, string_idx: int, source: str) -> Optional[Dict[str, str]]:
+        """``{"speaker", "addressee", "fold"}`` of a string, or None when no context can be read (see context_for)."""
+        if self.context_for is None:
+            return None
+        try:
+            return self.context_for(block_idx, string_idx, source)
+        except Exception as exc:  # a memory row without context is still a row; the save must not fail
+            log_warning(f"Translation memory: no context for ({block_idx}, {string_idx}): {exc}")
+            return None
+
+    def _context_to_save(self, block_idx: int, string_idx: int, source: Optional[str]) -> Optional[Dict[str, str]]:
+        """The context stored with a row: read only for a text that repeats, the one case a fold or a restore can confuse."""
+        if not source or not self.repeats_in_project(source):
+            return None
+        return self.context_of(block_idx, string_idx, source)
 
     def similar_by_source(self, source: Any) -> List[Dict[str, str]]:
         """Saved translations of this source and of its spellings that differ in tags, case or spacing; newest first."""
@@ -243,7 +281,9 @@ class SavedTranslationsManager:
         translations = self.load_all_saved_translations()
         translations[key] = text
         self.save_all_saved_translations(translations)
-        remembered = self._remember(self.load_translation_memory(), self._source_text(block_idx, string_idx), text)
+        source = self._source_text(block_idx, string_idx)
+        remembered = self._remember(self.load_translation_memory(), source, text,
+                                    self._context_to_save(block_idx, string_idx, source))
         if remembered or self._memory_unsaved:
             self._save_translation_memory()
         log_info(f"Saved translation for key {key}")
@@ -259,7 +299,8 @@ class SavedTranslationsManager:
                 key = self._get_string_unique_key(block_idx, string_idx)
                 translations[key] = text
                 any_saved = True
-                if self._remember(memory, self._source_text(block_idx, string_idx), text):
+                source = self._source_text(block_idx, string_idx)
+                if self._remember(memory, source, text, self._context_to_save(block_idx, string_idx, source)):
                     any_remembered = True
         if any_saved:
             self.save_all_saved_translations(translations)

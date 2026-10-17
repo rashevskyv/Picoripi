@@ -120,7 +120,13 @@ class AIBatchTranslator(BaseTranslationHandler):
         return True
 
     def _restorable_text(self, saved_mgr, saved_translations, item, block_idx, string_idx):
-        """``(saved text that fits the row, True when it comes from the same source elsewhere)`` or ``(None, False)``."""
+        """``(saved text that fits the row, origin)`` or ``(None, None)``.
+
+        Origin: ``"saved"`` (this position's own backup), ``"memory"`` (the same text saved elsewhere in the
+        project under the same context), ``"series"`` (another project of the series, same speaker and addressee).
+        A text that repeats in the project restores from memory only under the context the duplicate fold uses:
+        the same text said by another speaker is not offered (OPEN_ITEMS 4.2).
+        """
         def fits(text):
             return (
                 isinstance(text, str) and bool(text.strip())
@@ -129,17 +135,23 @@ class AIBatchTranslator(BaseTranslationHandler):
 
         saved_text = saved_translations.get(saved_mgr._get_string_unique_key(block_idx, string_idx))
         if fits(saved_text):
-            return saved_text, False
-        find_by_source = getattr(saved_mgr, 'find_by_source', None)
-        remembered = find_by_source(item.get("text", "")) if callable(find_by_source) else None
-        if fits(remembered):
-            return remembered, True
-        # Then what another project of the series saved for exactly this text (nearest level first).
-        series_by_source = getattr(saved_mgr, 'series_by_source', None)
-        for row in (series_by_source(item.get("text", "")) if callable(series_by_source) else []):
+            return saved_text, "saved"
+        source = item.get("text", "")
+        repeats = saved_mgr.repeats_in_project(source)
+        series_rows = saved_mgr.series_by_source(source)
+        context = saved_mgr.context_of(block_idx, string_idx, source) if (repeats or series_rows) else None
+        for row in saved_mgr.rows_by_source(source):
+            # A text that occurs once has no other place to be confused with: its newest row is the one to use.
+            if repeats and (context is None or row.get("fold") != context.get("fold")):
+                continue
             if fits(row.get("translation")):
-                return row["translation"], True
-        return None, False
+                return row["translation"], "memory"
+        # Then what another project of the series saved for exactly this text (nearest level first), if said by the same speaker.
+        for row in series_rows if context is not None else []:
+            if "speaker" in row and row.get("speaker") == context.get("speaker") \
+                    and row.get("addressee") == context.get("addressee") and fits(row.get("translation")):
+                return row["translation"], "series"
+        return None, None
 
     def _extract_single_translation(self, response: ProviderResponse) -> str:
         cleaned = self.main_handler.ai_lifecycle_manager._clean_model_output(
@@ -204,8 +216,9 @@ class AIBatchTranslator(BaseTranslationHandler):
         if not saved_translations and not getattr(saved_mgr, 'series_memory', None):
             return source_items, temp_id_map
 
-        # Collect cached items info
+        # Collect cached items info. ``offered`` holds the text per (block, string) that may be restored.
         cached_items_info = []
+        offered: Dict[Tuple[Any, Any], str] = {}
         for item in source_items:
             item_id = item.get("id")
             if temp_id_map and item_id in temp_id_map:
@@ -217,8 +230,9 @@ class AIBatchTranslator(BaseTranslationHandler):
                 except (ValueError, TypeError):
                     r_string_idx = item_id
 
-            saved_text, from_memory = self._restorable_text(saved_mgr, saved_translations, item, r_block_idx, r_string_idx)
+            saved_text, origin = self._restorable_text(saved_mgr, saved_translations, item, r_block_idx, r_string_idx)
             if saved_text:
+                offered[(r_block_idx, r_string_idx)] = saved_text
                 block_name = None
                 if hasattr(self.mw, 'data_store') and self.mw.data_store.block_names:
                     block_name = self.mw.data_store.block_names.get(str(r_block_idx))
@@ -230,23 +244,27 @@ class AIBatchTranslator(BaseTranslationHandler):
                     'string_idx': r_string_idx,
                     'text': saved_text,
                     # saved for the same source text at another place, not for this row
-                    'from_memory': from_memory,
+                    'from_memory': origin != "saved",
+                    'origin': origin,
                 })
 
         if force_prompt:
             # Ctrl+click: skip cache entirely, translate everything anew
             return source_items, temp_id_map
 
+        accepted = set(offered)
         if cached_items_info:
             dialog = CachedTranslationDialog(self.mw, cached_items_info)
             res = dialog.exec()
-            
+
             if res == 2:
                 # User wants to translate everything anew (Translate Anew)
                 return source_items, temp_id_map
             elif res != 1:
                 # User cancelled or closed the dialog (Cancel)
                 return [], {}
+            # Only the rows left checked are restored; an unchecked row is translated anew (per row).
+            accepted = set(dialog.accepted_positions())
 
         filtered_source_items = []
         filtered_temp_id_map = {}
@@ -263,7 +281,8 @@ class AIBatchTranslator(BaseTranslationHandler):
                 except (ValueError, TypeError):
                     r_string_idx = item_id
 
-            saved_text, _from_memory = self._restorable_text(saved_mgr, saved_translations, item, r_block_idx, r_string_idx)
+            position = (r_block_idx, r_string_idx)
+            saved_text = offered.get(position) if position in accepted else None
             if saved_text:
                 restored_items.append((r_block_idx, r_string_idx, saved_text))
             else:

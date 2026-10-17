@@ -63,3 +63,25 @@ def test_cached_translation_dialog_button_clicks(qapp):
         getattr(dialog, button_name).click()
         assert dialog.result() == expected_code
         dialog.close()
+
+
+def test_each_line_has_a_check_box_and_only_checked_lines_are_accepted(qapp):
+    """A line is checked by default; unchecking it leaves it out of the accepted positions (per-row Translate Anew)."""
+    cached_info = [
+        {'block_idx': 2, 'block_name': "Block 3", 'string_idx': 4, 'text': "One", 'from_memory': True, 'origin': 'memory'},
+        {'block_idx': 2, 'block_name': "Block 3", 'string_idx': 5, 'text': "Two", 'from_memory': True, 'origin': 'series'},
+    ]
+    dialog = CachedTranslationDialog(None, cached_info)
+    assert [box.isChecked() for _, box in dialog._row_boxes] == [True, True]
+    assert dialog.accepted_positions() == [(2, 4), (2, 5)]
+
+    dialog._row_boxes[1][1].setChecked(False)
+    assert dialog.accepted_positions() == [(2, 4)]
+    dialog.close()
+
+
+def test_a_single_line_has_no_check_box_and_its_position_is_accepted(qapp):
+    dialog = CachedTranslationDialog(None, [{'block_idx': 0, 'block_name': "Block 1", 'string_idx': 0, 'text': "T"}])
+    assert dialog._row_boxes == []
+    assert dialog.accepted_positions() == [(0, 0)]
+    dialog.close()

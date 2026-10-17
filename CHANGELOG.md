@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Translation memory: a saved translation of a repeated text keeps the speaker, addressee and fold key it was made under (D41); a restore offers it only under the same context, and the Cached Translation window has a check box per line (an unchecked line is translated anew).
 - Tool `scripts/measure_series_text.py`: read-only count of repeated and cross-game English text in a game series (Pokémon: 23 projects measured, numbers in `docs/OPEN_ITEMS.md`).
 - Pokémon plugins (Gen 1, Gen 2, Gen 5, Gen 3 Mystery Dungeon 3DS, Switch, French): the asm, message, text and ROM budget files of a string are read on a worker (`plugins/common/block_loader.py`), so the editor's budget check, context and speaker lookups and the message attribute hooks never read a file on the UI thread; the block's problem scan runs again when its read ends.
 - Pokémon Legends: Z-A (Switch): the message preview has a box switch (field box, NPC speech bubble, lower-left message window); the speech bubble is drawn in UniversNext Cond at 29.5 by 29 px with every ink edge within 1 px of the Eden frame (`speech_bubble` and `hud_message` in `plugins/pokemon_trinity/config.json`, `plugins/pokemon_trinity/speech_bubble.py`, `speech_layout` in `plugins/common/switch_message_preview.py`; the HUD window is layout-derived, frame pending).

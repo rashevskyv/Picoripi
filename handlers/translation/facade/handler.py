@@ -54,6 +54,10 @@ class TranslationHandler(
 
         self.glossary_handler = GlossaryHandler(self)
         self.prompt_composer = AIPromptComposer(self)
+        # Saved rows of a repeated text carry the context they were made under (see SavedTranslationsManager.context_of).
+        saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
+        if saved_mgr is not None:
+            saved_mgr.context_for = self.prompt_composer.saved_context
         self.ui_handler = TranslationUIHandler(self)
         self.ai_lifecycle_manager = AILifecycleManager(self)
         self.text_formatter = TextFormatter(self.mw)

@@ -82,7 +82,10 @@ def load_series_memory(chain: Iterable[Path], own_memory_path: Optional[Path]) -
                 bucket = memory.setdefault(key, [])
                 for row in rows:
                     if isinstance(row, dict) and isinstance(row.get("source"), str) and isinstance(row.get("translation"), str):
-                        bucket.append({"source": row["source"], "translation": row["translation"], "project": str(project_name)})
+                        entry = {"source": row["source"], "translation": row["translation"], "project": str(project_name)}
+                        # speaker and addressee say under whom the row was saved; rows saved before they existed have neither
+                        entry.update({k: str(row[k]) for k in ("speaker", "addressee") if isinstance(row.get(k), str)})
+                        bucket.append(entry)
     return memory
 
 

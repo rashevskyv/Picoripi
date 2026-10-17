@@ -925,11 +925,10 @@ omfs`) could be
 - **How many conversations in Twilight Princess are longer than 12 lines — and are therefore still cut — is not
   measured (4.3).**
 
-- **A restore from the translation memory ignores who speaks (4.2).** The duplicate fold of 4.1 compares
-  speaker, addressee and window; the cross-run memory has only the source text, so "I'm ready" saved for a
-  woman is offered for a man's identical line. The user sees every such row in the Cached Translation window
-  (marked "same text elsewhere") and can choose Translate Anew — but only for all rows at once. Storing the
-  fold key with each memory row would let the restore be as strict as the fold.
+- **Fixed 2026-10-17 (D41): a restore from the translation memory respects who speaks (4.2).** A memory row stores
+  speaker, addressee and fold key; a repeated text restores only under the same context, a series row only under the same
+  speaker and addressee. The Cached Translation window has a check box per line: an unchecked line is translated anew.
+  Rows saved before D41 are not offered for a repeated text until the line is saved again.
 - **Translations saved through `save_all_saved_translations` do not reach the memory (4.2)** — import of saved
   translations and the delete actions write the positions file directly. The memory is rebuilt from scratch
   only when its file is missing; an "update memory" pass after an import is not there.
@@ -938,7 +937,7 @@ omfs`) could be
 - **How much duplicate folding saves on the real project is not measured (4.1).** The audit estimated 10–30 %
   exact duplicates; the count depends on speakers and windows (a fold needs them equal). Measure on a copy:
   log line `BatchTranslator: N duplicate strings will take the translation of M others` at the start of a run.
-- **The fold key costs a speaker lookup per repeated string (4.1)**, on the interface thread before the run
+- **The fold key costs a speaker lookup per repeated string (4.1; D41 adds one per saved repeated string, on the interface thread)**, on the interface thread before the run
   starts. Only texts that occur more than once are looked up; if a project-wide run starts noticeably slower,
   cache the speaker pool for the fold (`BlockListUpdater._speaker_pool_cache` already has it).
 - **A translation in progress saved before 4.1 resumes without folding (4.1)** — its chunk numbers belong to

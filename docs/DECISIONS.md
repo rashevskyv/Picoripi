@@ -982,3 +982,23 @@ English document by flow index, and the English layout orders flows differently 
 a page where every paragraph has the same kind in English and Russian (`rules.pairs_agree`: a lone marker, or text with
 its tag kinds). Other pages show no English, so a wrong English line never shows. The check is per page, the stricter
 reading: per flow would show 304 more keys of the owner's files.
+
+## D41. A saved row of a repeated text carries the context it was made under; the restore uses that context (2026-10-17)
+
+**Context.** The duplicate fold (4.1) sends one of several identical strings and gives its translation to the others
+only when speaker, addressee, window and story context are equal. The translation memory (OPEN_ITEMS 4.2) kept only
+the source text, so "I'm ready" saved for a woman was offered for a man's identical line. The Cached Translation window
+was all or nothing, so the only way out was Translate Anew for every line.
+**Decision.** A memory row stores `speaker`, `addressee` and `fold` (a hash of the whole fold key) when it is saved.
+The context is read only for a text that repeats in the project (`SavedTranslationsManager.repeats_in_project`); a
+text that occurs once has no other place to be confused with and restores as before. A repeated text restores from
+its own project's memory only when the row's `fold` equals the current one. A row from another project of the series
+restores only when `speaker` and `addressee` equal. Rows saved before this record have no context: they are not offered
+for a repeated text until the line is saved again. The Cached Translation window has one check box per line, checked
+by default; an unchecked line is translated anew. The backup by position (`saved_translations.json`) is unchanged.
+**Cost.** A save of a repeated text calls the composer's fold key on the interface thread (one speaker lookup per saved
+repeated string). The fold has the same cost today (OPEN_ITEMS 4.1). A context change between save and restore (for
+example a renamed speaker) is not seen: the old row is then not offered. Series rows of another game compare English
+speaker names only.
+**Series reuse (goal 3 of the Pokémon series work).** This record is the speaker rule that the series memory uses too;
+the series itself is not extended here. Whether sentences shared across games are offered is still the owner's choice.
