@@ -42,11 +42,13 @@ class SessionMixin:
             return False
         return code > session
 
-    def _load_reference(self) -> None:
-        """The reference translation needs the block names: the settings were read before the files."""
+    def _load_reference(self, force: bool = False) -> None:
+        """The reference translation needs the block names: the settings were read before the files.
+
+        It also needs the plugin's state: a state-only read adds it later, so that read calls this with ``force``."""
         settings = getattr(getattr(self.mw, 'settings_manager', None), 'plugin_settings', None)
         if settings is not None:
-            settings.load_reference()
+            settings.load_reference(force=force)
 
     def _restore_project_session_fast_path(self, on_completed=None) -> bool:
         """Restore a project from the session checkpoint before starting the full loader."""
@@ -119,6 +121,8 @@ class SessionMixin:
             if self._active_load_worker is not worker or self.mw.current_game_rules is not rules or not result:
                 return
             formats.restore_state(rules, result.get('plugin_keys_backup'))
+            # The reference was read before this state came back (a 3DS manual reference matches the manuals held).
+            self._load_reference(force=True)
             scanner = getattr(self.mw, "issue_scan_handler", None)
             if scanner is not None:
                 scanner._perform_initial_silent_scan_all_issues(force=True)

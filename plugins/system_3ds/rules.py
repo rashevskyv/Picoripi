@@ -183,9 +183,19 @@ class GameRules(BaseGameRules):
         self._widths: Optional[manual_layout.Widths] = None
         self._budgets: Optional[Dict[str, Any]] = None
         self._details: Dict[Tuple[int, int], str] = {}  # (block, string) -> "N px, budget M px" of the last check
+        self._reference_files: Optional[List[str]] = None  # the project's files, taken for a reference worker
 
     def get_display_name(self) -> str:
         return "Nintendo 3DS system (Ukrainian)"
+
+    def reference_worker_rules(self):
+        """Rules for the reference parse on a worker thread, and no window copy (None).
+
+        The parse reads only the project's source files, so the file list is taken here, on the window's thread, and
+        the worker's rules read that list instead of the window."""
+        rules = GameRules()
+        rules._reference_files = self._project_files()
+        return rules, None
 
     def get_file_formats(self) -> list:
         from core.formats import FileFormat
@@ -312,6 +322,8 @@ class GameRules(BaseGameRules):
             return []
 
     def _project_files(self) -> List[str]:
+        if self._reference_files is not None:
+            return list(self._reference_files)
         return [str(block.source_file).replace("\\", "/") for block in self._project_blocks()]
 
     def _budget_table(self) -> Dict[str, Any]:
