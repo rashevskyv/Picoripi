@@ -10,13 +10,14 @@ import threading
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 
 from core.translation import memory_context as mc
 from utils.logging_utils import log_error
+from utils.thread_utils import WorkerThread
 
 
-class MemoryContextWorker(QThread):
+class MemoryContextWorker(WorkerThread):
     """Plans and writes the rebuild. Signals: ``progress(done, total)``; ``done(result)`` (None when cancelled);
     ``failed(text)``."""
 
