@@ -1241,7 +1241,7 @@ omfs`) could be
 - **Build (2026-10-17)**: `plugins/zelda_tww/disc.py` writes the disc from the unpacked tree (no original image). On the
   owner's data: 2,210 of 2,213 FST files equal the original; the 3 others are the translated files; `main.dol` and the
   apploader are byte-equal; 5.1 s. The `bluewake` target keeps the original `main.dol` (BlueWake checks its SHA-1).
-  Boot checked 2026-10-18 in a private muted Dolphin copy (`D:\RomHacking_tmp\zelda-ww-ready\dolphin`, portable, no audio):
+  Boot checked 2026-10-18 in a private muted Dolphin copy (kept outside the repository, portable, no audio):
   the original and the rebuilt image both boot to the game's own screens; the boot DVD reads are identical (15 lines
   each, no read error). A test copy with two shortened lines of `zel_00.bmg` (units 19 and 24, the save prompts) shows
   its text in game. The rebuilt disc needed no layout change. The card prompt differs between runs even for the
@@ -1430,7 +1430,7 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
   as editor text (LE codec), and builds a GD-ROM set through `core/containers/gdrom_writer.py`.
 - Done: text is on the same pages as GameCube. 227 script names exist on both discs; 22,605 of 22,980 pages match the
   GameCube text exactly. The 406 USA scripts (both discs) round trip unchanged.
-- Open: in-game proof. Flycast (private copy `D:\RomHacking_tmp\skies\flycast`) runs the marked disc: title, New Game
+- Open: in-game proof. Flycast (private copy kept outside the repository) runs the marked disc: title, New Game
   (C key), narration and the opening cinematic were reached. No dialogue box was reached yet. The cinematic returns to
   the title; the first gameplay dialogue is not reached by script. Owner shortcut: `Dreamcast\play_to_first_dialogue.bat`.
 - Open: growth. Only `FIELD/ME201A.SCT` is fixed (as on GameCube, not tested on Dreamcast). Other scripts may grow but
