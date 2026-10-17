@@ -481,6 +481,19 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 
 ## Twilight Princess Wii / HD (2026-10-04)
 
+- Build status (2026-10-17): **GameCube disc image** and **Dusklight mod** (`gc_iso`, `dusk_mod`) and the **Wii U
+  graphic pack** (`wiiu_mod`) are built by Picoripi. Checked on copies of the owner's files: the GameCube archives
+  and fonts equal the owner's `UA` folder; the Wii U pack equals the owner's `zt` build byte for byte except the
+  description line. Not verified in an emulator or on a console.
+- **Wii disc (RZDE01): no build target.** Its partitions are encrypted; a build needs a partition writer (re-encrypt
+  each changed cluster and rebuild the hashes). Open; the owner's `GC + Wii\Patcher` still makes the Wii image.
+- **Run in emulator for Wii U is not wired.** The host passes the build folder to the emulator command; Cemu needs the
+  game file (`-g <game>`). Leave the Wii U command empty; run the pack with the workspace `3_run.bat`.
+- **Project unpacked before 2026-10-17 has no disc record** (`.picoripi_disc.json`). Its build is refused with
+  "unpack the disc again". Create the project again in the wizard.
+- **HD source needs the owner's `source\content`** (`FileSizeList.txt` and `DecompressedSizeList.txt` two folders
+  above `res\Msguk`); Picoripi does not unpack the HD game yet (`1_unpack.bat` still does).
+
 - **No clean English TP HD dump on this PC.** `TPHD_UA\source` is a stand-in: the UK English archives of the
   Kruptar project (compressed again) with the Russian patch's fonts and size tables, matching the installed
   Russian build Cemu runs. A decrypted USA/EUR folder (`tphd_game` in `_tools\zelda_env.ini`) gives the real
@@ -912,8 +925,11 @@ omfs`) could be
 - **Packing reorders strings inside a scene (4.3):** the members of a conversation are gathered at its first
   member. Rows are applied by id, so nothing depends on the order, but the request no longer lists a block's
   strings strictly by index.
-- **How many conversations in Twilight Princess are longer than 12 lines — and are therefore still cut — is not
-  measured (4.3).**
+- **How many conversations in Twilight Princess are longer than 12 lines — and are therefore still cut — is measured
+  (2026-10-17, the owner's GameCube project on a copy):** 15,622 strings in 1,165 conversation groups; 81 groups have
+  more than 12 strings (1,776 strings in all); the largest has 77. A group over 12 is cut into runs of 12
+  (`handlers/translation/worker/run_mixin.py::pack_groups`). **Stays as it is:** a larger request size is a cost and
+  quality choice for the AI requests, and the owner decides it.
 
 - **A restore from the translation memory ignores who speaks (4.2).** The duplicate fold of 4.1 compares
   speaker, addressee and window; the cross-run memory has only the source text, so "I'm ready" saved for a
@@ -979,8 +995,9 @@ omfs`) could be
   `handlers/project_action_handler.py`, `core/project_manager.py` and ten more). Tests patch class attributes
   through some of those paths (`...project_action_handler.QFileDialog.getOpenFileName`). Remove with the shims
   themselves once callers import from the real packages.
-- **`plugins/zelda_bmg/window_frame_loader.py::_KNOWN_DUMP` is a path on the author's machine** (a drive path under the owner's workspace; code behaviour, not changed here).
-  It should come from the project or the plugin settings.
+- Done (2026-10-17): **`plugins/zelda_bmg/window_frame_loader.py::_KNOWN_DUMP` is gone.** The Layout folder is found from
+  the project's `source_path` (absolute, or relative to the project folder) and then from its blocks. A project made
+  before has the game folder there, so it needs no setting. Test: `tests/test_plugins/test_zelda_bmg_layout_root.py`.
 
 - **`sync_push_on_close` still syncs on the calling thread when there is no window (6.3)** — headless callers
   and `mw.is_testing` (a test switch in product code; 6.4 removes the `pytest` checks, this attribute stays
@@ -1012,6 +1029,10 @@ omfs`) could be
 - **`ui/main_window/bfn_actions.py` still imports the BMG parser** (`from bmg_tool import BMGFile, BMGMessage`,
   through the root shim) for the "Import / Export BMG JSON" actions and calls `msg_to_editor_text`. These are
   Twilight Princess actions living in the main window; they belong in the plugin's `get_plugin_actions()`.
+  Open (2026-10-17, why it stays): the two actions are fixed items (`ui/builders/menu_builder.py` 508–528, wired in
+  `ui/main_window/main_window_event_handler.py` 112–115 and 413–414, enabled per project in
+  `handlers/project_action/handler.py` `_set_project_actions_enabled`). Plugin actions have no enable state per project,
+  so moving them needs a rule for the "no project open" case first. Owner decision: show the message, or disable.
 - **`get_preview_window_style` and `get_message_attributes` are still looked for with `hasattr`** in four host
   places instead of being base-class hooks.
 - **File dialogs of the project wizard and the settings path picker still list fixed extensions**

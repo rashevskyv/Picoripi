@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Twilight Princess: the Layout folder of the frame preview comes from the project's source path (the author's drive path `_KNOWN_DUMP` is removed); the Ukrainian BMG JSON actions stay in the main window, and the conversation-cut measurement is recorded in OPEN_ITEMS.
 - Twilight Princess: the reference languages are parsed on a worker thread (`ReferenceManager.load_in_background`, `reference_worker_rules` hook); each archive is read once; the open of the owner's project drops from 4.8–6.2 s to 3.1–3.9 s offscreen, the block tree still builds on the UI thread (see OPEN_ITEMS).
 - Twilight Princess (GameCube, Wii U HD): build targets `gc_iso` (the disc image, copied from the disc recorded at unpack; changed archives and fonts written with `write_disc`), `dusk_mod` (a `.dusk` overlay for Dusklight; needs the user's disc) and `wiiu_mod` (the Cemu graphic pack and SDCafiine folder, with the size tables and the GX2 font textures redrawn from the glyph sheets); the source mark moves to `plugins/common/disc_source.py`, Wind Waker declares no target.
 - Pokémon plugins (Gen 1, Gen 2, Gen 5, Gen 3 Mystery Dungeon 3DS, Switch, French): the asm, message, text and ROM budget files of a string are read on a worker (`plugins/common/block_loader.py`), so the editor's budget check, context and speaker lookups and the message attribute hooks never read a file on the UI thread; the block's problem scan runs again when its read ends.

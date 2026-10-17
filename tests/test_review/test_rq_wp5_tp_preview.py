@@ -30,11 +30,11 @@ HAS_DUMP = (h.TP_DUMP_ROOT / "res" / "Layout" / "msgres01.arc").exists()
 def no_layout_cache():
     from plugins.zelda_bmg import window_frame_loader as loader
 
-    saved = (loader._LAYOUT_ROOT, loader._KNOWN_DUMP, dict(loader._CACHE))
+    saved = (loader._LAYOUT_ROOT, dict(loader._CACHE))
     yield
-    loader._LAYOUT_ROOT, loader._KNOWN_DUMP = saved[0], saved[1]
+    loader._LAYOUT_ROOT = saved[0]
     loader._CACHE.clear()
-    loader._CACHE.update(saved[2])
+    loader._CACHE.update(saved[1])
 
 
 def _same_pixels(actual: QImage, golden: QImage) -> bool:
