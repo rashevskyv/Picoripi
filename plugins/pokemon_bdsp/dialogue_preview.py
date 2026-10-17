@@ -191,4 +191,4 @@ def _to_qimage(image: Image.Image) -> QImage:
     return QImage(raw, rgba.width, rgba.height, rgba.width * 4, QImage.Format.Format_RGBA8888).copy()
 
 
-__all__ = ["DialogueBoxPreview", "FaceLoader", "load_facts", "render_line"]
+__all__ = ["DialogueBoxPreview", "FaceLoader", "load_facts", "render_lines", "wrap_lines"]
