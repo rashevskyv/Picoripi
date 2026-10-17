@@ -258,3 +258,9 @@ def test_gsc_budget_check_uses_the_text_units_of_its_own_parser(monkeypatch):
     monkeypatch.setattr(rules, "_budget_data", lambda path: ({"Body#0": 3}, _names()))
     assert rules.exceeds_byte_budget(0, 0, "Aa") is False
     assert rules.exceeds_byte_budget(0, 0, "Aaa") is True
+
+
+def test_multi_unit_body_budget_is_its_text_minus_the_other_units():
+    # two units share one body: each may grow into the space the other one leaves (3 bytes: flow code and two letters)
+    lines = [("text", '"Aa"'), ("done", ""), ("text", '"bb"'), ("done", "")]
+    assert rom_project._body_budgets({"label": "Two"}, lines, _names()) == {"Two#0": 3, "Two#1": 3}

@@ -51,6 +51,8 @@ FAR_ABSENT_OK = {"_BoxFullDebugText", "_BoxWillBeClearedText", "_ExpressionText"
 # is referenced from code, so it never moves and the extra hit cannot be rewritten.
 FAR_COINCIDENCE_OK = {"PCCharText"}
 DEFINITION = re.compile(r"^[A-Za-z_][\w.]*::?\s*$")
+# ``Label:: INCLUDE "file"``: the label names the included file's body (the Pokedex entries do this).
+INCLUDE_DEFINITION = re.compile(r'^\s*([A-Za-z_][\w.]*)::?\s+INCLUDE\s+"([^"]+)"\s*$')
 NAME_LINE = re.compile(r'^\s+(li|dname)\s+"')
 # A string the code or a table builds: ``db "...@"``, with or without a label on the same line.
 DB_LINE = re.compile(r'^(\s+|[A-Za-z_.][\w.]*:+\s+)db\s+(-?\$?\w+\s*,\s*)?"[^"]*@"')
@@ -160,7 +162,7 @@ def other_reference_counts(decomp: Path) -> Counter:
     for path in decomp.rglob("*.asm"):
         for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
             code = asm_text.split_comment(line)[0]
-            if "text_far" in code or DEFINITION.match(code):
+            if "text_far" in code or DEFINITION.match(code) or INCLUDE_DEFINITION.match(code):
                 continue
             counts.update(re.findall(r"[A-Za-z_][\w.]*", code))
     return counts
@@ -177,11 +179,41 @@ def pret_far_counts(decomp: Path) -> Counter:
     return counts
 
 
+# The one folder of per-species Pokedex entry files; its parent files (``dex_entries*.asm``) name them with INCLUDE.
+DEX_ENTRY_FOLDER = "dex_entries"
+
+
+def dex_parents(decomp: Path, build: str) -> list:
+    """The Pokedex entry files of this build: the shared ``dex_entries.asm`` and this version's ``dex_entries_<v>.asm``."""
+    if build not in GEN2_BUILDS:      # Generation I keeps its Pokedex entries in one file, with no height and weight
+        return []
+    version = {"pokegold": "_gold", "pokesilver": "_silver"}.get(build, "")
+    folder = decomp / "data" / "pokemon"
+    return [path for path in sorted(folder.glob("dex_entries*.asm"))
+            if path.stem[len("dex_entries"):] in ("", version)]
+
+
+def read_source(path: Path, decomp: Path) -> str:
+    """The source text of a file with ``Label:: INCLUDE "file"`` lines: each one becomes the label and the file's text."""
+    text = path.read_text(encoding="utf-8")
+    if "INCLUDE" not in text:
+        return text
+    out = []
+    for line in text.splitlines():
+        match = INCLUDE_DEFINITION.match(line)
+        if match:
+            out.append(f"{match.group(1)}::")
+            out.append((decomp / match.group(2)).read_text(encoding="utf-8"))
+        else:
+            out.append(line)
+    return "\n".join(out) + "\n"
+
+
 def name_files(decomp: Path) -> list:
     """The data files with name tables (``li`` or ``dname`` entries) or text macros, in path order."""
     found = []
     for path in sorted(p for p in decomp.rglob("*.asm") if p.relative_to(decomp).parts[0] not in SKIP_DIRS | {"text"}):
-        if path.relative_to(decomp).as_posix() in EXCLUDED_DATA:
+        if path.relative_to(decomp).as_posix() in EXCLUDED_DATA or DEX_ENTRY_FOLDER in path.relative_to(decomp).parts:
             continue
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
         if any(NAME_LINE.match(line) or TEXT_LINE.match(line) or DB_LINE.match(line) for line in lines):
@@ -259,11 +291,15 @@ def ram_arguments(lines, everything, runtime) -> list:
 NUMERIC_LEAD = re.compile(r'^-?\$?[0-9A-Fa-f]+\s*,\s*"')
 
 
-def text_prefix(lines):
-    """The leading text macros of a label. ``text_asm`` ends the text: the code after it is not text."""
+def text_prefix(lines, dex: bool = False):
+    """The leading text macros of a label. ``text_asm`` ends the text: the code after it is not text.
+
+    A Pokedex entry (``dex``) also holds its height and weight as ``dw`` lines after the species name.
+    """
     out = []
+    words_ok = BODY_WORDS | {"dw"} if dex else BODY_WORDS
     for index, (word, args) in enumerate(lines):
-        if word == "text_far" or (word not in BODY_WORDS and not word.startswith("assert")):
+        if word == "text_far" or (word not in words_ok and not word.startswith("assert")):
             break
         if word == "db" and not args.startswith('"'):     # ``db 6,3``: the numbers after a name are not text
             if not (index == 0 and NUMERIC_LEAD.match(args)):
@@ -415,12 +451,11 @@ def ukrainian_cells(charmap: list, font_sources: Path, gen2: bool) -> list:
             continue
         extra.append([letter, code])
     # The charmap's Japanese tokens share some of these codes (0xC0 is a katakana in the Japanese text table), and
-    # the Gold charmap lists some English letters after its first Japanese token. A byte reads as its first entry,
-    # so the Ukrainian entries go after the last English entry: every English letter wins its byte, and the
-    # Ukrainian ones win over the Japanese ones.
-    english_end = max((i for i, (token, _code) in enumerate(charmap)
-                       if not any(is_japanese(ch) for ch in token)), default=-1)
-    return list(charmap[:english_end + 1]) + extra + list(charmap[english_end + 1:])
+    # the games list some English letters after their first Japanese token. A byte reads as its first entry, so the
+    # order is: every English entry (in its own order), then the Ukrainian entries, then the Japanese ones.
+    english = [entry for entry in charmap if not any(is_japanese(ch) for ch in entry[0])]
+    japanese = [entry for entry in charmap if any(is_japanese(ch) for ch in entry[0])]
+    return english + extra + japanese
 
 
 def is_japanese(char: str) -> bool:
@@ -508,21 +543,22 @@ def main(argv: list) -> int:
     defines ={VERSION_MACRO[build]} if build in VERSION_MACRO else set()
     everything = rom_text.Names(charmap, ram_labels, rom_labels, gen2)
 
-    sources = sorted((decomp / "text").glob("*.asm")) + name_files(decomp)
+    sources = sorted((decomp / "text").glob("*.asm")) + name_files(decomp) + dex_parents(decomp, build)
     files = []
     all_labels = {}
     skipped = []
     total_bodies = total_bytes = 0
     for path in sources:
-        source = normal_build(path.read_text(encoding="utf-8"), defines)
+        source = normal_build(read_source(path, decomp), defines)
         groups = rom_text.read_labels(source)
         rel = path.relative_to(decomp).as_posix()
+        dex = build in GEN2_BUILDS and rel.startswith("data/pokemon/dex_entries")
         entries = []
         parent = ""
         for label, lines in groups:
             if label and not label.startswith(".") and label in rom_labels:
                 parent = label      # a global label owns the local labels after it, even when it holds code
-            lines = text_prefix(lines)
+            lines = text_prefix(lines, dex)
             if not lines:
                 continue
             if not label:
@@ -540,7 +576,7 @@ def main(argv: list) -> int:
             # In text/ every body must check; elsewhere a label that is code or unsupported is not a body.
             strict = rel.startswith("text/")
             try:
-                data = rom_text.encode(lines, everything, width)
+                data = rom_text.encode(lines, everything, width, dex)
             except rom_text.CodecError as error:
                 if strict:
                     fail(f"{rel} {label}: {error}")
@@ -556,6 +592,8 @@ def main(argv: list) -> int:
             entry = {"label": label, "offset": offset, "size": len(data),
                      "fixed": bool(data) and data[-1] == TEXT_ASM, "lines": lines,
                      "bcd_hex": [i for i, a in enumerate([a for w, a in lines if w == "text_bcd"]) if "|" not in a]}
+            if dex:
+                entry["dex"] = True
             if mode:
                 entry["mode"], entry["width"] = mode, width
             entries.append(entry)
@@ -602,14 +640,14 @@ def main(argv: list) -> int:
             else:
                 try:
                     lines = rom_text.decode(region, runtime, entry["bcd_hex"], entry.get("ram_args", ()),
-                                            entry.get("end_char", False))
+                                            entry.get("end_char", False), entry.get("dex", False))
                 except IndexError:
                     if strict:
                         fail(f"{rel} {entry['label']}: a command runs past the body's {entry['size']} bytes")
                     entry["drop"] = True
                     skipped.append((rel, entry["label"], "a command runs past the body"))
                     continue
-                same = rom_text.encode(lines, runtime) == region
+                same = rom_text.encode(lines, runtime, 0, entry.get("dex", False)) == region
             mine_texts = asm_text.texts(rom_text.format_body(entry["label"], lines))
             pret_texts = asm_text.texts(rom_text.format_body(entry["label"], entry["lines"]))
             # The text check needs the decompilation's text in the game's charmap. A number lead or a character the

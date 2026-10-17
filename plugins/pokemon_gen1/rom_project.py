@@ -89,7 +89,7 @@ def unpack(rom_path: str, target_dir: str, progress: Progress, is_cancelled: Can
                 lines = rom_text.decode_names(region, names, body["mode"], body["width"])
             else:
                 lines = rom_text.decode(region, names, body.get("bcd_hex", ()), body.get("ram_args", ()),
-                                        body.get("end_char", False))
+                                        body.get("end_char", False), body.get("dex", False))
             if not body.get("movable"):
                 budgets.update(_body_budgets(body, lines, names))
             bodies.append(rom_text.format_body(body["label"], lines))
@@ -125,18 +125,25 @@ TERMINATOR_WORDS = {"done", "prompt", "text_end", "dex", "text_asm"}
 def _body_budgets(body: Dict[str, Any], lines: Sequence[rom_text.Line], names: rom_text.Names) -> Dict[str, int]:
     """Byte budgets of a body that stays where it is. Keys are ``label#k``, k the unit's index in its body.
 
-    A name field has its table's width. A list entry has its own length (its terminator included). A single text
-    unit has its length without the terminator. A body with several text units gets no budget (their space is shared).
+    A name field has its table's width. A list entry has its own length (its terminator included). A text unit has
+    its length without the terminator. Several units share the body's space: unit k may use the space that the other
+    units do not take at their current length, so its budget is the body's text minus the other units' lengths.
     """
     label = body["label"]
     if body.get("mode") == "dname":
         return {f"{label}#{k}": int(body["width"]) for k in range(len(lines))}
     if body.get("mode") == "li":
         return {f"{label}#{k}": rom_text.encoded_length([line], names) for k, line in enumerate(lines)}
-    if len(asm_text.parse(rom_text.format_body(label, lines))[1]) != 1:
-        return {}
+    units = asm_text.parse(rom_text.format_body(label, lines))[1]
     text = [line for line in lines if line[0] not in TERMINATOR_WORDS]
-    return {f"{label}#0": rom_text.encoded_length(text, names)}
+    if not units:
+        return {}
+    if len(units) == 1:
+        return {f"{label}#0": rom_text.encoded_length(text, names)}
+    # the macro lines of each unit: the label line is raw line 0, so raw line i is macro line i - 1
+    sizes = [rom_text.encoded_length(lines[unit.start - 1:unit.end - 1], names) for unit in units]
+    text_size = rom_text.encoded_length(text, names)
+    return {f"{label}#{k}": text_size - (sum(sizes) - size) for k, size in enumerate(sizes)}
 
 
 def _edited_bodies(text_dirs: Sequence[Path], facts: Dict[str, Any]) -> Dict[str, List[rom_text.Line]]:
@@ -176,7 +183,7 @@ def build(source_dir: str, translation_dir: str, output_dir: str, progress: Prog
             if lines is None:
                 continue
             try:
-                data = rom_text.encode(lines, names, body.get("width", 0))
+                data = rom_text.encode(lines, names, body.get("width", 0), body.get("dex", False))
             except rom_text.CodecError as error:
                 raise ValueError(f"{body['label']}: {error}") from error
             if data != base[body["offset"]:body["offset"] + body["size"]]:

@@ -178,11 +178,13 @@ def _args(names: Names, kind: str, data: bytes, at: int, hexed: bool = False,
 
 
 def decode(region: bytes, names: Names, bcd_hex: Sequence[int] = (), ram_args: Sequence[str] = (),
-           end_char: bool = False) -> List[Line]:
+           end_char: bool = False, dex: bool = False) -> List[Line]:
     """The macro lines of a text body. Stops at ``text_asm`` (the bytes after it are code, not text).
 
     ``bcd_hex`` lists the text_bcd commands (counted from 0 in the body) whose flags the decompilation wrote as a
     hex literal; the others are written as ``3 | LEADING_ZEROES``. The bytes do not tell which form was used.
+    ``dex`` marks a Generation II Pokedex entry: its species name ends at the first "@", and two little-endian
+    words (height and weight, ``dw`` in the decompilation) follow it before the text.
     """
     out: List[Line] = []
     word: Optional[str] = None
@@ -202,6 +204,7 @@ def decode(region: bytes, names: Names, bcd_hex: Sequence[int] = (), ram_args: S
     # character (the game's line "an @" is followed by a text_ram command, not by an end).
     end = len(region) - 1 if region[-1:] == bytes([TEXT_ASM]) else len(region)
     at = 0
+    dims_next = dex
     while at < end:
         code = region[at]
         follow = region[at + 1] if at + 1 < end else None
@@ -226,11 +229,20 @@ def decode(region: bytes, names: Names, bcd_hex: Sequence[int] = (), ram_args: S
             flush()
             out.append(("dex", ""))
             at += 2
+        elif code == TX_END and dex and word is not None and at < end - 1:
+            # A Pokedex page: pret's ``page "..."`` is the "@" byte and then the page's text.
+            flush()
+            word = "page"
+            at += 1
         elif code == TX_END and word is None and at < end - 1:
             # In a db body each "@" ends one string: ``db "CUT@"`` then ``db "FLY@"`` (a menu's list of names).
             chars.append("@")
             flush()
             at += 1
+            if dims_next:      # a Pokedex entry: the name's "@" is followed by height and weight
+                dims_next = False
+                out.append(("dw", f"{region[at] | region[at + 1] << 8}, {region[at + 2] | region[at + 3] << 8}"))
+                at += 4
         elif code == TEXT_ASM:
             flush()
             out.append(("text_asm", ""))
@@ -360,11 +372,12 @@ def _command_bytes(names: Names, name: str, args: str) -> bytes:
     return bytes(out)
 
 
-def encode(lines: Sequence[Line], names: Names, width: int = 0) -> bytes:
+def encode(lines: Sequence[Line], names: Names, width: int = 0, dex: bool = False) -> bytes:
     """The bytes of a text body from its macro lines. Lines after ``text_asm`` are code and are not encoded.
 
     ``width`` is the field width of a ``dname`` table (the table_width of the decompilation); a ``dname`` that does
     not fit the field raises, as pret's own assert does. ``li`` entries are "@"-terminated and any length.
+    ``dex`` is the Pokedex entry form (see ``decode``): its ``page`` line is the "@" byte and the page's text.
     """
     out = bytearray()
     for word, args in lines:
@@ -379,11 +392,17 @@ def encode(lines: Sequence[Line], names: Names, width: int = 0) -> bytes:
             out += _string_bytes(names, args) + bytes([TX_END])
         elif word in ("table_width", "list_start", "vc_patch", "vc_patch_end") or word.startswith("assert"):
             continue
+        elif dex and word == "page":
+            out.append(TX_END)
+            out += _string_bytes(names, args)
         elif word in FLOW_CODE:
             out.append(FLOW_CODE[word])
             out += _string_bytes(names, args) if args.strip() else b""
         elif word == "db":
             out += _db_bytes(names, args)
+        elif word == "dw":      # two little-endian words: a Pokedex entry's height and weight
+            for value in args.split(","):
+                out += (_number(value) & 0xFFFF).to_bytes(2, "little")
         elif word in TERMINATOR:
             out += TERMINATOR[word]
         elif word == "text_asm":

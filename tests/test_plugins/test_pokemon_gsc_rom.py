@@ -4,11 +4,13 @@ The real-ROM tests read the images from the RomHacking workspace (``PICORIPI_ROM
 are not there. Nothing from an image is copied into the repository.
 """
 import hashlib
+import json
 from pathlib import Path
 
 import pytest
 
 import romhacking_root
+from plugins.common import gb_rom
 from plugins.pokemon_gen1 import rom_project, rom_text
 from plugins.pokemon_gsc import rules as gsc_rules
 
@@ -65,3 +67,49 @@ def test_real_rom_unpacks_and_builds_back_to_the_same_bytes(name, tmp_path):
     built = Path(rom_project.build(str(project / rom_project.SOURCE_DIR), str(tmp_path / "translation"),
                                    str(tmp_path / "out"), lambda *_: None, lambda: False, FACTS))
     assert hashlib.sha1(built.read_bytes()).hexdigest() == hashlib.sha1(rom_path.read_bytes()).hexdigest()
+
+
+def test_pokedex_entry_keeps_its_height_weight_words_and_its_pages():
+    names = _names()
+    # name "ab@", height and weight (dw 204, 150), a first line, a page that starts with the "@" byte, and the end
+    raw = bytes([0xA0, 0xA1, 0x50, 0xCC, 0x00, 0x96, 0x00, 0xA2, 0x4E, 0xA3, 0x50, 0xA4, 0x50])
+    lines = rom_text.decode(raw, names, dex=True)
+    assert lines == [("db", '"ab@"'), ("dw", "204, 150"), ("db", '"c"'), ("next", '"d"'), ("page", '"e"'),
+                     ("text_end", "")]
+    assert rom_text.encode(lines, names, 0, True) == raw
+
+
+@pytest.mark.parametrize("name", ["gold"])
+def test_real_rom_ukrainian_pokedex_entry_builds_and_reads_back_through_its_pointer(name, tmp_path):
+    rom_path = _rom(name)
+    project = tmp_path / "project"
+    rom_project.unpack(str(rom_path), str(project), lambda *_: None, lambda: False, FACTS)
+    facts = json.loads((FACTS / "pokegold.json").read_text(encoding="utf-8"))
+    names = rom_project._names(facts)
+    item = next(item for item in facts["files"] for body in item["labels"]
+                if body["label"] == "BulbasaurPokedexEntry")
+    body = next(b for b in item["labels"] if b["label"] == "BulbasaurPokedexEntry")
+    assert body["movable"] and body["pointers"] and body["dex"]
+    source_file = project / rom_project.SOURCE_DIR / rom_project.unit_name(item["file"])
+    groups = rom_text.read_labels(source_file.read_text(encoding="utf-8"))
+    # the name and the height and weight stay; the text is longer than the 106 bytes of the entry, and the last
+    # string ends with "@" inside its literal (the entry's terminator, as in the decompilation)
+    entry = [("db", '"SEED@"'), ("dw", "204, 150"),
+             ("db", '"\u0420\u043e\u0441\u043b\u0456\u043d\u0430 \u0437 \u043d\u0430\u0441\u0456\u043d\u043d\u044f\u043c \u043d\u0430 \u0441\u043f\u0438\u043d\u0456 \u0456 \u0441\u0442\u0435\u0431\u043b\u043e\u043c, \u0449\u043e \u0440\u043e\u0441\u0442\u0435."'),
+             ("next", '"\u0417\u0435\u043b\u0435\u043d\u0435 \u043b\u0438\u0441\u0442\u044f, \u0432\u0435\u043b\u0438\u043a\u0435 \u0442\u0456\u043b\u043e, \u044f\u0433\u043e\u0434\u0438."'),
+             ("next", '"\u0412\u043e\u043d\u0430 \u0445\u043e\u0434\u0438\u0442\u044c \u0440\u0430\u0437\u043e\u043c \u0456\u0437 \u0434\u0440\u0443\u0437\u044f\u043c\u0438, \u0442\u043e\u043c\u0443 \u0457\u0457 \u043b\u044e\u0431\u0438\u0442\u044c \u043a\u043e\u0436\u0435\u043d \u0442\u0440\u0435\u043d\u0435\u0440."'),
+             ("page", '"\u0429\u0435 \u043e\u0434\u0438\u043d \u0440\u044f\u0434\u043e\u043a \u0442\u0435\u043a\u0441\u0442\u0443 \u043d\u0430 \u0434\u0440\u0443\u0433\u0456\u0439 \u0441\u0442\u043e\u0440\u0456\u043d\u0446\u0456.@"')]
+    edited = "\n".join(rom_text.format_body(label, entry if label == "BulbasaurPokedexEntry" else lines)
+                       for label, lines in groups if label)
+    source_file.write_text(edited, encoding="utf-8")
+    built = Path(rom_project.build(str(project / rom_project.SOURCE_DIR), str(tmp_path / "translation"),
+                                   str(tmp_path / "out"), lambda *_: None, lambda: False, FACTS))
+    patched = built.read_bytes()
+    size = len(rom_text.encode(entry, names, 0, True))
+    assert size > body["size"]
+    site = body["pointers"][0]
+    offset = gb_rom.offset_of(gb_rom.bank_of(body["offset"]), patched[site] | patched[site + 1] << 8)
+    assert gb_rom.bank_of(offset) == gb_rom.bank_of(body["offset"])
+    # the bytes at the pointer are the entry, byte for byte (a decode would show katakana for the cells that the
+    # Japanese tokens of the charmap share with some Ukrainian letters, so the check is on the bytes)
+    assert patched[offset:offset + size] == rom_text.encode(entry, names, 0, True)
