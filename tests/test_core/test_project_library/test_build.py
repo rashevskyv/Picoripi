@@ -137,6 +137,25 @@ def test_emulator_template_without_placeholder_appends_the_path_and_empty_is_not
     assert build.emulator_argv("   ", "/x", posix=True) == []
 
 
+def test_build_result_runs_on_the_targets_only_platform_else_the_projects():
+    assert build.emulator_platform(["switch"], "3ds") == "switch"
+    assert build.emulator_platform(["switch", "3ds"], "3ds") == "3ds"
+    assert build.emulator_platform([], "3ds") == "3ds"
+    assert build.emulator_platform([], "") == ""
+
+
+def test_each_platform_uses_its_own_emulator_command_and_the_shared_one_is_the_fallback():
+    settings = {"emulator_command": "shared {path}", "emulator_command.3ds": "emu3 {path}",
+                "emulator_command.switch": ""}
+
+    assert build.emulator_template_for(settings, "3ds") == "emu3 {path}"
+    # an empty platform setting means "no command", even when a shared command exists
+    assert build.emulator_template_for(settings, "switch") == ""
+    # a platform with no setting of its own uses the shared command
+    assert build.emulator_template_for(settings, "wii") == "shared {path}"
+    assert build.emulator_template_for({}, "wii") == ""
+
+
 def test_flags_are_stored_in_metadata_and_other_data_stays(tmp_path):
     project_file = tmp_path / "project.uiproj"
     project_file.write_text(json.dumps({"name": "Aria", "metadata": {"source_path": "src"}}), encoding="utf-8")
@@ -169,6 +188,23 @@ def test_registry_keeps_only_known_settings(tmp_path):
     reloaded = registry.Registry(registry.read(tmp_path))
     assert reloaded.settings() == {"emulator_command": "emu {path}"}
     assert "openai_key" not in json.dumps(registry.read(tmp_path))
+
+
+def test_registry_keeps_one_emulator_command_per_platform(tmp_path):
+    assert registry.emulator_setting("switch") == "emulator_command.switch"
+    assert registry.emulator_setting("") == "emulator_command"
+
+    def operation(reg):
+        assert reg.set_setting(registry.emulator_setting("switch"), "emus {path}")
+        assert reg.set_setting(registry.emulator_setting("3ds"), "emu3 {path}")
+        assert not reg.set_setting("emulator_command.bad platform!", "x")
+        assert not reg.set_setting("emulator_command.", "x")
+
+    registry.mutate(tmp_path, operation)
+
+    reloaded = registry.Registry(registry.read(tmp_path))
+    assert reloaded.settings() == {"emulator_command": "", "emulator_command.3ds": "emu3 {path}",
+                                   "emulator_command.switch": "emus {path}"}
 
 
 class TreeRules(BuildingRules):

@@ -213,6 +213,7 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
         Hook("build_target", "Write one build target into an empty output folder and return the result path. "
              "Gets source_dir, translation_dir, output_dir, progress and is_cancelled.", call=None, returns=str),
         Hook("project_icon", "A picture of the game for the Project Manager list (PNG or JPEG bytes) for the project folder, or None. Runs on the scan process. The user's icon.png wins.", call=None, returns=bytes, optional=True),
+        Hook("classify_resource", "Kind of one source file in the Project Manager's file counts: text, font, texture or other. None keeps the extension rule. Gets the file path; runs on a worker and may read the file.", call=None, returns=str, optional=True),
     )),
     ('Looked for by the host (not on the base class)', (
         Hook("problem_analyzer", "Analyzer object: analyze_data_string(), registry.get_prefixed_id(). "

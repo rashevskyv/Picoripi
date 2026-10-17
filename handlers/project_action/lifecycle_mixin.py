@@ -16,7 +16,7 @@ class LifecycleMixin:
     def finish_new_project(self, info: Dict) -> None:
         """Create the project described by ``info`` and open it. Shared by the old dialog and the Project Manager wizard.
 
-        ``info`` has the keys of ``NewProjectDialog.get_project_info`` and may add ``platform`` and ``metadata``
+        ``info`` has the keys the Project Manager wizard passes and may add ``platform`` and ``metadata``
         (stored in the project's metadata and in the Project Manager's row).
         """
         # Create project using ProjectManager

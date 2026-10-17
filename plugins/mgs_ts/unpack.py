@@ -17,6 +17,7 @@ written once, from the first disc that has them.
 Images: GameCube plain ISO or NKit, read by ``core.project_library.images`` (the NKit header carries the
 GameCube magic, so the reader takes it). Each container is read whole, one at a time, like the zt step.
 """
+from core.i18n import tr
 import struct
 from pathlib import Path
 from typing import Callable, Dict, Iterator, List, Optional, Set, Tuple
@@ -69,12 +70,12 @@ def extract(discs: Dict[str, str], target_dir: str, progress: Callable[[int, str
         number = ROLES.index(role) + 1
         with images.open_image(discs[role]) as image:
             if getattr(image, "disc_number", None) != number - 1:
-                raise ImageError(f"{role}: the image is not Disc {number} of Metal Gear Solid: The Twin Snakes")
+                raise ImageError(tr("{0}: the image is not Disc {1} of Metal Gear Solid: The Twin Snakes", role, number))
             files = {entry.path: entry for entry in image.entries()}
 
             def get(name: str) -> bytes:
                 if name not in files:
-                    raise ImageError(f"Disc {number} has no {name}")
+                    raise ImageError(tr("Disc {0} has no {1}", number, name))
                 return image.read(files[name])
 
             if not begin("Codec and game module"):
@@ -158,7 +159,7 @@ def _scan(container: bytes) -> List[subtitles.Record]:
                 data_end = pos
                 break
         if data_end is None:
-            raise ImageError(f"subtitles at {slot:#x} have no end record")
+            raise ImageError(tr("subtitles at {0:#x} have no end record", slot))
         slot_end = _align(data_end, SECTOR)
         while slot_end < size and not container[slot_end:slot_end + SECTOR].strip(b"\0"):
             slot_end += SECTOR

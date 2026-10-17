@@ -92,6 +92,9 @@ class GameRules(BaseGameRules):
     def unpack_key_consoles(self) -> List[str]:
         return ["switch", "oodle"]
 
+    def get_platforms(self) -> List[Dict[str, str]]:
+        return [{"id": "switch", "label": tr("Nintendo Switch")}]
+
     def get_build_targets(self) -> List[Dict[str, Any]]:
         return [{"id": "switch_layeredfs", "label": tr("Switch: Atmosphere LayeredFS mod"),
                  "platforms": ["switch"], "kind": "layeredfs"}]

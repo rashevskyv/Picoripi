@@ -22,6 +22,7 @@ aligned); only its directory entry changes (offset and size), and the PACK size 
 """
 from __future__ import annotations
 
+from core.i18n import tr
 import struct
 from dataclasses import dataclass, field
 from typing import Dict, List
@@ -68,7 +69,7 @@ def _chunks(data: bytes, start: int, end: int):
         kind, size, _unk, skip = CHUNK.unpack_from(data, position)
         body = position + CHUNK.size + skip
         if body + size > end:
-            raise ValueError(f"Chunk {kind!r} at {position:#x} runs past the end")
+            raise ValueError(tr("Chunk {0!r} at {1:#x} runs past the end", kind, position))
         yield kind.decode("latin-1"), body, size
         position = body + size
 
@@ -80,10 +81,10 @@ class Pak:
         self.data = data        # bytes or a read-only mmap (the level packages are 400 MB)
         kind, _size, _zero, pack, _r, _w = FORM.unpack_from(self.data, 0)
         if kind != b"RFRM" or pack != b"PACK":
-            raise ValueError("Not a big-endian Retro package (RFRM PACK)")
+            raise ValueError(tr("Not a big-endian Retro package (RFRM PACK)"))
         toc_kind, toc_size, _zero2, tocc, _r2, _w2 = FORM.unpack_from(self.data, FORM.size)
         if toc_kind != b"RFRM" or tocc != b"TOCC":
-            raise ValueError("Package without a TOCC form")
+            raise ValueError(tr("Package without a TOCC form"))
         self.toc_start = 2 * FORM.size
         self.toc_end = FORM.size + FORM.size + toc_size
         self.assets: List[Asset] = []
@@ -95,7 +96,7 @@ class Pak:
                 self.adir_body = body
                 count = struct.unpack_from(">I", self.data, body)[0]
                 if 4 + count * ENTRY != size:
-                    raise ValueError("ADIR size does not match its entries")
+                    raise ValueError(tr("ADIR size does not match its entries"))
                 for i in range(count):
                     at = body + 4 + i * ENTRY
                     type_, guid, offset, length = struct.unpack_from(">4s16sQQ", self.data, at)
@@ -114,7 +115,7 @@ class Pak:
                     names.setdefault(guid, []).append(text)
                     at += 24 + length
         if self.adir_body < 0:
-            raise ValueError("Package without an ADIR chunk")
+            raise ValueError(tr("Package without an ADIR chunk"))
         for asset in self.assets:
             asset.names = names.get(asset.guid, [])
         self.data_end = max((a.offset + a.size for a in self.assets), default=self.toc_end)
@@ -126,7 +127,7 @@ class Pak:
         """The asset's ``RFRM`` form exactly as stored."""
         end = asset.offset + asset.size
         if end > len(self.data):
-            raise ValueError(f"asset {asset.name} runs past the end of the package")
+            raise ValueError(tr("asset {0} runs past the end of the package", asset.name))
         return self.data[asset.offset:end]
 
     def children(self, asset: Asset) -> List[Child]:
@@ -137,16 +138,16 @@ def parse_children(form: bytes) -> List[Child]:
     """Split a chunked ``RFRM`` asset form into its children; the sizes must add up to the form."""
     kind, size, _zero, _k, _r, _w = FORM.unpack_from(form, 0)
     if kind != b"RFRM" or size + FORM.size != len(form):
-        raise ValueError("Asset is not a complete RFRM form")
+        raise ValueError(tr("Asset is not a complete RFRM form"))
     out: List[Child] = []
     at = FORM.size
     while at < len(form):
         if at + CHUNK.size > len(form):
-            raise ValueError("Truncated child header")
+            raise ValueError(tr("Truncated child header"))
         tag, length, _unk, skip = CHUNK.unpack_from(form, at)
         body = at + CHUNK.size + skip
         if body + length > len(form):
-            raise ValueError(f"Child {tag!r} runs past the end of its asset")
+            raise ValueError(tr("Child {0!r} runs past the end of its asset", tag))
         out.append(Child(tag.decode("latin-1"), form[at:body], form[body:body + length]))
         at = body + length
     return out

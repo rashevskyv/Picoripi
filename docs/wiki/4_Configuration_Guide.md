@@ -75,6 +75,10 @@ Connection to the mobile review backend. See [12. Picoripi Companion](12_Picorip
 | Test Connection | Tests whether the server is reachable and accepting tokens |
 | Automatically sync on project open and close | Background auto-pull on project open; auto-push on save/exit |
 
+### Console keys
+
+The key file of each console: 3DS, Switch, Wii and the Oodle library. Picoripi keeps only the path of each file. It never shows, logs or copies the key contents. **Browse...** sets a path and **Clear** forgets it. The state line shows whether the stored file still exists. The Project Manager wizard asks for a missing key file and stores it here. Changes apply at once.
+
 ### Logging
 
 | Control | |
@@ -123,7 +127,7 @@ The log file `app_debug.txt` stays next to the program unless **Log File Path** 
 | `.env` | Optional `OPENAI_API_KEY`, `GEMINI_API_KEY`, … |
 | `session` / `.picoripi_session.json` | UI filters, navigation, unsaved edits, undo. **Show Unsaved Only** is forced off on restore |
 | `session_state.json` in the data folder | Tree expansion, selection and cursor per project (read once from the old `session_state.json` in the program folder) |
-| `project_manager.json` in the data folder | Project Manager list: added projects, their folders, the group and sort choices. Written atomically. A file it cannot read is kept as `.unreadable` |
+| `project_manager.json` in the data folder | Project Manager list: added projects, their folders, the group and sort choices, and one emulator command per platform (`emulator_command.<platform>`; `emulator_command` is the older shared command). Written atomically. A file it cannot read is kept as `.unreadable` |
 | `project_index.json` in the data folder | Project Manager cache: the last card and string counts of each project. Safe to delete; rebuilt on the next visit |
 | `project.uiproj` | Project record: name, plugin folder, source/translation paths, bookmarks, `reference_patch_path` |
 | plugin `config.json` | Defaults for that game, including `default_tag_mappings` (alias ↔ tag; Pokémon plugins ship short aliases such as `{PLAYER}`) |

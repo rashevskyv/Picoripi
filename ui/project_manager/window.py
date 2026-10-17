@@ -17,22 +17,24 @@ from PyQt6.QtCore import QProcess, QRect, QSize, Qt, QTimer, QUrl
 from PyQt6.QtGui import QColor, QDesktopServices, QIcon, QImage, QKeySequence, QPainter, QPixmap, QShortcut
 from PyQt6.QtWidgets import (
     QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QInputDialog, QLabel, QLineEdit,
-    QListWidget, QListWidgetItem, QMenu, QMessageBox, QProgressBar, QPushButton, QStackedWidget, QStyledItemDelegate,
-    QToolButton, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+    QListWidget, QListWidgetItem, QMenu, QMessageBox, QProgressBar, QPushButton, QScrollArea, QSplitter,
+    QStackedWidget, QStyledItemDelegate, QToolButton, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 
 from core.i18n import tr
-from core.project_library import index, registry, views
-from core.project_library.build import emulator_argv
+from core.project_library import index, registry, resources, views
+from core.project_library.build import emulator_argv, emulator_platform, emulator_template_for
 from core.project_library.cards import fallback_name, percent_translated, read_card
 from core.project_library.discovery import find_projects, platform_from_parts
 from core.project_library.flags import FLAG_NAMES, flags_of
 from core.project_library.icons import ICON_SIZE, IMAGE_FILTER, save_user_icon
 from core.project_library.plugin_facts import PLUGIN_MISSING, default_load_rules
+from core.project_library.registry import EMULATOR_PREFIX
 from core.project_library.scan import ICON_FILE_NAME
+from ui.project_manager.emulator_dialog import EmulatorDialog
 from ui.project_manager.jobs import BackgroundJob
 from ui.project_manager.scan_process import ScanProcess
-from ui.project_manager.tasks import ActionJob
+from ui.project_manager.tasks import ActionJob, ResourceJob
 from utils.logging_utils import log_debug, log_info, log_warning
 from utils.thread_utils import safe_shutdown_thread, single_shot
 
@@ -217,6 +219,14 @@ def _initials(name: str) -> str:
     return "".join(word[0] for word in words[:2]).upper() or "?"
 
 
+def _size_text(size: int) -> str:
+    if size >= 1024 ** 3:
+        return tr("{0} GB", f"{size / 1024 ** 3:,.1f}")
+    if size >= 1024 ** 2:
+        return tr("{0} MB", f"{size / 1024 ** 2:,.1f}")
+    return tr("{0} KB", f"{size / 1024:,.1f}")
+
+
 def _eta_text(seconds: float) -> str:
     if seconds < 90:
         return tr("about {0} s left", max(1, int(round(seconds))))
@@ -303,6 +313,11 @@ class ProjectManagerDialog(QDialog):
         self._status_labels: Dict[str, QLabel] = {}
         self._action_text: Dict[str, str] = {}
         self._action_jobs: Dict[str, ActionJob] = {}
+        self._action_platform: Dict[str, str] = {}  # job key -> platform whose emulator command Run uses
+        self._resource_trees: Dict[str, QTreeWidget] = {}  # row key -> the resource tree shown in its details
+        self._resource_cache: Dict[str, Dict[str, Dict[str, int]]] = {}  # row key -> counts (kept for this window)
+        self._resource_jobs: Dict[str, ResourceJob] = {}
+        self._grid_detail_signature: Optional[str] = None  # the row the grid's details pane shows
         self._icon_images: Dict[str, QImage] = {}
         self._icons: Dict[str, QIcon] = {}
         self._tiles: Dict[Tuple[str, str], QIcon] = {}
@@ -350,7 +365,7 @@ class ProjectManagerDialog(QDialog):
         new_folder.clicked.connect(self._new_folder_clicked)
         bar.addWidget(new_folder)
         emulator = QPushButton(tr("Emulator..."))
-        emulator.setToolTip(tr("The command that starts your emulator. Used by Run in emulator."))
+        emulator.setToolTip(tr("One emulator command per platform. Run in emulator uses the command of its platform."))
         emulator.clicked.connect(self._emulator_clicked)
         bar.addWidget(emulator)
         bar.addStretch(1)
@@ -433,13 +448,23 @@ class ProjectManagerDialog(QDialog):
         self._grid.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._grid.customContextMenuRequested.connect(partial(self._context_menu, self._grid))
         self._grid.itemDoubleClicked.connect(self._on_grid_double_click)
+        self._grid.itemSelectionChanged.connect(self._refresh_grid_detail)
+        # the grid's details: the same widget as the list's expanded row, under the grid for the selected project
+        self._grid_details = QScrollArea()
+        self._grid_details.setWidgetResizable(True)
+        self._grid_details.hide()
+        self._grid_page = QSplitter(Qt.Orientation.Vertical)
+        self._grid_page.addWidget(self._grid)
+        self._grid_page.addWidget(self._grid_details)
+        self._grid_page.setStretchFactor(0, 3)
+        self._grid_page.setStretchFactor(1, 2)
 
         self._empty = _message_page(tr("No projects yet. Press + to add a project."))
         self._no_match = _message_page(tr("No project matches this search."))
 
         self._stack = QStackedWidget()
         self._stack.addWidget(self._tree)
-        self._stack.addWidget(self._grid)
+        self._stack.addWidget(self._grid_page)
         self._stack.addWidget(self._empty)
         self._stack.addWidget(self._no_match)
         layout.addWidget(self._stack, 1)
@@ -651,10 +676,12 @@ class ProjectManagerDialog(QDialog):
                 "last_opened": entry.get("last_opened") or "",
                 "added": entry.get("added") or "",
                 "plugin": card.get("plugin", ""),
+                "source_roles": dict(card.get("source_roles") or {}),
                 "refreshing": key not in self._scanned,
                 "targets": list(cached.get("targets") or []),
                 "groups": dict(cached.get("groups") or {}),
                 "skipped": int(cached.get("skipped") or 0),
+                "missing_translations": int(cached.get("missing_translations") or 0),
                 "count_error": str(cached.get("count_error") or ""),
                 "counted_at": cached.get("counted_at") or "",
                 "flags": self._flag_state.get(key) or card.get("flags") or flags_of({}),
@@ -685,7 +712,7 @@ class ProjectManagerDialog(QDialog):
         elif not shown:
             self._stack.setCurrentWidget(self._no_match)
         else:
-            self._stack.setCurrentWidget(self._grid if self._mode == "grid" else self._tree)
+            self._stack.setCurrentWidget(self._grid_page if self._mode == "grid" else self._tree)
         if shape == self._shown and self._items:
             self._update_in_place(shape, rows_by_key)
         else:
@@ -745,6 +772,7 @@ class ProjectManagerDialog(QDialog):
         self._tree.updateGeometries()
         self._tree.verticalScrollBar().setValue(scroll)
         self._restore_selection(selected)
+        self._refresh_grid_detail()
 
     def _update_in_place(self, shape: List[Tuple[str, str, List[str]]], rows_by_key: Dict[str, Dict[str, Any]]) -> None:
         """The same projects in the same order: only the cells, icons and details that changed are set."""
@@ -756,6 +784,27 @@ class ProjectManagerDialog(QDialog):
                 self._fill_grid(self._grid_items[key], row)
                 if item.isExpanded():
                     self._refresh_detail(item, row)
+        self._refresh_grid_detail()
+
+    def _refresh_grid_detail(self) -> None:
+        """Show the selected project's details under the grid. Rebuilt only when that project's row changed."""
+        row = self._row_by_key(self._selected_key()) if self._mode == "grid" else None
+        if row is None:
+            self._grid_detail_signature = None
+            old = self._grid_details.takeWidget()
+            if old is not None:
+                old.deleteLater()
+            self._grid_details.hide()
+            return
+        signature = repr(sorted((name, repr(value)) for name, value in row.items()))
+        if signature == self._grid_detail_signature:
+            return
+        self._grid_detail_signature = signature
+        old = self._grid_details.takeWidget()
+        if old is not None:
+            old.deleteLater()
+        self._grid_details.setWidget(self._detail_widget(row))
+        self._grid_details.show()
 
     def _refresh_detail(self, item: QTreeWidgetItem, row: Dict[str, Any]) -> None:
         signature = repr(sorted((name, repr(value)) for name, value in row.items()))
@@ -967,6 +1016,11 @@ class ProjectManagerDialog(QDialog):
         form = QFormLayout()
         form.addRow(tr("Platform"), QLabel(row["platform"] or "—"))
         form.addRow(tr("Plugin"), QLabel(row["plugin"] or "—"))
+        if row.get("source_roles"):
+            roles = QLabel("\n".join(f"{role}: {path}" for role, path in row["source_roles"].items()))
+            roles.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            roles.setWordWrap(True)
+            form.addRow(tr("Source files"), roles)
         form.addRow(tr("Lines"), QLabel("—" if row["lines"] is None else f"{row['lines']:,}"))
         form.addRow(tr("Translated"), QLabel("—" if row["translated"] is None else f"{row['translated']} %"))
         form.addRow(tr("Blocks"), QLabel("—" if row["blocks"] is None else str(row["blocks"])))
@@ -976,6 +1030,7 @@ class ProjectManagerDialog(QDialog):
         form.addRow(tr("Counted"), QLabel(format_modified(row["counted_at"])))
         layout.addLayout(form)
 
+        layout.addWidget(self._resource_tree(row))
         if row["groups"]:
             tree = QTreeWidget()
             tree.setHeaderLabels([tr("Folder"), tr("Blocks"), tr("Lines")])
@@ -988,6 +1043,8 @@ class ProjectManagerDialog(QDialog):
         attention = [tr(ISSUE_TEXT[issue]) for issue in row["issues"] if issue in ISSUE_TEXT]
         if row["count_error"] and row["count_error"] != PLUGIN_MISSING:
             attention.append(tr("The lines could not be counted: {0}.", row["count_error"]))
+        if row.get("missing_translations"):
+            attention.append(tr("{0} blocks have no translation file yet.", row["missing_translations"]))
         if row["skipped"]:
             attention.append(tr("{0} blocks are not counted yet (archive members or missing files).", row["skipped"]))
         layout.addWidget(QLabel(tr("Needs attention:") + " " + (" ".join(attention) if attention
@@ -1027,6 +1084,61 @@ class ProjectManagerDialog(QDialog):
         self._status_labels[row["key"]] = status
         return widget
 
+    def _resource_tree(self, row: Dict[str, Any]) -> QTreeWidget:
+        """The kinds of the project's source files. The files are counted on a worker the first time a row shows them."""
+        key = row["key"]
+        tree = QTreeWidget()
+        tree.setHeaderLabels([tr("Resource"), tr("Files"), tr("Size")])
+        tree.setRootIsDecorated(False)
+        tree.setMaximumHeight(150)
+        self._resource_trees[key] = tree
+        if key in self._resource_cache:
+            self._fill_resources(tree, self._resource_cache[key])
+        else:
+            self._show_resource_message(tree, tr("Counting the files..."))
+            if key not in self._resource_jobs:
+                self._start_resources(key, row["path"])
+        return tree
+
+    def _start_resources(self, key: str, project_file: str) -> None:
+        job = ResourceJob(project_file, self._load_rules)
+        self._resource_jobs[key] = job
+        self._jobs.append(job)
+        job.done.connect(lambda counts, k=key, j=job: self._resources_ended(k, j, counts))
+        job.failed.connect(lambda _message, k=key, j=job: self._resources_ended(k, j, None))
+        job.start()
+
+    def _resources_ended(self, key: str, job: ResourceJob, counts: Optional[Dict[str, Dict[str, int]]]) -> None:
+        self._forget(job)
+        self._resource_jobs.pop(key, None)
+        if counts is not None:
+            self._resource_cache[key] = counts
+        tree = self._resource_trees.get(key)
+        if tree is None:
+            return
+        try:
+            if counts is None:
+                self._show_resource_message(tree, tr("The files could not be counted."))
+            else:
+                self._fill_resources(tree, counts)
+        except RuntimeError:  # the row was drawn again, or the window closed, meanwhile
+            pass
+
+    @staticmethod
+    def _show_resource_message(tree: QTreeWidget, text: str) -> None:
+        tree.clear()
+        tree.addTopLevelItem(QTreeWidgetItem([text, "", ""]))
+
+    @staticmethod
+    def _fill_resources(tree: QTreeWidget, counts: Dict[str, Dict[str, int]]) -> None:
+        labels = {resources.TEXT: tr("Text files"), resources.FONT: tr("Font files"),
+                  resources.TEXTURE: tr("Texture files"), resources.OTHER: tr("Other files")}
+        tree.clear()
+        for kind in resources.KINDS:
+            bucket = counts.get(kind) or {}
+            tree.addTopLevelItem(QTreeWidgetItem([labels[kind], f"{int(bucket.get('files', 0)):,}",
+                                                  _size_text(int(bucket.get("bytes", 0)))]))
+
     def _action_button(self, label: str, mode: str, row: Dict[str, Any]) -> QToolButton:
         """A button that lists the plugin's build targets. Off when the game declares none."""
         button = QToolButton()
@@ -1034,15 +1146,19 @@ class ProjectManagerDialog(QDialog):
         button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         menu = QMenu(button)
         for target in row["targets"]:
+            platform = emulator_platform(target["platforms"], row["platform"])
             action = menu.addAction(str(target["label"]))
-            action.triggered.connect(_call(self._start_action, row["path"], target["id"], mode))
+            action.triggered.connect(_call(self._start_action, row["path"], target["id"], mode, platform))
+            if mode == "run" and not self._emulator_template(platform):
+                action.setEnabled(False)
+                action.setToolTip(tr("Set the emulator command for this platform first (Emulator... button)."))
         button.setMenu(menu)
         if not row["targets"]:
             button.setEnabled(False)
             button.setToolTip(tr("This game declares no build target yet."))
-        elif mode == "run" and not self._emulator_command():
+        elif mode == "run" and not any(action.isEnabled() for action in menu.actions()):
             button.setEnabled(False)
-            button.setToolTip(tr("Set the emulator command first (Emulator... button)."))
+            button.setToolTip(tr("Set the emulator command for this platform first (Emulator... button)."))
         return button
 
     @staticmethod
@@ -1096,20 +1212,29 @@ class ProjectManagerDialog(QDialog):
         self._schedule_render()
 
     # ----- build, export and run -----
-    def _emulator_command(self) -> str:
-        return str((self._document.get("settings") or {}).get("emulator_command") or "").strip()
+    def _emulator_template(self, platform: str) -> str:
+        return emulator_template_for(self._document.get("settings") or {}, platform)
+
+    def _known_platforms(self) -> List[str]:
+        """Every platform a build runs on, plus each stored emulator command, sorted. "" is a build with no platform
+        (its target and project name none): its line appears only then, and its command is the shared one."""
+        names = set()
+        for row in self._rows():
+            for target in row.get("targets") or []:
+                names.add(emulator_platform(target.get("platforms") or [], row.get("platform") or ""))
+        names.update(name[len(EMULATOR_PREFIX):] for name in self._document.get("settings") or {}
+                     if name.startswith(EMULATOR_PREFIX))
+        return sorted(names)
 
     def _emulator_clicked(self) -> None:
-        text, ok = QInputDialog.getText(
-            self, tr("Emulator command"),
-            tr("Command that starts your emulator. Write {path} where the built file or folder goes."),
-            text=self._emulator_command())
-        if ok:
-            value = text.strip()
-            self._document.setdefault("settings", {})["emulator_command"] = value
-            self._save_setting("emulator_command", value)
+        dialog = EmulatorDialog(self, self._known_platforms(), self._document.get("settings") or {})
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        for name, value in dialog.changes().items():
+            self._document.setdefault("settings", {})[name] = value
+            self._save_setting(name, value)
 
-    def _start_action(self, project_file: str, target_id: str, mode: str) -> None:
+    def _start_action(self, project_file: str, target_id: str, mode: str, platform: str = "") -> None:
         key = registry.project_key(project_file)
         if key in self._action_jobs:
             self._status.setText(tr("This project is already building."))
@@ -1121,6 +1246,7 @@ class ProjectManagerDialog(QDialog):
                 return
         job = ActionJob(project_file, target_id, self._load_rules, export_to)
         self._action_jobs[key] = job
+        self._action_platform[key] = platform
         self._set_action_text(key, tr("Working..."))
         job.progress.connect(lambda percent, text, k=key: self._set_action_text(k, f"{text} ({percent} %)"))
         job.done.connect(lambda path, k=key, m=mode: self._on_action_done(k, m, path))
@@ -1130,8 +1256,9 @@ class ProjectManagerDialog(QDialog):
 
     def _on_action_done(self, key: str, mode: str, path: str) -> None:
         self._action_jobs.pop(key, None)
+        platform = self._action_platform.pop(key, "")
         if mode == "run":
-            self._set_action_text(key, self._launch_emulator(path))
+            self._set_action_text(key, self._launch_emulator(path, platform))
         elif mode == "export":
             self._set_action_text(key, tr("Exported to {0}", path))
         else:
@@ -1139,6 +1266,7 @@ class ProjectManagerDialog(QDialog):
 
     def _on_action_ended(self, key: str, text: str) -> None:
         self._action_jobs.pop(key, None)
+        self._action_platform.pop(key, None)
         self._set_action_text(key, text)
 
     def _set_action_text(self, key: str, text: str) -> None:
@@ -1147,11 +1275,11 @@ class ProjectManagerDialog(QDialog):
         if label is not None:
             label.setText(text)
 
-    def _launch_emulator(self, path: str) -> str:
-        """Start the emulator detached, with the path as argument. No shell is used."""
-        argv = emulator_argv(self._emulator_command(), path)
+    def _launch_emulator(self, path: str, platform: str = "") -> str:
+        """Start the platform's emulator detached, with the path as argument. No shell is used."""
+        argv = emulator_argv(self._emulator_template(platform), path)
         if not argv:
-            return tr("Set the emulator command first (Emulator... button).")
+            return tr("Set the emulator command for this platform first (Emulator... button).")
         started, _pid = QProcess.startDetached(argv[0], argv[1:])
         if not started:
             return tr("The emulator did not start: {0}", argv[0])

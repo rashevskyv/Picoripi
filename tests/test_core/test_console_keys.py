@@ -207,3 +207,42 @@ def test_a_library_the_unpack_loads_is_reported_only_when_the_game_lists_it(tmp_
     assert item["role"] == "base"
     assert item["libraries"] == ["oodle"]    # "wii" is not an unpack console of this game
     assert item["key"] == ""
+
+
+def test_states_reports_each_console_with_its_stored_path_and_whether_the_file_exists(data_folder, tmp_path):
+    key_file = _placeholder(tmp_path)
+    console_keys.set_path("3ds", str(key_file))
+    console_keys.set_path("switch", str(tmp_path / "gone" / "prod.keys"))
+
+    states = console_keys.states()
+
+    assert set(states) == set(console_keys.CONSOLES)
+    assert states["3ds"] == (str(key_file), True)
+    assert states["switch"] == (str(tmp_path / "gone" / "prod.keys"), False)
+    assert states["wii"] == ("", False)
+
+
+def test_clear_path_forgets_the_key_file_and_keeps_the_others(data_folder, tmp_path):
+    console_keys.set_path("3ds", str(_placeholder(tmp_path)))
+    console_keys.set_path("wii", str(_placeholder(tmp_path, "keys.bin")))
+
+    console_keys.clear_path("3ds")
+
+    assert console_keys.stored("3ds") == ""
+    assert console_keys.stored("wii") != ""
+
+
+def test_clear_path_refuses_an_unknown_console(data_folder):
+    with pytest.raises(ValueError):
+        console_keys.clear_path("ps3")
+
+
+def test_every_console_a_plugin_names_has_a_slot(data_folder):
+    """A plugin that lists a console the settings page does not show would have no place to store its key file."""
+    named = set()
+    for folder in constants.plugins_root().iterdir():
+        rules_file = folder / "rules.py"
+        if rules_file.is_file() and "def unpack_key_consoles" in rules_file.read_text(encoding="utf-8"):
+            named.update(plugin_facts.default_load_rules(folder.name).unpack_key_consoles())
+
+    assert named and named <= set(console_keys.CONSOLES)

@@ -146,7 +146,7 @@ def test_grid_view_filters_the_same_way(qtbot, tmp_path, monkeypatch):
     _type(qtbot, dialog, "mario")
 
     qtbot.waitUntil(lambda: set(dialog._grid_items) == {keys["mario"]}, timeout=2000)
-    assert dialog._stack.currentWidget() is dialog._grid
+    assert dialog._stack.currentWidget() is dialog._grid_page
     assert dialog._grid.count() == 1
 
 

@@ -8,6 +8,7 @@ decrypted, so it is read with no key: pass the stream and ``None``.
 """
 from __future__ import annotations
 
+from core.i18n import tr
 import struct
 from typing import Any, BinaryIO, Dict, List, Optional
 
@@ -45,9 +46,9 @@ def load_common_key(path: str) -> bytes:
         with open(path, "rb") as handle:
             data = handle.read(KEYS_SIZE + 1)
     except OSError:
-        raise ImageError("the Wii key file cannot be read") from None
+        raise ImageError(tr("the Wii key file cannot be read")) from None
     if len(data) != KEYS_SIZE:
-        raise ImageError("the Wii key file must be 0x400 bytes")
+        raise ImageError(tr("the Wii key file must be 0x400 bytes"))
     return data[COMMON_KEY_AT:COMMON_KEY_AT + BLOCK]
 
 
@@ -64,7 +65,7 @@ class WiiDataView(PlainView):
 
     def _plain(self, offset: int, size: int) -> bytes:
         if offset + size > self.size:
-            raise ImageError("the image ends inside a decrypted section")
+            raise ImageError(tr("the image ends inside a decrypted section"))
         parts = []
         while size > 0:
             index, inner = divmod(offset, CLUSTER_DATA)
@@ -87,22 +88,22 @@ class WiiImage(ImageReader):
         super().__init__(stream)
         head = self.read_at(0, 0x20)
         if u32be(head, WII_MAGIC_AT) != WII_MAGIC:
-            raise ImageError("not a Wii disc image")
+            raise ImageError(tr("not a Wii disc image"))
         self.game_id = head[:6].decode("ascii", "replace")
         part = self._data_partition()
         header = self.read_at(part, PARTITION_HEADER)
         tmd_size, tmd_at = u32be(header, 0x2A4), u32be(header, 0x2A8) << 2
         if not tmd_size or part + tmd_at + tmd_size > self.size:
-            raise ImageError("the Wii partition has no title metadata")
+            raise ImageError(tr("the Wii partition has no title metadata"))
         data_at = part + (u32be(header, 0x2B8) << 2)
         clusters = (u32be(header, 0x2BC) << 2) // CLUSTER
         if not clusters or data_at + clusters * CLUSTER > self.size:
-            raise ImageError("the Wii partition data is outside the image")
+            raise ImageError(tr("the Wii partition data is outside the image"))
         if isinstance(stream, WiaStream):
             self._view = stream.partition_view(data_at)
         else:
             if header[0x1F1]:
-                raise ImageError(f"the Wii partition uses common key {header[0x1F1]}, which is not supported")
+                raise ImageError(tr("the Wii partition uses common key {0}, which is not supported", header[0x1F1]))
             from Crypto.Cipher import AES  # pycryptodome, imported here as in console_crypto
             title_id = header[0x1DC:0x1E4]
             title_key = AES.new(common_key, AES.MODE_CBC, title_id + bytes(8)).decrypt(header[0x1BF:0x1CF])
@@ -110,7 +111,7 @@ class WiiImage(ImageReader):
         boot = read_raw(self._view, 0, HEADER_SIZE)
         if u32be(boot, WII_MAGIC_AT) != WII_MAGIC:
             if isinstance(stream, WiaStream):
-                raise ImageError("the Wii partition data of this image is not a disc")
+                raise ImageError(tr("the Wii partition data of this image is not a disc"))
             raise wrong_key_error("Wii")
         self._dol_at = u32be(boot, 0x420) << 2
         self._fst_at = u32be(boot, 0x424) << 2
@@ -135,18 +136,18 @@ class WiiImage(ImageReader):
             if not count:
                 continue
             if count > MAX_PARTITIONS:
-                raise ImageError("the Wii partition table is too large")
+                raise ImageError(tr("the Wii partition table is too large"))
             table = self.read_at(table_at << 2, count * 8)
             for index in range(count):
                 part_at, kind = struct.unpack_from(">II", table, index * 8)
                 if kind == DATA_PARTITION:
                     return part_at << 2
-        raise ImageError("the Wii disc has no data partition")
+        raise ImageError(tr("the Wii disc has no data partition"))
 
     def _table(self, offset: int, size: int) -> bytes:
         """``size`` decrypted bytes at ``offset`` of the partition data, for a table: at most ``MAX_TABLE`` bytes."""
         if size > MAX_TABLE:
-            raise ImageError(f"a table of {size:#x} bytes is too large")
+            raise ImageError(tr("a table of {0:#x} bytes is too large", size))
         return read_raw(self._view, offset, size)
 
     def _apploader_size(self) -> int:
@@ -164,33 +165,33 @@ class WiiImage(ImageReader):
     def _fst_files(self) -> List[ImageFile]:
         fst = self._table(self._fst_at, self._fst_size)
         if len(fst) < FST_ENTRY:
-            raise ImageError("the file system table is empty")
+            raise ImageError(tr("the file system table is empty"))
         count = u32be(fst, 8)
         names_at = count * FST_ENTRY
         if count < 1 or names_at > len(fst):
-            raise ImageError("the file system table does not hold its entries")
+            raise ImageError(tr("the file system table does not hold its entries"))
         found: List[ImageFile] = []
         listed = bytearray(count)  # each entry belongs to one directory; a second listing is a broken table
 
         def walk(first: int, end: int, prefix: str, depth: int) -> None:
             if depth > MAX_DEPTH:
-                raise ImageError("the file system table nests too deep")
+                raise ImageError(tr("the file system table nests too deep"))
             if not (0 < first <= end <= count):
-                raise ImageError("the file system table has a broken directory")
+                raise ImageError(tr("the file system table has a broken directory"))
             index = first
             while index < end:
                 if listed[index]:
-                    raise ImageError("the file system table lists an entry twice")
+                    raise ImageError(tr("the file system table lists an entry twice"))
                 listed[index] = 1
                 word, offset, size = struct.unpack_from(">III", fst, index * FST_ENTRY)
                 name_at = names_at + (word & 0xFFFFFF)
                 nul = fst.find(b"\0", name_at)
                 if nul < 0:
-                    raise ImageError("the file system table has an unterminated name")
+                    raise ImageError(tr("the file system table has an unterminated name"))
                 name = check_name(fst[name_at:nul].decode("shift_jis", "replace"))
                 if word >> 24:
                     if size <= index:
-                        raise ImageError("the file system table has a broken directory")
+                        raise ImageError(tr("the file system table has a broken directory"))
                     walk(index + 1, size, f"{prefix}{name}/", depth + 1)
                     index = size
                 else:

@@ -5,6 +5,7 @@ here; the layout follows FFTA2 Editor's archive). The five English message packs
 (``A2MS``, the kind, the index length, the index, the data), the menu pack as ``.a2pak``; the font, the width table,
 and the title logo and two other ``.efx`` files are copied as they are.
 """
+from core.i18n import tr
 import os
 import struct
 from pathlib import Path
@@ -74,10 +75,10 @@ class PcArchive:
         else:
             found = [e for e in entries if e[3] < len(name) and name[e[3]] == e[2]]
             if not found:
-                raise ImageError(f"{name} is not in master/pc.bin")
+                raise ImageError(tr("{0} is not in master/pc.bin", name))
             offset, size = found[0][:2]
         if offset + size > len(self.data):
-            raise ImageError(f"{name} ends after the end of master/pc.bin")
+            raise ImageError(tr("{0} ends after the end of master/pc.bin", name))
         return bytes(self.data[offset:offset + size])
 
 
@@ -98,7 +99,7 @@ def extract(base: str, target_dir: str, progress: Callable[[int, str], None],
         members = {entry.path: entry for entry in image.entries()}
         for name in (PC_IDX, PC_BIN):
             if name not in members:
-                raise ImageError(f"the ROM has no file {name}")
+                raise ImageError(tr("the ROM has no file {0}", name))
         archive = PcArchive(image.read(members[PC_IDX]), image.read(members[PC_BIN]))
     files = [(rel, a2_join(kind, archive.read(index), archive.read(data)))
              for rel, (index, data, kind) in A2_TEXT.items()]

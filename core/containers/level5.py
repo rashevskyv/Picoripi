@@ -12,6 +12,7 @@ offset / 4 and size in 24 bits each), a compressed table of names, then the data
 """
 from __future__ import annotations
 
+from core.i18n import tr
 import struct
 import zlib
 from typing import Dict, List, Tuple
@@ -40,13 +41,13 @@ def _lz10(src: bytes, pos: int, size: int) -> bytes:
                 break
             if flags & (0x80 >> bit):
                 if pos + 1 >= n:
-                    raise ValueError("Level-5 LZ10: data cut short")
+                    raise ValueError(tr("Level-5 LZ10: data cut short"))
                 b1, b2 = src[pos], src[pos + 1]
                 pos += 2
                 length = (b1 >> 4) + 3
                 disp = ((b1 & 0x0F) << 8 | b2) + 1
                 if disp > len(out):
-                    raise ValueError("Level-5 LZ10: back-reference before the start")
+                    raise ValueError(tr("Level-5 LZ10: back-reference before the start"))
                 start = len(out) - disp
                 if disp >= length:
                     out += out[start:start + length]
@@ -116,12 +117,12 @@ def decompress(data: bytes) -> bytes:
         return rle_body(data, 4, size)
     if method == ZLIB:
         return zlib.decompress(data[4:])
-    raise ValueError(f"Unknown Level-5 compression method {method}")
+    raise ValueError(tr("Unknown Level-5 compression method {0}", method))
 
 
 def _header(size: int, method: int) -> bytes:
     if size >= 1 << 29:
-        raise ValueError("Too large for a Level-5 compression header")
+        raise ValueError(tr("Too large for a Level-5 compression header"))
     return struct.pack("<I", size << 3 | method)
 
 
@@ -197,7 +198,7 @@ class Xpck:
     def __init__(self, raw: bytes):
         raw = bytes(raw)
         if raw[:4] != b"XPCK":
-            raise ValueError("Not an XPCK pack")
+            raise ValueError(tr("Not an XPCK pack"))
         self.raw = raw
         fc1, fc2 = raw[4], raw[5]
         count = (fc2 & 0x0F) << 8 | fc1
@@ -225,7 +226,7 @@ class Xpck:
         names_off = info + 12 * len(names)
         head = bytearray(self.raw[:struct.unpack_from("<H", self.raw, 10)[0] << 2])   # header .. data start
         if len(head) < names_off:
-            raise ValueError("XPCK header area is smaller than its table")
+            raise ValueError(tr("XPCK header area is smaller than its table"))
         order = sorted(range(len(names)), key=lambda i: self.entries[i][2])
         body = bytearray()
         spans = {}

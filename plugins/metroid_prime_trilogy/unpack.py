@@ -9,6 +9,7 @@ These are Prime 1 packages: big endian, starting with u16 3 and u16 5, resources
 compressed resource is u32 size, then the zlib stream). The Wii discs (Trilogy) have another reader and are not
 unpacked here: for them, and for any other disc, ``extract`` returns None.
 """
+from core.i18n import tr
 import re
 import struct
 import zlib
@@ -65,7 +66,7 @@ class Pak:
         self.base = entry.offset
         head = reader.read_at(entry.offset, min(entry.size, DIRECTORY_WINDOW))
         if head[:4] != PAK_HEAD:
-            raise ValueError(f"{entry.path}: not a Metroid Prime 1 package")
+            raise ValueError(tr("{0}: not a Metroid Prime 1 package", entry.path))
         try:
             self.resources = _directory(head)
         except struct.error:
@@ -84,14 +85,14 @@ class Pak:
         if not res.compressed:
             return raw
         if raw[4:5] != b"\x78":
-            raise ValueError(f"{res.type} {res.key}: only zlib resources are read (Prime 1)")
+            raise ValueError(tr("{0} {1}: only zlib resources are read (Prime 1)", res.type, res.key))
         # The u32 in front is the size after decompression: stop one byte past it, so a bad stream cannot grow
         # without limit, and a size that does not match is an error.
         size = struct.unpack_from(">I", raw, 0)[0]
         packer = zlib.decompressobj()
         body = packer.decompress(raw[4:], size + 1)
         if len(body) != size or packer.unconsumed_tail:
-            raise ValueError(f"{res.type} {res.key}: the size after decompression does not match")
+            raise ValueError(tr("{0} {1}: the size after decompression does not match", res.type, res.key))
         return body
 
 

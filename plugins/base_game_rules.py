@@ -1112,6 +1112,14 @@ class BaseGameRules:
         """
         return None
 
+    def classify_resource(self, path: str) -> Optional[str]:
+        """The Project Manager's kind of one source file: ``"text"``, ``"font"``, ``"texture"`` or ``"other"``.
+
+        Return None to keep the extension rule (the default). ``path`` is the file's full path. The call runs on a
+        worker thread and may read the file; a failing hook falls back to the extension rule.
+        """
+        return None
+
     def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
                      progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> str:
         """Write the build ``target_id`` into ``output_dir``, an empty folder the host made, and return the

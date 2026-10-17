@@ -1,6 +1,7 @@
 """Settings dialog: file, folder and script pickers."""
 from pathlib import Path
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QPushButton, QLineEdit, QFileDialog, QMenu
+from core import formats
 from core.i18n import tr
 
 
@@ -71,7 +72,7 @@ class SettingsPathPickerMixin:
         if is_dir_mode:
             path = QFileDialog.getExistingDirectory(self, "Select Directory", start_dir)
         else:
-            filter_str = "Supported Files (*.json *.arc *.rarc *.bfn *.bmg);;JSON Files (*.json);;Archive Files (*.arc *.rarc);;Font Files (*.bfn);;BMG Files (*.bmg);;All Files (*)"
+            filter_str = formats.dialog_filter(getattr(self.mw, "current_game_rules", None))
             path, _ = QFileDialog.getOpenFileName(self, "Select File", start_dir, filter_str)
 
         if path:

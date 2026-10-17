@@ -7,6 +7,7 @@ after the table, each on a 0x80 boundary like the game's own files, and rewrites
 """
 from __future__ import annotations
 
+from core.i18n import tr
 import struct
 from typing import Dict, List, Tuple
 
@@ -24,7 +25,7 @@ class DarcContainer(BaseArchiveContainer):
 
     def __init__(self, data: bytes) -> None:
         if not self.can_handle(data):
-            raise ValueError("Not a darc archive")
+            raise ValueError(tr("Not a darc archive"))
         self._original = bytes(data)
         self._table_off, self._table_len, self._data_off = struct.unpack_from("<III", data, 0x10)
         count = struct.unpack_from("<I", data, self._table_off + 8)[0]

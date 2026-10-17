@@ -11,6 +11,7 @@ import struct
 from typing import BinaryIO, List, Tuple
 
 from core.containers.image_files import ImageError, ImageFile, ImageReader, check_name
+from core.i18n import tr
 
 GC_MAGIC = 0xC2339F3D
 WII_MAGIC = 0x5D1C9EA3
@@ -34,11 +35,11 @@ class GameCubeImage(ImageReader):
         super().__init__(stream)
         head = self.read_at(0, min(self.size, HEADER_SIZE))
         if len(head) < HEADER_SIZE:
-            raise ImageError("the image is shorter than a GameCube disc header")
+            raise ImageError(tr("the image is shorter than a GameCube disc header"))
         if u32be(head, 0x18) == WII_MAGIC:
-            raise ImageError("a Wii disc: its files need a key, which Picoripi does not read yet")
+            raise ImageError(tr("a Wii disc: its files need a key, which Picoripi does not read yet"))
         if not is_gamecube_header(head):
-            raise ImageError("not a GameCube disc image")
+            raise ImageError(tr("not a GameCube disc image"))
         self.game_id = head[:6].decode("ascii", "replace")
         self.disc_number = head[6]
         self.revision = head[7]   # the game version: GMSE01 Rev 0 has 0x00 here (the header byte 0x07)
@@ -80,33 +81,33 @@ class GameCubeImage(ImageReader):
         """
         fst = self.read_table(self._fst_at, self._fst_size)
         if len(fst) < FST_ENTRY:
-            raise ImageError("the file system table is empty")
+            raise ImageError(tr("the file system table is empty"))
         count = u32be(fst, 8)
         names_at = count * FST_ENTRY
         if count < 1 or names_at > len(fst):
-            raise ImageError("the file system table does not hold its entries")
+            raise ImageError(tr("the file system table does not hold its entries"))
         found: List[Tuple[int, ImageFile]] = []
         listed = bytearray(count)  # each entry belongs to one directory; a second listing is a broken table
 
         def walk(first: int, end: int, prefix: str, depth: int) -> None:
             if depth > MAX_DEPTH:
-                raise ImageError("the file system table nests too deep")
+                raise ImageError(tr("the file system table nests too deep"))
             if not (0 < first <= end <= count):
-                raise ImageError("the file system table has a broken directory")
+                raise ImageError(tr("the file system table has a broken directory"))
             index = first
             while index < end:
                 if listed[index]:
-                    raise ImageError("the file system table lists an entry twice")
+                    raise ImageError(tr("the file system table lists an entry twice"))
                 listed[index] = 1
                 word, offset, size = struct.unpack_from(">III", fst, index * FST_ENTRY)
                 name_at = names_at + (word & 0xFFFFFF)
                 nul = fst.find(b"\0", name_at)
                 if nul < 0:
-                    raise ImageError("the file system table has an unterminated name")
+                    raise ImageError(tr("the file system table has an unterminated name"))
                 name = check_name(fst[name_at:nul].decode("shift_jis", "replace"))
                 if word >> 24:
                     if size <= index:
-                        raise ImageError("the file system table has a broken directory")
+                        raise ImageError(tr("the file system table has a broken directory"))
                     walk(index + 1, size, f"{prefix}{name}/", depth + 1)
                     index = size
                 else:

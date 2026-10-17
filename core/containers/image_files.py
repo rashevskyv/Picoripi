@@ -6,6 +6,7 @@ chunks and check for a cancel between chunks, so a multi-gigabyte image never si
 from __future__ import annotations
 
 from typing import Any, BinaryIO, Callable, List, NamedTuple, Optional
+from core.i18n import tr
 
 CHUNK = 1 << 20
 MAX_TABLE = 64 << 20  # a file system or name table above this size is refused: no real image has one
@@ -38,7 +39,7 @@ def check_name(name: str) -> str:
     stem = name.split(".", 1)[0].upper()
     if (not name or name in (".", "..") or name.endswith((" ", ".")) or stem in RESERVED_NAMES
             or any(char in name for char in '/\\:*?"<>|') or any(ord(char) < 32 for char in name)):
-        raise ImageError(f"unsafe file name in the image: {name!r}")
+        raise ImageError(tr("unsafe file name in the image: {0}", repr(name)))
     return name
 
 
@@ -53,14 +54,14 @@ class ImageReader:
     def read_at(self, offset: int, size: int) -> bytes:
         """``size`` bytes at ``offset``; ImageError when the image ends before that."""
         if offset < 0 or size < 0 or offset + size > self.size:
-            raise ImageError(f"the image ends before offset {offset:#x} + {size:#x}")
+            raise ImageError(tr("the image ends before offset {0} + {1}", f"{offset:#x}", f"{size:#x}"))
         self.stream.seek(offset)
         return self.stream.read(size)
 
     def read_table(self, offset: int, size: int) -> bytes:
         """A file or name table, read whole: ``read_at`` for at most ``MAX_TABLE`` bytes."""
         if size > MAX_TABLE:
-            raise ImageError(f"a table of {size:#x} bytes is too large")
+            raise ImageError(tr("a table of {0} bytes is too large", f"{size:#x}"))
         return self.read_at(offset, size)
 
     def read(self, entry: ImageFile) -> bytes:
@@ -69,7 +70,7 @@ class ImageReader:
         entry.stream.seek(entry.offset)
         data = entry.stream.read(entry.size)
         if len(data) != entry.size:
-            raise ImageError(f"the image ends inside {entry.path}")
+            raise ImageError(tr("the image ends inside {0}", entry.path))
         return data
 
     def source(self, entry: ImageFile) -> BinaryIO:
@@ -90,7 +91,7 @@ def copy_range(stream: BinaryIO, offset: int, size: int, out: BinaryIO,
             return False
         data = stream.read(min(CHUNK, left))
         if not data:
-            raise ImageError("the image ends inside a file")
+            raise ImageError(tr("the image ends inside a file"))
         out.write(data)
         left -= len(data)
         on_bytes(len(data))

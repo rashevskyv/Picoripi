@@ -8,6 +8,7 @@ at its archive path; a script (``.cb``) is taken when its GSD1 table shows a str
 """
 from __future__ import annotations
 
+from core.i18n import tr
 import re
 import struct
 from pathlib import Path
@@ -116,7 +117,7 @@ class _Gfsa:
 
     def __init__(self, raw: bytes) -> None:
         if raw[:4] != b"GFSA":
-            raise ImageError("a Spectre's Call archive is not a GFSA archive")
+            raise ImageError(tr("a Spectre's Call archive is not a GFSA archive"))
         head = struct.unpack_from("<11I", raw, 0)
         offs, dir_count, file_count = head[1:6], head[6], head[7]
         self.raw, self.data_at = raw, offs[4]
@@ -130,7 +131,7 @@ class _Gfsa:
             hashed, first = struct.unpack_from("<II", dirs, 8 * at)
             name = by_hash.get(hashed & 0xFFFF)
             if name is None:
-                raise ImageError("a GFSA archive has a folder without a name")
+                raise ImageError(tr("a GFSA archive has a folder without a name"))
             for index in range(first, first + (hashed >> 16)):
                 folder[index] = name
         self.files: Dict[str, Tuple[int, int]] = {}
@@ -145,7 +146,7 @@ class _Gfsa:
         offset, size = self.files[member]
         start = self.data_at + offset
         if start + size > len(self.raw):
-            raise ImageError(f"{member} ends after the end of its archive")
+            raise ImageError(tr("{0} ends after the end of its archive", member))
         return self.raw[start:start + size]
 
 
@@ -168,7 +169,7 @@ def extract(base: str, target_dir: str, progress: Callable[[int, str], None],
         title = image.read_at(0, 7)
         game = GAMES.get(title)
         if game is None:
-            raise ImageError(f"not a Professor Layton DS ROM (title {title!r})")
+            raise ImageError(tr("not a Professor Layton DS ROM (title {0!r})", title))
         if "archives" in game:
             return _extract_archives(image, game, target_dir, progress, is_cancelled)
         taken: List[ImageFile] = []
@@ -188,7 +189,7 @@ def _extract_archives(image, game: dict, target_dir: str, progress, is_cancelled
     members: Dict[str, List[Tuple[str, _Gfsa]]] = {}
     for name in game["archives"]:
         if name not in by_path:
-            raise ImageError(f"the ROM has no {name}")
+            raise ImageError(tr("the ROM has no {0}", name))
         archive = _Gfsa(image.read(by_path[name]))
         for member in archive.files:
             members.setdefault(member, []).append((name, archive))
@@ -205,6 +206,6 @@ def _extract_archives(image, game: dict, target_dir: str, progress, is_cancelled
         if not taken:
             continue
         if any(other.read(member) != data for _name, other in homes[1:]):
-            raise ImageError(f"{member} differs between " + ", ".join(name for name, _a in homes))
+            raise ImageError(tr("{0} differs between {1}", member, ", ".join(name for name, _a in homes)))
         _put(target_dir, member, data)
     return str(target_dir)

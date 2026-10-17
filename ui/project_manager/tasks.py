@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PyQt6.QtCore import pyqtSignal
 
-from core.project_library import build, console_keys, plugin_facts
+from core.project_library import build, console_keys, plugin_facts, resources
 from utils.constants import plugins_root
 from utils.logging_utils import log_error, log_warning
 from utils.thread_utils import WorkerThread
@@ -89,13 +89,14 @@ class UnpackJob(WorkerThread):
     failed = pyqtSignal(str)
 
     def __init__(self, plugin_name: str, sources: Dict[str, str], project_dir: str, load_rules: LoadRules,
-                 key_paths: Optional[Dict[str, str]] = None):
+                 key_paths: Optional[Dict[str, str]] = None, existing_translation: str = ""):
         super().__init__()
         self._plugin = plugin_name
         self._sources = dict(sources)
         self._project_dir = project_dir
         self._load_rules = load_rules
         self._key_paths = dict(key_paths or {})   # console id -> key file path the user chose in the wizard
+        self._existing_translation = existing_translation  # a folder the user chose: no folder is made here
 
     def run(self) -> None:
         try:
@@ -104,7 +105,9 @@ class UnpackJob(WorkerThread):
             rules = self._load_rules(self._plugin)
             folder = build.run_unpack(rules, self._sources, self._project_dir, self._report,
                                       self.isInterruptionRequested, key_provider=console_keys.path_for)
-            Path(self._project_dir, "translation").mkdir(parents=True, exist_ok=True)
+            if not self._existing_translation:
+                # Made only when the project keeps its own folder, so a refused create leaves no empty folder.
+                Path(self._project_dir, "translation").mkdir(parents=True, exist_ok=True)
         except build.Cancel:
             self.cancelled.emit()
             return
@@ -176,3 +179,64 @@ class ActionJob(WorkerThread):
 
     def _report(self, percent: int, text: str) -> None:
         self.progress.emit(int(percent), str(text))
+
+
+def _resource_project(project_file: str) -> Tuple[str, str]:
+    """``(plugin, source)`` of a project file: the source the project names, as it is (a folder, or one file, not its
+    folder). An empty source means the project's folder."""
+    path = Path(project_file)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("project file is not a JSON object")
+    source = str((data.get("metadata") or {}).get("source_path") or "")
+    if source and not Path(source).is_absolute():
+        source = str(path.parent / source)
+    return str(data.get("plugin_name") or ""), source or str(path.parent)
+
+
+class ResourceJob(WorkerThread):
+    """Counts the texts, fonts, textures and other files of one project's source folder. The walk stops on cancel.
+
+    The game's ``classify_resource`` hook names a file's kind first when the plugin has one; a plugin that fails or
+    is not installed leaves the extension rule in place.
+    """
+
+    done = pyqtSignal(dict)  # {kind: {"files", "bytes"}}; not emitted when cancelled
+    failed = pyqtSignal(str)
+
+    def __init__(self, project_file: str, load_rules: LoadRules):
+        super().__init__()
+        self._project_file = project_file
+        self._load_rules = load_rules
+
+    def run(self) -> None:
+        try:
+            plugin, source = _resource_project(self._project_file)
+            counts = resources.count_resources(source, self.isInterruptionRequested, self._classifier(plugin))
+        except Exception as exc:  # a project that cannot be read shows a line in its row, not an error box
+            log_warning(f"Resources of {self._project_file} not counted: {exc}")
+            self.failed.emit(str(exc))
+            return
+        if counts is not None:
+            self.done.emit(counts)
+
+    def _classifier(self, plugin: str) -> Optional[Callable[[str], Optional[str]]]:
+        """The plugin's ``classify_resource`` as a function of a path, or None when the plugin cannot give one."""
+        if not plugin:
+            return None
+        try:
+            rules = self._load_rules(plugin)
+        except Exception as exc:  # a missing or broken plugin: the extension rule counts its files
+            log_warning(f"Plugin {plugin} not loaded for its file kinds: {exc}")
+            return None
+        hook = getattr(rules, "classify_resource", None)
+        if hook is None:
+            return None
+
+        def classify(path: str) -> Optional[str]:
+            try:
+                return hook(path)
+            except Exception as exc:  # a plugin's bug falls back to the extension for that file
+                log_warning(f"classify_resource failed for {path}: {exc}")
+                return None
+        return classify

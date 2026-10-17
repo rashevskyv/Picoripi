@@ -128,7 +128,8 @@ def _count_fields(project_file: str, signature: str, load_rules: LoadRules,
     if result is None:
         return None, "cancelled"
     return {"counts": result["counts"], "targets": result["targets"], "skipped": result["skipped"],
-            "groups": result["groups"], "signature": signature, "counted_at": stamp}, "counted"
+            "groups": result["groups"], "missing_translations": result["missing_translations"],
+            "signature": signature, "counted_at": stamp}, "counted"
 
 
 class _Batch:

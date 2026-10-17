@@ -191,8 +191,9 @@ def count_project(project_file: str | os.PathLike, load_rules: LoadRules = defau
                   is_cancelled: Cancelled = lambda: False) -> Optional[Dict[str, Any]]:
     """Count the lines of a project with its plugin's parser. Returns None when cancelled.
 
-    Result: ``counts`` (lines, needs_translation, translated), ``targets`` (the plugin's build targets) and
-    ``skipped`` (blocks not counted: archive members, and blocks whose file or sub-block is missing).
+    Result: ``counts`` (lines, needs_translation, translated), ``targets`` (the plugin's build targets),
+    ``skipped`` (blocks not counted: archive members, and blocks whose file or sub-block is missing) and
+    ``missing_translations`` (blocks that name a translation file which does not exist yet).
 
     ponytail: archive members are skipped (the load worker opens archives; a count does not yet); a file that
     holds several project blocks is parsed once and the blocks share it. Upgrade: reuse the load worker's
@@ -217,6 +218,7 @@ def count_project(project_file: str | os.PathLike, load_rules: LoadRules = defau
     totals = {"lines": 0, "needs_translation": 0, "translated": 0}
     groups: Dict[str, Dict[str, int]] = {}
     skipped = 0
+    missing_translations = 0
     cache: Dict[Any, Any] = {}
     for block in data.get("blocks") or []:
         if is_cancelled():
@@ -232,6 +234,8 @@ def count_project(project_file: str | os.PathLike, load_rules: LoadRules = defau
             skipped += 1
             continue
         translation = _resolve(str(block.get("translation_file") or ""), translation_roots)
+        if translation is None and block.get("translation_file"):
+            missing_translations += 1
         translated = _block_of(_parse(rules, translation, cache, translation=True), internal_key) if translation else None
         counts = count_strings([original], [translated or []], {})
         for key in totals:
@@ -240,7 +244,8 @@ def count_project(project_file: str | os.PathLike, load_rules: LoadRules = defau
         row = groups.setdefault(group, {"blocks": 0, "lines": 0})
         row["blocks"] += 1
         row["lines"] += counts["lines"]
-    return {"counts": totals, "targets": targets_of(rules), "skipped": skipped, "groups": groups}
+    return {"counts": totals, "targets": targets_of(rules), "skipped": skipped, "groups": groups,
+            "missing_translations": missing_translations}
 
 
 def _stat_part(path: Optional[Path]) -> Optional[List[int]]:

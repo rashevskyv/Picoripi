@@ -5,6 +5,7 @@ file under its file-name-table path. The data of one file is read by its span on
 """
 from __future__ import annotations
 
+from core.i18n import tr
 import struct
 from typing import BinaryIO, Dict, List
 
@@ -30,21 +31,21 @@ def walk_fnt(table: bytes) -> Dict[str, int]:
 
     def walk(dir_id: int, prefix: str, depth: int) -> None:
         if depth > 64:
-            raise ImageError("the file name table nests too deep")
+            raise ImageError(tr("the file name table nests too deep"))
         key = dir_id & 0xFFF
         if key in listed:
-            raise ImageError("the file name table lists a directory twice")
+            raise ImageError(tr("the file name table lists a directory twice"))
         listed.add(key)
         at_entry = key * 8
         if at_entry + 8 > len(table):
-            raise ImageError("the file name table has no such directory")
+            raise ImageError(tr("the file name table has no such directory"))
         sub, first = struct.unpack_from("<IH", table, at_entry)
         at, file_id = sub, first
         while at < len(table) and table[at]:
             length = table[at] & 0x7F
             is_dir = table[at] & 0x80
             if at + 1 + length + (2 if is_dir else 0) > len(table):
-                raise ImageError("the file name table is cut short")
+                raise ImageError(tr("the file name table is cut short"))
             name = check_name(bytes(table[at + 1:at + 1 + length]).decode("ascii", "replace"))
             if is_dir:
                 walk(struct.unpack_from("<H", table, at + 1 + length)[0], f"{prefix}{name}/", depth + 1)
@@ -63,7 +64,7 @@ class NdsImage(ImageReader):
         super().__init__(stream)
         head = self.read_at(0, min(self.size, HEADER_SIZE))
         if not is_nds_header(head):
-            raise ImageError("not a Nintendo DS cartridge image")
+            raise ImageError(tr("not a Nintendo DS cartridge image"))
         self.game_code = head[0x0C:0x10].decode("ascii", "replace")
         arm9_at, _entry, _load, arm9_size = struct.unpack_from("<4I", head, 0x20)
         self._arm9 = (arm9_at, arm9_size)
@@ -77,9 +78,9 @@ class NdsImage(ImageReader):
         spans = len(self._fat) // 8
         for path, file_id in sorted(walk_fnt(self._fnt).items()):
             if file_id >= spans:
-                raise ImageError(f"the file allocation table has no entry for {path}")
+                raise ImageError(tr("the file allocation table has no entry for {0}", path))
             start, end = struct.unpack_from("<II", self._fat, file_id * 8)
             if end < start or end > self.size:
-                raise ImageError(f"the file span of {path} lies outside the image")
+                raise ImageError(tr("the file span of {0} lies outside the image", path))
             found.append(ImageFile(path, start, end - start))
         return found

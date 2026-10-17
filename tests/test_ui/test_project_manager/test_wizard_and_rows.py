@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import QCheckBox, QToolButton
 from core.project_library import index, registry
 from plugins.base_game_rules import BaseGameRules
 from ui.project_manager import window
+from ui.project_manager.emulator_dialog import EmulatorDialog
 from ui.project_manager.tasks import UnpackJob
 from ui.project_manager.window import ProjectManagerDialog
 from ui.project_manager.wizard import ProjectWizard
@@ -92,6 +93,75 @@ def test_wizard_refuses_a_folder_that_already_holds_a_project(qtbot, tmp_path):
     wizard._folder.setText(str(tmp_path / "Aria"))
 
     assert wizard._problem() == "This folder already holds a project."
+
+
+class UnpackingGame(FakeGame):
+    """The fake game with an unpack: the chosen file becomes a folder with one file in it."""
+
+    def unpack_sources(self, sources, target_dir, progress, is_cancelled):
+        with open(os.path.join(target_dir, "data.txt"), "w", encoding="utf-8") as handle:
+            handle.write("data")
+        return target_dir
+
+
+def test_wizard_uses_an_existing_translation_folder_for_a_folder_project(qtbot, tmp_path):
+    source = tmp_path / "game.bin"
+    source.write_bytes(b"game")
+    existing = tmp_path / "my_translation"
+    existing.mkdir()
+    created = []
+    wizard = ProjectWizard(None, lambda name: UnpackingGame(), created.append)
+    qtbot.addWidget(wizard)
+    _wait_for_plugins(qtbot, wizard)
+    wizard.add_paths([str(source)])
+    qtbot.waitUntil(lambda: wizard._files_status.text() == "Files: 1", timeout=10000)
+    wizard._name.setText("Aria")
+    wizard._folder.setText(str(tmp_path / "Aria"))
+    wizard._use_existing.setChecked(True)
+    wizard._existing_folder.setText(str(existing))
+    assert wizard._problem() == ""
+
+    wizard._create_clicked()
+    qtbot.waitUntil(lambda: bool(created), timeout=10000)
+
+    assert created[0]["translation_path"] == str(existing)
+    assert created[0]["auto_create_translations"] is False
+    assert created[0]["is_directory_mode"] is True
+
+
+def test_wizard_refuses_an_existing_translation_folder_for_a_one_file_project(qtbot, tmp_path):
+    source = tmp_path / "base.bin"
+    source.write_bytes(b"base")
+    existing = tmp_path / "my_translation"
+    existing.mkdir()
+    created = []
+    wizard = ProjectWizard(None, _loader, created.append)
+    qtbot.addWidget(wizard)
+    _wait_for_plugins(qtbot, wizard)
+    wizard.add_paths([str(source)])
+    qtbot.waitUntil(lambda: wizard._files_status.text() == "Files: 1", timeout=10000)
+    wizard._name.setText("Aria")
+    wizard._folder.setText(str(tmp_path / "Aria"))
+    wizard._use_existing.setChecked(True)
+    wizard._existing_folder.setText(str(existing))
+
+    wizard._create_clicked()
+    qtbot.waitUntil(lambda: "cannot use an existing translation folder" in wizard._progress_text.text(), timeout=10000)
+
+    assert created == []
+    assert not (tmp_path / "Aria" / "translation").exists()   # a refused create leaves no empty translation folder
+
+
+def test_wizard_asks_for_an_existing_translation_folder_that_exists(qtbot, tmp_path):
+    wizard = ProjectWizard(None, _loader, lambda info: None)
+    qtbot.addWidget(wizard)
+    wizard._name.setText("Aria")
+    wizard._folder.setText(str(tmp_path / "Aria"))
+    wizard._use_existing.setChecked(True)
+
+    assert wizard._problem() == "Choose the existing translation folder."
+    wizard._existing_folder.setText(str(tmp_path / "missing"))
+    assert wizard._problem() == "The translation folder does not exist."
 
 
 def test_wizard_needs_a_role_for_every_file_and_no_two_files_share_one(qtbot, tmp_path):
@@ -254,6 +324,74 @@ def test_run_in_emulator_needs_a_command_and_starts_it_detached(qtbot, tmp_path,
 
     assert started == [["emu", "--load", "/games/out dir/patch.bin"]]
     assert dialog._action_text[key].startswith("Started the emulator")
+
+
+def _run_action_menu(qtbot, tmp_path, settings, target_platforms):
+    """The expanded row of one project with a target for ``target_platforms``, and the Run in emulator menu."""
+    project = _project(tmp_path / "root", "Aria", "p-aria")
+    key = registry.project_key(project)
+    registry.mutate(tmp_path, lambda reg: reg.add(project))
+    index.merge(tmp_path, {key: {
+        "counted_mtime": os.stat(project).st_mtime_ns,
+        "targets": [{"id": "patch", "label": "Patch", "platforms": target_platforms, "kind": "patch"}]}})
+    dialog = ProjectManagerDialog(None, str(tmp_path), [].append, lambda: None,
+                                  lambda path, updates: None, lambda name, value: None, _loader)
+    qtbot.addWidget(dialog)
+    qtbot.waitUntil(lambda: dialog._loaded and key in dialog._items, timeout=5000)
+    dialog._document["settings"] = settings
+    item = dialog._items[key]
+    item.setExpanded(True)
+    detail = dialog._tree.itemWidget(item.child(0), 0)
+    buttons = {b.text(): b for b in detail.findChildren(QToolButton)}
+    return dialog, key, buttons["Run in emulator"].menu()
+
+
+def test_run_is_on_only_for_a_target_whose_platform_has_a_command(qtbot, tmp_path):
+    _dialog, _key, menu = _run_action_menu(qtbot, tmp_path / "a", {"emulator_command.3ds": "emu3 {path}"},
+                                           ["switch"])
+    assert not menu.actions()[0].isEnabled()
+
+    _dialog, _key, menu = _run_action_menu(qtbot, tmp_path / "b", {"emulator_command.switch": "emus {path}"},
+                                           ["switch"])
+    assert menu.actions()[0].isEnabled()
+
+
+def test_emulator_dialog_returns_only_the_platform_lines_that_changed(qtbot):
+    settings = {"emulator_command": "shared {path}", "emulator_command.3ds": "emu3 {path}"}
+    dialog = EmulatorDialog(None, ["3ds", "switch"], settings)
+    qtbot.addWidget(dialog)
+
+    assert dialog._fields["switch"].text() == "shared {path}"   # no own line yet: the shared command shows
+    dialog._fields["switch"].setText("emus {path}")
+
+    assert dialog.changes() == {"emulator_command.switch": "emus {path}"}
+
+
+def test_a_project_with_no_platform_edits_the_shared_command(qtbot):
+    dialog = EmulatorDialog(None, [""], {"emulator_command": "shared {path}"})
+    qtbot.addWidget(dialog)
+    dialog._fields[""].setText("shared2 {path}")
+
+    assert dialog.changes() == {"emulator_command": "shared2 {path}"}
+
+
+def test_run_starts_the_emulator_of_the_platform_the_build_is_for(qtbot, tmp_path, monkeypatch):
+    dialog, key, _menu = _run_action_menu(
+        qtbot, tmp_path, {"emulator_command.3ds": "emu3 {path}", "emulator_command.switch": "emus {path}"}, ["switch"])
+    started = []
+
+    class FakeProcess:
+        @staticmethod
+        def startDetached(program, arguments):
+            started.append([program, *arguments])
+            return True, 7
+
+    monkeypatch.setattr(window, "QProcess", FakeProcess)
+    dialog._action_platform[key] = "switch"
+
+    dialog._on_action_done(key, "run", "/games/out/patch.nsp")
+
+    assert started == [["emus", "/games/out/patch.nsp"]]
 
 
 def test_build_runs_the_plugin_target_into_the_project_build_folder(qtbot, tmp_path):

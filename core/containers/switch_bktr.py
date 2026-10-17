@@ -10,6 +10,7 @@ passed in by the caller and never stored here.
 """
 from __future__ import annotations
 
+from core.i18n import tr
 import bisect
 import struct
 from typing import Any, Callable, List, Optional
@@ -69,7 +70,7 @@ def _shallow_tree(read: Callable[[int, int], bytes], table_off: int, entry_size:
         blob = read(set_off + 0x10, count * entry_size)
         entries.extend(blob[k * entry_size:(k + 1) * entry_size] for k in range(count))
     if len(entries) != total:
-        raise ImageError("the RomFS patch table is deeper than this reader reads")
+        raise ImageError(tr("the RomFS patch table is deeper than this reader reads"))
     return entries
 
 
@@ -81,7 +82,7 @@ class PatchedRomFs(PlainView):
         self._base = base
         self._patch = patch
         if fsh[0x110:0x114] != BKTR or fsh[0x130:0x134] != BKTR:
-            raise ImageError("the RomFS section is not a BKTR patch")
+            raise ImageError(tr("the RomFS section is not a BKTR patch"))
         ind_off = struct.unpack_from("<Q", fsh, 0x100)[0]
         ind_n = struct.unpack_from("<i", fsh, 0x118)[0]
         ctr_off = struct.unpack_from("<Q", fsh, 0x120)[0]
@@ -100,7 +101,7 @@ class PatchedRomFs(PlainView):
         while size > 0:
             i = bisect.bisect_right(self._ind_keys, offset) - 1
             if i < 0:
-                raise ImageError("a RomFS read starts before the first patch range")
+                raise ImageError(tr("a RomFS read starts before the first patch range"))
             virt, phys, storage = self._ind[i]
             nxt = self._ind_keys[i + 1] if i + 1 < len(self._ind_keys) else self.size
             count = min(size, nxt - offset)
@@ -114,7 +115,7 @@ class PatchedRomFs(PlainView):
         self._base.seek(place)
         data = self._base.read(count)
         if len(data) != count:
-            raise ImageError("the base RomFS ends inside a patch range")
+            raise ImageError(tr("the base RomFS ends inside a patch range"))
         return data
 
     def _from_patch(self, place: int, count: int) -> bytes:
@@ -122,7 +123,7 @@ class PatchedRomFs(PlainView):
         while count > 0:
             i = bisect.bisect_right(self._ctr_keys, place) - 1
             if i < 0:
-                raise ImageError("a patch read starts before the first generation range")
+                raise ImageError(tr("a patch read starts before the first generation range"))
             nxt = self._ctr_keys[i + 1] if i + 1 < len(self._ctr_keys) else self._ctr_end
             take = min(count, nxt - place)
             out += self._patch(place, take, self._ctr[i][1])

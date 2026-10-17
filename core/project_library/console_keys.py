@@ -10,7 +10,7 @@ import json
 import os
 import uuid
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 from utils import constants
 
@@ -39,12 +39,43 @@ def path_for(console: str) -> Optional[str]:
     return path if path and os.path.isfile(path) else None
 
 
+def states() -> Dict[str, Tuple[str, bool]]:
+    """``{console: (stored path, file exists)}`` for every console. It stats the files: call it on a worker."""
+    data = _read()
+    result: Dict[str, Tuple[str, bool]] = {}
+    for console in CONSOLES:
+        value = data.get(console, "")
+        result[console] = (value, bool(value) and os.path.isfile(value))
+    return result
+
+
+def stored(console: str) -> str:
+    """The stored path of ``console`` even when that file is gone; "" when none is stored. For the settings page."""
+    return _read().get(console, "")
+
+
 def set_path(console: str, path: str) -> None:
     """Remember ``path`` as the key file of ``console``. The store is written atomically (temporary file, then replace)."""
-    if console not in CONSOLES:
-        raise ValueError(f"unknown console: {console}")
+    _check(console)
     data = _read()
     data[console] = str(path)
+    _write(data)
+
+
+def clear_path(console: str) -> None:
+    """Forget the key file of ``console``. The next unpack that needs it asks again."""
+    _check(console)
+    data = _read()
+    data.pop(console, None)
+    _write(data)
+
+
+def _check(console: str) -> None:
+    if console not in CONSOLES:
+        raise ValueError(f"unknown console: {console}")
+
+
+def _write(data: Dict[str, str]) -> None:
     folder = store_path().parent
     folder.mkdir(parents=True, exist_ok=True)
     temporary = folder / f".{STORE_NAME}.{uuid.uuid4().hex}.tmp"

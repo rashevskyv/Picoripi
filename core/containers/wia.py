@@ -17,6 +17,8 @@ from the spec.
 """
 from __future__ import annotations
 
+from core.i18n import tr
+
 import bisect
 import bz2
 import lzma
@@ -113,14 +115,14 @@ class _Lfg:
 def junk_bytes(seed: bytes, offset: int, size: int) -> bytes:
     """``size`` junk bytes that a junk segment starting at disc offset ``offset`` holds, from its 68-byte seed."""
     if len(seed) != SEED_SIZE:
-        raise ImageError("a junk seed must be 68 bytes")
+        raise ImageError(tr("a junk seed must be 68 bytes"))
     return _Lfg(seed, offset).read(size)
 
 
 def _lzma_filters(method: int, props: bytes, expected: int) -> list:
     if method == LZMA:
         if len(props) < 5 or props[0] >= 9 * 5 * 5:
-            raise ImageError("the LZMA properties of this image are not valid")
+            raise ImageError(tr("the LZMA properties of this image are not valid"))
         d = props[0]
         lc = d % 9
         d //= 9
@@ -130,7 +132,7 @@ def _lzma_filters(method: int, props: bytes, expected: int) -> list:
         return [{"id": lzma.FILTER_LZMA1, "lc": lc, "lp": lp, "pb": pb,
                  "dict_size": min(max(dict_size, 4096), max(4096, expected))}]
     if not props or props[0] > 40:
-        raise ImageError("the LZMA2 properties of this image are not valid")
+        raise ImageError(tr("the LZMA2 properties of this image are not valid"))
     p = props[0]
     dict_size = 0xFFFFFFFF if p == 40 else (2 | (p & 1)) << (p // 2 + 11)
     return [{"id": lzma.FILTER_LZMA2, "dict_size": min(max(dict_size, 4096), max(4096, expected))}]
@@ -139,7 +141,7 @@ def _lzma_filters(method: int, props: bytes, expected: int) -> list:
 def _decompress(method: int, data: bytes, props: bytes, expected: int, what: str) -> bytes:
     """``data`` decompressed; refused when it holds more than ``expected`` bytes (one byte past it is ever made)."""
     if method not in (BZIP2, LZMA, LZMA2, ZSTD):
-        raise ImageError(f"{what}: unknown compression method {method}")
+        raise ImageError(tr("{0}: unknown compression method {1}", what, method))
     try:
         if method == BZIP2:
             out = bz2.BZ2Decompressor().decompress(data, expected + 1)
@@ -151,9 +153,9 @@ def _decompress(method: int, data: bytes, props: bytes, expected: int, what: str
     except ImageError:
         raise
     except Exception as error:   # the codec's own error types; the reason goes to the user
-        raise ImageError(f"{what}: the {METHOD_NAMES.get(method, 'compressed')} data does not decompress ({error})")
+        raise ImageError(tr("{0}: the {1} data does not decompress ({2})", what, METHOD_NAMES.get(method, 'compressed'), error))
     if len(out) > expected:
-        raise ImageError(f"{what}: decompresses to more than the {expected} bytes the image declares")
+        raise ImageError(tr("{0}: decompresses to more than the {1} bytes the image declares", what, expected))
     return out
 
 
@@ -163,27 +165,27 @@ def _unpack_rvz(packed: bytes, logical: int, disc_start: int) -> bytes:
     pos = 0
     while pos < len(packed):
         if pos + 4 > len(packed):
-            raise ImageError("an RVZ group ends inside a segment header")
+            raise ImageError(tr("an RVZ group ends inside a segment header"))
         size = struct.unpack_from(">I", packed, pos)[0]
         pos += 4
         if size & JUNK_FLAG:
             size &= ~JUNK_FLAG
             if pos + SEED_SIZE > len(packed):
-                raise ImageError("an RVZ group ends inside a junk seed")
+                raise ImageError(tr("an RVZ group ends inside a junk seed"))
             seed = packed[pos:pos + SEED_SIZE]
             pos += SEED_SIZE
             if len(out) + size > logical:   # checked before the junk is generated
-                raise ImageError("an RVZ group is longer than its disc data")
+                raise ImageError(tr("an RVZ group is longer than its disc data"))
             out += junk_bytes(seed, disc_start + len(out), size)
         else:
             if pos + size > len(packed):
-                raise ImageError("an RVZ group ends inside a literal run")
+                raise ImageError(tr("an RVZ group ends inside a literal run"))
             if len(out) + size > logical:
-                raise ImageError("an RVZ group is longer than its disc data")
+                raise ImageError(tr("an RVZ group is longer than its disc data"))
             out += packed[pos:pos + size]
             pos += size
     if len(out) != logical:
-        raise ImageError("an RVZ group is shorter than its disc data")
+        raise ImageError(tr("an RVZ group is shorter than its disc data"))
     return bytes(out)
 
 
@@ -197,7 +199,7 @@ class WiaStream:
         self._cache: "OrderedDict[int, bytes]" = OrderedDict()
         head = self._read_file(0, HEAD_SIZE + DISC_SIZE)
         if len(head) < HEAD_SIZE + DISC_SIZE or not is_wia_or_rvz(head):
-            raise ImageError("not a WIA or RVZ image")
+            raise ImageError(tr("not a WIA or RVZ image"))
         self._rvz = head[:4] == MAGIC_RVZ
         (self.size,) = struct.unpack_from(">Q", head, 0x24)
         # wia_disc_t starts at 0x48 (the spec's table): offsets below are from that start.
@@ -213,25 +215,25 @@ class WiaStream:
         props_len = min(head[disc + 0xD4], 7)
         props = head[disc + 0xD5:disc + 0xD5 + props_len]
         if disc_type not in (GC_DISC, WII_DISC):
-            raise ImageError(f"a WIA or RVZ image of disc type {disc_type}: not read")
+            raise ImageError(tr("a WIA or RVZ image of disc type {0}: not read", disc_type))
         if disc_type == GC_DISC and n_part:
-            raise ImageError("a GameCube WIA or RVZ image cannot have Wii partitions")
+            raise ImageError(tr("a GameCube WIA or RVZ image cannot have Wii partitions"))
         if method == PURGE:
-            raise ImageError("a WIA or RVZ image with the Purge method: not read; convert it to a plain ISO first")
+            raise ImageError(tr("a WIA or RVZ image with the Purge method: not read; convert it to a plain ISO first"))
         if method not in METHOD_NAMES and method != NONE:
-            raise ImageError(f"a WIA or RVZ image with unknown compression {method}")
+            raise ImageError(tr("a WIA or RVZ image with unknown compression {0}", method))
         if method == ZSTD and not self._rvz:
-            raise ImageError("a WIA image with Zstandard: not a WIA method")
+            raise ImageError(tr("a WIA image with Zstandard: not a WIA method"))
         if self._rvz:
             power_of_two = chunk >= SECTOR and chunk & (chunk - 1) == 0
             if not (power_of_two or (chunk > 0 and chunk % MIB2 == 0)):
-                raise ImageError("an RVZ chunk size must be a power of two of at least 32 KiB or a multiple of 2 MiB")
+                raise ImageError(tr("an RVZ chunk size must be a power of two of at least 32 KiB or a multiple of 2 MiB"))
         elif chunk <= 0 or chunk % MIB2:
-            raise ImageError("a WIA chunk size must be a multiple of 2 MiB")
+            raise ImageError(tr("a WIA chunk size must be a multiple of 2 MiB"))
         if chunk > MAX_CHUNK:
-            raise ImageError("the chunk size of this image is too large to read")
+            raise ImageError(tr("the chunk size of this image is too large to read"))
         if self.size == 0:
-            raise ImageError("the disc size in this image is zero")
+            raise ImageError(tr("the disc size in this image is zero"))
         self._method = method
         self._props = props
         self._chunk = chunk
@@ -248,14 +250,14 @@ class WiaStream:
 
     def _table(self, offset: int, size: int, count: int, entry: int, method: int, props: bytes, what: str) -> bytes:
         if count * entry > MAX_CHUNK or size > MAX_CHUNK:   # a 4 GiB disc in 32 KiB groups needs 1.5 MiB
-            raise ImageError(f"the {what} table is too large to read ({count} entries in {size} bytes)")
+            raise ImageError(tr("the {0} table is too large to read ({1} entries in {2} bytes)", what, count, size))
         blob = self._read_file(offset, size)
         if len(blob) != size:
-            raise ImageError(f"the {what} table is cut short")
+            raise ImageError(tr("the {0} table is cut short", what))
         if method != NONE:
             blob = _decompress(method, blob, props, count * entry, what)
         if len(blob) != count * entry:
-            raise ImageError(f"the {what} table does not hold its {count} entries")
+            raise ImageError(tr("the {0} table does not hold its {1} entries", what, count))
         return blob
 
     def _read_groups(self, offset: int, size: int, count: int, method: int, props: bytes) -> List[Tuple[int, int, int]]:
@@ -280,7 +282,7 @@ class WiaStream:
             start = disc_off - disc_off % SECTOR   # the first entry starts at 0x80: round down to the sector
             disc_size += disc_off - start
             if n_groups != -(-disc_size // chunk) or group_index + n_groups > len(self._groups):
-                raise ImageError("the raw data table does not match its groups")
+                raise ImageError(tr("the raw data table does not match its groups"))
             for k in range(n_groups):
                 begin = start + k * chunk
                 end = min(begin + chunk, start + disc_size)
@@ -294,10 +296,10 @@ class WiaStream:
         if not count:
             return []
         if count > MAX_PARTS or not 0 < size <= MAX_PART_STRUCT:
-            raise ImageError("the partition table of this image is not valid")
+            raise ImageError(tr("the partition table of this image is not valid"))
         blob = self._read_file(offset, count * size)
         if len(blob) != count * size:
-            raise ImageError("the partition table is cut short")
+            raise ImageError(tr("the partition table is cut short"))
         chunk_data = self._chunk // SECTOR * SECTOR_DATA if self._chunk >= SECTOR else 0
         lists = max(1, self._chunk // MIB2)
         partitions = []
@@ -310,12 +312,12 @@ class WiaStream:
                 if not n_sectors:
                     continue
                 if pd_first < first:
-                    raise ImageError("the partition table of this image is not valid")
+                    raise ImageError(tr("the partition table of this image is not valid"))
                 start = (pd_first - first) * SECTOR_DATA
                 data_size = n_sectors * SECTOR_DATA
                 if (not chunk_data or n_groups != -(-data_size // chunk_data)
                         or group_index + n_groups > len(self._groups)):
-                    raise ImageError("the partition table does not match its groups")
+                    raise ImageError(tr("the partition table does not match its groups"))
                 for k in range(n_groups):
                     begin = start + k * chunk_data
                     end = min(begin + chunk_data, start + data_size)
@@ -331,7 +333,7 @@ class WiaStream:
         for start, segments in self._partitions:
             if start == data_at and segments:
                 return PartitionView(self, segments)
-        raise ImageError(f"this image holds no Wii partition data at {data_at:#x}")
+        raise ImageError(tr("this image holds no Wii partition data at {0:#x}", data_at))
 
     def _group(self, index: int) -> bytes:
         cached = self._cache.get(index)
@@ -351,15 +353,15 @@ class WiaStream:
         pos = 0
         for _ in range(lists):
             if pos + 2 > len(data):
-                raise ImageError(f"{what} ends inside its hash exceptions")
+                raise ImageError(tr("{0} ends inside its hash exceptions", what))
             count = struct.unpack_from(">H", data, pos)[0]
             if count > MAX_EXCEPTIONS:
-                raise ImageError(f"{what} declares {count} hash exceptions, more than a list can hold")
+                raise ImageError(tr("{0} declares {1} hash exceptions, more than a list can hold", what, count))
             pos += 2 + count * EXCEPTION
         if align:
             pos += -pos % 4
         if pos > len(data):
-            raise ImageError(f"{what} ends inside its hash exceptions")
+            raise ImageError(tr("{0} ends inside its hash exceptions", what))
         return pos
 
     def _decode_group(self, group: int, disc_start: int, logical: int, lists: int = 0) -> bytes:
@@ -375,10 +377,10 @@ class WiaStream:
         what = f"group {group}"
         exceptions = lists * (2 + MAX_EXCEPTIONS * EXCEPTION)   # the most the hash exception lists can take
         if size > 2 * self._chunk + exceptions or packed > 2 * self._chunk:   # never twice the disc data
-            raise ImageError(f"{what} declares {max(size, packed)} bytes, more than a group of {self._chunk} can hold")
+            raise ImageError(tr("{0} declares {1} bytes, more than a group of {2} can hold", what, max(size, packed), self._chunk))
         raw = self._read_file(off4 * 4, size)
         if len(raw) != size:
-            raise ImageError("the image ends inside a group")
+            raise ImageError(tr("the image ends inside a group"))
         stored = not (compressed and self._method != NONE)
         if not stored:
             raw = _decompress(self._method, raw, self._props, (packed or logical) + exceptions, what)
@@ -387,7 +389,7 @@ class WiaStream:
         if self._rvz and packed:
             return _unpack_rvz(raw, logical, disc_start)
         if len(raw) != logical:
-            raise ImageError(f"{what} holds {len(raw)} bytes, its disc data is {logical}")
+            raise ImageError(tr("{0} holds {1} bytes, its disc data is {2}", what, len(raw), logical))
         return raw
 
     # The stream interface

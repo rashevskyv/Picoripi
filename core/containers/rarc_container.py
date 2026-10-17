@@ -49,6 +49,7 @@ Binary format (big-endian):
         u32   padding       (0)
 """
 
+from core.i18n import tr
 import struct
 from .base_container import BaseArchiveContainer
 from . import yaz0
@@ -106,7 +107,7 @@ class RarcContainer(BaseArchiveContainer):
             data = yaz0.decompress(data)
 
         if data[:4] not in (_RARC_MAGIC, _CRAR_MAGIC):
-            raise ValueError(f"Not a RARC archive (magic={data[:4]!r})")
+            raise ValueError(tr("Not a RARC archive (magic={0!r})", data[:4]))
 
         self.little_endian = data[:4] == _CRAR_MAGIC   # CRAR: the little-endian RARC of the Switch ports
         self._e = "<" if self.little_endian else ">"

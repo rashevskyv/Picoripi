@@ -146,8 +146,8 @@ def _reader(stream: Any, cache_dir: Optional[str | Path] = None,
             keys = switch_crypto.load_keys(str(key_path("switch")))
             return switch_images.SwitchImage(stream, keys, cache_dir, is_cancelled, progress)
     if len(head) >= 0x204 and head[0x200:0x204] == b"NKIT":
-        raise ImageError("an NKit image of an unknown kind: convert it to a plain ISO first")
-    raise ImageError("not a GameCube or Nintendo DS image")
+        raise ImageError(tr("an NKit image of an unknown kind: convert it to a plain ISO first"))
+    raise ImageError(tr("not a GameCube or Nintendo DS image"))
 
 
 @contextmanager

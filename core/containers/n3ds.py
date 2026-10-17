@@ -94,7 +94,7 @@ class Keys3ds:
             with open(path, encoding="ascii", errors="ignore") as stream:
                 text = stream.read()
         except OSError:
-            raise ImageError("the 3DS key file cannot be read") from None   # no chained OSError: it holds the path
+            raise ImageError(tr("the 3DS key file cannot be read")) from None   # no chained OSError: it holds the path
         for line in text.splitlines():
             name, _, value = line.partition("=")
             name = name.strip().lower()
@@ -116,13 +116,13 @@ class Keys3ds:
     def normal(self, slot: int, keyy: bytes) -> bytes:
         """The normal key of ``slot`` for the KeyY ``keyy`` (16 bytes)."""
         if slot not in self._keyx:
-            raise ImageError(f"the 3DS key file has no KeyX for slot 0x{slot:02X}")
+            raise ImageError(tr("the 3DS key file has no KeyX for slot 0x{0:02X}", slot))
         return scramble(self._keyx[slot], keyy)
 
     def cia_title_key(self, common_index: int, title_id: bytes, encrypted: bytes) -> bytes:
         """The title key of a CIA: AES-CBC of the ticket's key under the common key, IV = title ID and zeros."""
         if common_index not in self._common:
-            raise ImageError(f"the 3DS key file has no common key {common_index}")
+            raise ImageError(tr("the 3DS key file has no common key {0}", common_index))
         common_key = self.normal(0x3D, self._common[common_index])
         require_pycryptodome("3ds", tr(LABEL))
         from Crypto.Cipher import AES
@@ -134,9 +134,9 @@ def _boot9_keyx(path: str) -> Dict[int, bytes]:
         with open(path, "rb") as stream:
             data = stream.read(BOOT9_SIZE + 1)
     except OSError:
-        raise ImageError("the boot9 file cannot be read") from None   # no chained OSError: it holds the path
+        raise ImageError(tr("the boot9 file cannot be read")) from None   # no chained OSError: it holds the path
     if len(data) != BOOT9_SIZE:
-        raise ImageError("the boot9 file must be the full 64 KiB dump")
+        raise ImageError(tr("the boot9 file must be the full 64 KiB dump"))
     keyx: Dict[int, bytes] = {}
     offset = BOOT9_KEY_AREA
     for first, count in BOOT9_LAYOUT:
@@ -155,7 +155,7 @@ def locate(reader: ImageReader, head: bytes) -> Optional[Program]:
     if head[0x100:0x104] == NCSD_MAGIC:
         base = _u32(head, 0x120) * UNIT
         if base == 0:
-            raise ImageError("the card image has no main partition")
+            raise ImageError(tr("the card image has no main partition"))
         return _ncch_program(reader, base)
     if head[0x100:0x104] == NCCH_MAGIC:
         return _ncch_program(reader, 0)
@@ -167,7 +167,7 @@ def locate(reader: ImageReader, head: bytes) -> Optional[Program]:
 def _ncch_program(reader: ImageReader, base: int) -> Program:
     head = reader.read_at(base, 0x200)
     if head[0x100:0x104] != NCCH_MAGIC:
-        raise ImageError("the main partition is not a 3DS program")
+        raise ImageError(tr("the main partition is not a 3DS program"))
     nocrypto = bool(head[NCCH_FLAGS7] & NO_CRYPTO_BIT)
     # Decrypted dumps (for example "[Decrypted].3ds") often leave the NoCrypto flag unset while the RomFS is plain.
     plain = not nocrypto and not head[NCCH_FLAGS7] & FIXED_KEY_BIT and _plain_romfs(reader, base, head)
@@ -194,20 +194,20 @@ def _cia_program(reader: ImageReader, head: bytes) -> Program:
     tmd_off = tik_off + _align(tik, 0x40)
     con_off = tmd_off + _align(tmd, 0x40)
     if not 4 <= tik <= MAX_TMD or not 0x10 <= tmd <= MAX_TMD:
-        raise ImageError("the CIA metadata has a bad size")
+        raise ImageError(tr("the CIA metadata has a bad size"))
     ticket = reader.read_at(tik_off, tik)
     meta = reader.read_at(tmd_off, tmd)
     if struct.unpack_from(">I", ticket, 0)[0] not in SIG_SIZES:
-        raise ImageError("the CIA ticket has an unknown signature type")
+        raise ImageError(tr("the CIA ticket has an unknown signature type"))
     tmd_sig = struct.unpack_from(">I", meta, 0)[0]
     if tmd_sig not in SIG_SIZES:
-        raise ImageError("the CIA title metadata has an unknown signature type")
+        raise ImageError(tr("the CIA title metadata has an unknown signature type"))
     body = meta[SIG_SIZES[tmd_sig]:]
     if len(body) < 0xC4:
-        raise ImageError("the CIA title metadata is too short")
+        raise ImageError(tr("the CIA title metadata is too short"))
     ticket_body = ticket[SIG_SIZES[struct.unpack_from(">I", ticket, 0)[0]]:]
     if len(ticket_body) < 0xB2:
-        raise ImageError("the CIA ticket is too short")
+        raise ImageError(tr("the CIA ticket is too short"))
     title_id = body[0x4C:0x54].hex()
     count = struct.unpack_from(">H", body, 0x9E)[0]
     mask = head[0x20:0x40]
@@ -215,14 +215,14 @@ def _cia_program(reader: ImageReader, head: bytes) -> Program:
     for index in range(count):
         start = 0xC4 + 0x900 + index * 0x30
         if start + 0x10 > len(body):
-            raise ImageError("the CIA content table does not fit")
+            raise ImageError(tr("the CIA content table does not fit"))
         _cid, content_index, ctype, size = struct.unpack_from(">IHHQ", body, start)
         present = bool(mask[content_index // 8] & (0x80 >> (content_index % 8))) if content_index < 0x100 else False
         if content_index == 0:
             if not present:
-                raise ImageError("the CIA has no main content")
+                raise ImageError(tr("the CIA has no main content"))
             if offset + size > reader.size:
-                raise ImageError("the CIA main content ends past the file")
+                raise ImageError(tr("the CIA main content ends past the file"))
             if ctype & 1:
                 layer = dict(base=offset, size=size, encrypted=bytes(ticket_body[0x7F:0x8F]),
                              common_index=ticket_body[0xB1], title_id=bytes(ticket_body[0x9C:0xA4]), index=0)
@@ -230,7 +230,7 @@ def _cia_program(reader: ImageReader, head: bytes) -> Program:
             return _ncch_program(reader, offset)
         if present:
             offset = _align(offset + size, 0x40)
-    raise ImageError("the CIA has no main content")
+    raise ImageError(tr("the CIA has no main content"))
 
 
 class N3dsImage(ImageReader):
@@ -244,7 +244,7 @@ class N3dsImage(ImageReader):
         probe = ImageReader(stream)
         program = locate(probe, probe.read_at(0, 0x200))
         if program is None:
-            raise ImageError("not a Nintendo 3DS image")
+            raise ImageError(tr("not a Nintendo 3DS image"))
         keys: Optional[Keys3ds] = None
         if program.get("cia") is not None:   # encrypted CIA content: decrypt the CIA layer, then read the NCCH in it
             keys = _load_keys(keys_path)
@@ -284,7 +284,7 @@ class N3dsImage(ImageReader):
         if romfs_size:
             entries += self._romfs(base + romfs_off, romfs_size)
         if not entries:
-            raise ImageError("the program has no exheader, ExeFS or RomFS")
+            raise ImageError(tr("the program has no exheader, ExeFS or RomFS"))
         return entries
 
     # -- decrypted regions ------------------------------------------------------
@@ -292,7 +292,7 @@ class N3dsImage(ImageReader):
     def _section(self, start: int, size: int, kind: int, secondary: bool) -> PlainView:
         """A decrypted view of the bytes [start, start + size) of the image. ``start`` is an offset of the image."""
         if start < 0 or size < 0 or start + size > self.size:
-            raise ImageError("a 3DS section ends past the image")
+            raise ImageError(tr("a 3DS section ends past the image"))
         key = self._key(secondary)
         if key is None:
             return RangeView(self.stream, start, size)
@@ -304,12 +304,12 @@ class N3dsImage(ImageReader):
         if head[NCCH_FLAGS7] & NO_CRYPTO_BIT or self.program.get("plain"):
             return None
         if head[NCCH_FLAGS7] & FIXED_KEY_BIT:
-            raise ImageError("fixed-key 3DS titles are not read yet")
+            raise ImageError(tr("fixed-key 3DS titles are not read yet"))
         slot = PRIMARY_SLOT
         if secondary:
             slot = METHOD_SLOTS.get(head[METHOD_AT])
             if slot is None:
-                raise ImageError("the 3DS program uses an unknown crypto method")
+                raise ImageError(tr("the 3DS program uses an unknown crypto method"))
         assert self.keys is not None   # an encrypted program always has keys (see __init__)
         key_y = bytes(head[:16])
         if secondary and head[NCCH_FLAGS7] & SEED_CRYPTO_BIT:
@@ -322,7 +322,7 @@ class N3dsImage(ImageReader):
         partition_id = head[0x108:0x110]
         if struct.unpack_from("<H", head, 0x112)[0] == 1:
             if offset >= 1 << 32:
-                raise ImageError("a 3DS section starts too far into the program")
+                raise ImageError(tr("a 3DS section starts too far into the program"))
             return int.from_bytes(partition_id + bytes(4) + offset.to_bytes(4, "big"), "big")
         return int.from_bytes(partition_id[::-1] + bytes([kind]) + bytes(7), "big")
 
@@ -340,7 +340,7 @@ class N3dsImage(ImageReader):
 
     def _parse_exefs(self, prim: PlainView, sec: PlainView, size: int, code_packed: bool) -> List[ImageFile]:
         if size < 0x200:
-            raise ImageError("the ExeFS is shorter than its header")
+            raise ImageError(tr("the ExeFS is shorter than its header"))
         prim.seek(0)
         head = prim.read(0x200)
         files: List[ImageFile] = []
@@ -352,16 +352,16 @@ class N3dsImage(ImageReader):
             try:
                 name = raw.split(b"\0", 1)[0].decode("ascii")
             except UnicodeDecodeError as exc:
-                raise ImageError("unsafe ExeFS file name") from exc
+                raise ImageError(tr("unsafe ExeFS file name")) from exc
             check_name(name)
             if 0x200 + offset + length > size:
-                raise ImageError(f"ExeFS file {name} ends past its section")
+                raise ImageError(tr("ExeFS file {0} ends past its section", name))
             # The names of the workspace (3dstool): ".code" is "exefs/code.bin". A packed code section is BLZ in the
             # image; the exheader flag says so, and the file is decoded as it is written. The icon and banner use the
             # primary key; every other file uses the secondary key.
             decode = blz_decompress if code_packed and name == ".code" else None
             if decode is not None and length > MAX_CODE:   # a decoded code section is read whole: bound it
-                raise ImageError("the packed code section is too large")
+                raise ImageError(tr("the packed code section is too large"))
             view = prim if name in ("icon", "banner") else sec
             files.append(ImageFile(f"exefs/{name.lstrip('.')}.bin", 0x200 + offset, length, decode, view))
         return files
@@ -404,9 +404,9 @@ def _seeded_key_y(keys: Keys3ds, head: bytes, key_y: bytes) -> bytes:
     program_id = bytes(head[0x118:0x120])
     seed = keys.seeds.get(program_id)
     if seed is None:
-        raise ImageError("the 3DS title uses seed crypto and the key folder has no seed for it (seeds or seeddb.bin)")
+        raise ImageError(tr("the 3DS title uses seed crypto and the key folder has no seed for it (seeds or seeddb.bin)"))
     if hashlib.sha256(seed + program_id).digest()[:4] != bytes(head[0x114:0x118]):
-        raise ImageError("the 3DS seed does not match the title's seed check")
+        raise ImageError(tr("the 3DS seed does not match the title's seed check"))
     return hashlib.sha256(key_y + seed).digest()[:16]
 
 

@@ -15,6 +15,7 @@ updated exactly as the encoder of the game's tools updates them.
 """
 from __future__ import annotations
 
+from core.i18n import tr
 from typing import Callable, Optional
 
 MAGIC = b"*SK_ASC*"
@@ -170,7 +171,7 @@ class _RangeDecoder:
 def decompress(data: bytes, is_cancelled: Optional[Callable[[], bool]] = None) -> Optional[bytes]:
     """The whole decoded file (u32 size + payload), or None when ``is_cancelled`` returns true first."""
     if data[:8] != MAGIC:
-        raise ValueError("not an *SK_ASC* file")
+        raise ValueError(tr("not an *SK_ASC* file"))
     rc = _RangeDecoder(data)
     code, target = rc.code, rc.target
     M = _Models()
@@ -186,7 +187,7 @@ def decompress(data: bytes, is_cancelled: Optional[Callable[[], bool]] = None) -
         if limit is None and len(out) >= 4:
             limit = 4 + int.from_bytes(out[:4], "big")
         if limit is not None and len(out) > limit:
-            raise ValueError("the *SK_ASC* stream is longer than its size")
+            raise ValueError(tr("the *SK_ASC* stream is longer than its size"))
         if is_cancelled is not None and len(out) >= next_check:
             next_check += _CANCEL_EVERY
             if is_cancelled():
