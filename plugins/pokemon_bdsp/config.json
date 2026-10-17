@@ -1,7 +1,7 @@
 {
     "display_name": "Pokémon Brilliant Diamond / Shining Pearl",
     "dialogue_box": {
-        "_note": "Measured on the Eden frame pkC8/shots/bdsp_dialogue/bdsp_field_45s.png (2026-10-17, Rowan, 'Now, why don't you tell me a litt'). Glyph N: 35 px high (rows 821-855). Ink box of the line (frame and render, threshold 100 / alpha 128): x 490 to 1087, y 818 to 870 (frame) and 871 (render, descender). Line pitch and wrap width: not measured.",
+        "_note": "Measured on an Eden frame of one field dialogue line (2026-10-17). Glyph N: 35 px high (rows 821-855). Ink box of the line (frame and render, threshold 100 / alpha 128): x 490 to 1087, y 818 to 870 (frame) and 871 (render, descender). Line pitch and wrap width: not measured.",
         "font_dir": "font/efigs_font",
         "font_name": "efigs_font",
         "px": 45.5,
@@ -13,7 +13,7 @@
         "lines_per_box": 2,
         "wrap_width": 848.5,
         "wrap_width_max_exclusive": 1010.8,
-        "_wrap_note": "Measured on pkC11/shots/bdsp_page2/f_040s.png (2 lines: 'Some people use their Pokémon to battle and' / 'develop closer bonds with them.'). Baselines 855 and 916 (fit by overlay). The first line's advance is 848.5 px, and the first line plus ' develop' is 1010.8 px, so the wrap width lies in [848.5, 1010.8). The preview uses the lower bound.",
+        "_wrap_note": "Measured on an Eden frame of a two-line page (baselines 855 and 916, fit by overlay). The first line's advance is 848.5 px, and the first line plus the next word is 1010.8 px, so the wrap width lies in [848.5, 1010.8). The preview uses the lower bound.",
         "canvas_origin": [470, 800]
     },
     "default_tag_mappings": {

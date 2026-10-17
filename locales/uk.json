@@ -2452,5 +2452,10 @@
   "The dialogue layout is not in this project's unpacked game.": "Розмітки діалогу немає в розпакованій грі цього проєкту.",
   "Too many lines for the box: %1 (box holds %2)": "Забагато рядків для вікна: %1 (вміщує %2)",
   "The glyph table JSON has no {0}.": "У JSON таблиці гліфів немає {0}.",
-  "A word is wider than the box.": "Слово ширше за вікно."
+  "A word is wider than the box.": "Слово ширше за вікно.",
+  "More lines than the box holds (%1 lines)": "Більше рядків, ніж вміщує вікно (%1 рядків)",
+  "Not in the box font: %1": "Немає у шрифті вікна: %1",
+  "Only the first page is drawn.": "Малюється лише перша сторінка.",
+  "The base file is not a Sword, Shield or Legends: Arceus image.": "Базовий файл не є образом Sword, Shield або Legends: Arceus.",
+  "The dialogue font is not in this project's unpacked game.": "Шрифту діалогу немає в розпакованій грі цього проєкту."
 }
