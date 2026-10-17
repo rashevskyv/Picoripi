@@ -45,8 +45,7 @@ def test_blocks_prefer_battle_chain_then_runs():
     texts, names = psx_text.blocks(battle)
     assert texts[0] == "Item0" and len(texts) == 13
     assert len(names) == 13
-    texts2, _ = psx_text.blocks(b"\x01 Hello there, Justin.\x02")
-    assert texts2 == [" Hello there, Justin."]
+    assert psx_text.blocks(b"\x01 Hello there, Justin.\x02")[0] == []   # no speaker sequence: not routed
 
 
 @pytest.mark.skipif(not os.path.exists(REAL_IMG), reason="the owner's Grandia disc 1 is not on disk")
@@ -70,3 +69,88 @@ def test_plugin_identifies_a_psx_cue_as_base(tmp_path):
     cue = make_disc(tmp_path)
     assert GameRules().identify_source(cue) == {"role": "base", "platform": "psx"}
     assert {p["id"] for p in GameRules().get_platforms()} == {"gdrom", "psx"}
+
+
+SPEAKER_SEQ = b"\x0f\x03\x0a\x0c\x00"
+
+
+def dialogue(*lines):
+    """Synthetic field script: each line is a run, preceded by a speaker sequence, ended by 0x01 or 0x02."""
+    out = b""
+    for line in lines:
+        out += SPEAKER_SEQ + b"\x08" + line.encode("latin-1") + b"\x02"
+    return out
+
+
+def test_dialogue_is_detected_by_the_speaker_sequence():
+    data = dialogue("Hello there.", "Bye.")
+    assert psx_text.is_dialogue(data)
+    assert not psx_text.is_dialogue(b"Hello there. Bye.")
+    kind, found = psx_text.entries(data)
+    assert kind == "dialogue"
+    assert [text for _, text in found] == [b"Hello there.", b"Bye."]
+
+
+def test_unchanged_text_writes_back_byte_exact():
+    data = dialogue("Hello there.", "Bye now.") + b"\x07\x01 no-speaker run\x02"
+    texts, _ = psx_text.blocks(data)
+    out, refused = psx_text.write(data, texts)
+    assert out == data and refused == []
+
+
+def test_shorter_text_is_padded_to_the_original_length():
+    data = dialogue("Hello there.", "Bye now.")
+    out, refused = psx_text.write(data, ["Hi.", "Bye now."])
+    assert refused == []
+    assert len(out) == len(data)
+    assert b"Hi." + b" " * 9 in out
+    assert out.replace(b"Hi." + b" " * 9, b"Hello there.") == data
+
+
+def test_longer_text_is_refused_and_keeps_the_original():
+    data = dialogue("Hi.", "Bye.")
+    out, refused = psx_text.write(data, ["Hello there, friend.", "Bye."])
+    assert refused == [0]
+    assert out == data
+
+
+def test_non_latin1_text_is_refused():
+    data = dialogue("Hello.", "Bye.")
+    out, refused = psx_text.write(data, ["Привіт", "Bye."])
+    assert refused == [0] and out == data
+
+
+def test_battle_write_keeps_the_record_separators():
+    names = [f"Item{i:02d}" for i in range(13)]
+    data = chain(names)
+    out, refused = psx_text.write(data, ["Item00", "Itm"] + names[2:])
+    assert refused == []
+    assert out.count(b"\x00\x03") == len(names)
+    assert len(out) == len(data)
+    assert psx_text.battle_records(out)[1][1] == b"Itm" + b" " * 3
+
+
+@pytest.mark.skipif(not os.path.exists(REAL_IMG), reason="the owner's Grandia disc 1 is not on disk")
+def test_real_field_script_round_trips_byte_exact():
+    from core.containers.psx_disc import open_psx
+
+    image = open_psx(REAL_IMG.replace(".img", ".cue"))
+    data = image.read_file({f.path: f for f in image.files()}["FIELD/3034.MDP"])
+    image.stream.close()
+    texts, _ = psx_text.blocks(data)
+    assert len(texts) > 100
+    out, refused = psx_text.write(data, texts)
+    assert out == data and refused == []
+
+
+def test_plugin_loads_and_saves_dialogue_through_the_bounded_writer():
+    from plugins.grandia.rules import GameRules
+
+    rules = GameRules()
+    data = dialogue("Hello there.", "Bye now.")
+    texts, names = rules.load_data_from_json_obj(data)
+    assert texts[0] == ["Hello there.", "Bye now."]
+    assert names["0"].startswith("dialogue")
+    out = rules.save_data_to_json_obj([["Hi.", "Bye now."]], names)
+    assert out == psx_text.write(data, ["Hi.", "Bye now."])[0]
+    assert len(out) == len(data)

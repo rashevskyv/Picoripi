@@ -125,7 +125,7 @@ class GameRules(BaseGameRules):
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Dict[str, str]]:
         if not isinstance(json_obj, (bytes, bytearray)):
             return super().load_data_from_json_obj(json_obj)
-        if psx_text.is_ps1_text(bytes(json_obj)):   # a PlayStation battle string table (read side only)
+        if psx_text.is_ps1_text(bytes(json_obj)):   # PlayStation dialogue or battle strings (bounded writer on save)
             self._psx_source = bytes(json_obj)
             texts, names = psx_text.blocks(self._psx_source)
             return [texts], names
@@ -146,10 +146,12 @@ class GameRules(BaseGameRules):
         self._save_source = versions[-1] if versions else None
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
-        if self._psx_source is not None:   # PlayStation text: writing is not built yet, the file stays as it was
-            if [str(t) for t in (data[0] if data else [])] != psx_text.blocks(self._psx_source)[0]:
-                log_warning("grandia: PlayStation text cannot be written yet; the file keeps its original text")
-            return self._psx_source
+        if self._psx_source is not None:   # PlayStation text: bounded writer, each text fits its original bytes
+            out, refused = psx_text.write(self._psx_source, [str(t) for t in (data[0] if data else [])])
+            if refused:
+                log_warning(f"grandia: {len(refused)} PlayStation text(s) are longer than the original or not Latin-1; "
+                            "they keep the original text")
+            return out
         source = self._save_source if self._save_source is not None else self._last_loaded
         if source is None:
             return super().save_data_to_json_obj(data, block_names)
