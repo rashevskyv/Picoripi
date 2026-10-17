@@ -6,11 +6,13 @@ import struct
 
 import pytest
 
+import romhacking_root
+
 from core.containers import afs
 from core.containers.afs import AfsError
 from core.containers.gdrom import GdRomImage, GdRomStream
 
-REAL_CUE = r"E:\Emulators\RomHacking\Grandia\Grandia II\Dreamcast\ISO\Grandia II (USA).cue"
+REAL_CUE = romhacking_root.under(r"Grandia\Grandia II\Dreamcast\ISO\Grandia II (USA).cue")
 
 
 def make_afs(payloads, first=0x800, trailer=b""):

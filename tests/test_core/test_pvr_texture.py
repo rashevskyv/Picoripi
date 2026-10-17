@@ -4,13 +4,15 @@ import os
 import struct
 
 import pytest
+
+import romhacking_root
 from PIL import Image
 
 from core.containers import afs
 from core.containers.gdrom import GdRomImage, GdRomStream
 from core.texture_formats import pvr, read, write
 
-REAL_CUE = r"E:\Emulators\RomHacking\Grandia\Grandia II\Dreamcast\ISO\Grandia II (USA).cue"
+REAL_CUE = romhacking_root.under(r"Grandia\Grandia II\Dreamcast\ISO\Grandia II (USA).cue")
 
 
 def pvr_block(width, height, fmt=0, dtype=1, texels=None):

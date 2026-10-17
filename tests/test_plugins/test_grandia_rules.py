@@ -6,12 +6,14 @@ import os
 
 import pytest
 
+import romhacking_root
+
 from core.containers import afs
 from plugins.grandia import archive, text
 from plugins.grandia.rules import REF_NAME, GameRules
 from test_core.test_afs_container import make_afs
 
-REAL_CUE = r"E:\Emulators\RomHacking\Grandia\Grandia II\Dreamcast\ISO\Grandia II (USA).cue"
+REAL_CUE = romhacking_root.under(r"Grandia\Grandia II\Dreamcast\ISO\Grandia II (USA).cue")
 
 
 class _Context:

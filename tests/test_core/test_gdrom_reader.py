@@ -5,11 +5,13 @@ import struct
 
 import pytest
 
+import romhacking_root
+
 from core.containers.gdrom import HD_BASE, SECTOR, GdRomImage, GdRomStream
 from core.containers.image_files import ImageError
 
 RAW = 2352
-REAL_CUE = r"E:\Emulators\RomHacking\Grandia\Grandia II\Dreamcast\ISO\Grandia II (USA).cue"
+REAL_CUE = romhacking_root.under(r"Grandia\Grandia II\Dreamcast\ISO\Grandia II (USA).cue")
 
 
 def raw_sector(user: bytes = b"") -> bytes:
@@ -157,7 +159,7 @@ def test_a_disc_without_a_volume_is_refused(tmp_path):
         GdRomImage(stream)
 
 
-REAL_SOA_CUE = r"E:\Emulators\RomHacking\Skies of Arcadia\Skies of Arcadia\Dreamcast\ISO\Skies of Arcadia (USA) (Disc 1).cue"
+REAL_SOA_CUE = romhacking_root.under(r"Skies of Arcadia\Skies of Arcadia\Dreamcast\ISO\Skies of Arcadia (USA) (Disc 1).cue")
 
 
 @pytest.mark.skipif(not os.path.isfile(REAL_SOA_CUE), reason="the owner's Skies of Arcadia disc 1 is not on disk")

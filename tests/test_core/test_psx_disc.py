@@ -4,6 +4,8 @@ import struct
 
 import pytest
 
+import romhacking_root
+
 from core.containers.image_files import ImageError
 from core.containers.psx_disc import XA_INTERLEAVED, identify_psx, open_psx, product_code
 
@@ -118,7 +120,7 @@ def test_product_code_form(boot, code):
     assert product_code(boot) == code
 
 
-REAL_CUE = r"E:\Emulators\RomHacking\Grandia\Grandia\PlayStation\ISO\Grandia disc 1.cue"
+REAL_CUE = romhacking_root.under(r"Grandia\Grandia\PlayStation\ISO\Grandia disc 1.cue")
 
 
 @pytest.mark.skipif(not __import__("os").path.exists(REAL_CUE), reason="the owner's Grandia disc 1 is not on disk")

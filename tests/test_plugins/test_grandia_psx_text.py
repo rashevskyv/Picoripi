@@ -6,9 +6,11 @@ from pathlib import Path
 
 import pytest
 
+import romhacking_root
+
 from plugins.grandia import psx_text
 
-REAL_IMG = r"D:\RomHacking_tmp\grandia-ps1\psx\disc1\Grandia disc 1.img"
+REAL_IMG = romhacking_root.under(r"Grandia\Grandia\PlayStation\ISO\Grandia disc 1.img")
 SPEAKER_SEQ = b"\x0f\x03\x0a\x0c\x00"
 CONFIG = Path(__file__).resolve().parents[2] / "plugins" / "grandia" / "config.json"
 
@@ -127,7 +129,7 @@ def test_config_aliases_name_real_tags():
 def test_real_battle_file_has_the_party_chain():
     from core.containers.psx_disc import open_psx
 
-    image = open_psx(REAL_IMG.replace(".img", ".cue"))
+    image = open_psx(str(REAL_IMG).replace(".img", ".cue"))
     entry = {f.path: f for f in image.files()}["BATLE/B001.BBG"]
     data = image.read_file(entry)
     texts = [text for _, text in psx_text.battle_records(data)]
@@ -139,7 +141,7 @@ def test_real_battle_file_has_the_party_chain():
 def test_real_field_script_round_trips_byte_exact():
     from core.containers.psx_disc import open_psx
 
-    image = open_psx(REAL_IMG.replace(".img", ".cue"))
+    image = open_psx(str(REAL_IMG).replace(".img", ".cue"))
     data = image.read_file({f.path: f for f in image.files()}["FIELD/3034.MDP"])
     image.stream.close()
     texts, _ = psx_text.blocks(data)

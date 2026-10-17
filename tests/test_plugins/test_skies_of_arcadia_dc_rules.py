@@ -6,13 +6,14 @@ import struct
 
 import pytest
 
+import romhacking_root
+
 from core.containers.gdrom import HD_BASE, SECTOR
 from core.project_library import images
 from plugins.skies_of_arcadia import scripts
 from plugins.skies_of_arcadia_dc.rules import GameRules
 
-REAL_USA_CUE = (r"E:\Emulators\RomHacking\Skies of Arcadia\Skies of Arcadia\Dreamcast\ISO"
-                r"\Skies of Arcadia (USA) (Disc 1).cue")
+REAL_USA_CUE = romhacking_root.under(r"Skies of Arcadia\Skies of Arcadia\Dreamcast\ISO\Skies of Arcadia (USA) (Disc 1).cue")
 SCRIPT_BODY = b"\\h(\x81sAlfonso\x81t)Hello there\\c" + b"\x00" * 2 + b"\\h(Bye\\e" + b"\x00" * 2
 
 
