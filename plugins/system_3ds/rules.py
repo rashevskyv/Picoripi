@@ -25,10 +25,12 @@ from json.decoder import scanstring
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple
 
+from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
 from plugins.common.problem_analyzer import GenericProblemAnalyzer
 from plugins.manual_3ds import layout as manual_layout
 
+from . import build_mod
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS, WIDTH_PROBLEM
 
 _DATA_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -186,6 +188,24 @@ class GameRules(BaseGameRules):
 
     def get_display_name(self) -> str:
         return "Nintendo 3DS system (Ukrainian)"
+
+    def get_platforms(self) -> list:
+        return [{"id": "3ds", "label": tr("Nintendo 3DS")}]
+
+    def get_build_targets(self) -> list:
+        return [
+            {"id": "build-ru", "label": tr("3DS mod over the Russian slot (dist/)"), "platforms": ["3ds"],
+             "kind": "layeredfs"},
+            {"id": "build-en", "label": tr("3DS mod over the English slot (dist_en/)"), "platforms": ["3ds"],
+             "kind": "layeredfs"},
+        ]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress, is_cancelled) -> str:
+        """The owner's Makefile runs on a staged copy (plugins/system_3ds/build_mod.py)."""
+        if target_id not in build_mod.TARGET_DIRS:
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        return str(build_mod.build(source_dir, translation_dir, target_id, output_dir, progress, is_cancelled))
 
     def get_file_formats(self) -> list:
         from core.formats import FileFormat

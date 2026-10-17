@@ -2776,5 +2776,13 @@
   "Data too short to be Yaz0": "Дані занадто короткі для Yaz0",
   "Invalid Yaz0 magic: {0!r}": "Неправильна магія Yaz0: {0!r}",
   "The folder is not empty: {0}": "Тека не порожня: {0}",
-  "the Oodle library cannot be used: {0}": "бібліотеку Oodle не вдалося використати: {0}"
+  "the Oodle library cannot be used: {0}": "бібліотеку Oodle не вдалося використати: {0}",
+  "3DS mod over the Russian slot (dist/)": "Мод 3DS поверх російського слота (dist/)",
+  "3DS mod over the English slot (dist_en/)": "Мод 3DS поверх англійського слота (dist_en/)",
+  "Copying the source for the build": "Копіювання джерела для збирання",
+  "Running make {0}": "Запуск make {0}",
+  "GNU make is needed to build this mod. Install it (scoop install make) and put it on PATH.": "Для збирання моду потрібен GNU make. Встановіть його (scoop install make) і додайте до PATH.",
+  "The 3DS repo folder has no {0}: {1}": "У теці репозиторію 3DS немає {0}: {1}",
+  "Unknown build target: {0}": "Невідома ціль збирання: {0}",
+  "The build stopped with exit code {0}. Last lines:\n{1}": "Збирання зупинилося з кодом {0}. Останні рядки:\n{1}"
 }
