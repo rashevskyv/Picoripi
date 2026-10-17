@@ -9,6 +9,7 @@ import os
 from typing import Callable, Dict, Any, Tuple, Set, Optional, List
 from collections import OrderedDict
 from plugins.base_game_rules import BaseGameRules
+from plugins.common.block_loader import ReadThrough, rescan_block, source_of
 from .config import (
     PROBLEM_DEFINITIONS,
     PROBLEM_WIDTH_EXCEEDED,
@@ -31,7 +32,6 @@ from .rom_text import CodecError
 from .problem_analyzer import ProblemAnalyzer
 from .text_fixer import TextFixer
 from utils.logging_utils import log_debug
-from utils.thread_utils import WorkerThread
 from utils.utils import convert_spaces_to_dots_for_display
 
 class ProblemIDs:
@@ -52,21 +52,37 @@ def _config_aliases() -> Dict[str, str]:
         return dict(json.load(handle).get("default_tag_mappings") or {})
 
 
-class _BudgetLoader(WorkerThread):
-    """Reads the budgets of a project made before meta.json held them. The result goes to the rules' cache."""
+def _pret_file(rel: str, path: Any) -> Tuple[list, Dict[str, list], Dict[str, list]]:
+    """``(units, scripts of each label, speakers of each script)`` of a pret source file and the files beside it.
+    Reads the disk: called from a worker (plugins/common/block_loader.py)."""
+    with open(path, encoding="utf-8", errors="surrogateescape") as stream:
+        text = stream.read()
+    units = pret_text.parse_file(text, rel)
+    scripts: Dict[str, list] = {}
+    if pret_text.is_asm(rel):
+        labels = [unit.label for unit in units if unit.label]
+        sibling = os.path.join(os.path.dirname(path), "scripts.inc")
+        if not os.path.isfile(sibling):
+            sibling += ".ctx"      # kept by the unpack when the map's scripts hold no text themselves
+        if os.path.basename(path) != "scripts.inc" and os.path.isfile(sibling):
+            with open(sibling, encoding="utf-8", errors="surrogateescape") as stream:
+                scripts = pret_text.references(stream.read(), labels)
+        else:
+            scripts = pret_text.references(text, labels)
+    people: Dict[str, list] = {}
+    map_json = os.path.join(os.path.dirname(path), "map.json")
+    if scripts and os.path.isfile(map_json):
+        with open(map_json, encoding="utf-8", errors="replace") as stream:
+            people = pret_context.speakers_of_scripts(stream.read())
+    return units, scripts, people
 
-    def __init__(self, text_dir: str, done: Callable[[str, Any], None]):
-        super().__init__()
-        self._text_dir = text_dir
-        self._done = done
 
-    def run(self) -> None:
-        try:
-            result = rom_project.old_project_budgets(self._text_dir)
-        except (OSError, ValueError, KeyError) as error:
-            log_debug(f"pokemon_fr: no byte budgets for {self._text_dir}: {error}")
-            result = None
-        self._done(self._text_dir, result)
+def _budgets_in(text_dir: str) -> Optional[Tuple[Dict[str, int], Any]]:
+    """The budgets of a ROM text folder: its meta.json, else an old project's source. Reads the disk: called from a worker."""
+    if not rom_project.is_rom_project(text_dir):
+        return None
+    ready = rom_project.meta_budgets(text_dir)
+    return ready if ready is not None else rom_project.old_project_budgets(text_dir)
 
 
 class GameRules(BaseGameRules):
@@ -89,10 +105,10 @@ class GameRules(BaseGameRules):
         # pret decompilation source files: the text of the file loaded last and the one a save writes over
         self._pret_loaded: Optional[str] = None
         self._pret_source: Optional[str] = None
-        self._pret_cache: Dict[str, Tuple[int, list, Dict[str, list], Dict[str, list]]] = {}
-        # The fixed name fields of each project's text folder (None outside a ROM project).
-        self._budget_cache: Dict[str, Any] = {}
-        self._budget_loading: Set[str] = set()
+        # Read off the UI thread (plugins/common/block_loader.py): a block's pret source and the fixed name fields of its
+        # ROM project (None outside a ROM project).
+        self._pret = ReadThrough("pokemon_fr pret", lambda block_idx: rescan_block(self.mw, block_idx))
+        self._budgets = ReadThrough("pokemon_fr budgets", lambda block_idx: rescan_block(self.mw, block_idx))
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
@@ -124,7 +140,8 @@ class GameRules(BaseGameRules):
         self.original_block_names = []
         self._pret_loaded = None
         self._pret_source = None
-        self._budget_cache.clear()
+        self._pret.clear()
+        self._budgets.clear()
 
     def prepare_save_context(self, context: Any) -> None:
         """Narrow the keys to the blocks that go into the file being saved."""
@@ -243,63 +260,27 @@ class GameRules(BaseGameRules):
 
     # -- context from the decompilation ---------------------------------------------------
 
-    def _block_file(self, block_idx: int) -> Optional[Tuple[str, str]]:
-        """``(relative path, absolute path)`` of the source file of a block."""
-        try:
-            pm = getattr(self.mw, "project_manager", None)
-            project = getattr(pm, "project", None) if pm else None
-            if project is None:
-                return None
-            block_map = getattr(self.mw, "block_to_project_file_map", {}) or {}
-            index = block_map.get(block_idx, block_idx)
-            if not isinstance(index, int) or not 0 <= index < len(project.blocks):
-                return None
-            rel = project.blocks[index].source_file
-            path = pm.get_absolute_path(rel)
-            return (rel.replace("\\", "/"), path) if path and os.path.isfile(path) else None
-        except Exception as error:  # noqa: BLE001 - context is optional
-            log_debug(f"[PokemonFR Plugin] no file for block {block_idx}: {error}")
-            return None
+    def _block_file(self, block_idx: int) -> Optional[Tuple[str, Any]]:
+        """``(relative path, absolute path)`` of the source file of a block, from the open project."""
+        return source_of(self.mw, block_idx)
 
     def _pret_unit(self, block_idx: int, string_idx: int):
-        """``(relative path, unit or None, scripts of the text, speakers of the text)``."""
+        """``(relative path, unit or None, scripts of the text, speakers of the text)``, from memory (read off the UI thread)."""
         found = self._block_file(block_idx)
         if not found or not found[0].lower().endswith(pret_text.SUFFIXES):
             return "", None, [], []
         rel, path = found
-        stamp = os.stat(path).st_mtime_ns
-        cached = self._pret_cache.get(path)
-        if cached is None or cached[0] != stamp:
-            with open(path, encoding="utf-8", errors="surrogateescape") as stream:
-                text = stream.read()
-            asm = pret_text.is_asm(rel)
-            units = pret_text.parse_file(text, rel)
-            scripts = {}
-            if asm:
-                labels = [unit.label for unit in units if unit.label]
-                sibling = os.path.join(os.path.dirname(path), "scripts.inc")
-                if not os.path.isfile(sibling):
-                    sibling += ".ctx"      # kept by the unpack when the map's scripts hold no text themselves
-                if os.path.basename(path) != "scripts.inc" and os.path.isfile(sibling):
-                    with open(sibling, encoding="utf-8", errors="surrogateescape") as stream:
-                        scripts = pret_text.references(stream.read(), labels)
-                else:
-                    scripts = pret_text.references(text, labels)
-            people: Dict[str, list] = {}
-            map_json = os.path.join(os.path.dirname(path), "map.json")
-            if scripts and os.path.isfile(map_json):
-                with open(map_json, encoding="utf-8", errors="replace") as stream:
-                    people = pret_context.speakers_of_scripts(stream.read())
-            cached = (stamp, units, scripts, people)
-            self._pret_cache[path] = cached
-        units = cached[1]
+        parsed = self._pret.get(block_idx, lambda: _pret_file(rel, path))
+        if parsed is None:
+            return rel, None, [], []
+        units, scripts_of_label, people = parsed
         if not 0 <= int(string_idx) < len(units):
             return rel, None, [], []
         unit = units[int(string_idx)]
-        scripts = cached[2].get(unit.label, [])
+        scripts = scripts_of_label.get(unit.label, [])
         speakers: List[str] = []
         for script in scripts:
-            for who in cached[3].get(script, []):
+            for who in people.get(script, []):
                 if who not in speakers:
                     speakers.append(who)
         return rel, unit, scripts, speakers
@@ -434,28 +415,14 @@ class GameRules(BaseGameRules):
             raise ValueError(f"Unknown build target: {target_id}")
         return rom_project.build(source_dir, translation_dir, output_dir, progress, is_cancelled)
 
-    def _budgets_of(self, text_dir: str) -> Optional[Tuple[Dict[str, int], Any]]:
-        """The budgets of a text folder. Read from meta.json (small); an old project is read once in a worker.
-
-        Until that worker ends, its folder has no budget, so the check answers False for it.
-        """
-        if text_dir in self._budget_cache:
-            return self._budget_cache[text_dir]
-        if not rom_project.is_rom_project(text_dir):
-            self._budget_cache[text_dir] = None
+    def _budgets_of(self, block_idx: int) -> Optional[Tuple[Dict[str, int], Any]]:
+        """The budgets of a block's text folder, from memory. Read off the UI thread once per block (an old project's
+        budgets are read there too); until then the check answers False for it."""
+        found = self._block_file(block_idx)
+        if not found:
             return None
-        ready = rom_project.meta_budgets(text_dir)
-        if ready is not None:
-            self._budget_cache[text_dir] = ready
-            return ready
-        if text_dir not in self._budget_loading:
-            self._budget_loading.add(text_dir)
-            _BudgetLoader(text_dir, self._budget_loaded).start()
-        return None
-
-    def _budget_loaded(self, text_dir: str, result: Any) -> None:
-        self._budget_cache[text_dir] = result
-        self._budget_loading.discard(text_dir)
+        text_dir = os.path.dirname(found[1])
+        return self._budgets.get(block_idx, lambda: _budgets_in(text_dir))
 
     def exceeds_byte_budget(self, block_idx: int, string_idx: int, text: str) -> bool:
         """True when a fixed name field of the ROM (a C-built table entry) cannot hold this text.
@@ -465,7 +432,7 @@ class GameRules(BaseGameRules):
         block = self._block_file(block_idx)
         if not block:
             return False
-        budgets = self._budgets_of(os.path.dirname(block[1]))
+        budgets = self._budgets_of(block_idx)
         if budgets is None:
             return False
         sizes, charmap = budgets

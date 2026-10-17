@@ -21,6 +21,7 @@ from core.i18n import tr
 from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
 from plugins.common import message_window
+from plugins.common.block_loader import ReadThrough, rescan_block, source_of
 from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
 
@@ -50,7 +51,7 @@ class GameRules(BaseGameRules):
         self._game_name: Optional[str] = None
         self._save_source: Optional[bytes] = None
         self._last_loaded: Optional[bytes] = None
-        self._attributes: Dict[int, Optional[List[Dict[str, str]]]] = {}
+        self._attributes = ReadThrough(f"{PLUGIN_PREFIX} message", lambda block_idx: rescan_block(self.mw, block_idx))
         self._window_fonts = message_window.WindowFonts()
 
     def get_display_name(self) -> str:
@@ -167,17 +168,12 @@ class GameRules(BaseGameRules):
     # -- context ----------------------------------------------------------------
 
     def get_message_attributes(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
-        if block_idx not in self._attributes:
-            found = None
-            try:
-                pm = self.mw.project_manager
-                block_map = getattr(self.mw, "block_to_project_file_map", None) or {}
-                block = pm.project.blocks[block_map.get(block_idx, block_idx)]
-                found = message.attributes(Path(pm.get_absolute_path(block.source_file)).read_bytes())
-            except (AttributeError, IndexError, KeyError, OSError, TypeError, ValueError) as error:
-                log_debug(f"pokemon_md_3ds: no message file behind block {block_idx}: {error}")
-            self._attributes[block_idx] = found
-        found = self._attributes[block_idx]
+        """The line's attributes, from memory: the message file is read off the UI thread (block_loader)."""
+        source = source_of(self.mw, block_idx)
+        if source is None:
+            return None
+        path = source[1]
+        found = self._attributes.get(block_idx, lambda: message.attributes(path.read_bytes()))
         if not found or int(string_idx) >= len(found):
             return None
         return dict(found[int(string_idx)])

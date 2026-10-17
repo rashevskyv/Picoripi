@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from plugins.base_game_rules import BaseGameRules
-from utils.logging_utils import log_debug
+from plugins.common.block_loader import ReadThrough, rescan_block, source_of
 from utils.utils import clean_spaces
 
 from . import pret_context, pret_text
@@ -66,6 +66,24 @@ def _macro_of(token: pret_text.Token) -> Tuple[str, str]:
     return word, args.strip()
 
 
+def _parse_text(rel: str, path: str) -> Tuple[List[pret_text.Unit], Dict[str, Dict[str, List[str]]]]:
+    """``(units, context of the map)`` of a text file. Reads the disk: called from a worker."""
+    with open(path, encoding="utf-8") as stream:
+        text = stream.read()
+    units = pret_text.parse(text)
+    context = pret_context.map_context(text, {u.label for u in units}) if rel.startswith("maps/") else {}
+    return units, context
+
+
+def _budgets_near(source: Path) -> Optional[Tuple[Dict[str, int], rom_text.Names]]:
+    """The budgets of the rom/meta.json a few folders above a text file (None when there is none). Called from a worker."""
+    for folder in list(source.parents)[:4]:
+        candidate = folder / rom_project.ROM_DIR / "meta.json"
+        if candidate.is_file():
+            return rom_project.read_budgets(str(candidate))
+    return None
+
+
 class GameRules(BaseGameRules):
     """Pokémon Gold / Silver / Crystal (GBC), pret decompilations."""
 
@@ -82,8 +100,9 @@ class GameRules(BaseGameRules):
         super().__init__(main_window_ref)
         self._save_source: Optional[str] = None
         self._last_loaded: Optional[str] = None
-        self._file_cache: Dict[str, Tuple[int, List[pret_text.Unit], Dict[str, Dict[str, List[str]]]]] = {}
-        self._budget_cache: Dict[str, Any] = {}
+        # Read off the UI thread (plugins/common/block_loader.py): a block's text units and its ROM budgets.
+        self._texts = ReadThrough("pokemon_gsc text", lambda block_idx: rescan_block(self.mw, block_idx))
+        self._budgets = ReadThrough("pokemon_gsc budgets", lambda block_idx: rescan_block(self.mw, block_idx))
 
     def get_display_name(self) -> str:
         return self.game_name
@@ -122,58 +141,49 @@ class GameRules(BaseGameRules):
 
     # -- context from the decompilation ---------------------------------------------------
 
-    def _block_file(self, block_idx: int) -> Optional[Tuple[str, str]]:
-        """``(relative path, absolute path)`` of the source file of a block."""
-        try:
-            pm = getattr(self.mw, "project_manager", None)
-            project = getattr(pm, "project", None) if pm else None
-            if project is None:
-                return None
-            block_map = getattr(self.mw, "block_to_project_file_map", {}) or {}
-            index = block_map.get(block_idx, block_idx)
-            if not isinstance(index, int) or not 0 <= index < len(project.blocks):
-                return None
-            rel = project.blocks[index].source_file
-            path = pm.get_absolute_path(rel)
-            return (rel.replace("\\", "/"), path) if path and os.path.isfile(path) else None
-        except Exception as error:  # noqa: BLE001 - context is optional
-            log_debug(f"pokemon_gsc: no file for block {block_idx}: {error}")
+    def _block_file(self, block_idx: int) -> Optional[Tuple[str, Path]]:
+        """``(relative path, absolute path)`` of the source file of a block, from the open project."""
+        return source_of(self.mw, block_idx)
+
+    def _parsed(self, block_idx: int) -> Optional[Tuple[List[pret_text.Unit], Dict[str, Dict[str, List[str]]]]]:
+        """``(units, context of the map)`` of a block's text file, from memory; None until it is read or without a file.
+
+        ponytail: cached until the project state is reset, as the Gen 1 rules do; the old per-call mtime check is a disk stat.
+        """
+        found = self._block_file(block_idx)
+        if not found:
             return None
+        rel, path = found
+        return self._texts.get(block_idx, lambda: _parse_text(rel, path))
 
     def _unit(self, block_idx: int, string_idx: int) -> Tuple[str, Optional[pret_text.Unit], Dict[str, List[str]]]:
         found = self._block_file(block_idx)
         if not found:
             return "", None, {}
-        rel, path = found
-        stamp = os.stat(path).st_mtime_ns
-        cached = self._file_cache.get(path)
-        if cached is None or cached[0] != stamp:
-            with open(path, encoding="utf-8") as stream:
-                text = stream.read()
-            units = pret_text.parse(text)
-            context = pret_context.map_context(text, {u.label for u in units}) if rel.startswith("maps/") else {}
-            cached = (stamp, units, context)
-            self._file_cache[path] = cached
-        units = cached[1]
+        rel = found[0]
+        parsed = self._parsed(block_idx)
+        if parsed is None:
+            return rel, None, {}
+        units, context = parsed
         if not 0 <= int(string_idx) < len(units):
             return rel, None, {}
         unit = units[int(string_idx)]
-        return rel, unit, cached[2].get(unit.label, {})
+        return rel, unit, context.get(unit.label, {})
 
     # -- byte budgets (a field the ROM keeps in place) -----------------------------------------------
 
     def reset_runtime_state(self) -> None:
         super().reset_runtime_state()
-        self._budget_cache.clear()
+        self._texts.clear()
+        self._budgets.clear()
 
-    def _budget_data(self, path: str) -> Optional[Tuple[Dict[str, int], rom_text.Names]]:
-        """The budgets and names of the ROM project a text file belongs to. Looked up once per text file (the file
-        stats and the small meta.json read happen then, not on every edit); cleared with the other per-project state."""
-        if path not in self._budget_cache:
-            meta = next((str(folder / rom_project.ROM_DIR / "meta.json") for folder in list(Path(path).parents)[:4]
-                         if (folder / rom_project.ROM_DIR / "meta.json").is_file()), "")
-            self._budget_cache[path] = rom_project.read_budgets(meta) if meta else None
-        return self._budget_cache[path]
+    def _budget_data(self, block_idx: int) -> Optional[Tuple[Dict[str, int], rom_text.Names]]:
+        """The budgets and names of the ROM project a block's text file belongs to, from memory (read off the UI thread)."""
+        found = self._block_file(block_idx)
+        if not found:
+            return None
+        path = Path(found[1])
+        return self._budgets.get(block_idx, lambda: _budgets_near(path))
 
     def exceeds_byte_budget(self, block_idx: int, string_idx: int, text: str) -> bool:
         """True when a field the ROM keeps in place cannot hold this text. Keys are ``label#k`` (see the Gen 1 rules).
@@ -181,15 +191,15 @@ class GameRules(BaseGameRules):
         A plain body has a budget only when it holds one unit, the same rule the unpack applies.
         """
         _rel, unit, _context = self._unit(block_idx, string_idx)
-        found = self._block_file(block_idx)
-        if unit is None or not unit.label or not found:
+        parsed = self._parsed(block_idx)
+        if unit is None or not unit.label or parsed is None:
             return False
-        units = self._file_cache[found[1]][1]
+        units = parsed[0]
         same_label = [other for other in units if other.label == unit.label]
         if unit.kind != pret_text.LITERAL_KIND and len(same_label) != 1:
             return False
         ordinal = sum(1 for earlier in units[:int(string_idx)] if earlier.label == unit.label)
-        data = self._budget_data(found[1])
+        data = self._budget_data(block_idx)
         if data is None:
             return False
         budgets, names = data

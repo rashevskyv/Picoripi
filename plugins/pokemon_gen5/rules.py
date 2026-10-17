@@ -22,6 +22,7 @@ from core.i18n import tr
 from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
 from plugins.common import gen5msg, nds_build
+from plugins.common.block_loader import ReadThrough, rescan_block, source_of
 from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
 
@@ -68,7 +69,7 @@ class GameRules(BaseGameRules):
         super().__init__(main_window_ref)
         ContainerManager.register(NarcContainer)     # the font and picture archives (Font Editor, Textures)
         self._file: Optional[bytes] = None        # the message file a save writes over (line flags, packing)
-        self._located: Dict[int, Optional[Tuple[str, bytes]]] = {}
+        self._located = ReadThrough("pokemon_gen5 message", lambda block_idx: rescan_block(self.mw, block_idx))
         self._windows: Dict[str, Optional[message_preview.Resolved]] = {}   # source folder -> facts (None: none)
         self._resolvers: Dict[str, message_preview.WindowResolver] = {}     # one read per source folder
 
@@ -150,20 +151,12 @@ class GameRules(BaseGameRules):
     # -- where a block comes from ------------------------------------------------
 
     def _locate(self, block_idx: int) -> Optional[Tuple[str, bytes]]:
-        """``(relative path, file bytes)`` of a data block; cached per load."""
-        if block_idx in self._located:
-            return self._located[block_idx]
-        found = None
-        try:
-            pm = getattr(self.mw, "project_manager", None)
-            block_map = getattr(self.mw, "block_to_project_file_map", None) or {}
-            block = pm.project.blocks[block_map.get(block_idx, block_idx)]
-            path = Path(pm.get_absolute_path(block.source_file))
-            found = (str(block.source_file).replace("\\", "/"), path.read_bytes())
-        except (AttributeError, IndexError, KeyError, OSError, TypeError, ValueError) as error:
-            log_debug(f"{_PLUGIN}: no message file behind block {block_idx}: {error}")
-        self._located[block_idx] = found
-        return found
+        """``(relative path, file bytes)`` of a data block, from memory (read off the UI thread, block_loader)."""
+        source = source_of(self.mw, block_idx)
+        if source is None:
+            return None
+        rel, path = source
+        return self._located.get(block_idx, lambda: (rel, path.read_bytes()))
 
     @staticmethod
     def _table(data: bytes) -> Optional[Tuple[str, str, str]]:

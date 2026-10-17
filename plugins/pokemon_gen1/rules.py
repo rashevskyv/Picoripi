@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from plugins.base_game_rules import BaseGameRules
-from utils.logging_utils import log_debug, log_warning
+from plugins.common.block_loader import ReadThrough, rescan_block, source_of
 from utils.utils import clean_spaces
 
 from . import asm_text, rom_project, rom_text
@@ -54,6 +54,29 @@ def text_width(text: str) -> int:
     return widest * CHAR_WIDTH
 
 
+# The disk reads of this plugin. They run in a worker (plugins/common/block_loader.py), never on the UI thread.
+
+def _asm_units(rel: str, path: Path) -> Tuple[str, List[asm_text.Unit]]:
+    return rel, asm_text.parse(path.read_text("utf-8"))[1]
+
+
+def _read_context(path: str) -> Dict[str, Any]:
+    """The context of the unpacked project (``picoripi/context.json``); {} when there is none."""
+    if not os.path.isfile(path):
+        return {}
+    with open(path, encoding="utf-8") as stream:
+        return json.load(stream)
+
+
+def _budgets_near(source: Path) -> Optional[Tuple[Dict[str, int], rom_text.Names]]:
+    """The budgets of the rom/meta.json a few folders above a block's text file (None when there is none)."""
+    for folder in list(source.parents)[:4]:
+        candidate = folder / rom_project.ROM_DIR / "meta.json"
+        if candidate.is_file():
+            return rom_project.read_budgets(str(candidate))
+    return None
+
+
 class GameRules(BaseGameRules):
     """Pokémon Red / Blue / Yellow, pret decomps."""
 
@@ -69,9 +92,10 @@ class GameRules(BaseGameRules):
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
         self._template: Optional[str] = None
-        self._files: Dict[int, Tuple[str, List[asm_text.Unit]]] = {}
-        self._context_cache: Optional[Tuple[str, Dict[str, Any]]] = None
-        self._budget_cache: Dict[int, Optional[Tuple[Dict[str, int], rom_text.Names]]] = {}
+        # Read off the UI thread (plugins/common/block_loader.py): a block's asm units, its ROM budgets, the context.
+        self._files = ReadThrough("pokemon_gen1 asm", lambda block_idx: rescan_block(self.mw, block_idx))
+        self._budgets = ReadThrough("pokemon_gen1 budgets", lambda block_idx: rescan_block(self.mw, block_idx))
+        self._contexts = ReadThrough("pokemon_gen1 context")
 
     def get_display_name(self) -> str:
         return self.game_name
@@ -115,8 +139,8 @@ class GameRules(BaseGameRules):
     def reset_runtime_state(self) -> None:
         self._template = None
         self._files.clear()
-        self._context_cache = None
-        self._budget_cache.clear()
+        self._contexts.clear()
+        self._budgets.clear()
 
     # -- where a string comes from -----------------------------------------------------------
 
@@ -124,21 +148,12 @@ class GameRules(BaseGameRules):
         return getattr(getattr(self, "mw", None), "project_manager", None)
 
     def _file(self, block_idx: int) -> Tuple[str, List[asm_text.Unit]]:
-        """``(path in the decomp, units)`` of a block's source file; cached until the next project load."""
-        if block_idx in self._files:
-            return self._files[block_idx]
-        found: Tuple[str, List[asm_text.Unit]] = ("", [])
-        try:
-            pm = self._project()
-            project_idx = (getattr(self.mw, "block_to_project_file_map", None) or {}).get(block_idx, block_idx)
-            block = pm.project.blocks[project_idx]
-            rel = str(block.source_file).replace("\\", "/")
-            if rel.endswith(".asm"):
-                found = (rel, asm_text.parse(Path(pm.get_absolute_path(block.source_file)).read_text("utf-8"))[1])
-        except (AttributeError, IndexError, KeyError, OSError, TypeError, ValueError) as error:
-            log_debug(f"pokemon_gen1: no asm behind block {block_idx}: {error}")
-        self._files[block_idx] = found
-        return found
+        """``(path in the decomp, units)`` of a block's source file, from memory; ``("", [])`` until it is read."""
+        source = source_of(self.mw, block_idx)
+        if source is None or not source[0].endswith(".asm"):
+            return "", []
+        rel, path = source
+        return self._files.get(block_idx, lambda: _asm_units(rel, path)) or ("", [])
 
     def _unit(self, block_idx: int, string_idx: int) -> Tuple[str, Optional[asm_text.Unit]]:
         rel, units = self._file(block_idx)
@@ -151,16 +166,9 @@ class GameRules(BaseGameRules):
         pm = self._project()
         project_dir = getattr(pm, "project_dir", None) or ""
         path = os.path.join(project_dir, "context.json") if project_dir else ""
-        if self._context_cache is None or self._context_cache[0] != path:
-            data: Dict[str, Any] = {}
-            if path and os.path.isfile(path):
-                try:
-                    with open(path, encoding="utf-8") as stream:
-                        data = json.load(stream)
-                except (OSError, ValueError) as error:
-                    log_warning(f"pokemon_gen1: cannot read {path}: {error}")
-            self._context_cache = (path, data)
-        return self._context_cache[1]
+        if not path:
+            return {}
+        return self._contexts.get(path, lambda: _read_context(path)) or {}
 
     def _label_context(self, block_idx: int, string_idx: int) -> Tuple[str, Optional[asm_text.Unit], Dict]:
         rel, unit = self._unit(block_idx, string_idx)
@@ -169,30 +177,13 @@ class GameRules(BaseGameRules):
 
     # -- byte budgets ----------------------------------------------------------------------------
 
-    def _meta_path(self, block_idx: int) -> str:
-        """The rom/meta.json of the unpacked tree the block's text file belongs to (searched a few folders up)."""
-        try:
-            pm = self._project()
-            project_idx = (getattr(self.mw, "block_to_project_file_map", None) or {}).get(block_idx, block_idx)
-            source = Path(pm.get_absolute_path(pm.project.blocks[project_idx].source_file))
-        except (AttributeError, IndexError, KeyError, OSError, TypeError, ValueError):
-            return ""
-        for folder in list(source.parents)[:4]:
-            candidate = folder / rom_project.ROM_DIR / "meta.json"
-            if candidate.is_file():
-                return str(candidate)
-        return ""
-
     def _budget_data(self, block_idx: int) -> Optional[Tuple[Dict[str, int], rom_text.Names]]:
-        """The budgets and names of the block's ROM project. Looked up once per block (the file stats and the small
-        meta.json read happen then, not on every edit); cleared with the other per-project state."""
-        if block_idx in self._budget_cache:
-            return self._budget_cache[block_idx]
-        path = self._meta_path(block_idx)
-        if not path:      # not cached: the project may not be loaded yet
+        """The budgets and names of the block's ROM project, from memory: the meta.json search and read run off the UI thread."""
+        source = source_of(self.mw, block_idx)
+        if source is None:
             return None
-        self._budget_cache[block_idx] = rom_project.read_budgets(path)
-        return self._budget_cache[block_idx]
+        path = source[1]
+        return self._budgets.get(block_idx, lambda: _budgets_near(path))
 
     def exceeds_byte_budget(self, block_idx: int, string_idx: int, text: str) -> bool:
         """True when a field the ROM keeps in place cannot hold this text.

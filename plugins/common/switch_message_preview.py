@@ -15,11 +15,11 @@ import json
 import threading
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QColor, QImage, QPainter
-from PyQt6.QtWidgets import QWidget
+from PyQt6.QtWidgets import QComboBox, QWidget
 
 from core.containers.sarc import Sarc
 from core.i18n import tr
@@ -33,6 +33,7 @@ from utils.thread_utils import WorkerThread, safe_shutdown_thread
 # the game's lines at the layout size; Rodin at 0.82 x the size gives the same widths, so the widths alone do not pick it.
 MESSAGE_FONTS = ("FOT-UDKakugoC80Pro-DB.otf", "FOT-RodinNTLGPro-DB.otf", "or_font.otf")
 _MARGIN = 10
+_BAR = 30                           # the height of the box switch above the drawn box
 WORKER_STOP_MS = 2000               # the bounded wait for the layout read when the widget is closed
 
 
@@ -52,6 +53,8 @@ class BoxSpec:
     fonts: Optional[Tuple[str, ...]] = None            # the font chain; None uses MESSAGE_FONTS
     shift_y: float = 0.0          # canvas px the game draws the box above its layout position (measured)
     font_px: Optional[float] = None  # glyph px the game draws when it differs from the layout's fontSize (measured)
+    speech: Optional[Dict[str, Any]] = None  # measured facts of a box with no layout archive (speech_layout); None: archive
+    label: str = ""               # the name the preview's box switch shows (an English source string, tr'd)
 
 
 # The text is drawn at each pane's own fontSize (the layout's value), unless the spec sets em_y. The font is UDKakugo;
@@ -86,7 +89,8 @@ ARCEUS_BATTLE_BOX = BoxSpec("bin/archive/appli/battle_menu_eng.gfpak.d/11_msg_sy
 # magnify 1, 1). Window frame: the first wnd1 holding both panes (W_shadow_00). NOT MEASURED: the glyph height is drawn
 # at the layout size (no em_y); check against a frame before trusting the wrap or the box position.
 ZA_FIELD_BOX = BoxSpec("ui/data/msg/msg_body_00.arc", "blyt/msg_00.bflyt", "fcpx/system42_jpn.bfcpx", "ui/font/bin",
-                       offset=(0.0, -370.0), panes=("T_00", "T_01"), fonts=("or_font.otf", "FOT-RodinNTLGPro-DB.otf"))
+                       offset=(0.0, -370.0), panes=("T_00", "T_01"), fonts=("or_font.otf", "FOT-RodinNTLGPro-DB.otf"),
+                       label="Field dialogue box")
 
 
 def source_folder(project_dir: str) -> Optional[str]:
@@ -147,6 +151,32 @@ def placed(layout: fm.MessageLayout, spec: BoxSpec) -> fm.MessageLayout:
     return replace(layout, panes=panes, window=window)
 
 
+def speech_layout(facts: Dict[str, Any], chain: fm.FontChain) -> fm.MessageLayout:
+    """A speech bubble as a message layout, from its measured facts (the plugin config's ``speech_bubble``).
+
+    Each line is one text pane at its measured pen x and baseline (canvas px). The glyphs are ``em_y`` high and
+    ``x_size`` wide (drawn by ``render_window(em_y=...)``). The pane width is the wrap width. The box is the window.
+    """
+    em_y = float(facts["em_y"])
+    ascent = chain.faces[0].ascent(em_y) if chain.faces else 0.0
+    colour = (*(int(v) for v in facts["colour"]), 255)
+    wrap = float(facts["wrap_width"])
+    panes = []
+    for index, line in enumerate(facts["lines"]):
+        left = float(line["pen_x"])
+        top = float(line["baseline_y"]) - ascent
+        panes.append(fm.TextPane(f"speech_{index}", (left, top, left + wrap, top + em_y), 0, 0,
+                                 (float(facts["x_size"]), em_y), 0.0, 0.0, 0, 0, colour))
+    canvas = tuple(float(v) for v in facts["canvas"])
+    return fm.MessageLayout(canvas, tuple(float(v) for v in facts["box"]), panes, list(facts.get("fonts", [])))
+
+
+def speech_spec(facts: Dict[str, Any], label: str = "Speech bubble") -> BoxSpec:
+    """The BoxSpec of a box given by measured or layout-derived facts: its font folder and chain, glyph height, background."""
+    return BoxSpec(arc="", member="", fcpx="", font_dir=facts["font_dir"], background=tuple(facts["background"]),
+                   em_y=float(facts["em_y"]), fonts=tuple(facts["fonts"]), speech=facts, label=label)
+
+
 class LayoutLoader(WorkerThread):
     """Reads one box's layout and fonts. ``loaded`` carries ``(project folder, (layout, chain) or None)``."""
 
@@ -169,24 +199,30 @@ class LayoutLoader(WorkerThread):
             if not self._source_dir:
                 raise FileNotFoundError("the project file has no source folder")
             root = Path(self._source_dir)
-            arc = Sarc((root / self._spec.arc).read_bytes())
-            layout = placed(fm.read_layout(arc.files[self._spec.member], arc.files[self._spec.fcpx],
-                                           self._spec.offset, self._spec.panes), self._spec)
             faces = [fm.Face.from_bfotf(path.read_bytes())
                      for path in font_files(root / self._spec.font_dir, self._spec.fonts or MESSAGE_FONTS)]
-            result = (layout, fm.FontChain(faces))
+            chain = fm.FontChain(faces)
+            if self._spec.speech is not None:
+                layout = speech_layout(self._spec.speech, chain)
+            else:
+                arc = Sarc((root / self._spec.arc).read_bytes())
+                layout = placed(fm.read_layout(arc.files[self._spec.member], arc.files[self._spec.fcpx],
+                                               self._spec.offset, self._spec.panes), self._spec)
+            result = (layout, chain)
         except (OSError, ValueError, KeyError, IndexError, FileNotFoundError) as exc:
             log_debug(f"switch message preview: no dialogue layout for {self._source_dir}: {exc}")
         if not self._stop.is_set():
-            self.loaded.emit((self._project_dir, result))
+            self.loaded.emit((self._project_dir, result, self._spec))
 
 
 class SwitchMessagePreview(QWidget):
     """The dialogue box of the project (see GameRules.get_custom_preview_widget)."""
 
-    def __init__(self, main_window: Any, spec: BoxSpec, parent: Optional[QWidget] = None):
+    def __init__(self, main_window: Any, spec: BoxSpec, parent: Optional[QWidget] = None,
+                 alternatives: Sequence[BoxSpec] = ()):
         super().__init__(parent)
         self._mw = main_window
+        self._specs: List[BoxSpec] = [spec] + [other for other in alternatives if other != spec]
         self._spec = spec
         self._text = ""
         self._note = ""
@@ -194,7 +230,12 @@ class SwitchMessagePreview(QWidget):
         self._loader: Optional[LayoutLoader] = None
         self._source = ""
         self._image: Optional[QImage] = None
-        self.setMinimumHeight(140)
+        self._choice = QComboBox(self)
+        for other in self._specs:
+            self._choice.addItem(tr(other.label) if other.label else other.arc)
+        self._choice.setVisible(len(self._specs) > 1)
+        self._choice.currentIndexChanged.connect(self._on_choice)
+        self.setMinimumHeight(140 + _BAR)
         self._start_load()
 
     # -- host interface -------------------------------------------------------------------
@@ -226,9 +267,23 @@ class SwitchMessagePreview(QWidget):
         self._loader.start()
         self._note = tr("Reading the game layout...")
 
+    def _on_choice(self, index: int) -> None:
+        """The box switch: stop the read of the old box and read the chosen one (a stale result is dropped)."""
+        if index < 0 or index >= len(self._specs) or self._specs[index] == self._spec:
+            return
+        if self._loader is not None:
+            self._loader.cancel()
+            safe_shutdown_thread(self._loader, self._loader, WORKER_STOP_MS)
+            self._loader = None
+        self._spec = self._specs[index]
+        self._loaded = None
+        self._image = None
+        self._start_load()
+        self.update()
+
     def _on_loaded(self, payload: object) -> None:
-        project_dir, result = payload
-        if project_dir != self._source:
+        project_dir, result, spec = payload
+        if project_dir != self._source or spec != self._spec:
             return
         if result is None:
             self._note = tr("The dialogue layout is not in this project's unpacked game.")
@@ -272,11 +327,15 @@ class SwitchMessagePreview(QWidget):
         self._note = " ".join(notes)
         self.update()
 
+    def resizeEvent(self, event: Any) -> None:  # noqa: N802 - Qt name
+        self._choice.setGeometry(_MARGIN, 4, min(260, max(60, self.width() - 2 * _MARGIN)), _BAR - 8)
+        super().resizeEvent(event)
+
     def paintEvent(self, event: Any) -> None:  # noqa: N802 - Qt name
         painter = QPainter(self)
         painter.fillRect(self.rect(), QColor(40, 40, 40))
         if self._image is not None:
-            painter.drawImage(_MARGIN, _MARGIN, self._image)
+            painter.drawImage(_MARGIN, _MARGIN + _BAR, self._image)
         if self._note:
             painter.setPen(QColor(230, 230, 230))
             painter.drawText(_MARGIN, self.height() - 12, self._note)
@@ -290,4 +349,5 @@ def _to_qimage(image: Any) -> QImage:
 
 
 __all__ = ["ARCEUS_BATTLE_BOX", "ARCEUS_FIELD_BOX", "BoxSpec", "LayoutLoader", "SCARLET_VIOLET_SUB_BOX", "ZA_FIELD_BOX",
-           "SWORD_SHIELD_BOX", "SwitchMessagePreview", "font_files", "sibling_layout_exists", "source_folder"]
+           "SWORD_SHIELD_BOX", "SwitchMessagePreview", "font_files", "sibling_layout_exists", "source_folder",
+           "speech_layout", "speech_spec"]

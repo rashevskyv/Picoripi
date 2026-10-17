@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
 from plugins.common import gfmsg, message_block
+from plugins.common.block_loader import ReadThrough, rescan_block
 from plugins.common.tag_manager import GenericTagManager
 
 from . import build, unpack
@@ -41,7 +42,7 @@ class GameRules(BaseGameRules):
         super().__init__(main_window_ref)
         self._loaded: Optional[bytes] = None      # the last message file loaded
         self._base: Optional[bytes] = None        # the message file a save writes over (line flags)
-        self._located: Dict[int, Optional[Tuple[str, List[int], List[str]]]] = {}   # block -> its message file
+        self._located = ReadThrough(f"{PLUGIN_PREFIX} message", lambda block_idx: rescan_block(self.mw, block_idx))
 
     def get_display_name(self) -> str:
         return "Pokémon Scarlet/Violet, Legends: Z-A (Switch)"
@@ -108,9 +109,7 @@ class GameRules(BaseGameRules):
 
     def get_message_attributes(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
         """The line's label (from the ``.tbl`` beside its file), its index and flags."""
-        if block_idx not in self._located:
-            self._located[block_idx] = message_block.locate(self.mw, block_idx, PLUGIN_PREFIX)
-        located = self._located[block_idx]
+        located = message_block.cached(self._located, self.mw, block_idx)
         if not located:
             return None
         rel, line_flags, labels = located
@@ -130,17 +129,22 @@ class GameRules(BaseGameRules):
     def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
         """The message box drawn from the game's own layout (plugins/common/switch_message_preview.py).
 
-        Scarlet / Violet: the sub-window box. Legends: Z-A: the field dialogue box (msg_body_00.arc, written by the wizard).
+        Scarlet / Violet: the sub-window box. Legends: Z-A: the field dialogue box (msg_body_00.arc, written by the wizard),
+        with the speech bubble (measured facts, speech_bubble.py) and the HUD message window (hud_msg_00) to switch to.
         Only the box whose archive the unpacked game has is shown.
         """
         from plugins.common.switch_message_preview import (SCARLET_VIOLET_SUB_BOX, ZA_FIELD_BOX, SwitchMessagePreview,
                                                            sibling_layout_exists)
+        from plugins.pokemon_trinity.speech_bubble import hud_box, speech_box
         project_dir = getattr(getattr(main_window, "project_manager", None), "project_dir", None)
         if not project_dir:
             return None
         for spec in (SCARLET_VIOLET_SUB_BOX, ZA_FIELD_BOX):
             if sibling_layout_exists(str(project_dir), spec):
-                return SwitchMessagePreview(main_window, spec)
+                if spec is not ZA_FIELD_BOX:
+                    return SwitchMessagePreview(main_window, spec)
+                # the speech bubble and the HUD window come from the config facts (no archive to check)
+                return SwitchMessagePreview(main_window, spec, alternatives=[speech_box(), hud_box()])
         return None
 
     def get_editor_page_size(self) -> int:
