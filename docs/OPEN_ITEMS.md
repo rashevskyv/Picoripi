@@ -1206,8 +1206,12 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 ## Found during the series glossary feature
 
 - The series tab shows no occurrences (Count 0): its occurrence index is not built over the open project.
-- Glossary builds do not consult the series glossary: a term the series already decided is seeded and
-  translated again in the project (the series file itself is never written by a build).
+- Fixed 2026-10-17 for the plugin's structural seeds: a seed whose term a series file already translates gets that
+  translation (and its status) and is not decided again; the series file is still never written by a build. Open:
+  terms the AI pass proposes (not seeds) are not checked against the series file before the model decides them.
+- Open (Pokémon, 2026-10-17): the plugins of gsc, fr, gen4, bdsp and trinity have no seed hook, so the series file
+  gets no game terms from them. Sun and Moon (gen7) gives no seed terms: its block names are bare numbers (`000.dat`)
+  and the hook's `locate()` finds no table for them. Cause not traced further. Found by `scripts/seed_series_glossary.py`.
 - Series and project glossary files are read and written on the UI thread, as the project glossary is today.
 - Two programs (or two projects open at once) editing the same series file: the last write wins.
 

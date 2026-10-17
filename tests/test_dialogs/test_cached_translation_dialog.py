@@ -85,3 +85,17 @@ def test_a_single_line_has_no_check_box_and_its_position_is_accepted(qapp):
     assert dialog._row_boxes == []
     assert dialog.accepted_positions() == [(0, 0)]
     dialog.close()
+
+
+def test_a_series_sentence_starts_unchecked_and_a_series_name_starts_checked(qapp):
+    """A longer line from another game is off by default; a name or a menu word is on (the user decides)."""
+    cached_info = [
+        {'block_idx': 0, 'block_name': "Block 1", 'string_idx': 0, 'text': "Так", 'from_memory': True,
+         'origin': 'series', 'series_sentence': False},
+        {'block_idx': 0, 'block_name': "Block 1", 'string_idx': 1, 'text': "Довге речення", 'from_memory': True,
+         'origin': 'series', 'series_sentence': True},
+    ]
+    dialog = CachedTranslationDialog(None, cached_info)
+    assert [box.isChecked() for _, box in dialog._row_boxes] == [True, False]
+    assert dialog.accepted_positions() == [(0, 0)]
+    dialog.close()

@@ -1,6 +1,10 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Series glossary: `scripts/seed_series_glossary.py` (`core/glossary/series_seeds.py`) adds the game's own terms from a plugin's seed hook to a series glossary file, headless and without translations; existing entries stay.
+- Glossary build: a structural seed whose term a series glossary already translates takes that translation and status (the build does not decide it again).
+- Cached Translation: a longer line (more than two words) from another game of the series starts unchecked; a name or a menu word starts checked.
+- `default_load_rules(plugin_name, main_window=None)` (`core/project_library/plugin_facts.py`) accepts the window a headless caller hands the plugin.
 - Translation memory: a saved translation of a repeated text keeps the speaker, addressee and fold key it was made under (D41); a restore offers it only under the same context, and the Cached Translation window has a check box per line (an unchecked line is translated anew).
 - Tool `scripts/measure_series_text.py`: read-only count of repeated and cross-game English text in a game series (Pokémon: 23 projects measured, numbers in `docs/OPEN_ITEMS.md`).
 - Pokémon plugins (Gen 1, Gen 2, Gen 5, Gen 3 Mystery Dungeon 3DS, Switch, French): the asm, message, text and ROM budget files of a string are read on a worker (`plugins/common/block_loader.py`), so the editor's budget check, context and speaker lookups and the message attribute hooks never read a file on the UI thread; the block's problem scan runs again when its read ends.

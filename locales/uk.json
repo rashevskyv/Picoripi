@@ -1790,7 +1790,7 @@
   "Source: saved for the same text elsewhere in the project": "Джерело: збережено для того самого тексту в іншому місці проєкту",
   "(same text in another project of the series)": "(той самий текст в іншому проєкті серії)",
   "Source: saved for the same text in another project of the series": "Джерело: збережено для того самого тексту в іншому проєкті серії",
-  "Uncheck to translate this line anew instead of using the saved text.": "Зніміть позначку, щоб перекласти цей рядок наново замість збереженого тексту.",
+  "Checked: use the saved text. Unchecked: translate this line anew.": "Позначено: використати збережений текст. Не позначено: перекласти цей рядок наново.",
   "Fonts (*.bfn *.bffnt *.bcfnt *.qbf *.gzf *.g1t *.g1n *.gz);;All Files (*)": "Шрифти (*.bfn *.bffnt *.bcfnt *.qbf *.gzf *.g1t *.g1n *.gz);;Усі файли (*)",
   "Font File...": "Файл шрифту...",
   "Use a .ttf / .otf file (for example a downloaded free font) without installing it": "Використати файл .ttf / .otf (наприклад, завантажений вільний шрифт) без встановлення в систему",

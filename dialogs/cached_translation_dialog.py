@@ -89,14 +89,14 @@ class CachedTranslationDialog(QDialog):
 
         # One check box per line: checked lines take the saved text; an unchecked line is translated anew.
         self._row_boxes: list = []
-        if cached_count > 1:
+        if cached_count > 1 or any(item.get("series_sentence") for item in cached_info):
             rows_widget = QWidget(self)
             rows_layout = QVBoxLayout(rows_widget)
             rows_layout.setContentsMargins(0, 0, 0, 0)
             for item in cached_info:
                 box = QCheckBox(f"[{item['block_name']}] Line {item['string_idx'] + 1}", rows_widget)
-                box.setChecked(True)
-                box.setToolTip(tr('Uncheck to translate this line anew instead of using the saved text.'))
+                box.setChecked(not item.get("series_sentence"))
+                box.setToolTip(tr('Checked: use the saved text. Unchecked: translate this line anew.'))
                 self._row_boxes.append((item, box))
                 rows_layout.addWidget(box)
             rows_layout.addStretch()

@@ -23,6 +23,8 @@ from core.translation.layout_contract import (
 
 # How many items the prompt preview is built from: one chunk's worth.
 PREVIEW_ITEMS = 12
+# A text from another game with more words than this is a sentence: its series row starts unchecked in the dialog.
+SERIES_SENTENCE_WORDS = 2
 
 
 class AIBatchTranslator(BaseTranslationHandler):
@@ -246,6 +248,8 @@ class AIBatchTranslator(BaseTranslationHandler):
                     # saved for the same source text at another place, not for this row
                     'from_memory': origin != "saved",
                     'origin': origin,
+                    # A sentence from another game is off by default (the user ticks it); a name or a menu word is on.
+                    'series_sentence': origin == 'series' and len(str(item.get('text', '')).split()) > SERIES_SENTENCE_WORDS,
                 })
 
         if force_prompt:

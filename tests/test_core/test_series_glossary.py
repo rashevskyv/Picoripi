@@ -203,3 +203,14 @@ def test_a_nearer_series_level_wins_over_a_farther_one(tmp_path):
 
     # The game level wins for Beedle; its untranslated Epona does not hide the series translation.
     assert [(e.original, e.translation) for e in rows] == [("Beedle", "Бідл-гра"), ("Epona", "Епона")]
+
+
+def test_one_series_file_above_the_game_folders_links_every_game_of_the_series(tmp_path):
+    """The Pokémon layout: <series>/<game>/picoripi is the project folder. One <series>/_glossary file serves every game."""
+    series = tmp_path / "Pokemon" / "_glossary" / "glossary.json"
+    series.parent.mkdir(parents=True)
+    series.write_text("[]", encoding="utf-8")
+    for game in ("Platinum", "X and Y"):
+        project_dir = tmp_path / "Pokemon" / game / "picoripi"
+        project_dir.mkdir(parents=True)
+        assert series_chain(Project(name=game), project_dir) == [series]

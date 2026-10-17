@@ -10,13 +10,14 @@ from utils.atomic_io import atomic_write_text
 import hashlib
 import json
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from PyQt6.QtWidgets import QMessageBox
 
 from components.ai_status_dialog import AIStatusDialog
 from core.glossary_manager import (
     STATUS_FRAGMENTS,
+    GlossaryManager,
     STATUS_SEEDED,
     possible_duplicate_pairs,
 )
@@ -94,7 +95,32 @@ class GlossaryPipelineHandler:
         * the game's own data, if the plugin can read it;
         * the marked-up script, which names the cast the way a reader does.
         """
-        return self._apply_speaker_names(self._plugin_seeds() + self._markup_seeds())
+        return self._apply_series_decisions(self._apply_speaker_names(self._plugin_seeds() + self._markup_seeds()))
+
+    def _apply_series_decisions(self, seeds):
+        """Mark each seed that a series glossary has already decided, so the build seeds that translation.
+
+        The first loaded series file (nearest level first) with a settled translation for the term wins. A series
+        entry without a translation, or one not yet confirmed, is no decision: the build still asks for it.
+        """
+        glossary_handler = getattr(getattr(self.mw, "translation_handler", None), "glossary_handler", None)
+        managers = list(getattr(glossary_handler, "series_glossary_managers", None) or [])
+        if not managers or not seeds:
+            return seeds
+        decided: Dict[str, Tuple[str, str]] = {}
+        for manager in managers:
+            for entry in manager.get_entries():
+                key = GlossaryManager.canonical_key(entry.original)
+                if (entry.translation or "").strip() and not entry.is_unconfirmed and key not in decided:
+                    decided[key] = (entry.translation.strip(), entry.status)
+        marked = []
+        for seed in seeds:
+            hit = decided.get(GlossaryManager.canonical_key(str(seed.get("term") or "")))
+            if hit is None:
+                marked.append(seed)
+            else:
+                marked.append({**seed, "series_decision": {"translation": hit[0], "status": hit[1]}})
+        return marked
 
     def _apply_speaker_names(self, seeds):
         """Seed a character under the name we decided for them.

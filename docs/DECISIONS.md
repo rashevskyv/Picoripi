@@ -1002,3 +1002,24 @@ example a renamed speaker) is not seen: the old row is then not offered. Series 
 speaker names only.
 **Series reuse (goal 3 of the Pokémon series work).** This record is the speaker rule that the series memory uses too;
 the series itself is not extended here. Whether sentences shared across games are offered is still the owner's choice.
+
+## D42. A series glossary takes the game's terms headless, and decides a seed that it already translates (2026-10-17)
+
+**Context.** The Pokémon series has 23 projects. Each project glossary was built from its own game data, so the same
+species, move or item was seeded and decided again in every game. The series glossary file was only written by hand.
+The seed hooks read the game through `self.mw.project_manager`, which exists only in the window.
+**Decision.**
+- `core/glossary/series_seeds.py` loads a project in memory (no window), gives the plugin's seed hook a holder with that
+  project manager, and writes each missing term to a series file. Seeded terms have an empty translation and the
+  status "seeded" (or "fragments" with a description). Existing entries are never changed.
+  `default_load_rules(plugin_name, main_window)` builds the plugin with that holder; the holder is passed at
+  construction, because the base rules only store it.
+- A structural seed whose term a series file translates (the first file of the chain with a settled translation) carries
+  that translation into the build. The build does not decide it again. The series file stays read-only for builds.
+- A series row for a text of more than two words is off by default in the Cached Translation window (D41). A name or a
+  menu word is on.
+- One `Pokemon\_glossary\glossary.json` above the game folders links every Pokémon project (the folder rule of wiki 8).
+  No `.uiproj` is edited. The file is created by the owner; deleting it undoes the link.
+**Cost.** Seeds reach only the plugins that have a seed hook (gen1, gen5, gen6, gen7, md_3ds and nx on this data).
+Seeding a series file means reading every game's name tables: about two to four minutes per game.
+A term the AI pass proposes is not checked against the series file (open). Owner decision: whether sentences from other games are offered at all (today: offered, off by default).

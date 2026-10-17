@@ -526,6 +526,12 @@ class GlossaryBuildCoordinator:
                 )
                 result.seeded += 1
                 result.seeded_structural += 1
+            decision = seed.get("series_decision")
+            if isinstance(decision, dict) and decision.get("translation"):
+                # A series glossary already decided this term: take its translation, do not decide it again.
+                current = self.manager.find_entry(term)
+                self._update(term, translation=str(decision["translation"]), notes=current.notes if current else "",
+                             status=str(decision.get("status") or status))
             self._progress("structural seed", index + 1, total)
 
     def _seeds_in_area(self, block_indices) -> list:
