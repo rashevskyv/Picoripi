@@ -86,6 +86,7 @@ class Pane:
     # txt1
     text: str = ""
     font_index: int = 0
+    buffer: int = 0                 # the string buffer size (FLYT): a message pane's is large, a name's is small
     text_pos: int = 0
     text_align: int = 0
     font_size: Tuple[float, float] = (0.0, 0.0)
@@ -146,9 +147,10 @@ def _materials(data: bytes, pos: int, size: int) -> List[Material]:
 
 
 def parse(data: bytes) -> Layout:
-    """Every pane of a BCLYT with its page position, plus the texture, font and material tables."""
-    if data[:4] != b"CLYT":
-        raise ValueError(f"not a BCLYT: {data[:4]!r}")
+    """Every pane of a BCLYT (or a Switch FLYT) with its page position, plus the texture, font and material tables."""
+    if data[:4] not in (b"CLYT", b"FLYT"):
+        raise ValueError(f"not a BCLYT or FLYT: {data[:4]!r}")
+    flyt = data[:4] == b"FLYT"
     width = height = 0.0
     textures: List[str] = []
     fonts: List[str] = []
@@ -170,8 +172,8 @@ def parse(data: bytes) -> Layout:
         elif magic == b"pae1":
             if len(groups) > 1:
                 groups.pop()
-        elif magic in PANE_KINDS:
-            pane = _pane(data, pos, magic)
+        elif magic in PANE_KINDS or (flyt and magic == b"prt1"):
+            pane = _flyt_pane(data, pos, magic) if flyt else _pane(data, pos, magic)
             ox, oy, parent_alpha = groups[-1]
             pane.abs_x = ox + pane.x
             pane.abs_y = oy + pane.y
@@ -208,6 +210,42 @@ def _pane(data: bytes, pos: int, magic: bytes) -> Pane:
         pane.inflation = struct.unpack_from("<ffff", data, pos + 0x4C)
         count = data[pos + 0x5C]
         content, frames = struct.unpack_from("<II", data, pos + 0x60)
+        pane.colours = tuple(struct.unpack_from("<4B", data, pos + content + 4 * index) for index in range(4))  # type: ignore[assignment]
+        pane.material = struct.unpack_from("<H", data, pos + content + 16)[0]
+        for index in range(count):
+            at = pos + struct.unpack_from("<I", data, pos + frames + 4 * index)[0]
+            pane.frames.append(struct.unpack_from("<HB", data, at))
+    return pane
+
+
+def _flyt_pane(data: bytes, pos: int, magic: bytes) -> Pane:
+    """A Switch FLYT pane (version 9). Its base is 0x54 bytes: the translation is at 0x2C and the size at 0x4C.
+
+    Checked on Sword msg_00.bflyt: a txt1 reads size (1080, 78), translation (-10, -378), font size (54, 67), text
+    at 0x0A8. A wnd1 has inflation at 0x54, frame sizes at 0x5C, frame count at 0x64, content at 0x68, frames at 0x6C.
+    Pictures keep only their base here (the message preview needs positions, not textures).
+    """
+    flags, origin, alpha = struct.unpack_from("<BBB", data, pos + 8)
+    name = data[pos + 0x0C:pos + 0x1C].split(b"\0")[0].decode("ascii", "replace")
+    x, y = struct.unpack_from("<ff", data, pos + 0x2C)
+    w, h = struct.unpack_from("<ff", data, pos + 0x4C)
+    pane = Pane(magic.decode("ascii"), name, bool(flags & 1), origin, alpha, x, y, w, h)
+    if magic == b"txt1":
+        buf, str_bytes, pane.material, pane.font_index = struct.unpack_from("<HHHH", data, pos + 0x54)
+        pane.buffer = buf
+        pane.text_pos, pane.text_align = struct.unpack_from("<BB", data, pos + 0x5C)
+        offset = struct.unpack_from("<I", data, pos + 0x64)[0]
+        top = struct.unpack_from("<4B", data, pos + 0x68)
+        bottom = struct.unpack_from("<4B", data, pos + 0x6C)
+        pane.colours = (top, top, bottom, bottom)
+        sx, sy = struct.unpack_from("<ff", data, pos + 0x70)
+        pane.font_size = (sx, sy)
+        pane.char_space, pane.line_space = struct.unpack_from("<ff", data, pos + 0x78)
+        pane.text = data[pos + offset:pos + offset + str_bytes].decode("utf-16-le", "replace").rstrip("\0")
+    elif magic == b"wnd1":
+        pane.inflation = tuple(float(v) for v in struct.unpack_from("<4h", data, pos + 0x54))  # type: ignore[assignment]
+        count = data[pos + 0x64]
+        content, frames = struct.unpack_from("<II", data, pos + 0x68)
         pane.colours = tuple(struct.unpack_from("<4B", data, pos + content + 4 * index) for index in range(4))  # type: ignore[assignment]
         pane.material = struct.unpack_from("<H", data, pos + content + 16)[0]
         for index in range(count):

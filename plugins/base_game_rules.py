@@ -1055,7 +1055,8 @@ class BaseGameRules:
     def identify_source(self, path: str) -> Optional[Dict[str, str]]:
         """Recognise one file the user added, from its content (not its name).
 
-        Returns ``{"role": <role id>, "platform": <platform id, or "">}``, or None when the file is not
+        Returns ``{"role": <role id>, "platform": <platform id, or "">}`` (plus ``"libraries": ["oodle"]`` when the
+        unpack of this file loads that library, listed in ``unpack_key_consoles``), or None when the file is not
         from this game. Default: None; the user then picks the role and the platform.
         """
         return None
@@ -1093,7 +1094,8 @@ class BaseGameRules:
         return []
 
     def unpack_key_consoles(self) -> List[str]:
-        """The consoles whose key file this game's unpack reads: any of ``"3ds"``, ``"switch"``, ``"wii"``.
+        """The consoles whose key file this game's unpack reads: any of ``"3ds"``, ``"switch"``, ``"wii"``, and
+        ``"oodle"`` for the Oodle core library (a DLL path the user gives once).
 
         The wizard asks for a console's key file only when a chosen file is encrypted, and only when the game lists that
         console here. A game that unpacks no encrypted image returns none. Default: none.

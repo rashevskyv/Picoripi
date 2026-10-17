@@ -6,12 +6,14 @@ import urllib.parse
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
-from plugins.common import gfmsg
+from plugins.common import gfmsg, message_block
 from utils.constants import user_plugin_file_or_shipped
 from utils.logging_utils import log_debug, log_warning
 from utils.utils import clean_spaces
 
+from . import build, unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
@@ -73,6 +75,31 @@ class GameRules(BaseGameRules):
 
     def get_display_name(self) -> str:
         return "Pokémon Sword/Shield + Legends: Arceus (Switch)"
+
+    def get_source_roles(self) -> List[Dict[str, str]]:
+        """The base game and its update: the English text is in the update's patched RomFS."""
+        return [{"id": "base", "label": tr("Base game")}, {"id": "update", "label": tr("Update")}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, Any]]:
+        """The base game or the update of Sword, Shield or Legends: Arceus, with the library its unpack needs."""
+        return unpack.identify(path)
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
+        """Sword / Shield / Legends: Arceus: the base game with its update applied (``unpack.py``)."""
+        return unpack.unpack(sources, target_dir, progress, is_cancelled)
+
+    def unpack_key_consoles(self) -> List[str]:
+        return ["switch", "oodle"]
+
+    def get_build_targets(self) -> List[Dict[str, Any]]:
+        return [{"id": "switch_layeredfs", "label": tr("Switch: Atmosphere LayeredFS mod"),
+                 "platforms": ["switch"], "kind": "layeredfs"}]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress, is_cancelled) -> str:
+        if target_id != "switch_layeredfs":
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        return build.build_switch(source_dir, translation_dir, output_dir, progress, is_cancelled)
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
@@ -145,18 +172,7 @@ class GameRules(BaseGameRules):
         """``(relative path, line flags, line labels)`` of a data block; cached per load."""
         if block_idx in self._located:
             return self._located[block_idx]
-        found = None
-        try:
-            pm = getattr(self.mw, "project_manager", None)
-            block_map = getattr(self.mw, "block_to_project_file_map", None) or {}
-            block = pm.project.blocks[block_map.get(block_idx, block_idx)]
-            path = Path(pm.get_absolute_path(block.source_file))
-            table = path.with_suffix(".tbl")
-            labels = gfmsg.read_labels(table.read_bytes()) if table.is_file() else []
-            flags = [flags for _units, flags in gfmsg.read(path.read_bytes())]
-            found = (str(block.source_file).replace("\\", "/"), flags, labels)
-        except (AttributeError, IndexError, KeyError, OSError, TypeError, ValueError) as error:
-            log_debug(f"{_PLUGIN}: no message file behind block {block_idx}: {error}")
+        found = message_block.locate(self.mw, block_idx, _PLUGIN)
         self._located[block_idx] = found
         return found
 
@@ -270,3 +286,19 @@ class GameRules(BaseGameRules):
 
     def get_editor_page_size(self) -> int:
         return DEFAULT_LINES_PER_PAGE
+
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """The dialogue box drawn from the game's own layout and font (plugins/common/switch_message_preview.py).
+
+        Only the games with that layout (Sword / Shield) get it; the others keep the BFN preview.
+        """
+        from plugins.common.switch_message_preview import (ARCEUS_BATTLE_BOX, ARCEUS_FIELD_BOX, SWORD_SHIELD_BOX,
+                                                          SwitchMessagePreview, sibling_layout_exists)
+        project_dir = getattr(getattr(main_window, "project_manager", None), "project_dir", None)
+        if not project_dir:
+            return None
+        # Arceus first: its msg_00.arc is the same file name as Sword's, and only Arceus has the archive folder.
+        for spec in (ARCEUS_FIELD_BOX, SWORD_SHIELD_BOX, ARCEUS_BATTLE_BOX):
+            if sibling_layout_exists(str(project_dir), spec):
+                return SwitchMessagePreview(main_window, spec)
+        return None

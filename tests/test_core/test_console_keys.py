@@ -188,3 +188,22 @@ def _pfs0(files):
         name_at += len(name) + 1
         data += body
     return b"PFS0" + struct.pack("<III", len(files), len(names), 0) + entries + names + data
+
+
+def test_a_library_the_unpack_loads_is_reported_only_when_the_game_lists_it(tmp_path, data_folder):
+    class Rules:
+        def get_source_roles(self):
+            return [{"id": "base", "label": "Base game"}]
+
+        def identify_source(self, path):
+            return {"role": "base", "platform": "switch", "libraries": ["oodle", "wii"]}
+
+        def unpack_key_consoles(self):
+            return ["switch", "oodle"]
+
+    image = tmp_path / "game.nsp"
+    image.write_bytes(b"not a switch image")
+    [item] = plugin_facts.identify_sources(Rules(), [str(image)])
+    assert item["role"] == "base"
+    assert item["libraries"] == ["oodle"]    # "wii" is not an unpack console of this game
+    assert item["key"] == ""

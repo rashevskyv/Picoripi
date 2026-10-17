@@ -346,8 +346,8 @@ def _bc_codec(n: int, view: str = "") -> Codec:
     or ``LA`` (grey + alpha)."""
     def dec(data: bytes, width: int, height: int) -> Image.Image:
         mode = {4: "L", 5: "RGB"}.get(n, "RGBA")
-        image = Image.frombytes(mode, (width, height), bytes(data[:(width // 4) * (height // 4) * _BC_SIZE[n]]),
-                                "bcn", n)
+        blocks = -(-width // 4) * -(-height // 4)   # a picture whose size is not a multiple of 4 still stores whole blocks
+        image = Image.frombytes(mode, (width, height), bytes(data[:blocks * _BC_SIZE[n]]), "bcn", n)
         if n == 4:
             full = Image.new("L", image.size, 255)
             channels = {"L": (image, image, image, full), "A": (full, full, full, image)}.get(view, (image,) * 4)

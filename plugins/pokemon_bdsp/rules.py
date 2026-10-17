@@ -8,10 +8,11 @@ label one string. ``2_build.bat`` puts every edited file back into its bundle, f
 """
 from typing import Any, Dict, List, Optional, Tuple
 
+from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
 from utils.utils import clean_spaces
 
-from . import msg
+from . import build, msg, unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
@@ -39,6 +40,33 @@ class GameRules(BaseGameRules):
     def get_file_formats(self) -> list:
         from core.formats import FileFormat
         return [FileFormat((".bdmsg",), "bytes", "Message tables")]
+
+    # -- wizard: unpack and build ----------------------------------------------
+
+    def get_source_roles(self) -> List[Dict[str, str]]:
+        return [{"id": "base", "label": tr("Base game")}, {"id": "update", "label": tr("Update")}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, Any]]:
+        return unpack.identify(path)
+
+    def unpack_key_consoles(self) -> List[str]:
+        return ["switch"]
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
+        return unpack.unpack(sources, target_dir, progress, is_cancelled)
+
+    def get_source_subfolder(self) -> Optional[str]:
+        return unpack.SOURCE_DIR
+
+    def get_build_targets(self) -> List[Dict[str, Any]]:
+        return [{"id": "switch_layeredfs", "label": tr("Switch: Atmosphere LayeredFS mod (both games)"),
+                 "platforms": ["switch"], "kind": "layeredfs"}]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress, is_cancelled) -> str:
+        if target_id != "switch_layeredfs":
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        return build.build_switch(source_dir, translation_dir, output_dir, progress, is_cancelled)
 
     # -- load and save ---------------------------------------------------------
 
@@ -86,6 +114,11 @@ class GameRules(BaseGameRules):
     def process_pasted_segment(self, segment_to_insert: str, original_text_for_tags: str,
                                editor_player_tag_const: str) -> Tuple[str, str, str]:
         return clean_spaces(segment_to_insert), "OK", ""
+
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """The field dialogue text in the game's TMP face (dialogue_preview.py). Only the first line is drawn yet."""
+        from plugins.pokemon_bdsp.dialogue_preview import DialogueBoxPreview
+        return DialogueBoxPreview(main_window)
 
     def get_editor_page_size(self) -> int:
         return DEFAULT_LINES_PER_PAGE

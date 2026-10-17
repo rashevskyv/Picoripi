@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import (
 )
 
 from core.i18n import tr
-from core.project_library import images
+from core.project_library import console_keys, images
 from core.project_library.icons import IMAGE_FILTER, load_image
 from ui.project_manager.jobs import BackgroundJob
 from ui.project_manager.tasks import FactsJob, PluginListJob, UnpackJob
@@ -356,7 +356,8 @@ class ProjectWizard(QDialog):
     def _ask_key_files(self, choices: Dict[str, Dict[str, str]]) -> Optional[Dict[str, str]]:
         """The key file of each console that a chosen file needs and Picoripi has no live path for.
 
-        Asks only for files that have a role. Returns ``{console: path}``, or None when the user cancels a dialog.
+        Asks only for files that have a role. A library the file's unpack loads (``libraries``, e.g. Oodle) is asked
+        the same way when Picoripi has no path for it. Returns ``{console: path}``, or None when the user cancels a dialog.
         """
         needed: List[str] = []
         for path, choice in choices.items():
@@ -364,11 +365,17 @@ class ProjectWizard(QDialog):
             console = str(status.get("key") or "")
             if choice["role"] and console and not status.get("key_ready") and console not in needed:
                 needed.append(console)
+            if choice["role"]:
+                for library in status.get("libraries") or []:
+                    if library not in needed and console_keys.path_for(library) is None:
+                        needed.append(library)
         picked: Dict[str, str] = {}
         for console in needed:
             label = tr(images.CONSOLE_LABEL[console])
+            title = (tr("Choose the Oodle library file (oo2core or oo2ext DLL)") if console == "oodle"
+                     else tr("Choose the key file for {0}", label))
             path, _filter = QFileDialog.getOpenFileName(
-                self, tr("Choose the key file for {0}", label), str(Path.home()), tr("All files") + " (*)")
+                self, title, str(Path.home()), tr("All files") + " (*)")
             if not path:
                 self._progress_text.setText(tr("No key file was chosen. Nothing was created."))
                 return None

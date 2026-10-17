@@ -735,7 +735,11 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      (their lengths are written again on save), `{CHAR E305}` a button icon.
      The text fonts lack Ґ Є І Ї ґ є і ї: `translation_map.json` writes І і Ї ї as Latin I i Ï ï and Є є Ґ ґ as
      Э э Ъ ъ, whose glyphs are redrawn in the Font Editor. Sword and Shield share one romfs: `2_build.bat` writes
-     the mod for both title ids.
+     the mod for both title ids. The Project Manager wizard unpacks Sword / Shield itself: it takes the base game and
+     the update (the update's patch is applied) with Picoripi's Switch reader, and gives the same `source` as
+     `1_unpack.bat`. Legends: Arceus: the wizard writes its `.gfpak` packs and decodes them into `<pack>.gfpak.d` with the Oodle library. It asks once for the Oodle library file (`oo2core` or `oo2ext` `*_win64.dll`) and remembers its path. The Switch build target writes the changed files as a LayeredFS mod (Sword / Shield: both title ids; Legends: Arceus: a changed pack is stored, not compressed). Default tag aliases (Settings →
+     Tag Aliases): `[PAGE]`, `[SCROLL]`, `[POKEMON]`, `[MOVE]`, `[ITEM]`, `[LEVEL]`, `[NAME1]`, colours `[COLOR6]`.
+     Dialogue box preview (Sword / Shield): the box is drawn from the game's own layout `bin\appli\msg\bin\msg_00.arc` (two text panes, the window size, the font list of its `fcpx`) with the `.BFOTF` fonts from `bin\font`. The window texture is not drawn yet; a flat box stands in for it. A game line longer than its pane flows into the next pane (word wrap); a word wider than the box is flagged. Legends: Arceus shows its battle box (`bin\archive\appli\battle_menu_eng.gfpak.d\11_msg_sys_00_s.arc`); Scarlet / Violet its sub-window box (`appli\data\msg_sub\msg_sub_body_00.arc`, unpacked now that the wizard takes the `msg_sub` and `msg_btl` archives). Z-A keeps the BFN preview.
    - `pokemon_gen6` — Pokémon X / Y and Omega Ruby / Alpha Sapphire (3DS), one project per pair (X and Y share
      every text, font and picture file; so do Omega Ruby and Alpha Sapphire). **Source:** the workspace's
      `source` (`1_unpack.bat` takes the English members out of the GARC archives): `romfs\a\0\7\4\NNN.dat`
@@ -757,13 +761,18 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
 omase.nds`, made by the unpack) with the edited banks and files put in; no `zt` script runs. A DSi-enhanced dump comes out as a plain NDS image.
    - `pokemon_gen4` — Pokémon Diamond / Pearl, Platinum, HeartGold / SoulSilver (Nintendo DS, USA). **Source:** the workspace's `source` (`1_unpack.bat` takes the message banks and the NARCs out of the clean ROM in `ISO\`): `text/<narc>/NNNN.msg`, one block per message bank; only the English text is edited, and an untouched line keeps its bytes. Fonts: the Gen 4 font bins of the font NARCs (`graphic/font.narc` and the others) open in the Font Editor as 16 x 16 glyph grids with 2-bit pixels (`gen4_glyphs`); no new glyphs are added, and an edited glyph keeps the four colour levels. The Font Editor labels each glyph cell with its character from the game's charmap (glyph index = text code - 1); a cell without a character shows its index. Pictures: the NARCs with NCGR members (Textures); a compressed (LZ10) member is decompressed to open and compressed again to save, as a valid stream. `2_build.bat` writes changed banks, fonts and pictures into the ROM and lays it out again. The pret decompilation text (`.gmm` / `.json`) is a second mode; it needs the decompilation's own toolchain for the ROM, and the `ZT_GEN4_MODE=pret` variable (or `zt_mode.txt` in the workspace) selects it in `zt.py`. Build target **Translated DS ROM** writes `<game code>_UA.nds` from the wizard's own copy of the clean image (`source Platinum: the preview draws the message box with the game's own font (Platinum 216 px wide, Diamond / Pearl / HeartGold / SoulSilver 216 px, 2 lines; the table `WINDOWS` in `plugins/pokemon_gen4/message_preview.py` gives the font and width of each game; the widths come from the pret and ctrl-cheeb-del window templates, 27 x 4 tiles); a line wider than the box is flagged, and the game does not wrap lines. The box colours are the game's own: dark ink 81,81,89, grey ink 162,162,170 on 251,251,251 (read from a melonDS frame of the Diamond intro box and the HeartGold dialogue box).
 omase.nds`, made by the unpack) with the edited banks and files put in; no `zt` script runs. A DSi-enhanced dump comes out as a plain NDS image.
-   - `pokemon_bdsp` — Pokémon Brilliant Diamond / Shining Pearl (Switch, Unity), one project for both games.
+   - `pokemon_bdsp` — Pokémon Brilliant Diamond / Shining Pearl (Switch, Unity), one project for both games. An edited font `font\<name>.json` (its glyph tables) is written back into the font bundle; an unchanged one is not.
      **Source:** the workspace's `source` (`1_unpack.bat`: base + update 1.3.0; the Unity bundles become plain
      files): `message\english_*.bdmsg` (128 tables, 42,946 lines: story, Pokédex of both games, names,
      menus, battle), `font\<bundle>\` (TextMesh Pro SDF fonts: Font Editor format `tmp_sdf`, glyph table +
      atlas; the font files of the dynamic fallback open as `bfotf`) and `texture\...\*.png` (24 English
      pictures: title logos, "Press any button", menu and battle words; Textures window format `png`).
-     `2_build.bat` writes every edited file back into its bundle for both games. Tags: `\n` new line,
+     `2_build.bat` writes every edited file back into its bundle for both games. The Project Manager wizard unpacks the message tables, the fonts and the pictures itself (Picoripi's own
+     Unity readers; base + update). The Switch build target writes the edited bundles as a LayeredFS mod (their blocks
+     stored, not compressed) and re-measures the word width (`strWidth`) of each edited label with the English fonts.
+     An edited picture (`texture\...\*.png`) is encoded in its own format and written into the bundle's stream, at the same
+     size; an edited font atlas (`font\<bundle>\<font>.png`) is written into the font bundle. Not yet in Picoripi: the
+     glyph tables of the fonts (the `.json` files) are not written back. Tags: `\n` new line,
      `{scroll}` / `{clear}` + new line (wait for the button), `{wait:0.5}`, `{tag:A:G:T…}` a name, number or
      word form the game fills in (argument A; word forms after `|`), TextMesh Pro `<color=…>` stay as they are.
    - `dragon_quest_builders` — Dragon Quest Builders and Dragon Quest Builders 2 (Switch). **Source:** the workspace's `source` folder (`1_unpack.bat` decrypts base + update; Builders 1 `excel\excel\<Table>.en.bin` from `excel.nxarc` (17 English tables, 19,905 lines) and, from `build.nxarc`, the 4 Phyre fonts `build\gra\font\*.fgen.NXGL.phyre` and 82 pictures (the two HUD sprite packs `uitex` and `uiicon` with 345 and 980 sprites included); Builders 2 `LINKDATA\text\<first>-<last>.dqbp` (28 packs of the English member of each five-language group of `LINKDATA.BIN`: 4,219 tables, 81,129 lines; one pack is one block), the font `LINKDATA\font\00598.g1t` and 62 localized pictures `LINKDATA\texture\<index>.g1t`); **Translation:** `translation`. The game's codes stay in the text (`<key>` end of page, `<br>` new line, `<pname>`, `<speaker(Name)>`, `<color(0xAARRGGBB)>`). The Japanese key column of a Builders 1 table is not shown and never rewritten. `2_build.bat` stores a changed file raw at the end of `excel.nxarc` / `build.nxarc` / `LINKDATA.BIN` and points the index at it (LayeredFS mod; the original is copied once).
@@ -995,15 +1004,22 @@ omase.nds`, made by the unpack) with the edited banks and files put in; no `zt`
      (+ Mega Dimension) (Switch, Game Freak's Trinity engine). **Source:** the workspace's `source`
      (`1_unpack.bat` reads only the needed packs of `arc\data.trpfs` and puts there, at the game's paths, the
      English text `message\dat\English\{common,script}\*.dat` — Z-A: `ik_message\...` — the fonts
-     `appli\font\bin` / `ui\font\bin` and the English layout archives `*_eng.arc`); **Translation:**
+     `appli\font\bin` / `ui\font\bin` and the English layout archives `*_eng.arc`). The Project Manager wizard does
+     this itself with Picoripi's readers: the base game and its update, and the Oodle library file, which the wizard
+     asks for once and remembers (the packs are Oodle-compressed). The output equals the workspace `source`, file by
+     file. The Switch build target writes the changed files and a patched index for each title: Scarlet from its
+     base and update, Violet from the other version's roles (its own base and update). **Translation:**
      `translation`. One block per message file (Scarlet/Violet 913 files, 85,331 lines; Z-A 427 files, 76,810
-     lines); variables read `{VAR 0101 0000}`, `{PAGE}`, `{SCROLL}`, `{COLOR 0001}`, icons `{CHAR E300}`; grammar branches carry their
+     lines); the `.tbl` next to each file gives every line its label (the line's name in the game); variables read `{VAR 0101 0000}`, `{PAGE}`, `{SCROLL}`, `{COLOR 0001}`, icons `{CHAR E300}`; grammar branches carry their
      two texts, `M{GENDER 00FF|aster|iss}`, `{VERSION 00FF|Ko|Mi}raidon` (Scarlet | Violet), and their lengths are
      written again on save. The Font Editor opens the `.bfotf` and `.bffnt` fonts; the Textures window opens the
      BNTX pictures of the English layouts (title logo, menus). `2_build.bat` writes the changed files into a
      LayeredFS mod with an `arc\data.trpfd` that no longer points the game to the packed originals (a changed
      English layout `X_eng.arc` also goes in as `X.arc`: the game reads language layouts only from its packs); Scarlet and
-     Violet share one project and get the same mod.
+     Violet share one project and get the same mod. **Message box preview:** the box is drawn from the game's own layout
+     with the `.bfotf` fonts. Scarlet / Violet: `msg_sub_00.bflyt` (sub-window archive). Legends: Z-A: `msg_00.bflyt` in
+     `msg_body_00.arc`, placed by the outer `msg_body_00.bflyt` at y -370; the wizard writes that archive (its view is
+     `view_msg_body_00.truiv`). The window picture is not drawn. The Z-A glyph size is not measured yet.
    - `wii_sysfont` — the Wii system bitmap fonts `wbf1.brfna` / `wbf2.brfna` (the NW4R archived fonts of the
      System Menu, shipped as copies on discs that draw prompts with them, e.g. Raving Rabbids: Party Collection).
      The vWii NAND of the EUR console has the same two files; its WiiNTLG-Regular.ttc faces
