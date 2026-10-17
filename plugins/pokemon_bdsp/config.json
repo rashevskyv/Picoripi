@@ -1,7 +1,7 @@
 {
     "display_name": "Pokémon Brilliant Diamond / Shining Pearl",
     "dialogue_box": {
-        "_note": "Measured on the Eden frame pkC8/shots/bdsp_dialogue/bdsp_field_45s.png (2026-10-17, Rowan, 'Now, why don't you tell me a litt'). Glyph N: 35 px high (rows 821-855). Ink box 490,818 to 1088,871 against the render 489,818 to 1088,872. Line pitch and wrap width: not measured.",
+        "_note": "Measured on the Eden frame pkC8/shots/bdsp_dialogue/bdsp_field_45s.png (2026-10-17, Rowan, 'Now, why don't you tell me a litt'). Glyph N: 35 px high (rows 821-855). Ink box of the line (frame and render, threshold 100 / alpha 128): x 490 to 1087, y 818 to 870 (frame) and 871 (render, descender). Line pitch and wrap width: not measured.",
         "font_dir": "font/efigs_font",
         "font_name": "efigs_font",
         "px": 45.5,

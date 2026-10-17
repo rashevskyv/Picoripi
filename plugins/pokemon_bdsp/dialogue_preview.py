@@ -41,7 +41,7 @@ def render_line(face: fm.TmpFace, text: str, facts: Dict[str, Any],
     baseline = float(facts["baseline_y"]) - origin_y
     missing: List[str] = []
     for ch in text:
-        if ch == " " or not face.has(ch):
+        if not face.has(ch):
             if ch != " " and ch not in missing:
                 missing.append(ch)
             pen += px * 0.3
