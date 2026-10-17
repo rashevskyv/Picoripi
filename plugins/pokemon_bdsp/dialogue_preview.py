@@ -29,25 +29,47 @@ def load_facts() -> Dict[str, Any]:
     return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))["dialogue_box"]
 
 
-def render_line(face: fm.TmpFace, text: str, facts: Dict[str, Any],
-                background: Optional[Tuple[int, int, int, int]] = None) -> Tuple[Image.Image, List[str]]:
-    """The first line of ``text`` at the measured px size, pen x and baseline. Returns the image and the characters
-    the font lacks. Only one line is drawn: the line pitch and the wrap width are not measured yet.
-    ``background`` defaults to the box background in the facts; (0, 0, 0, 0) gives the glyphs alone."""
+def text_width(face: fm.TmpFace, text: str, px: float) -> float:
+    """The pen advance of ``text``; a character the font lacks counts 0.3 em, as in the drawing."""
+    return sum(face.advance(ch, px) if face.has(ch) else px * 0.3 for ch in text)
+
+
+def wrap_lines(face: fm.TmpFace, text: str, facts: Dict[str, Any]) -> List[str]:
+    """Greedy word wrap at the measured wrap width (facts ``wrap_width``: the widest line the game showed on one line)."""
+    px, width = float(facts["px"]), float(facts["wrap_width"])
+    lines: List[str] = []
+    current = ""
+    for word in text.split(" "):
+        candidate = word if not current else current + " " + word
+        if current and text_width(face, candidate, px) > width:
+            lines.append(current)
+            current = word
+        else:
+            current = candidate
+    if current or not lines:
+        lines.append(current)
+    return lines
+
+
+def render_lines(face: fm.TmpFace, lines: List[str], facts: Dict[str, Any],
+                 background: Optional[Tuple[int, int, int, int]] = None) -> Tuple[Image.Image, List[str]]:
+    """The lines at the measured px size, pen x, first baseline and line pitch. Returns the image and the characters
+    the font lacks. ``background`` defaults to the box background in the facts; (0, 0, 0, 0) gives the glyphs alone."""
     px = float(facts["px"])
     image = Image.new("RGBA", CANVAS, background or tuple(facts["background"]))
     origin_x, origin_y = facts["canvas_origin"]
-    pen = float(facts["pen_x"]) - origin_x
-    baseline = float(facts["baseline_y"]) - origin_y
     missing: List[str] = []
-    for ch in text:
-        if not face.has(ch):
-            if ch != " " and ch not in missing:
-                missing.append(ch)
-            pen += px * 0.3
-            continue
-        face.draw(image, ch, pen, baseline, px, (*tuple(facts["colour"]), 255))
-        pen += face.advance(ch, px)
+    for index, line in enumerate(lines):
+        pen = float(facts["pen_x"]) - origin_x
+        baseline = float(facts["baseline_y"]) - origin_y + index * float(facts["line_pitch"])
+        for ch in line:
+            if not face.has(ch):
+                if ch != " " and ch not in missing:
+                    missing.append(ch)
+                pen += px * 0.3
+                continue
+            face.draw(image, ch, pen, baseline, px, (*tuple(facts["colour"]), 255))
+            pen += face.advance(ch, px)
     return image, missing
 
 
@@ -134,13 +156,19 @@ class DialogueBoxPreview(QWidget):
             self.update()
             return
         facts = load_facts()
-        page = (split_pages(self._text) or [[]])[0]
-        line = page[0][0] if page else ""
-        image, missing = render_line(self._face, line, facts)
+        pages = split_pages(self._text) or [[]]
+        page = pages[0]
+        wrapped: List[str] = []
+        for line, _colour in page:
+            wrapped += wrap_lines(self._face, line, facts)
+        shown = wrapped[:int(facts["lines_per_box"])]
+        image, missing = render_lines(self._face, shown, facts)
         self._image = _to_qimage(image)
-        notes = [tr("Only the first line is drawn: the line pitch and the wrap width are not measured yet.")]
-        if len(page) > 1:
-            notes.append(tr("More lines on this page are not drawn yet."))
+        notes = []
+        if len(wrapped) > len(shown):
+            notes.append(tr("More lines than the box holds (%1 lines)") % len(wrapped))
+        if len(pages) > 1:
+            notes.append(tr("Only the first page is drawn."))
         if missing:
             notes.append(tr("Not in the box font: %1") % " ".join(missing))
         self._note = " ".join(notes)

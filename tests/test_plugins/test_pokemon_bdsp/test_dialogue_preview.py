@@ -35,7 +35,7 @@ def test_the_measured_facts_are_stored():
 
 
 def test_a_character_the_font_lacks_is_reported_not_drawn():
-    image, missing = dp.render_line(_tiny_face(), "AB", dp.load_facts())
+    image, missing = dp.render_lines(_tiny_face(), ["AB"], dp.load_facts())
     assert missing == ["B"]
     assert image.size == dp.CANVAS
 
@@ -44,9 +44,26 @@ def test_a_character_the_font_lacks_is_reported_not_drawn():
 def test_the_real_n_glyph_is_35_px_high_at_the_measured_size():
     asset = json.loads((FONT / "efigs_font.json").read_text(encoding="utf-8"))
     face = fm.TmpFace(asset, Image.open(FONT / "efigs_font.png"))
-    image, missing = dp.render_line(face, "N", dp.load_facts(), background=(0, 0, 0, 0))
+    image, missing = dp.render_lines(face, ["N"], dp.load_facts(), background=(0, 0, 0, 0))
     left, top, right, bottom = image.getchannel("A").point(lambda v: 255 if v >= 128 else 0).getbbox()
     assert missing == []
     assert bottom - top == 35          # the frame's N: rows 821 to 855, 35 rows
     # The canvas origin is y 800: the render's N is rows 20 to 54 (the frame's rows 21 to 55). 1 px high on the frame.
     assert (top, bottom) == (20, 55)
+
+
+def test_the_measured_pitch_and_wrap_width_are_stored():
+    facts = dp.load_facts()
+    assert facts["line_pitch"] == 61.0
+    assert facts["lines_per_box"] == 2
+    assert facts["wrap_width"] == 848.5
+    assert facts["wrap_width"] < facts["wrap_width_max_exclusive"]
+
+
+@pytest.mark.skipif(not (FONT / "efigs_font.json").exists(), reason="the BDSP workspace is not on disk")
+def test_the_real_page_wraps_as_the_game_wraps_it():
+    asset = json.loads((FONT / "efigs_font.json").read_text(encoding="utf-8"))
+    face = fm.TmpFace(asset, Image.open(FONT / "efigs_font.png"))
+    text = "Some people use their Pok\u00e9mon to battle and develop closer bonds with them."
+    assert dp.wrap_lines(face, text, dp.load_facts()) == [
+        "Some people use their Pok\u00e9mon to battle and", "develop closer bonds with them."]

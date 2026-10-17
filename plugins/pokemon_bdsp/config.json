@@ -9,6 +9,11 @@
         "baseline_y": 855.0,
         "colour": [0, 0, 0],
         "background": [246, 246, 248, 255],
+        "line_pitch": 61.0,
+        "lines_per_box": 2,
+        "wrap_width": 848.5,
+        "wrap_width_max_exclusive": 1010.8,
+        "_wrap_note": "Measured on pkC11/shots/bdsp_page2/f_040s.png (2 lines: 'Some people use their Pokémon to battle and' / 'develop closer bonds with them.'). Baselines 855 and 916 (fit by overlay). The first line's advance is 848.5 px, and the first line plus ' develop' is 1010.8 px, so the wrap width lies in [848.5, 1010.8). The preview uses the lower bound.",
         "canvas_origin": [470, 800]
     },
     "default_tag_mappings": {
