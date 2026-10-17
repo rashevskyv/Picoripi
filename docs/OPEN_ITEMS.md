@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-15
 owns: unfinished work
-tokens: 36.0k
+tokens: 37.9k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -232,12 +232,10 @@ Open after phase 3b:
 - The wizard, with no unpacking and several files, uses the base file as the source. The other files are recorded in the project metadata only.
 - One emulator command serves every platform. MacOS `.app` bundles need the path of the program inside the bundle.
 - Export copies a folder. A zip or a single-file export is not built.
-- `components/project_dialogs.py` `NewProjectDialog` is no longer opened by the product. The wizard has no option to use an existing translation folder, which the dialog had. Add that option to the wizard, or delete the class with `tests/manual_test_project_dialogs.py`.
 - ROADMAP entries A9 and A10 are not updated: `docs/ROADMAP.md` is not on `main`. Their state is in the phase 2 commit messages and D23.
 - The first scan of 191 projects takes about 4 minutes in the scan process (plugin parsing is CPU work). The window stays responsive; a faster parse would need a plugin-level change.
 - Measured 2026-10-15 on the owner's 194 projects (read-only, temp data folder): the cards take 0.5 s, the input signatures 18 to 29 s (a `stat` of every block file on the E: drive; the largest are Yo-kai Watch 2 and 3, about 1 s each), the icons 1.5 s. The scan now sends every card first, so the names and the search are complete after 0.5 s (before: 20 to 32 s). The signatures still come before the counts; making them cheaper needs a per-folder stamp, which NTFS does not give (see `plugin_facts.input_signature`).
 - Five projects showed `Plugin missing` before round 10 (`zelda_oracles`, `donkey_kong_tropical_freeze`, `mario_vs_donkey_kong_gba`, `mario_vs_donkey_kong_switch`). Round 10 merges those plugins. Not yet checked in the app.
-- The grid view has no details pane: Build, Export, Run and the flags are in the list view only.
 - Icons changed while the window is open appear at the next scan (open or Reload). There is no file watcher.
 - Game icons: `scripts/harvest_project_icons.py` writes `picoripi/icon.png` (dry run by default; `--apply` writes). It is run by hand; the app does not extract icons (D29).
 - A scan child needs `sys.executable -m core.project_library.scan_child`. A frozen (PyInstaller) build would need a scan entry point; no frozen build exists.
@@ -296,6 +294,7 @@ Open after phase 3b:
 
 ## Pokémon generation III-V (`plugins/pokemon_fr`, `pokemon_gen4`, `pokemon_gen5`, 2026-10-10)
 
+- Game text in older tests (before r37, not changed by r43): `test_pokemon_gen1/test_rules.py`, `test_pokemon_gen4/test_gen4_rom.py`, `test_pokemon_gen4/test_rules.py` and `test_pokemon_gen5/test_rules.py` quote full game lines. Use synthetic text, or a facts file under `PICORIPI_ROMHACKING` as the r43 tests do. The lines already exist in git history (for example commits `b1188479`, `e9d9ae0d`); a history rewrite needs the owner's decision.
 - Gen 3 (Ruby / Sapphire, FireRed / LeafGreen, Emerald): the WSL build in `zt/pret_gen3.py` (agbcc, libpng built from the cloned sources) was written but not run; `2_build.bat` must be run once to prove it.
 - Gen 3: the Ukrainian letters that are not look-alikes sit on the cells of accented Latin letters; their glyphs are not drawn. Width checks use the old JSON font map, not the game's font widths.
 - Gen 4 decompilations: no build (Metrowerks mwccarm, Nitro SDK and the ROMs are not on disk); the fonts and pictures are PNG + JSON descriptors the decompilation's tools turn into NFTR/NCGR, not opened yet.
