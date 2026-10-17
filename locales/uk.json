@@ -2592,6 +2592,8 @@
   "sector {0} is not on the disc": "сектора {0} немає на диску",
   "sector {0} is an audio sector and holds no data": "сектор {0} є аудіосектором і не містить даних",
   "no ISO 9660 volume on the GD-ROM disc": "на диску GD-ROM немає тому ISO 9660",
+  "no ISO 9660 volume on the PlayStation disc": "на диску PlayStation немає тому ISO 9660",
+  "{0} is an interleaved stream, not plain data": "{0} є переплетеним потоком, а не звичайними даними",
   "a directory is nested too deep": "каталог вкладено надто глибоко",
   "a directory is listed twice in the image": "каталог в образі перелічено двічі",
   "a directory record in the image is malformed": "запис каталогу в образі пошкоджено",

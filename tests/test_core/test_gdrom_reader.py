@@ -144,7 +144,7 @@ def test_a_track_file_that_is_not_whole_sectors_is_refused(tmp_path):
 
 
 def test_an_unsupported_track_mode_is_refused(tmp_path):
-    cue = write_cue(tmp_path, [("hd", "disc (Track 3).bin", "MODE2/2352", hd_area())])
+    cue = write_cue(tmp_path, [("hd", "disc (Track 3).bin", "MODE2/2336", hd_area())])
     with pytest.raises(ImageError):
         GdRomStream(cue)
 
