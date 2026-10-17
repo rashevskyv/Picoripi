@@ -45,13 +45,17 @@ class BoxSpec:
     fcpx: str                     # the font setting member
     font_dir: str                 # the folder of the scrambled font files, relative to the source folder
     background: Tuple[int, int, int, int] = (238, 240, 242, 255)
+    em_y: Optional[float] = None  # glyph height in px when it differs from the pane's X size (stretched in X)
 
 
-# The text is drawn at each pane's own fontSize (the layout's value). Check: the game's hand-broken lines pile up
-# against the pane edge at that size (Sword 54 px, 1080 px pane: 1.00-1.02 of the pane, then almost none above 1.04;
-# Scarlet / Violet 42 px, 840 px pane: the same shape). The font is UDKakugo; that is an override, see MESSAGE_FONTS.
-# Sword / Shield: msg_00.bflyt, one frame with two text panes (1080 px).
-SWORD_SHIELD_BOX = BoxSpec("bin/appli/msg/bin/msg_00.arc", "blyt/msg_00.bflyt", "fcpx/system54_jpn.bfcpx", "bin/font")
+# The text is drawn at each pane's own fontSize (the layout's value), unless the spec sets em_y. The font is UDKakugo;
+# that is an override, see MESSAGE_FONTS.
+# Sword / Shield: msg_00.bflyt, one frame with two text panes (1080 px). MEASURED on the Eden frame (2026-10-17,
+# field speech bubble, line "Now I've got to run! See you at mine later!"): the glyph height is 42 px and the X size
+# is the layout's 54 (UDKakugo bold). Frame ink box (414, 898)-(1334, 947); render (414, 899)-(1336, 947); centroid
+# within 1.2 px. The baseline follows UDKakugo's ascender at 42 px. The bubble picture is not drawn (flat box).
+SWORD_SHIELD_BOX = BoxSpec("bin/appli/msg/bin/msg_00.arc", "blyt/msg_00.bflyt", "fcpx/system54_jpn.bfcpx", "bin/font",
+                           em_y=42.0)
 # Scarlet / Violet: msg_sub_00.bflyt from the sub-window archive (appli/data/msg_sub), two 840 px text panes, no frame.
 # Not yet checked that this is the field dialogue (msg_btl_00 is the battle box, also two panes).
 SCARLET_VIOLET_SUB_BOX = BoxSpec("appli/data/msg_sub/msg_sub_body_00.arc", "blyt/msg_sub_00.bflyt",
@@ -206,16 +210,19 @@ class SwitchMessagePreview(QWidget):
             return
         # A game line longer than its pane flows into the next pane (word wrap), as the game does.
         width = min(pane.rect[2] - pane.rect[0] for pane in layout.panes)
-        size = layout.panes[0].size[0]
+        em_y = self._spec.em_y
+        # With em_y the glyphs are stretched from em_y to the pane's X size: wrap at the unstretched width.
+        stretch = layout.panes[0].size[0] / em_y if em_y else 1.0
+        size = em_y or layout.panes[0].size[0]
         page = (split_pages(self._text) or [[]])[0]
         shown: List[str] = []
         too_long = False
         for line, _colour in page:
-            parts, long_word = fm.wrap_text(line, width, chain, size, layout.panes[0].char_space)
+            parts, long_word = fm.wrap_text(line, width / stretch, chain, size, layout.panes[0].char_space)
             shown += parts
             too_long = too_long or long_word
         lines = [[shown[i]] if i < len(shown) else [] for i in range(len(layout.panes))]
-        image = fm.render_window(layout, chain, lines, background=self._spec.background)
+        image = fm.render_window(layout, chain, lines, background=self._spec.background, em_y=em_y)
         self._image = _to_qimage(image)
         notes = []
         if too_long:

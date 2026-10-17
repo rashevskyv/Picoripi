@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import io
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Dict, List, Optional, Sequence, Tuple
 
 from PIL import Image, ImageDraw, ImageFont
@@ -201,14 +201,36 @@ def draw_pane(image: Image.Image, pane: TextPane, chain: FontChain, lines: List[
     return too_wide
 
 
+def draw_pane_x_stretched(image: Image.Image, pane: TextPane, chain: FontChain, lines: List[str], em_y: float) -> None:
+    """Draws one pane with glyphs ``em_y`` px tall and stretched in X to the pane's ``size[0]``.
+
+    Measured on the Sword/Shield field box (layout X 54, the Eden frame's glyph height 42): the text is drawn at
+    ``em_y`` and every glyph and advance is scaled by ``size[0] / em_y`` from the pane's left edge. Left-aligned panes
+    only; the stretch is applied to the whole strip right of the pane origin.
+    """
+    k = pane.size[0] / em_y
+    layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    draw_pane(layer, replace(pane, size=(em_y, em_y)), chain, lines)
+    x0, y0, x1, y1 = (int(round(v)) for v in pane.rect)
+    strip = layer.crop((x0, y0, image.size[0], y1))
+    wide = strip.resize((max(1, round(strip.width * k)), strip.height), Image.LANCZOS)
+    overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    overlay.paste(wide, (x0, y0))
+    image.alpha_composite(overlay)
+
+
 def render_window(layout: MessageLayout, chain: FontChain, lines_by_pane: Sequence[List[str]],
-                  background: RGBA = (0, 0, 0, 0)) -> Image.Image:
+                  background: RGBA = (0, 0, 0, 0), em_y: Optional[float] = None) -> Image.Image:
     """The window with its text: pane i gets ``lines_by_pane[i]``. Cropped to the window frame when there is one.
-    A line wider than its pane is drawn anyway; the caller reports it with ``overflow``."""
+    ``em_y`` (optional) draws the glyphs at that height and stretches them to the pane's X size (see
+    ``draw_pane_x_stretched``). A line wider than its pane is drawn anyway; the caller reports it with ``overflow``."""
     width, height = (int(v) for v in layout.canvas)
     image = Image.new("RGBA", (width, height), background)
     for pane, lines in zip(layout.panes, lines_by_pane):
-        draw_pane(image, pane, chain, lines)
+        if em_y is None:
+            draw_pane(image, pane, chain, lines)
+        else:
+            draw_pane_x_stretched(image, pane, chain, lines, em_y)
     box = layout.window or _panes_box(layout.panes)
     if box is None:
         return image
@@ -227,5 +249,5 @@ def _panes_box(panes: Sequence[TextPane]) -> Optional[Rect]:
             max(p.rect[2] for p in panes) + _MARGIN, max(p.rect[3] for p in panes) + _MARGIN)
 
 
-__all__ = ["Face", "FontChain", "MessageLayout", "TextPane", "draw_pane", "font_names", "line_pitch",
-           "read_layout", "render_window", "wrap_text"]
+__all__ = ["Face", "FontChain", "MessageLayout", "TextPane", "draw_pane", "draw_pane_x_stretched", "font_names",
+           "line_pitch", "read_layout", "render_window", "wrap_text"]

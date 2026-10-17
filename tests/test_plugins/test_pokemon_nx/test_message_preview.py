@@ -7,6 +7,7 @@ import json
 
 import pytest
 import romhacking_root
+from PIL import Image
 
 from core.containers.sarc import Sarc
 from plugins.common import flyt_message as fm
@@ -94,6 +95,30 @@ def test_the_game_lines_pile_up_at_the_pane_edge_at_the_layout_size():
     assert len(ratios) > 500
     assert sum(1 for r in ratios if r > 1.04) < 0.01 * len(ratios)
     assert sum(1 for r in ratios if r > 1.0) < 0.05 * len(ratios)
+
+
+@pytest.mark.skipif(not HAS_SOURCE, reason="needs the owner's Sword and Shield unpack with msg_00.arc")
+def test_the_field_line_matches_the_measured_eden_frame():
+    """Measured on the Eden frame (field bubble, 2026-10-17): ink box (414, 898)-(1334, 947) in canvas pixels.
+
+    The box is drawn with UDKakugo at 42 px high and the layout's 54 px width (see SWORD_SHIELD_BOX). Tolerance 3 px.
+    """
+    arc = Sarc((SOURCE / "bin/appli/msg/bin/msg_00.arc").read_bytes())
+    layout = fm.read_layout(arc.files["blyt/msg_00.bflyt"], arc.files["fcpx/system54_jpn.bfcpx"])
+    spec = mp.SWORD_SHIELD_BOX
+    chain = fm.FontChain([fm.Face.from_bfotf(path.read_bytes())
+                          for path in mp.font_files(SOURCE / "bin/font", mp.MESSAGE_FONTS)])
+    canvas = Image.new("RGBA", (1920, 1080), spec.background)
+    fm.draw_pane_x_stretched(canvas, layout.panes[0], chain, ["Now I’ve got to run! See you at mine later!"],
+                             spec.em_y)
+    band = canvas.convert("L").crop((400, 885, 1350, 948))
+    dark = [(x, y) for y in range(band.height) for x in range(band.width) if band.getpixel((x, y)) < 100]
+    left = min(x for x, _y in dark) + 400
+    right = max(x for x, _y in dark) + 400
+    top = min(y for _x, y in dark) + 885
+    bottom = max(y for _x, y in dark) + 885
+    assert abs(left - 414) <= 3 and abs(right - 1334) <= 3
+    assert abs(top - 898) <= 3 and abs(bottom - 947) <= 3
 
 
 ARCEUS = ROOT / "Legends Arceus" / "source" if ROOT else None
