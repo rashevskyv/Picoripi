@@ -457,11 +457,19 @@ Open after phase 3b:
 Measured offscreen from process start to "open sequence complete"; Twilight Princess 5 s, Minish Cap 1.7 s,
 The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 
-- **Reference languages are parsed on the UI thread at every open** (Twilight Princess: 5 languages, ~3 s of
-  the 5 s). Parse in a worker, or keep the parsed result on disk keyed by the archives' time and size and the
-  alias table. The parser writes aliases into `mw.default_tag_mappings`, so a worker needs that split first.
-- **The block tree is built on the UI thread** (`populate_blocks`, Twilight Princess ~1.3 s): the speaker pool
-  walks every message flow (`build_speaker_pool` → `get_speaker_for_string`).
+- Done (2026-10-17): **Reference languages are parsed on a worker thread** (`ReferenceManager.load_in_background`,
+  `plugin_settings.load_reference`). The Twilight Princess plugin gives the worker its own copy of the tag mapping
+  (`reference_worker_rules`); the aliases the parse registers are copied back on the window's thread. One parse
+  runs at a time and only the latest request is applied. The parser also reads each archive once (on Windows
+  `*.arc` and `*.ARC` matched the same files). Measured offscreen on a copy of the owner's project: the parse
+  took 2.2 s on the UI thread, now 1.35 s on the worker; the open went from 4.8–6.2 s to 3.1–3.9 s. Output
+  identical (same 78,110 strings and aliases; `tests/test_core/test_reference_background.py`).
+- **The block tree is built on the UI thread** (`populate_blocks`, Twilight Princess 1.8–2.2 s of the open, measured
+  2026-10-17): virtual story and speaker folders (`_add_story_root`, `_add_windows_projection_root`) ~1.7 s, the
+  speaker pool (`build_speaker_pool` → `get_speaker_for_string`) 0.6–0.7 s, `_apply_virtual_issue_indicators` and
+  `_story_mapping_indices` ~2 s of profiled time, and the MemPalace client import (`core/mempalace/client.py`) ~1.2 s
+  the first time a story folder is built. Not moved: each step reads the message flows and the story overrides, so a
+  worker needs those as snapshots first.
 - **The issue scan runs one whole block per UI-thread step** (`issue_scan_handler._scan_next_batch`): a game
   whose text is one block (N64: 4589 strings) freezes the window for ~2 s at the first open.
 - **An enabled spellchecker parses its dictionary in a Python thread** (pure-Python `spylls`, 2–3 s of CPU
@@ -1170,7 +1178,8 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
   BFLYT text panes.
 - **Tag `{tag:1:2}`** (no arguments; at the start of shop prompts and the end of shouted lines) has no name.
 - **Reference languages load on the UI thread** (the host's reference loading is synchronous): about 0.6 s per
-  language, ~8 s for TotK's 14.
+  language, ~8 s for TotK's 14. Done for plugins that give `reference_worker_rules` (Twilight Princess, 2026-10-17):
+  the parse runs on a worker. Other plugins still load synchronously.
 - **Added glyphs are unproven in game:** the title menu shown in Eden uses Rodin, which already had Ukrainian;
   the glyphs drawn into RaglanPunch, NTLG-DB and ZeldaGlyphs (titles, small text, location banners) still need a
   screen that uses those fonts, and a hand touch-up.
