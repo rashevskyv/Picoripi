@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Pokémon Brilliant Diamond / Shining Pearl (Switch): the field dialogue preview draws the first line in the game's TextMesh Pro efigs face at the measured size (45.5 px, pen x 485.5, baseline 855; facts in `config.json` `dialogue_box`, `plugins/pokemon_bdsp/dialogue_preview.py`); the box picture and the wrap width are not measured yet.
 
 - Unity bundles (`core/unity/typetree.py`): a `pair` field (a sprite's render key) reads and writes as a record, so the Sprite objects of a bundle read; the shared FLYT renderer (`plugins/common/flyt_message.py`) draws a TextMesh Pro atlas glyph (`TmpFace`, the signed-distance threshold of the `font/<bundle>` atlas) through the same `draw_pane` as the outline fonts. Brilliant Diamond / Shining Pearl's message box is not located yet, so no preview uses it.
 - Pokémon Legends: Z-A (Switch): the wizard writes the message box archive `ui/data/msg/msg_body_00.arc` (the pack of `view_msg_body_00.truiv`, named by its view and its root layout in `core/containers/trinity_pack.py` `name_views`), and the dialogue box preview draws its `msg_00.bflyt` (two 42 px panes, the outer layout's y -370 offset in `plugins/common/flyt_message.py` `read_layout`, `ZA_FIELD_BOX` in `plugins/common/switch_message_preview.py`); glyph size not yet measured against a frame.

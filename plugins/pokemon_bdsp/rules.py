@@ -115,5 +115,10 @@ class GameRules(BaseGameRules):
                                editor_player_tag_const: str) -> Tuple[str, str, str]:
         return clean_spaces(segment_to_insert), "OK", ""
 
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """The field dialogue text in the game's TMP face (dialogue_preview.py). Only the first line is drawn yet."""
+        from plugins.pokemon_bdsp.dialogue_preview import DialogueBoxPreview
+        return DialogueBoxPreview(main_window)
+
     def get_editor_page_size(self) -> int:
         return DEFAULT_LINES_PER_PAGE
