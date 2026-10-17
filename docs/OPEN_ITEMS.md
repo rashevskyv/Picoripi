@@ -253,7 +253,7 @@ Open after phase 3b:
 ## Family projects (2026-10-12, branch feat/family-projects-ui)
 
 - [ ] Project and wizard accept several folders or game images per project, each assigned to a member by the plugin (the engine and the TP recognition exist; the UI and image files do not).
-- [ ] Wind Waker family: plugin reads both GC BMG (`zelda_tww`) and HD MSBT (`zelda_ww`); match rate by editor text is 23 % (tags differ: `{escape:255:...}` vs `[Size]`). Needs a tag map before the family works.
+- [ ] Wind Waker family: plugin reads both GC BMG (`zelda_tww`) and HD MSBT (`zelda_ww`). Measured 2026-10-17 on the owner's unpacked folders: 3,624 of 5,040 HD messages link (71.9 %). The tag map (`family_tag_map.json`) was already derived; the match key now leaves out colour, text size and `[Capital]`. Of the 4,262 messages paired by id, 3,498 have the same key, 30 differ only in a tag the map lacks, and 734 have different text (not a tag problem: a link needs equal text). Open: the 30 tag gaps; a rule for the 734 text differences is a scope decision.
 - [ ] Shared files are copied by `python -m plugins.zelda_bmg.family shared` only; the Wii patcher (`GC + Wii\Patcher\patcher.py`, outside the repo) still copies its own `fontres.arc`. Connect it to the command.
 - [ ] Wind Waker font sync: the two copies "file-select font" and "name-entry font" (28335 and 148064 bytes) are not byte-equal; glyph sync by character code is not written.
 - [ ] Family store v1 to v2 migration: the old `_family/family_translations.json` is kept as `.bak_v1_20261012`; the new store is seeded from the translation folders.
@@ -1138,6 +1138,10 @@ omfs`) could be
   the original MD5, so its packs are taken as clean, but the WUX (`WWHD_UA\iso`) stays undecrypted (no keys here).
 - **Cemu 2.6 here crashes at boot** (0xc0000409 after "can't initialize tv audio") with Audio API XAudio 2.7, which is
   not installed; Cubeb works. `3_run.bat` leaves Cemu's settings as they are, so the user switches the audio API once.
+- **Wizard (2026-10-17)**: a Wind Waker HD project starts from the extracted `permanent_2d_UsEnglish.pack`
+  (`plugins/zelda_ww/message_pack.py`). A `.wua` (Cemu ZArchive, zstd) or `.wux` (Wii U keys) is not read: a ZArchive reader is
+  not in the repo, and the `.wux` needs the Wii U key store entry. The wizard refuses them with the pack's error text.
+- **No Build target yet**: the Cemu graphic pack (`2_build.bat` through `_shared\scripts\zt\wiiu.py`) is not ported.
 
 ## The Wind Waker GameCube plugin (`plugins/zelda_tww`)
 
@@ -1158,6 +1162,11 @@ omfs`) could be
   (`SessionMixin._session_misses_project_blocks` falls back to a full load only without unsaved edits).
 - **Removed project blocks stay in virtual folders**: `Project.remove_block` (used by the folder sync) leaves the
   block id in its folder, so empty folders remain in the block tree (the WW project was cleaned by hand).
+- **Build (2026-10-17)**: `plugins/zelda_tww/disc.py` writes the disc from the unpacked tree (no original image). On the
+  owner's data: 2,210 of 2,213 FST files equal the original; the 3 others are the translated files; `main.dol` and the
+  apploader are byte-equal; 5.1 s. The `bluewake` target keeps the original `main.dol` (BlueWake checks its SHA-1).
+  Not done: a Dolphin run of the built disc (not started in this pass), BlueWake texture packs (`Load\Textures\GZLE01`),
+  the font sync of the two name-entry copies (`nameres.arc` and `file_select.arc`), and the `main.dol` text suffixes.
 
 ## Zelda: Tears of the Kingdom plugin (`plugins/zelda_totk`)
 

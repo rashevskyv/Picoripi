@@ -1,6 +1,9 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Wind Waker (GameCube): Build makes the disc image (`iso` target) and the BlueWake disc (`bluewake` target, original main.dol) from the unpacked tree with the translation over it, with no original image needed (`plugins/zelda_tww/disc.py`); Run uses the emulator command of the platform (`gc` or `bluewake`).
+- Wind Waker HD (Wii U): the wizard recognises `permanent_2d_UsEnglish.pack` and unpacks its message files to `Message/` (`plugins/zelda_ww/message_pack.py`); a .wua or .wux file is not read yet.
+- Wind Waker family: the match key leaves out text size and the capital flag, so 3,624 of 5,040 HD messages link (71.9 %, was 68.1 %; the 23 % in the open items was stale).
 - Pokémon plugins (Gen 1, Gen 2, Gen 5, Gen 3 Mystery Dungeon 3DS, Switch, French): the asm, message, text and ROM budget files of a string are read on a worker (`plugins/common/block_loader.py`), so the editor's budget check, context and speaker lookups and the message attribute hooks never read a file on the UI thread; the block's problem scan runs again when its read ends.
 - Pokémon Legends: Z-A (Switch): the message preview has a box switch (field box, NPC speech bubble, lower-left message window); the speech bubble is drawn in UniversNext Cond at 29.5 by 29 px with every ink edge within 1 px of the Eden frame (`speech_bubble` and `hud_message` in `plugins/pokemon_trinity/config.json`, `plugins/pokemon_trinity/speech_bubble.py`, `speech_layout` in `plugins/common/switch_message_preview.py`; the HUD window is layout-derived, frame pending).
 - Settings: a Console keys tab stores the key file path of each console (3DS, Switch, Wii, Oodle library) with Browse, Clear and a check that the file exists; paths only, never the key contents.
