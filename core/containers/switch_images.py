@@ -6,6 +6,7 @@ identified but not read. A RomFS that is a BKTR patch (an update's) is not liste
 """
 from __future__ import annotations
 
+from core.i18n import tr
 import os
 import re
 import struct
@@ -38,7 +39,7 @@ def _pfs0_files(reader: ImageReader) -> List[Dict[str, Any]]:
     head = reader.read_at(0, 0x10)
     count, strtab_size = struct.unpack_from("<II", head, 4)
     if count > 4096:
-        raise ImageError("the PFS0 archive lists too many files")
+        raise ImageError(tr("the PFS0 archive lists too many files"))
     entries = reader.read_at(0x10, count * 0x18)
     names = reader.read_table(0x10 + count * 0x18, strtab_size)
     data_base = 0x10 + count * 0x18 + strtab_size
@@ -47,11 +48,11 @@ def _pfs0_files(reader: ImageReader) -> List[Dict[str, Any]]:
         offset, size = struct.unpack_from("<QQ", entries, index * 0x18)
         name_at = struct.unpack_from("<I", entries, index * 0x18 + 16)[0]
         if name_at >= len(names):
-            raise ImageError("a PFS0 file name is out of range")
+            raise ImageError(tr("a PFS0 file name is out of range"))
         try:
             name = names[name_at:].split(b"\0", 1)[0].decode("utf-8")
         except UnicodeDecodeError as exc:
-            raise ImageError("unsafe PFS0 file name") from exc
+            raise ImageError(tr("unsafe PFS0 file name")) from exc
         files.append({"name": check_name(name), "offset": data_base + offset, "size": size})
     return files
 
@@ -117,23 +118,23 @@ def locate(reader: ImageReader, head: bytes) -> Optional[Dict[str, Any]]:
 
 def _inside(item: Dict[str, Any], size: int) -> None:
     if item["offset"] + item["size"] > size:
-        raise ImageError("a file ends past the end of its container")
+        raise ImageError(tr("a file ends past the end of its container"))
 
 
 def _table_entry(table: bytes, pos: int, header: int) -> bytes:
     if pos % 4 or pos + header > len(table):
-        raise ImageError("a RomFS table entry is out of range")
+        raise ImageError(tr("a RomFS table entry is out of range"))
     return table[pos:pos + header]
 
 
 def _romfs_name(table: bytes, pos: int, header: int, name_at: int) -> str:
     length = struct.unpack_from("<I", _table_entry(table, pos, header), name_at)[0]
     if not 0 < length <= 0x200 or pos + header + length > len(table):
-        raise ImageError("a RomFS name is out of range")
+        raise ImageError(tr("a RomFS name is out of range"))
     try:
         name = table[pos + header:pos + header + length].decode("utf-8")
     except UnicodeDecodeError as exc:
-        raise ImageError("unsafe RomFS name") from exc
+        raise ImageError(tr("unsafe RomFS name")) from exc
     return check_name(name)
 
 
@@ -145,7 +146,7 @@ def _romfs_files(view: PlainView) -> List[ImageFile]:
     reader = ImageReader(view)
     head = reader.read_at(0, ROMFS_HEADER)
     if struct.unpack_from("<Q", head)[0] != ROMFS_HEADER:
-        raise ImageError("the RomFS section has no RomFS header")
+        raise ImageError(tr("the RomFS section has no RomFS header"))
     dir_off, dir_len = struct.unpack_from("<QQ", head, 0x18)
     file_off, file_len = struct.unpack_from("<QQ", head, 0x38)
     data_off = struct.unpack_from("<Q", head, 0x48)[0]
@@ -164,7 +165,7 @@ def _romfs_files(view: PlainView) -> List[ImageFile]:
             offset, length = struct.unpack_from("<QQ", raw, 8)
             name = _romfs_name(meta, file_pos, 0x20, 0x1C)
             if data_off + offset + length > reader.size:
-                raise ImageError(f"RomFS file {name} ends past the RomFS")
+                raise ImageError(tr("RomFS file {0} ends past the RomFS", name))
             files.append(ImageFile(f"romfs/{prefix}{name}", data_off + offset, length, None, view))
             file_pos = struct.unpack_from("<I", raw, 4)[0]
         dir_pos = child_dir
@@ -173,7 +174,7 @@ def _romfs_files(view: PlainView) -> List[ImageFile]:
             stack.append((dir_pos, f"{prefix}{_romfs_name(dirs, dir_pos, 0x18, 0x14)}/"))
             dir_pos = struct.unpack_from("<I", _table_entry(dirs, dir_pos, 0x18), 4)[0]
         if visits > MAX_ENTRIES:
-            raise ImageError("the RomFS is too large or its tables loop")
+            raise ImageError(tr("the RomFS is too large or its tables loop"))
     return files
 
 
@@ -236,7 +237,7 @@ class SwitchImage(ImageReader):
         self.entries()
         base.entries()
         if not self.romfs_is_patch or self._program is None or base._program is None:
-            raise ImageError("this package has no RomFS patch to apply to the base RomFS")
+            raise ImageError(tr("this package has no RomFS patch to apply to the base RomFS"))
         body, header, key = self._program
         base_body, base_header, base_key = base._program
         base_view, _base_fsh = base._section(base_body, base_header, base_key, 1)
@@ -252,25 +253,25 @@ class SwitchImage(ImageReader):
         magic = self.read_at(0, 4) if self.size >= 4 else b""
         if magic != PFS0_MAGIC:
             if self.size >= 0x104 and self.read_at(0x100, 4) == XCI_MAGIC:
-                raise ImageError("Switch cartridge images (.xci) are not read yet")
-            raise ImageError("not a Switch .nsp package")
+                raise ImageError(tr("Switch cartridge images (.xci) are not read yet"))
+            raise ImageError(tr("not a Switch .nsp package"))
         tickets: Dict[bytes, bytes] = {}
         programs: List[Tuple[Dict[str, Any], NcaHeader]] = []
         for item in _pfs0_files(self):
             _inside(item, self.size)
             if item["name"].endswith(".tik"):
                 if not RIGHTS_ID_AT + 16 <= item["size"] <= MAX_TICKET:
-                    raise ImageError("a ticket has a bad size")
+                    raise ImageError(tr("a ticket has a bad size"))
                 ticket = self.read_at(item["offset"], item["size"])
                 tickets[ticket[RIGHTS_ID_AT:RIGHTS_ID_AT + 16]] = ticket
             elif item["name"].endswith((".nca", ".ncz")):
                 if item["size"] < HEADER_SIZE:
-                    raise ImageError("an NCA is cut short")
+                    raise ImageError(tr("an NCA is cut short"))
                 header = NcaHeader(self.read_at(item["offset"], HEADER_SIZE), self._keys)
                 if header.content_type == PROGRAM:
                     programs.append((item, header))
         if len(programs) != 1:
-            raise ImageError("the package must hold exactly one program NCA")
+            raise ImageError(tr("the package must hold exactly one program NCA"))
         item, header = programs[0]
         key = content_key(header, self._keys, tickets)
         body = self._program_body(item)
@@ -279,10 +280,10 @@ class SwitchImage(ImageReader):
         self._program = (body, header, key)
         exefs_view, fsh = self._section(body, header, key, 0)
         if fsh[2] != 1:
-            raise ImageError("section 0 of the program NCA is not an ExeFS")
+            raise ImageError(tr("section 0 of the program NCA is not an ExeFS"))
         pfs_at = struct.unpack_from("<Q", fsh, 0x40)[0]
         if pfs_at >= exefs_view.size:
-            raise ImageError("the ExeFS starts past its section")
+            raise ImageError(tr("the ExeFS starts past its section"))
         exefs = RangeView(exefs_view, pfs_at, exefs_view.size - pfs_at)
         exefs_reader = ImageReader(exefs)
         if exefs_reader.read_at(0, 4) != PFS0_MAGIC:
@@ -298,10 +299,10 @@ class SwitchImage(ImageReader):
             return entries
         romfs_view, fsh = self._section(body, header, key, 1)
         if fsh[2] != 0:
-            raise ImageError("section 1 of the program NCA is not a RomFS")
+            raise ImageError(tr("section 1 of the program NCA is not a RomFS"))
         level = struct.unpack_from("<Q", fsh, 0x90)[0]
         if level >= romfs_view.size:
-            raise ImageError("the RomFS starts past its section")
+            raise ImageError(tr("the RomFS starts past its section"))
         return entries + _romfs_files(RangeView(romfs_view, level, romfs_view.size - level))
 
     def _program_body(self, item: Dict[str, Any]) -> Optional[_Body]:
@@ -315,7 +316,7 @@ class SwitchImage(ImageReader):
     def _decompress(self, item: Dict[str, Any]) -> Optional[_Body]:
         """Decompress the .ncz ``item`` into a new file in ``cache_dir``. None when cancelled (the file is deleted)."""
         if self._cache_dir is None:
-            raise ImageError("a compressed Switch program needs a folder for its decompressed NCA")
+            raise ImageError(tr("a compressed Switch program needs a folder for its decompressed NCA"))
         source = ImageReader(RangeView(self.stream, item["offset"], item["size"]))
         ncz = read_ncz(source)
         folder = Path(self._cache_dir)
@@ -334,16 +335,16 @@ class SwitchImage(ImageReader):
         they were decrypted before compression, so no CTR is applied again."""
         spec = header.sections[index]
         if spec is None:
-            raise ImageError(f"the program NCA has no section {index}")
+            raise ImageError(tr("the program NCA has no section {0}", index))
         start, end, fsh = spec
         if end > body.size:
-            raise ImageError("a section ends past its NCA")
+            raise ImageError(tr("a section ends past its NCA"))
         if struct.unpack_from("<Q", fsh, 0x180)[0]:
-            raise ImageError("compressed sections are not read")
+            raise ImageError(tr("compressed sections are not read"))
         if not body.plain:
             return open_section(body.stream, body.base, spec, key), fsh
         if fsh[4] not in (1, 3, 4) or start < NCA_HEADER_SIZE:
-            raise ImageError("a section of the compressed NCA is not read")
+            raise ImageError(tr("a section of the compressed NCA is not read"))
         return RangeView(body.stream, body.base + start, end - start), fsh
 
 

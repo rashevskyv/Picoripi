@@ -42,6 +42,7 @@ The pack codec is ported from bullbin's ``madhatter`` (MIT licence, https://gith
 """
 from __future__ import annotations
 
+from core.i18n import tr
 import struct
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
@@ -94,8 +95,8 @@ def bios_decompress(data: bytes, offset: int = 0) -> bytes:
         if kind in (0x24, 0x28):
             return _huffman(data, offset + 4, size, kind & 0xF)
     except (IndexError, struct.error) as error:
-        raise ValueError(f"broken BIOS stream: {error}") from None
-    raise ValueError(f"not a BIOS compressed stream (type {kind:#04x})")
+        raise ValueError(tr("broken BIOS stream: {0}", error)) from None
+    raise ValueError(tr("not a BIOS compressed stream (type {0:#04x})", kind))
 
 
 def prefix_of(data: bytes) -> int:
@@ -155,7 +156,7 @@ class Pack:
         if kind == LPC2:
             return cls._parse_lpc2(plain)
         if kind is None:
-            raise ValueError("not a Layton pack")
+            raise ValueError(tr("not a Layton pack"))
         return cls._parse_lpck(plain, kind)
 
     @classmethod
@@ -167,7 +168,7 @@ class Pack:
             name = plain[pos + 16:pos + name_end].split(b"\0")[0].decode("shift-jis")
             members.append(Member(name, plain[pos + name_end:pos + name_end + size], name_end - 16))
             if step < name_end + size:
-                raise ValueError("broken pack record")
+                raise ValueError(tr("broken pack record"))
             spans.append((name_end + size, step))
             pos += step
         # the unit the records are padded to: 16 or 4, with 1..unit filler bytes (never none)

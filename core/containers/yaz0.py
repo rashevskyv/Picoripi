@@ -22,6 +22,7 @@ Compressed output format:
     0x10    ...   Compressed data groups
 """
 
+from core.i18n import tr
 import struct
 
 _GROUP_MASKS = (0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01)
@@ -42,9 +43,9 @@ def decompress(data: bytes, limit: int | None = None) -> bytes:
         ValueError: If magic bytes are incorrect or data is malformed.
     """
     if len(data) < 16:
-        raise ValueError("Data too short to be Yaz0")
+        raise ValueError(tr("Data too short to be Yaz0"))
     if data[:4] != b"Yaz0":
-        raise ValueError(f"Invalid Yaz0 magic: {data[:4]!r}")
+        raise ValueError(tr("Invalid Yaz0 magic: {0!r}", data[:4]))
 
     uncompressed_size: int = struct.unpack_from(">I", data, 4)[0]
     if limit is not None:

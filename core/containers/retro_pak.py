@@ -22,6 +22,7 @@ same GUID in an ordinary package.
 """
 from __future__ import annotations
 
+from core.i18n import tr
 import os
 import struct
 from dataclasses import dataclass, field
@@ -67,7 +68,7 @@ def form_header(data: bytes, at: int = 0) -> Tuple[str, int, int, int]:
     """``(id, body size, reader version, writer version)`` of the ``RFRM`` form at ``at``."""
     magic, size, _zero, kind, reader, writer = FORM.unpack_from(data, at)
     if magic != b"RFRM":
-        raise ValueError(f"Not an RFRM form at {at:#x}")
+        raise ValueError(tr("Not an RFRM form at {0:#x}", at))
     return kind.decode("latin-1"), size, reader, writer
 
 
@@ -79,7 +80,7 @@ def chunks(data: bytes, start: int = FORM.size, end: Optional[int] = None):
         kind, size, _unk, skip = CHUNK.unpack_from(data, position)
         body = position + CHUNK.size + skip
         if body + size > end:
-            raise ValueError(f"Chunk {kind!r} at {position:#x} runs past the end")
+            raise ValueError(tr("Chunk {0!r} at {1:#x} runs past the end", kind, position))
         yield kind.decode("latin-1"), position, body, size
         position = body + size
 
@@ -94,7 +95,7 @@ class Pak:
             kind, _size, _r, _w = form_header(head)
             toc_kind, toc_size, self.toc_version, _w = form_header(head, FORM.size)
             if kind != "PACK" or toc_kind != "TOCC":
-                raise ValueError(f"{self.path.name}: not a Retro package")
+                raise ValueError(tr("{0}: not a Retro package", self.path.name))
             self.header = head + stream.read(toc_size)
         self.assets: List[Asset] = []
         self.meta: Dict[bytes, bytes] = {}
@@ -146,7 +147,7 @@ class Pak:
             stream.seek(asset.offset)
             data = stream.read(asset.stored)
         if len(data) != asset.stored:
-            raise ValueError(f"{self.path.name}: asset {asset.name} runs past the end of the file")
+            raise ValueError(tr("{0}: asset {1} runs past the end of the file", self.path.name, asset.name))
         return data
 
     def read(self, asset: Asset, tables: Optional["HuffmanTables"] = None) -> bytes:
@@ -180,13 +181,13 @@ def lzss(data: bytes, size: int, mode: int) -> bytes:
                 out += data[position:position + unit]
                 position += unit
     if len(out) != size:
-        raise ValueError(f"LZSS stream gave {len(out)} bytes, expected {size}")
+        raise ValueError(tr("LZSS stream gave {0} bytes, expected {1}", len(out), size))
     return bytes(out)
 
 
 def _copy_match(out: bytearray, distance: int, count: int) -> None:
     if not 0 < distance <= len(out):
-        raise ValueError(f"LZ match reaches before the start of the data ({distance} > {len(out)})")
+        raise ValueError(tr("LZ match reaches before the start of the data ({0} > {1})", distance, len(out)))
     start = len(out) - distance
     if distance >= count:
         out += out[start:start + count]
@@ -208,7 +209,7 @@ class HuffmanTables:
 
     def __init__(self, raw: bytes):
         if len(raw) != 3 * 0x800:
-            raise ValueError("Huffman tables are 3 x 2048 bytes")
+            raise ValueError(tr("Huffman tables are 3 x 2048 bytes"))
         self.raw = bytes(raw)
         self.codes = [self._lookup(raw[i * 0x800:(i + 1) * 0x800]) for i in range(3)]
 
@@ -217,18 +218,18 @@ class HuffmanTables:
         entries = [struct.unpack_from("<HBBI", table, i * 8) for i in range(256)]
         width = max(length for length, _left, _sym, _code in entries)
         if not 0 < width <= 24:
-            raise ValueError("Not a Huffman table")
+            raise ValueError(tr("Not a Huffman table"))
         look: List[Optional[Tuple[int, int]]] = [None] * (1 << width)
         for length, _left, symbol, code in entries:
             shift = width - length
             if code >> length:
-                raise ValueError("Not a Huffman table")
+                raise ValueError(tr("Not a Huffman table"))
             for k in range(code << shift, (code + 1) << shift):
                 if look[k] is not None:
-                    raise ValueError("Huffman codes overlap")
+                    raise ValueError(tr("Huffman codes overlap"))
                 look[k] = (symbol, length)
         if any(item is None for item in look):
-            raise ValueError("Huffman code is incomplete")
+            raise ValueError(tr("Huffman code is incomplete"))
         return width, look  # type: ignore[return-value]
 
     @classmethod
@@ -240,7 +241,7 @@ class HuffmanTables:
                 return cls(memory[at:at + 3 * 0x800])
             except (ValueError, struct.error):
                 at = memory.find(cls.SIGNATURE, at + 1)
-        raise ValueError("The compression tables were not found in this executable")
+        raise ValueError(tr("The compression tables were not found in this executable"))
 
     @classmethod
     def from_executable(cls, path) -> "HuffmanTables":
@@ -251,7 +252,7 @@ class HuffmanTables:
 def nso_memory(nso: bytes) -> bytes:
     """The text, rodata and data segments of an NSO at their addresses."""
     if nso[:4] != b"NSO0":
-        raise ValueError("Not an NSO executable")
+        raise ValueError(tr("Not an NSO executable"))
     flags = struct.unpack_from("<I", nso, 12)[0]
     segments = []
     for index, at in enumerate((16, 32, 48)):
@@ -296,7 +297,7 @@ def lz4_block(data: bytes, size: int) -> bytes:
                     break
         _copy_match(out, distance, length + 4)
     if len(out) != size:
-        raise ValueError(f"LZ4 block gave {len(out)} bytes, expected {size}")
+        raise ValueError(tr("LZ4 block gave {0} bytes, expected {1}", len(out), size))
     return bytes(out)
 
 
@@ -336,7 +337,7 @@ def huffman_lz(data: bytes, size: int, mode: int, tables: HuffmanTables) -> byte
             out += ((acc >> have) & ((1 << literal_bits) - 1)).to_bytes(unit, "big")
         acc &= (1 << have) - 1
         if position > len(stream):
-            raise ValueError("Compressed stream ended early")
+            raise ValueError(tr("Compressed stream ended early"))
     del out[size:]
     return bytes(out)
 
@@ -351,9 +352,9 @@ def decompress(blob: bytes, size: int, tables: Optional[HuffmanTables] = None) -
         return lzss(data, size, mode)
     if mode in (12, 13, 14):
         if tables is None:
-            raise ValueError(f"Compression mode {mode} needs the game's tables (exefs main)")
+            raise ValueError(tr("Compression mode {0} needs the game's tables (exefs main)", mode))
         return huffman_lz(data, size, mode, tables)
-    raise ValueError(f"Compression mode {mode} is not supported")
+    raise ValueError(tr("Compression mode {0} is not supported", mode))
 
 
 # -- textures ------------------------------------------------------------------------------------------
@@ -388,7 +389,7 @@ def _texture_ranges(meta: bytes) -> List[Tuple[int, int, int]]:
 def unpack_texture(form: bytes, meta: bytes, tables: Optional[HuffmanTables] = None) -> bytes:
     """A TXTR form with its GPU data decompressed into one uncompressed buffer."""
     if form_header(form)[0] != "TXTR":
-        raise ValueError("Not a TXTR form")
+        raise ValueError(tr("Not a TXTR form"))
     size = struct.unpack_from("<I", meta, 20)[0]
     ranges = _texture_ranges(meta)
     if struct.unpack_from("<I", meta)[0] == 5:
@@ -404,7 +405,7 @@ def unpack_texture(form: bytes, meta: bytes, tables: Optional[HuffmanTables] = N
         _read, at, span = ranges[2]
         data[offset:offset + length] = _split_buffer(form[at:at + span], length, inner, inner_stored, head, tables)
     elif len(ranges) != 2:
-        raise ValueError(f"Texture with {len(ranges)} read ranges is not supported")
+        raise ValueError(tr("Texture with {0} read ranges is not supported", len(ranges)))
     gpu = struct.pack("<I", 0) + bytes(data)
     return _with_gpu(form, header_end, gpu)
 
@@ -429,7 +430,7 @@ def _split_buffer(stream: bytes, length: int, inner: int, inner_stored: int, hea
     middle = decompress(stream[head:head + inner_stored], inner, tables)
     out = middle + stream[:head] + stream[head + inner_stored:]
     if len(out) != length:
-        raise ValueError(f"Streamed texture buffer gave {len(out)} bytes, expected {length}")
+        raise ValueError(tr("Streamed texture buffer gave {0} bytes, expected {1}", len(out), length))
     return out
 
 
@@ -437,7 +438,7 @@ def _with_gpu(form: bytes, header_end: int, gpu: bytes) -> bytes:
     out = bytearray(form[:header_end]) + gpu
     gpu_at = header_end - CHUNK.size
     if out[gpu_at:gpu_at + 4] != b"GPU ":
-        raise ValueError("TXTR without a GPU chunk where the metadata says")
+        raise ValueError(tr("TXTR without a GPU chunk where the metadata says"))
     struct.pack_into("<Q", out, gpu_at + 4, len(gpu))
     struct.pack_into("<Q", out, 4, len(out) - FORM.size)
     return bytes(out)
@@ -472,7 +473,7 @@ def _copy(source: BinaryIO, target: BinaryIO, count: int) -> None:
     while count:
         block = source.read(min(count, _COPY_BLOCK))
         if not block:
-            raise ValueError("Package ended early")
+            raise ValueError(tr("Package ended early"))
         target.write(block)
         count -= len(block)
 
@@ -533,7 +534,7 @@ def repack(source, target, replacements: Dict[bytes, bytes], meta: Optional[Dict
             group = by_offset[offset]
             first = group[0]
             if offset < cursor:
-                raise ValueError(f"{pak.path.name}: assets overlap at {offset:#x}")
+                raise ValueError(tr("{0}: assets overlap at {1:#x}", pak.path.name, offset))
             src.seek(cursor)
             _copy(src, dst, offset - cursor)
             new_offset = dst.tell()

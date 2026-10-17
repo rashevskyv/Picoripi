@@ -16,6 +16,7 @@ data out again (4-byte aligned, 0xFF filler as the game's own archives have it).
 """
 from __future__ import annotations
 
+from core.i18n import tr
 import struct
 from typing import Dict, List, Tuple
 
@@ -28,7 +29,7 @@ from core.containers.base_container import BaseArchiveContainer
 def lz11_decompress(data: bytes, offset: int = 0) -> Tuple[bytes, int]:
     """``(decompressed bytes, end offset of the stream)``; ValueError on a broken stream."""
     if len(data) < offset + 4 or data[offset] != 0x11:
-        raise ValueError("not an LZ11 stream")
+        raise ValueError(tr("not an LZ11 stream"))
     size = int.from_bytes(data[offset + 1:offset + 4], "little")
     pos = offset + 4
     if size == 0:
@@ -60,11 +61,11 @@ def lz11_decompress(data: bytes, offset: int = 0) -> Tuple[bytes, int]:
                     distance = ((data[pos] & 15) << 8 | data[pos + 1]) + 1
                     pos += 2
                 if distance > len(out):
-                    raise ValueError("back reference before the start of the data")
+                    raise ValueError(tr("back reference before the start of the data"))
                 for _ in range(length):
                     out.append(out[-distance])
     except IndexError:
-        raise ValueError("LZ11 stream ends early") from None
+        raise ValueError(tr("LZ11 stream ends early")) from None
     return bytes(out[:size]), pos
 
 
@@ -112,7 +113,7 @@ def lz11_compress(data: bytes) -> bytes:
 def blz_footer(data: bytes) -> Tuple[int, int, int]:
     """``(compressed length, footer length, growth)``; growth 0 = stored plain."""
     if len(data) < 8:
-        raise ValueError("too short for a BLZ footer")
+        raise ValueError(tr("too short for a BLZ footer"))
     packed, growth = struct.unpack_from("<II", data, len(data) - 8)
     return packed & 0xFFFFFF, packed >> 24, growth
 
@@ -123,7 +124,7 @@ def blz_decompress(data: bytes) -> bytes:
     if growth == 0:
         return data
     if not 8 <= footer <= 11 or footer > compressed or compressed > len(data):
-        raise ValueError("not a BLZ file")
+        raise ValueError(tr("not a BLZ file"))
     out = bytearray(data) + bytes(growth)
     src, dst, stop = len(data) - footer, len(out), len(data) - compressed
     try:
@@ -136,24 +137,24 @@ def blz_decompress(data: bytes) -> bytes:
                 if flags & (0x80 >> bit):
                     src -= 2
                     if src < stop:   # a negative index would wrap to the end of the data
-                        raise ValueError("broken BLZ stream")
+                        raise ValueError(tr("broken BLZ stream"))
                     value = data[src] | data[src + 1] << 8
                     count = (value >> 12) + 3
                     if dst - count < stop:
-                        raise ValueError("BLZ stream writes before the start of the file")
+                        raise ValueError(tr("BLZ stream writes before the start of the file"))
                     for _ in range(count):
                         dst -= 1
                         out[dst] = out[dst + (value & 0xFFF) + 3]
                 else:
                     if dst <= stop:
-                        raise ValueError("BLZ stream writes before the start of the file")
+                        raise ValueError(tr("BLZ stream writes before the start of the file"))
                     src -= 1
                     dst -= 1
                     out[dst] = data[src]
     except IndexError:
-        raise ValueError("broken BLZ stream") from None
+        raise ValueError(tr("broken BLZ stream")) from None
     if dst != stop:
-        raise ValueError("BLZ stream does not fill the file")
+        raise ValueError(tr("BLZ stream does not fill the file"))
     return bytes(out)
 
 
@@ -216,7 +217,7 @@ def blz_compress(data: bytes) -> bytes:
     packed = len(stream) + footer
     growth = len(data) - (len(body) + footer)
     if growth <= 0:
-        raise ValueError("The data does not compress; BLZ cannot hold it")
+        raise ValueError(tr("The data does not compress; BLZ cannot hold it"))
     return body + b"\xff" * (footer - 8) + struct.pack("<II", packed | footer << 24, growth)
 
 

@@ -7,6 +7,7 @@ reference must not reach the byte just written (distance >= 2): ``compress(..., 
 """
 from __future__ import annotations
 
+from core.i18n import tr
 from typing import Dict, List, Tuple
 
 MAX_LEN = 18
@@ -17,7 +18,7 @@ _CHAIN = 256                  # candidates tried per position (most recent first
 def decompress(data: bytes, offset: int = 0) -> Tuple[bytes, int]:
     """``(decompressed bytes, end offset of the stream in data)``; ValueError on a broken stream."""
     if len(data) < offset + 4 or data[offset] != 0x10:
-        raise ValueError("not a GBA LZ77 (0x10) stream")
+        raise ValueError(tr("not a GBA LZ77 (0x10) stream"))
     size = int.from_bytes(data[offset + 1:offset + 4], "little")
     out = bytearray()
     pos = offset + 4
@@ -36,14 +37,14 @@ def decompress(data: bytes, offset: int = 0) -> Tuple[bytes, int]:
                     pos += 2
                     length, distance = (token >> 12) + 3, (token & 0xFFF) + 1
                     if distance > len(out):
-                        raise ValueError("back reference before the start of the data")
+                        raise ValueError(tr("back reference before the start of the data"))
                     for _ in range(length):
                         out.append(out[-distance])
                 else:
                     out.append(data[pos])
                     pos += 1
     except IndexError:
-        raise ValueError("LZ77 stream ends early") from None
+        raise ValueError(tr("LZ77 stream ends early")) from None
     return bytes(out[:size]), pos
 
 
@@ -83,7 +84,7 @@ def compress(data: bytes, vram: bool = False) -> bytes:
     data = bytes(data)
     size = len(data)
     if size >= 1 << 24:
-        raise ValueError("LZ77 holds at most 16 MiB")
+        raise ValueError(tr("LZ77 holds at most 16 MiB"))
     lengths, distances = _longest_matches(data, 2 if vram else 1)
     # cost[i]: bits to code data[i:]; a literal costs 9 bits, a reference 17.
     cost = [0] * (size + 1)

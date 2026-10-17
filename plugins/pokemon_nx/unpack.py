@@ -93,7 +93,7 @@ def _decode_packs(target_dir: str, progress: Callable[[int, str], None], is_canc
     try:
         oodle = Oodle(library)
     except OodleError as exc:
-        raise ImageError(str(exc)) from None
+        raise ImageError(tr("the Oodle library cannot be used: {0}", str(exc))) from None
     for index, pack in enumerate(packs, start=1):
         if is_cancelled():
             return
@@ -103,7 +103,7 @@ def _decode_packs(target_dir: str, progress: Callable[[int, str], None], is_canc
         try:
             files = gfpak.decode(data, oodle.decompress)
         except (OodleError, gfpak.GfpakError) as exc:
-            raise ImageError(str(exc)) from None
+            raise ImageError(tr("the Oodle library cannot be used: {0}", str(exc))) from None
         names = gfpak.file_names(files, [entry.path_hash for entry in entries])
         folder = pack.with_name(pack.name + ".d")
         folder.mkdir(exist_ok=True)

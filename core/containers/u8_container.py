@@ -28,6 +28,7 @@ Binary format (big-endian):
     File data: at data_off, each file at an offset recorded in its node.
 """
 
+from core.i18n import tr
 import struct
 from .base_container import BaseArchiveContainer
 from . import yaz0
@@ -71,7 +72,7 @@ class U8Container(BaseArchiveContainer):
             data = yaz0.decompress(data)
 
         if data[:4] != _U8_MAGIC:
-            raise ValueError(f"Not a U8 archive (magic={data[:4]!r})")
+            raise ValueError(tr("Not a U8 archive (magic={0!r})", data[:4]))
 
         self._raw: bytes = data
         self._overlay: dict[str, bytes] = {}
@@ -94,7 +95,7 @@ class U8Container(BaseArchiveContainer):
         root_size     = struct.unpack_from(">I", d, self._root_off + 8)[0]
 
         if root_type != _NODE_DIR:
-            raise ValueError("U8 root node is not a directory")
+            raise ValueError(tr("U8 root node is not a directory"))
 
         self._total_nodes: int = root_size  # root.size = one-past-last child = total count
 

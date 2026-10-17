@@ -9,6 +9,7 @@ done, through ``os.replace``, so a cancelled or failed write leaves no partial i
 """
 from __future__ import annotations
 
+from core.i18n import tr
 import os
 import struct
 from pathlib import Path
@@ -44,14 +45,14 @@ def _check_changes(changes: Mapping[str, bytes], by_path: Dict[str, Tuple[int, I
                    sys_by_path: Dict[str, ImageFile]) -> None:
     for rel, blob in changes.items():
         if not isinstance(blob, (bytes, bytearray)):
-            raise ImageError(f"{rel}: the new content is not bytes")
+            raise ImageError(tr("{0}: the new content is not bytes", rel))
         if rel.startswith("sys/"):
             if rel != "sys/main.dol":
-                raise ImageError(f"{rel}: only sys/main.dol may change, and only within its size")
+                raise ImageError(tr("{0}: only sys/main.dol may change, and only within its size", rel))
             if len(blob) != sys_by_path[rel].size:
-                raise ImageError("sys/main.dol changed size: the executable must keep its size")
+                raise ImageError(tr("sys/main.dol changed size: the executable must keep its size"))
         elif rel not in by_path:
-            raise ImageError(f"{rel}: the disc holds no such file (new files are not written)")
+            raise ImageError(tr("{0}: the disc holds no such file (new files are not written)", rel))
 
 
 def _copy(source: Path, tmp: Path, progress: Progress, is_cancelled: Cancelled) -> bool:
@@ -80,7 +81,7 @@ def write_disc(source: str | Path, out: str | Path, changes: Mapping[str, bytes]
     """
     source, out = Path(source), Path(out)
     if out.exists() and os.path.samefile(source, out):
-        raise ImageError("the output must not be the source image")
+        raise ImageError(tr("the output must not be the source image"))
     with open_disc(source) as stream:
         image = GameCubeImage(stream)
         slots = image.fst_slots()
@@ -121,7 +122,7 @@ def write_disc(source: str | Path, out: str | Path, changes: Mapping[str, bytes]
                     others = [span for span in spans if span != own]
                     offset = _free_offset(others, len(blob))
                     if offset is None:
-                        raise ImageError(f"{rel} does not fit on the disc")
+                        raise ImageError(tr("{0} does not fit on the disc", rel))
                     disc.seek(offset)
                     disc.write(blob)
                     size = len(blob)

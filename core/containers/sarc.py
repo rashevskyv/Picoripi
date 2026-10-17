@@ -11,6 +11,7 @@ zstd comes from the standard library (``compression.zstd``, Python 3.14+).
 """
 from __future__ import annotations
 
+from core.i18n import tr
 import struct
 from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Tuple
@@ -35,7 +36,7 @@ _searched: set = set()
 
 def _need_zstd() -> None:
     if zstd is None:
-        raise ValueError("zstd-compressed files need Python 3.14 or newer (compression.zstd)")
+        raise ValueError(tr("zstd-compressed files need Python 3.14 or newer (compression.zstd)"))
 
 
 def add_dictionary_pack(raw: bytes) -> List[int]:
@@ -92,14 +93,14 @@ class Sarc:
     def __init__(self, raw: bytes):
         raw = bytes(raw)
         if raw[:4] != b"SARC":
-            raise ValueError("Not a SARC archive")
+            raise ValueError(tr("Not a SARC archive"))
         self.endian = "<" if raw[6:8] == b"\xff\xfe" else ">"
         e = self.endian
         self.data_offset = struct.unpack_from(e + "I", raw, 0x0C)[0]
         header_size = struct.unpack_from(e + "H", raw, 0x04)[0]
         sfat = header_size
         if raw[sfat:sfat + 4] != b"SFAT":
-            raise ValueError("SARC without an SFAT section")
+            raise ValueError(tr("SARC without an SFAT section"))
         node_count = struct.unpack_from(e + "H", raw, sfat + 6)[0]
         names_base = sfat + 12 + node_count * 16 + 8
         self._head = bytearray(raw[:self.data_offset])

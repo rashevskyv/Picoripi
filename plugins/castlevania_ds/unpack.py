@@ -5,6 +5,7 @@ in the header. The string table is read from the overlays (the string pointer ta
 ``<key>/strings.cvdstext``: JSON with every string as its raw bytes, without the ``01 00`` head and ``EA`` end.
 The two fonts and the pictures with text are copied by their NitroFS paths under ``<key>/``.
 """
+from core.i18n import tr
 import json
 import os
 import struct
@@ -151,14 +152,14 @@ def read_strings(image, table_ram: int, regions) -> List[bytes]:
     for text_id in range(regions[-1][2] + 1):
         overlay = next((r[3] for r in regions if r[1] <= text_id <= r[2]), None)
         if overlay is None:
-            raise ImageError(f"string {text_id:#x} is outside the string table")
+            raise ImageError(tr("string {0:#x} is outside the string table", text_id))
         pointer = struct.unpack_from("<I", data[0], table_ram - overlays[0][0] + 4 * text_id)[0]
         body, at = data[overlay], pointer - overlays[overlay][0]
         if not 0 <= at < len(body) or body[at:at + 2] != HEAD:
-            raise ImageError(f"string {text_id:#x}: unexpected start at address {pointer:08X}")
+            raise ImageError(tr("string {0:#x}: unexpected start at address {1:08X}", text_id, pointer))
         end = body.find(bytes([END]), at + 2)
         if end < 0:
-            raise ImageError(f"string {text_id:#x}: no end byte")
+            raise ImageError(tr("string {0:#x}: no end byte", text_id))
         out.append(bytes(body[at + 2:end]))
     return out
 
@@ -175,7 +176,7 @@ def extract(base: str, target_dir: str, progress: Callable[[int, str], None],
     with images.open_image(base) as image:
         code = image.read_at(CODE_AT, 4).decode("ascii", "replace")
         if code not in GAMES:
-            raise ImageError(f"game code {code!r} is not a Castlevania DS game (USA)")
+            raise ImageError(tr("game code {0!r} is not a Castlevania DS game (USA)", code))
         key, title, table_ram, regions, gfx = GAMES[code]
         progress(0, f"{title}: {TEXT_FILE}")
         strings = read_strings(image, table_ram, regions)
@@ -189,7 +190,7 @@ def extract(base: str, target_dir: str, progress: Callable[[int, str], None],
         names = (*FONTS, *gfx)
         missing = [name for name in names if name not in nitro]
         if missing:
-            raise ImageError(f"the ROM has no file {missing[0]}")
+            raise ImageError(tr("the ROM has no file {0}", missing[0]))
         entries = [nitro[name]._replace(path=f"{key}/{name}") for name in names]
         if not images.write_entries(image, entries, target_dir, progress, is_cancelled):
             return None

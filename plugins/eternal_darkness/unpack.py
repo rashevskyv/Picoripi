@@ -5,6 +5,7 @@ the *SK_ASC* files (RmTxt*.cmp, E*Menu.cmp, EInsane.cmp, credits\\*.cmp, Chars\\
 (``edasc``: the u32 size prefix is dropped), the plain text, font and texture files (EBootPak.bin, EBookPak.bin,
 EMemcardText.bin, *.tpl, Chars\\*.tpl) as they are, and ``sys/main.dol``.
 """
+from core.i18n import tr
 import fnmatch
 import struct
 from pathlib import Path
@@ -58,7 +59,7 @@ def extract(base: str, target_dir: str, progress: Callable[[int, str], None],
             if body is None:
                 return None
             if struct.unpack_from(">I", body, 0)[0] != len(body) - 4:
-                raise ValueError(f"{entry.path}: the size after decompression does not match")
+                raise ValueError(tr("{0}: the size after decompression does not match", entry.path))
             out_path = game.joinpath(*entry.path.split("/"))
             out_path.parent.mkdir(parents=True, exist_ok=True)
             out_path.write_bytes(body[4:])

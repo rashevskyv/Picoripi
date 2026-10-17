@@ -93,7 +93,7 @@ def unpack(sources: Dict[str, str], target_dir: str, progress: Callable[[int, st
     try:
         oodle = Oodle(library)
     except OodleError as exc:
-        raise ImageError(str(exc)) from None
+        raise ImageError(tr("the Oodle library cannot be used: {0}", str(exc))) from None
     pattern = GAMES[found["game_id"]]
     root = Path(target_dir)
     with images.open_image(base, target_dir, is_cancelled, progress) as base_reader, \
@@ -112,7 +112,7 @@ def unpack(sources: Dict[str, str], target_dir: str, progress: Callable[[int, st
         try:
             trinity = Trinity(index, read_archive)
         except TrinityError as exc:
-            raise ImageError(str(exc)) from None
+            raise ImageError(tr("the Oodle library cannot be used: {0}", str(exc))) from None
         _write(root / ROMFS / found["game_id"] / TRPFD, index)   # the build patches each title's own index
         names_written = _extract(trinity, pattern, oodle, root / SOURCE_DIR, progress, is_cancelled)
         if names_written is None:

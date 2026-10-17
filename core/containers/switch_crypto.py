@@ -10,6 +10,7 @@ pycryptodome is imported inside the functions that use it, so the app starts wit
 """
 from __future__ import annotations
 
+from core.i18n import tr
 import re
 import struct
 from typing import Dict, List, Optional, Tuple
@@ -24,7 +25,6 @@ MASK128 = (1 << 128) - 1
 KEY_AREA_NAMES = ("application", "ocean", "system")   # the key area key type byte of an NCA header (0x207)
 _KEY_NAME = re.compile(r"header_key|(?:aes_kek|aes_key)_generation_source|titlekek_source|titlekek_[0-9a-f]{2}"
                        r"|master_key_[0-9a-f]{2}|key_area_key_(?:application|ocean|system)_(?:source|[0-9a-f]{2})")
-_MALFORMED = "the Switch key file is malformed"
 
 
 def _ecb(key: bytes, data: bytes, decrypt: bool = False) -> bytes:
@@ -52,7 +52,7 @@ def xts_decrypt(key: bytes, data: bytes, sector: int = 0) -> bytes:
     number as 16 big-endian bytes.
     """
     if len(data) % SECTOR:
-        raise ImageError("encrypted data is not a whole number of sectors")
+        raise ImageError(tr("encrypted data is not a whole number of sectors"))
     out = bytearray()
     for index in range(len(data) // SECTOR):
         tweak = _ecb(key[16:], (sector + index).to_bytes(16, "big"))
@@ -71,7 +71,7 @@ class SwitchKeys:
 
     def __init__(self, values: Dict[str, bytes]) -> None:
         if "header_key" not in values:
-            raise ImageError("the Switch key file has no header_key")
+            raise ImageError(tr("the Switch key file has no header_key"))
         self._values = values
 
     def header_key(self) -> bytes:
@@ -80,12 +80,12 @@ class SwitchKeys:
     def _need(self, name: str) -> bytes:
         value = self._values.get(name)
         if value is None:
-            raise ImageError(f"the Switch key file has no {name}")
+            raise ImageError(tr("the Switch key file has no {0}", name))
         return value
 
     def key_area_key(self, generation: int, kind: int) -> bytes:
         if kind >= len(KEY_AREA_NAMES):
-            raise ImageError("the NCA has an unknown key area key type")
+            raise ImageError(tr("the NCA has an unknown key area key type"))
         name = KEY_AREA_NAMES[kind]
         direct = self._values.get(f"key_area_key_{name}_{generation:02x}")
         if direct is not None:
@@ -108,7 +108,7 @@ def load_keys(path: str) -> SwitchKeys:
         with open(path, encoding="utf-8", errors="replace") as handle:
             text = handle.read()
     except OSError:
-        raise ImageError("the Switch key file cannot be read") from None
+        raise ImageError(tr("the Switch key file cannot be read")) from None
     values: Dict[str, bytes] = {}
     for line in text.splitlines():
         name, sep, value = line.partition("=")
@@ -118,9 +118,9 @@ def load_keys(path: str) -> SwitchKeys:
         try:
             raw = bytes.fromhex(value.strip())
         except ValueError:
-            raise ImageError(_MALFORMED) from None
+            raise ImageError(tr("the Switch key file is malformed")) from None
         if len(raw) != (32 if name == "header_key" else 16):
-            raise ImageError(_MALFORMED)
+            raise ImageError(tr("the Switch key file is malformed"))
         values[name] = raw
     return SwitchKeys(values)
 
@@ -132,7 +132,7 @@ class NcaHeader:
     def __init__(self, raw: bytes, keys: SwitchKeys) -> None:
         head = xts_decrypt(keys.header_key(), raw)
         if head[0x200:0x204] != b"NCA3":
-            raise ImageError("an NCA header does not decrypt as NCA3: the key file is wrong or the NCA is not NCA3")
+            raise ImageError(tr("an NCA header does not decrypt as NCA3: the key file is wrong or the NCA is not NCA3"))
         self.content_type = head[0x205]
         self.kind = head[0x207]
         self.generation = max(0, max(head[0x206], head[0x220]) - 1)
@@ -145,7 +145,7 @@ class NcaHeader:
                 self.sections.append(None)
                 continue
             if start >= end:
-                raise ImageError("an NCA section table entry is empty or reversed")
+                raise ImageError(tr("an NCA section table entry is empty or reversed"))
             fsh = head[0x400 + index * 0x200:0x600 + index * 0x200]
             self.sections.append((start * SECTOR, end * SECTOR, fsh))
 
@@ -157,12 +157,12 @@ def content_key(header: NcaHeader, keys: SwitchKeys, tickets: Dict[bytes, bytes]
         return area[0x20:0x30]
     ticket = tickets.get(header.rights_id)
     if ticket is None:
-        raise ImageError("the package has no ticket for the rights ID of its program")
+        raise ImageError(tr("the package has no ticket for the rights ID of its program"))
     if ticket[0x281] != 0:
-        raise ImageError("personalised tickets are not supported")
+        raise ImageError(tr("personalised tickets are not supported"))
     key = _ecb(keys.titlekek(header.generation), ticket[0x180:0x190], decrypt=True)
     if not any(key):
-        raise ImageError("a title key decrypts to zero: the key file is wrong")
+        raise ImageError(tr("a title key decrypts to zero: the key file is wrong"))
     return key
 
 
@@ -180,4 +180,4 @@ def open_section(stream, nca_offset: int, section: Tuple[int, int, bytes], key: 
     if crypto == 3:
         counter = (int.from_bytes(fsh[0x140:0x148], "little") << 64) | (start // BLOCK)
         return CtrView(stream, nca_offset + start, size, key, counter)
-    raise ImageError(f"a section uses encryption type {crypto}, which is not read")
+    raise ImageError(tr("a section uses encryption type {0}, which is not read", crypto))

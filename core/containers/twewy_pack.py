@@ -12,6 +12,7 @@ is returned byte for byte; every pack of the game re-laid out from its own membe
 """
 from __future__ import annotations
 
+from core.i18n import tr
 import struct
 from typing import Dict, List, Optional, Tuple
 
@@ -25,15 +26,15 @@ ALIGN = 0x20
 def slots(data: bytes) -> List[Tuple[int, int]]:
     """``(offset in the file, size)`` per slot; ValueError when ``data`` is not a pack."""
     if data[:4] != MAGIC or len(data) < 0x20:
-        raise ValueError("not a pack archive")
+        raise ValueError(tr("not a pack archive"))
     count = struct.unpack_from("<I", data, 4)[0]
     if not 1 <= count <= 0x1000 or 0x20 + 8 * count > len(data):
-        raise ValueError("pack archive with a bad slot count")
+        raise ValueError(tr("pack archive with a bad slot count"))
     out = []
     for i in range(count):
         offset, size = struct.unpack_from("<II", data, 0x20 + 8 * i)
         if size and 0x20 + offset + size > len(data):
-            raise ValueError(f"pack slot {i} runs past the end of the file")
+            raise ValueError(tr("pack slot {0} runs past the end of the file", i))
         out.append((0x20 + offset if size else 0, size))
     return out
 

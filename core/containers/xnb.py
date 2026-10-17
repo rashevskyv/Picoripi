@@ -10,6 +10,7 @@ that is read and written again without edits comes back byte for byte.
 """
 from __future__ import annotations
 
+from core.i18n import tr
 import struct
 from dataclasses import dataclass
 from typing import List, Optional
@@ -62,7 +63,7 @@ class Reader:
         if lead & 0xF0 == 0xE0:
             second, third = self.u8(), self.u8()
             return chr(((lead & 0x0F) << 12) | ((second & 0x3F) << 6) | (third & 0x3F))
-        raise ValueError(f"unsupported UTF-8 lead byte {lead:#x} in an XNB character")
+        raise ValueError(tr("unsupported UTF-8 lead byte {0:#x} in an XNB character", lead))
 
 
 def write7(value: int) -> bytes:
@@ -96,9 +97,9 @@ class Xnb:
 def open_xnb(data: bytes) -> Xnb:
     """Parse the header and the type-reader table. Raises ``ValueError`` for a compressed or foreign file."""
     if bytes(data[:3]) != b"XNB":
-        raise ValueError("not an XNB file")
+        raise ValueError(tr("not an XNB file"))
     if data[5] & 0x80:
-        raise ValueError("compressed XNB (LZX) is not read here")
+        raise ValueError(tr("compressed XNB (LZX) is not read here"))
     reader = Reader(data, 10)
     names = []
     for _ in range(reader.v7()):
@@ -122,7 +123,7 @@ class Texture2D:
 def read_texture2d(reader: Reader) -> Texture2D:
     fmt, width, height, mips = reader.unpack("iiii")
     if mips != 1:
-        raise ValueError(f"{mips} mip levels: only one is supported")
+        raise ValueError(tr("{0} mip levels: only one is supported", mips))
     size = reader.i32()
     mip = reader.data[reader.pos:reader.pos + size]
     reader.pos += size

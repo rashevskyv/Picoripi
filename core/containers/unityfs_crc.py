@@ -9,6 +9,7 @@ values, padded with spaces to the old width, so every offset in the extra data s
 """
 from __future__ import annotations
 
+from core.i18n import tr
 import base64
 import json
 import zlib
@@ -29,7 +30,7 @@ def _align16(value: int) -> int:
 def _blocks(data: bytes) -> list[bytes]:
     """The uncompressed data blocks of a UnityFS bundle whose block info is at the start (LZ4 or stored)."""
     if not data.startswith(b"UnityFS\x00"):
-        raise ValueError("not a UnityFS bundle")
+        raise ValueError(tr("not a UnityFS bundle"))
     q = data.index(b"\x00") + 1          # signature
     q += 4                              # format version
     q = data.index(b"\x00", q) + 1       # unity version
@@ -38,7 +39,7 @@ def _blocks(data: bytes) -> list[bytes]:
     header_end = q + 12                 # block info sizes and flags
     compressed, uncompressed, flags = _be(data, q, 4), _be(data, q + 4, 4), _be(data, q + 8, 4)
     if flags & 0x80:
-        raise ValueError("block info at the end of the bundle is not supported")
+        raise ValueError(tr("block info at the end of the bundle is not supported"))
     info_at = _align16(header_end) if flags & 0x200 else header_end
     info = _unpack(data[info_at:info_at + compressed], flags & 0x3F, uncompressed)
     count = _be(info, 16, 4)
@@ -57,7 +58,7 @@ def _unpack(raw: bytes, compression: int, size: int) -> bytes:
         return raw
     if compression in (2, 3):
         return lz4_block(raw, size)
-    raise ValueError(f"compression {compression} is not supported")
+    raise ValueError(tr("compression {0} is not supported", compression))
 
 
 def bundle_crc(data: bytes) -> int:
@@ -78,14 +79,14 @@ def patch_catalog_crc(catalog: bytes, edits: dict[int, int]) -> bytes:
     for old, new in edits.items():
         width = len(str(old))
         if len(str(new)) > width:
-            raise ValueError(f"CRC {new} has more digits than {old}")
+            raise ValueError(tr("CRC {0} has more digits than {1}", new, old))
         needle = (_CRC_KEY + f"{old},").encode("utf-16-le")
         if extra.count(needle) != 1:
-            raise ValueError(f"m_Crc {old} occurs {extra.count(needle)} times, expected once")
+            raise ValueError(tr("m_Crc {0} occurs {1} times, expected once", old, extra.count(needle)))
         at = extra.find(needle) + key_units
         extra[at:at + width * 2] = str(new).ljust(width).encode("utf-16-le")
     old_text = doc["m_ExtraDataString"]
     new_text = base64.b64encode(bytes(extra)).decode("ascii")
     if len(new_text) != len(old_text):
-        raise ValueError("extra data length changed")
+        raise ValueError(tr("extra data length changed"))
     return catalog.replace(old_text.encode("ascii"), new_text.encode("ascii"), 1)

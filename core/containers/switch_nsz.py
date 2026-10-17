@@ -10,6 +10,7 @@ nsz (MIT licence, https://github.com/nicoboss/nsz) is cited for these format fac
 """
 from __future__ import annotations
 
+from core.i18n import tr
 import struct
 from typing import BinaryIO, Callable, List, NamedTuple, Optional, Tuple
 
@@ -46,38 +47,38 @@ class Ncz(NamedTuple):
 def read_ncz(reader: ImageReader) -> Ncz:
     """The section table and block list of the NCZ that ``reader`` reads. ImageError when they are not sound."""
     if reader.size < NCA_HEADER_SIZE + 0x10 or reader.read_at(NCA_HEADER_SIZE, 8) != MAGIC_SECTIONS:
-        raise ImageError("a compressed NCA has no NCZSECTN table")
+        raise ImageError(tr("a compressed NCA has no NCZSECTN table"))
     count = struct.unpack("<Q", reader.read_at(NCA_HEADER_SIZE + 8, 8))[0]
     if not 1 <= count <= MAX_SECTIONS:
-        raise ImageError("a compressed NCA lists a bad number of sections")
+        raise ImageError(tr("a compressed NCA lists a bad number of sections"))
     table = reader.read_at(NCA_HEADER_SIZE + 0x10, count * SECTION_SIZE)
     sections: List[Tuple[int, int, int]] = []
     end = NCA_HEADER_SIZE
     for index in range(count):
         offset, size, crypto = struct.unpack_from("<3Q", table, index * SECTION_SIZE)
         if index == 0 and offset < NCA_HEADER_SIZE:
-            raise ImageError("a compressed NCA section starts inside the NCA header")
+            raise ImageError(tr("a compressed NCA section starts inside the NCA header"))
         if index and offset != end:
-            raise ImageError("the sections of a compressed NCA are not contiguous")
+            raise ImageError(tr("the sections of a compressed NCA are not contiguous"))
         end = offset + size
         sections.append((offset, size, crypto))
     body_size = end - NCA_HEADER_SIZE
     if body_size <= 0:
-        raise ImageError("a compressed NCA has no section data")
+        raise ImageError(tr("a compressed NCA has no section data"))
     body_at = NCA_HEADER_SIZE + 0x10 + count * SECTION_SIZE
     if reader.read_at(body_at, 8) != MAGIC_BLOCKS:
         return Ncz(sections, body_at, body_size, None, [], 0)
     head = reader.read_at(body_at, BLOCK_HEADER_SIZE)
     exp = head[11]
     if not MIN_BLOCK_EXP <= exp <= MAX_BLOCK_EXP:
-        raise ImageError("a compressed NCA block size is out of range")
+        raise ImageError(tr("a compressed NCA block size is out of range"))
     block = 1 << exp
     blocks_count, total = struct.unpack_from("<IQ", head, 12)
     if total < body_size or blocks_count != -(-total // block):
-        raise ImageError("the NCZBLOCK header does not fit the sections of its NCA")
+        raise ImageError(tr("the NCZBLOCK header does not fit the sections of its NCA"))
     sizes = list(struct.unpack(f"<{blocks_count}I", reader.read_at(body_at + BLOCK_HEADER_SIZE, 4 * blocks_count)))
     if max(sizes) > block:
-        raise ImageError("a compressed NCA block is larger than its block size")
+        raise ImageError(tr("a compressed NCA block is larger than its block size"))
     body_at += BLOCK_HEADER_SIZE + 4 * blocks_count
     return Ncz(sections, body_at, body_size, exp, sizes, total)
 
@@ -100,7 +101,7 @@ def _zstd():
     try:
         return zstd_frame.stdlib()
     except zstd_frame.ZstdUnavailable:
-        raise ImageError("compressed Switch images need Python 3.14 (compression.zstd)") from None
+        raise ImageError(tr("compressed Switch images need Python 3.14 (compression.zstd)")) from None
 
 
 def _solid(reader: ImageReader, ncz: Ncz, out: BinaryIO, is_cancelled: Callable[[], bool],
@@ -117,7 +118,7 @@ def _solid(reader: ImageReader, ncz: Ncz, out: BinaryIO, is_cancelled: Callable[
             if decoder.needs_input:
                 take = min(CHUNK, reader.size - pos)
                 if take <= 0:
-                    raise ImageError("the compressed NCA ends before its sections do")
+                    raise ImageError(tr("the compressed NCA ends before its sections do"))
                 feed = reader.read_at(pos, take)
                 pos += take
             data = decoder.decompress(feed, max_length=min(CHUNK, left))
@@ -125,11 +126,11 @@ def _solid(reader: ImageReader, ncz: Ncz, out: BinaryIO, is_cancelled: Callable[
             left -= len(data)
             report(100 * (ncz.body_size - left) // ncz.body_size)
             if decoder.eof and left > 0:
-                raise ImageError("the compressed NCA ends before its sections do")
+                raise ImageError(tr("the compressed NCA ends before its sections do"))
             if not data and not decoder.needs_input and not decoder.eof:
-                raise ImageError("the compressed NCA stalls")
+                raise ImageError(tr("the compressed NCA stalls"))
     except zstd.ZstdError:
-        raise ImageError("the compressed NCA is corrupt") from None
+        raise ImageError(tr("the compressed NCA is corrupt")) from None
     return True
 
 
@@ -145,7 +146,7 @@ def _blocks(reader: ImageReader, ncz: Ncz, out: BinaryIO, is_cancelled: Callable
             return False
         plain_size = min(size, ncz.block_total - index * size)
         if packed > plain_size:
-            raise ImageError("a compressed NCA block is larger than its data")
+            raise ImageError(tr("a compressed NCA block is larger than its data"))
         raw = reader.read_at(pos, packed)
         pos += packed
         data = raw if packed == plain_size else _frame(raw, plain_size)
@@ -163,7 +164,7 @@ def _frame(raw: bytes, size: int) -> bytes:
     try:
         data = decoder.decompress(raw, max_length=size + 1)
     except zstd.ZstdError:
-        raise ImageError("a compressed NCA block is corrupt") from None
+        raise ImageError(tr("a compressed NCA block is corrupt")) from None
     if not decoder.eof or len(data) != size:
-        raise ImageError("a compressed NCA block does not decompress to its size")
+        raise ImageError(tr("a compressed NCA block does not decompress to its size"))
     return data

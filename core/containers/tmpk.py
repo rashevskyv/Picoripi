@@ -6,6 +6,7 @@ an archive's BTI and BMD files here. A member is written in place, so it must ke
 """
 from __future__ import annotations
 
+from core.i18n import tr
 import struct
 from typing import Dict, List, Tuple
 
@@ -37,7 +38,7 @@ class TmpkContainer(BaseArchiveContainer):
     def write_file(self, path: str, data: bytes) -> None:
         at, size = self._files[path]
         if len(data) != size:
-            raise ValueError(f"{path}: a TMPK member keeps its size ({size} bytes, not {len(data)})")
+            raise ValueError(tr("{0}: a TMPK member keeps its size ({1} bytes, not {2})", path, size, len(data)))
         self._data[at:at + size] = data
 
     def pack(self) -> bytes:

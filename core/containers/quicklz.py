@@ -12,6 +12,7 @@ control bits say (a control word still sits where 31 items were used).
 """
 from __future__ import annotations
 
+from core.i18n import tr
 import struct
 from typing import Dict, List, Tuple
 
@@ -61,7 +62,7 @@ def decompress(data: bytes, offset: int = 0) -> bytes:
                 else:
                     dist, length, src = f >> 15, ((f >> 7) & 255) + 3, src + 4
                 if not 0 < dist <= len(out):
-                    raise ValueError("QuickLZ: a reference before the start")
+                    raise ValueError(tr("QuickLZ: a reference before the start"))
                 start = len(out) - dist
                 for k in range(length):
                     out.append(out[start + k])
@@ -79,7 +80,7 @@ def decompress(data: bytes, offset: int = 0) -> bytes:
                     cword >>= 1
                 return bytes(out)
     except IndexError as error:
-        raise ValueError("QuickLZ: the stream ends early") from error
+        raise ValueError(tr("QuickLZ: the stream ends early")) from error
 
 
 def compress(data: bytes) -> bytes:

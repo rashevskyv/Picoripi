@@ -157,7 +157,7 @@ def export_build(build_path: str | os.PathLike, destination: str | os.PathLike, 
     source = Path(build_path)
     target = Path(destination)
     if target.exists() and any(target.iterdir()):
-        raise ValueError(f"The folder is not empty: {target}")
+        raise ValueError(tr("The folder is not empty: {0}", target))
     parent = target.parent
     parent.mkdir(parents=True, exist_ok=True)
     temporary = parent / f".export-{uuid.uuid4().hex}"

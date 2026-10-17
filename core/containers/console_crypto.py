@@ -71,7 +71,7 @@ def read_raw(stream: Any, offset: int, size: int) -> bytes:
     stream.seek(offset)
     data = stream.read(size)
     if len(data) != size:
-        raise ImageError("the image ends inside an encrypted section")
+        raise ImageError(tr("the image ends inside an encrypted section"))
     return data
 
 
@@ -90,7 +90,7 @@ class PlainView:
     def seek(self, offset: int, whence: int = 0) -> int:
         start = (0, self._pos, self.size)[whence]
         if start + offset < 0:
-            raise ImageError("seek before the start of a decrypted section")
+            raise ImageError(tr("seek before the start of a decrypted section"))
         self._pos = start + offset
         return self._pos
 
@@ -104,7 +104,7 @@ class PlainView:
             return b""
         data = self._plain(self._pos, count)
         if len(data) != count:
-            raise ImageError("the image ends inside a decrypted section")
+            raise ImageError(tr("the image ends inside a decrypted section"))
         self._pos += count
         return data
 
@@ -149,7 +149,7 @@ class CbcView(PlainView):
 
     def __init__(self, parent: Any, base: int, size: int, key: bytes, iv: bytes) -> None:
         if size % BLOCK or len(iv) != BLOCK:
-            raise ImageError("a CBC region must be whole blocks with a 16-byte IV")
+            raise ImageError(tr("a CBC region must be whole blocks with a 16-byte IV"))
         super().__init__(size)
         self._parent = parent
         self._base = base
