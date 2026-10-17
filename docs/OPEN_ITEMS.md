@@ -79,8 +79,8 @@ and_dec`) has all of them. A scratch tree was built from it with the owner's `to
   - (c) box preview: all 35 parts. Labels with a width budget: 10,508 in 30 titles; the rest show the width only.
   - Owner's rule on the Ukrainian text: 0 labels wider than their budget and 0 with more lines than their line budget (`scan_fit`, rounded widths as validate.py).
 - Width budgets (`budgets.json`, built by `scripts/build_system_3ds_budgets.py` from the decrypted NAND titles and the owner's validate.py): 10,533 of 16,235 strings have one (10,508 label budgets in 30 titles and 1 pane). On the owner's text with a wide word added to every string, the plugin and the owner's gate flag the same 5,640 strings. Still without a budget: the New 3DS titles `browser_n3ds` and `health_safety_n3ds` (no decrypted dump), `area`, `plaza_map` and `nnid` (the owner checks them with their own functions: `validate_area`, `validate_plaza_map`, `validate_nnid`), labels no official localisation has, and the `_smdh.json` files. Rebuild the file when the owner's layouts, `budget_groups` or `budget_px` change.
-- The host reads the reference column while a project's files are still loading. `system_3ds` matched files by the blocks parsed so far and showed 792 of 2,317 Russian strings on a fresh open; it now reads each project block's own file. `manual_3ds` matches its reference the same way (fingerprints of the manuals parsed so far): not checked whether it loses part of its reference too.
-- A save writes every `ua` the editor holds that differs from the file on disk, so a `ua` changed outside Picoripi in a file that is open is written back with the editor's text. The reference read (0.15 s for 138 files) runs on the UI thread, as for every plugin; the session keeps the string ids (about 310 KB).
+- The host reads the reference column while a project's files are still loading. `system_3ds` matched files by the blocks parsed so far and showed 792 of 2,317 Russian strings on a fresh open; it now reads each project block's own file. `manual_3ds` matched its reference by the manuals parsed so far: a session without plugin state lost the English of the manuals not yet read. Done (2026-10-18): the state-only read reads the reference again when the state arrives (`handlers/project_action/session_mixin.py`), test `tests/test_plugins/test_manual_3ds/test_reference.py` (red before the fix).
+- A save writes every `ua` the editor holds that differs from the file on disk, so a `ua` changed outside Picoripi in a file that is open is written back with the editor's text. The reference read of `system_3ds` (0.15 s for 138 files in the owner's test) and of `manual_3ds` runs on a worker now (`reference_worker_rules`, 2026-10-18); the other plugins still read it on the UI thread. The session keeps the string ids (about 310 KB).
 
 ## Link's Awakening Switch for LAS Recomp (`plugins/zelda_las`, 2026-10-14)
 
@@ -490,12 +490,27 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   `*.arc` and `*.ARC` matched the same files). Measured offscreen on a copy of the owner's project: the parse
   took 2.2 s on the UI thread, now 1.35 s on the worker; the open went from 4.8–6.2 s to 3.1–3.9 s. Output
   identical (same 78,110 strings and aliases; `tests/test_core/test_reference_background.py`).
-- **The block tree is built on the UI thread** (`populate_blocks`, Twilight Princess 1.8–2.2 s of the open, measured
-  2026-10-17): virtual story and speaker folders (`_add_story_root`, `_add_windows_projection_root`) ~1.7 s, the
-  speaker pool (`build_speaker_pool` → `get_speaker_for_string`) 0.6–0.7 s, `_apply_virtual_issue_indicators` and
-  `_story_mapping_indices` ~2 s of profiled time, and the MemPalace client import (`core/mempalace/client.py`) ~1.2 s
-  the first time a story folder is built. Not moved: each step reads the message flows and the story overrides, so a
-  worker needs those as snapshots first.
+- **The block tree is built on the UI thread** (`populate_blocks`, Twilight Princess 1.5–2.2 s per open). Measured
+  2026-10-18 offscreen on a copy of the owner's project (9,070 speaker rows): the story and projection roots 1.0–1.7 s
+  (`_add_story_root`, `_add_projection_roots`, `_add_windows_projection_root`, `_add_story_projection_root`,
+  `_set_virtual_folder_mappings`, `_apply_virtual_issue_indicators`); the speaker pool 0.5–0.8 s (`build_speaker_pool`
+  → `get_speaker_for_string`, one message decode per row); the MemPalace client import (`core/mempalace/client.py`)
+  ~1.0–1.2 s the first time a story folder is built.
+  Tried 2026-10-18 and not kept: the speaker pass on a worker (a copy of the Twilight Princess rules with a snapshot of
+  the project; the pool equals the synchronous pool, 9,070 rows, no difference), and the tree built once when the pass
+  ends. Measured A/B on the same machine state (loaded): the populate sum over the open rose from 2.5–2.7 s to
+  4.7–5.4 s, and the settled open from 8.1 s to 8.8–9.8 s. The folders that wait for the pass are rebuilt in one
+  more full populate, which costs more than the pool saved. Next step: build the speaker and story roots once, from a
+  data step that runs off the UI thread (the mapping work of `_set_virtual_folder_mappings` and `_story_mapping_indices`
+  included). The pass also re-reads the message flows on its copy (about 0.7 s of CPU a pass). The parked patch is
+  kept outside the repository.
+- **Plugin reads on the UI thread, surveyed 2026-10-18 (not yet a ranking of real cost):** the plugin test suite
+  (`tests/test_plugins`, 2,325 passed, 868 skipped) was run with a probe on `open`, `Path.read_bytes` and
+  `Path.read_text`, counting only reads made on the main thread from a plugin's own code. 999 reads in 55 plugins took
+  0.008 s in total; the worst single read took 2.5 ms (`ffta_gba` `rules.py:build_target`). The fixtures are small, so
+  this shows the call sites, not the cost on a real game. The reads that matter are the big archives of a real project
+  (Twilight Princess reference, 2.1 s on the window's thread before the worker; see above). Open: run the probe on the
+  owner's projects, and measure parse time (not only file reads) per hook. Probe script: kept outside the repository.
 - **The issue scan runs one whole block per UI-thread step** (`issue_scan_handler._scan_next_batch`): a game
   whose text is one block (N64: 4589 strings) freezes the window for ~2 s at the first open.
 - **An enabled spellchecker parses its dictionary in a Python thread** (pure-Python `spylls`, 2–3 s of CPU
@@ -1257,8 +1272,8 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
   BFLYT text panes.
 - **Tag `{tag:1:2}`** (no arguments; at the start of shop prompts and the end of shouted lines) has no name.
 - **Reference languages load on the UI thread** (the host's reference loading is synchronous): about 0.6 s per
-  language, ~8 s for TotK's 14. Done for plugins that give `reference_worker_rules` (Twilight Princess, 2026-10-17):
-  the parse runs on a worker. Other plugins still load synchronously.
+  language, ~8 s for TotK's 14. Done for plugins that give `reference_worker_rules` (Twilight Princess, 2026-10-17;
+  `system_3ds` and `manual_3ds`, 2026-10-18): the parse runs on a worker. Other plugins still load synchronously.
 - **Added glyphs are unproven in game:** the title menu shown in Eden uses Rodin, which already had Ukrainian;
   the glyphs drawn into RaglanPunch, NTLG-DB and ZeldaGlyphs (titles, small text, location banners) still need a
   screen that uses those fonts, and a hand touch-up.

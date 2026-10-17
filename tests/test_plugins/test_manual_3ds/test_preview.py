@@ -232,7 +232,7 @@ def test_each_block_of_a_project_keeps_its_own_manual():
 def test_a_session_without_plugin_state_reads_the_manuals_on_a_worker_and_keeps_the_edits(qtbot, tmp_path):
     """A session written before the plugin kept its manuals restores none: the host reads the project files once
     for the plugin state only, then rescans the issues and redraws the preview. The restored edits stay."""
-    from types import SimpleNamespace
+    from types import MethodType, SimpleNamespace
 
     from core.data_processor.session_manager import SessionManager
     from handlers.project_action.session_mixin import SessionMixin
@@ -262,6 +262,7 @@ def test_a_session_without_plugin_state_reads_the_manuals_on_a_worker_and_keeps_
     sessions._restore_runtime_session_state({"data": []})  # a session of the old plugin: no plugin state
     owner = SimpleNamespace(mw=window, data_processor=SimpleNamespace(
         session_had_plugin_state=lambda: sessions.restored_plugin_state), _active_load_worker=None)
+    owner._load_reference = MethodType(SessionMixin._load_reference, owner)
 
     SessionMixin._read_missing_plugin_state(owner)
 

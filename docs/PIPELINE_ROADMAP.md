@@ -109,6 +109,9 @@ def load_multi_reference(self, patch_path: str, block_names: Optional[List[str]]
 
 def unpack_reference(self, path: str, project_dir: str, progress, is_cancelled) -> Optional[str]:
     """Розпакування обраного файлу довідки (образ гри іншого регіону) у папку проєкту у фоновому потоці. Повертає папку для reference_patch_path. Дефолт: None (шлях як є)."""
+
+def reference_worker_rules(self) -> Tuple[Any, Any]:
+    """(rules, window) для розбору довідки у фоновому потоці, створюються в потоці вікна: rules — копія стану гри, яку читає розбір; window — копія з власним відображенням тегів (або None). Дефолт: метод відсутній, розбір іде в потоці вікна."""
 ```
 
 **Реалізація в TP (приклад, не частина рушія):**

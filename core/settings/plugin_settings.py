@@ -209,9 +209,11 @@ class PluginSettings:
         except Exception as e:
             log_error(f"Error applying merged settings: {e}", exc_info=True)
 
-    def load_reference(self) -> None:
+    def load_reference(self, force: bool = False) -> None:
         """Read the reference translation (``reference_patch_path``) for the loaded blocks. The settings load
-        before the project's files, so the project load calls this again once the block names are known."""
+        before the project's files, so the project load calls this again once the block names are known.
+        ``force`` reads again even when the request is the last one: the plugin's state changed since (a 3DS manual
+        reference is read from the manuals the plugin holds)."""
         ref_path = getattr(self.mw, "reference_patch_path", None)
         if not ref_path or not hasattr(self.mw, "data_store"):
             return
@@ -221,7 +223,7 @@ class PluginSettings:
             # Opening a project reads the settings more than once; parsing the reference
             # archives takes seconds, so the same request reuses the last result.
             request = (ref_path, game_rules, repr(self.mw.data_store.block_names))
-            if request == self._reference_request and self._reference_result:
+            if not force and request == self._reference_request and self._reference_result:
                 self._apply_reference(self._reference_result)
                 return
             if callable(getattr(game_rules, "reference_worker_rules", None)):

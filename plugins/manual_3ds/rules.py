@@ -345,6 +345,15 @@ class GameRules(BaseGameRules):
     def get_reference_language_label(self) -> str:
         return "English (EN)"
 
+    def reference_worker_rules(self):
+        """Rules for the reference parse on a worker thread, and no window copy (None).
+
+        The English is matched to the manuals this plugin holds: the list is taken here, on the window's thread, so a
+        manual that is read later is not in it (the host reads the reference again when the state arrives)."""
+        rules = GameRules()
+        rules._manuals = list(self._manuals)
+        return rules, None
+
     def load_reference_patch(self, patch_path: str, block_names: Any = None) -> Dict[Tuple[int, int], str]:
         """The ``en`` column of every manual file in ``patch_path`` (a folder or one file), matched by key list.
 
