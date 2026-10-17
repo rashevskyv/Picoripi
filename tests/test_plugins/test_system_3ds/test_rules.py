@@ -56,7 +56,7 @@ def test_the_source_role_gives_the_english_original_and_the_translation_role_the
 def test_the_project_sync_parse_of_json_names_one_block_and_changes_nothing():
     rules = GameRules()
     assert rules.load_data_from_json_obj(json.loads(STRINGS)) == ([], {})
-    assert rules.export_runtime_state() == {"blocks": []}
+    assert rules.export_runtime_state() == {"blocks": [], "known": []}
 
 
 @pytest.mark.parametrize("raw", [STRINGS, COMPACT, LAYOUT])
