@@ -17,12 +17,14 @@ from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_debug, log_warning
 
-from . import archive
+from . import archive, fields
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 
 GAME_ID = "T17716N"
 TEXT_DIR = "files/MAP/"
 TEXTURE_FILES = ("files/WINDOW/TITLE_DATA.AFS", "files/0GDTEX.PVR")   # the title screen and the shared UI textures
+FIELD_FILES = ("files/BTL/SYS.AFS", "files/BTL/ENEMY.AFS", "files/BTL/MAGIC.AFS", "files/BTL/PARTY.AFS",
+               "files/BTL/BOSS.AFS", "files/WINDOW/END_DATA.AFS", "files/WINDOW/XLS_DATA.AFS")   # fixed-field text
 REF_NAME = "source_image.ref"
 TARGET_ID = "disc_set"
 
@@ -52,7 +54,7 @@ class GameRules(BaseGameRules):
         if not base:
             return None
         written = images.extract(base, target_dir, progress, is_cancelled,
-                                 select=lambda path: path in TEXTURE_FILES
+                                 select=lambda path: path in TEXTURE_FILES or path in FIELD_FILES
                                  or (path.startswith(TEXT_DIR) and path.upper().endswith(".AFS")))
         if written is None:
             return None
@@ -111,7 +113,10 @@ class GameRules(BaseGameRules):
             return super().load_data_from_json_obj(json_obj)
         self._last_loaded = bytes(json_obj)
         try:
-            texts, names = archive.blocks(self._last_loaded)
+            if fields.has_messages(self._last_loaded):
+                texts, names = archive.blocks(self._last_loaded)
+            else:
+                texts, names = fields.archive_blocks(self._last_loaded)
         except (afs.AfsError, ValueError, IndexError) as error:
             log_debug(f"grandia: not a message archive ({error})")
             return [[]], {}
@@ -127,11 +132,21 @@ class GameRules(BaseGameRules):
         if source is None:
             return super().save_data_to_json_obj(data, block_names)
         texts = [str(t) for t in (data[0] if data else [])]
-        out, missing = archive.build(source, texts)
-        if missing:
-            log_warning("grandia: the game has no glyph for these characters, they were written as '?': "
-                        + "".join(sorted(missing)))
+        if fields.has_messages(source):
+            out, missing = archive.build(source, texts)
+            if missing:
+                log_warning("grandia: the game has no glyph for these characters, they were written as '?': "
+                            + "".join(sorted(missing)))
+            return out
+        out, refused, _count = fields.archive_build(source, texts)
+        if refused:
+            log_warning(f"grandia: {len(refused)} field text(s) did not fit their field or are not words; "
+                        "they keep the original text")
         return out
+
+    def classify_resource(self, path: str) -> Optional[str]:
+        """Title and UI textures are textures, not text: the Textures tool opens them."""
+        return "texture" if os.path.basename(path).upper() in ("TITLE_DATA.AFS", "0GDTEX.PVR") else None
 
     def reset_runtime_state(self) -> None:
         self._save_source = self._last_loaded = None

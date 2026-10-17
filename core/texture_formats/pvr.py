@@ -57,27 +57,31 @@ def twiddled_offsets(width: int, height: int) -> Tuple[int, ...]:
     return tuple(out)
 
 
-def _check(dtype: int, width: int, height: int) -> None:
+RECTANGLE = 9          # row-major texels (the title background of TITLE_DATA entry 13: 1024x512 RGB565)
+
+
+def _layout(dtype: int, width: int, height: int) -> Optional[Tuple[int, ...]]:
+    """Element offsets of a surface (None for row-major data), or ValueError for a type not read here."""
+    if dtype == RECTANGLE:
+        return None
     if dtype != SQUARE_TWIDDLED:
-        raise ValueError(f"PVR data type {dtype} is not read yet (square twiddled is 1)")
+        raise ValueError(f"PVR data type {dtype} is not read yet (square twiddled is 1, rectangle is 9)")
     if width != height or width & (width - 1):
         raise ValueError(f"PVR texture {width}x{height} is not a square of a power of two")
+    return twiddled_offsets(width, height)
 
 
 def read(data: bytes, params: Optional[Dict[str, Any]] = None) -> List[Texture]:
     data = bytes(data)
     at, name, dtype, width, height = _block(data)
-    _check(dtype, width, height)
-    codec = pixels.codec(name)
-    image = surface.read(data, at + HEADER, codec, width, height, twiddled_offsets(width, height))
+    image = surface.read(data, at + HEADER, pixels.codec(name), width, height, _layout(dtype, width, height))
     return [Texture(name="", image=image, pixel_format=name, mipmaps=1)]
 
 
 def write(data: bytes, images: Dict[int, Image.Image], params: Optional[Dict[str, Any]] = None) -> bytes:
     out = bytearray(data)
     at, name, dtype, width, height = _block(bytes(data))
-    _check(dtype, width, height)
     image = images.get(0)
     if image is not None:
-        surface.write(out, at + HEADER, pixels.codec(name), width, height, image, twiddled_offsets(width, height))
+        surface.write(out, at + HEADER, pixels.codec(name), width, height, image, _layout(dtype, width, height))
     return bytes(out)
