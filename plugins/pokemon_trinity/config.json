@@ -26,6 +26,39 @@
         "[PLURAL0:s]": "{PLURAL 0000||s}",
         "[PLURAL1:s]": "{PLURAL 0001||s}"
     },
+    "speech_bubble": {
+        "_note": "Measured on the Eden frame pkC8/shots/za_dialogue/za_npc_bubble_run9.png (2026-10-17, Legends Z-A, NPC 'Lumiose City! / We made it!'). The frame shows the 1920x1080 canvas at x 120 + X * s, y 57 + Y * s with s = 1616 / 1920 (game area 1616 x 909 px). Font: UniversNextPro-Cond.bfotf, the Z-A UI face that fits best of eight (NCC over both lines: UniversNext Cond 0.84, Kakugo 0.36 to 0.42, Rodin 0.37). Glyphs 29.5 px wide and 29.0 px high (cap height 18 frame px). Production render: every ink edge of both lines within 1 px of the frame (pkC12/verify_bubble.py). Colour as the Z-A field box. The box picture is not drawn (flat box).",
+        "font_dir": "ui/font/bin",
+        "fonts": ["UniversNextPro-Cond.bfotf"],
+        "canvas": [1920, 1080],
+        "em_y": 29.0,
+        "x_size": 29.5,
+        "colour": [54, 54, 76],
+        "background": [244, 246, 248, 255],
+        "box": [406.0, 40.0, 628.0, 152.0],
+        "wrap_width": 139.0,
+        "_wrap_note": "Lower bound: the first line 'Lumiose City!' is 139 px wide (ink). A wider line was not seen, so the wrap width is not measured; the preview wraps at this bound, as the BDSP box does.",
+        "lines": [
+            {"pen_x": 453.5, "baseline_y": 85.0},
+            {"pen_x": 446.5, "baseline_y": 125.8}
+        ]
+    },
+    "hud_message": {
+        "_note": "LAYOUT-DERIVED, FRAME PENDING (no Eden frame yet). The lower-left message window of Legends Z-A: pane T_talk_00 of hud_msg_00.bflyt (view pack uidatahud_msgview_hud_msg_quest_00.truiv; the wizard does not unpack that view, so the facts live here). Pane rect (81, 621)-(417, 693) on the 1920x1080 canvas, font X 24 Y 30, colour (54, 54, 76), text centred in the pane (text_pos 1), left-aligned (text_align 0), line pitch 30 (block of two lines = 60 px, top 627). Baselines = top + the first face's ascent at 30 px (or_font: 22.92). The window picture and its portrait are not drawn; the box colour is a stand-in.",
+        "font_dir": "ui/font/bin",
+        "fonts": ["or_font.otf", "FOT-RodinNTLGPro-DB.otf"],
+        "canvas": [1920, 1080],
+        "em_y": 30.0,
+        "x_size": 24.0,
+        "colour": [54, 54, 76],
+        "background": [238, 240, 242, 255],
+        "box": [81.0, 621.0, 417.0, 693.0],
+        "wrap_width": 336.0,
+        "lines": [
+            {"pen_x": 81.0, "baseline_y": 649.9},
+            {"pen_x": 81.0, "baseline_y": 679.9}
+        ]
+    },
     "block_names": {},
     "block_color_markers": {},
     "newline_display_symbol": "↵",

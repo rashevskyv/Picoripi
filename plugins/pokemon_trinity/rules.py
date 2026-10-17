@@ -130,17 +130,22 @@ class GameRules(BaseGameRules):
     def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
         """The message box drawn from the game's own layout (plugins/common/switch_message_preview.py).
 
-        Scarlet / Violet: the sub-window box. Legends: Z-A: the field dialogue box (msg_body_00.arc, written by the wizard).
+        Scarlet / Violet: the sub-window box. Legends: Z-A: the field dialogue box (msg_body_00.arc, written by the wizard),
+        with the speech bubble (measured facts, speech_bubble.py) and the HUD message window (hud_msg_00) to switch to.
         Only the box whose archive the unpacked game has is shown.
         """
         from plugins.common.switch_message_preview import (SCARLET_VIOLET_SUB_BOX, ZA_FIELD_BOX, SwitchMessagePreview,
                                                            sibling_layout_exists)
+        from plugins.pokemon_trinity.speech_bubble import hud_box, speech_box
         project_dir = getattr(getattr(main_window, "project_manager", None), "project_dir", None)
         if not project_dir:
             return None
         for spec in (SCARLET_VIOLET_SUB_BOX, ZA_FIELD_BOX):
             if sibling_layout_exists(str(project_dir), spec):
-                return SwitchMessagePreview(main_window, spec)
+                if spec is not ZA_FIELD_BOX:
+                    return SwitchMessagePreview(main_window, spec)
+                # the speech bubble and the HUD window come from the config facts (no archive to check)
+                return SwitchMessagePreview(main_window, spec, alternatives=[speech_box(), hud_box()])
         return None
 
     def get_editor_page_size(self) -> int:
