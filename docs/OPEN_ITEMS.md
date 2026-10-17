@@ -1306,3 +1306,17 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
   game (black screen, static frames), even when only the last page grows. Control tests with the same file rewritten
   unchanged as literal-only AKLZ, and with 12 bytes appended at the end (decompressed size changed, nothing moved),
   run normally. Relocating only words, or only labels, also freezes. The missed reference is not found.
+- Skies plugin (2026-10-17, GameCube USA): `plugins/skies_of_arcadia` identifies GEAE8P, unpacks the disc (field
+  scripts decoded), builds a disc copy, and opens field scripts as editor strings (one per text segment). The text
+  codec is exact on all 258 field scripts (36,008 segments). Bytes outside printable ASCII show as `{xx}` tokens; most
+  are lead bytes 0x81 to 0x83 (punctuation). Their meaning is not mapped yet.
+- Skies budget: `me201a.sct` is the only file in `FIXED_SIZE`. Its segments keep their length (in-place saves). Other
+  scripts may grow. Growth is not proven in game for any script except the structural checks.
+- Skies open: the in-game growth proof. A same-length marker on every script (228 files) ran 7 min in a private muted
+  Dolphin. The game reached the title, a cabin and cutscenes. No marker showed in 61 sampled frames. Next: sample every
+  frame during a dialogue (slower A presses) to find the first script on screen.
+- Skies open: AFNT font `FontData.US` (77,856 bytes). Header: magic, 4 words (0x10 = header size), then 8-byte
+  records `(u32 flag|size low16, u32 offset)`, blocks contiguous. Glyph format not decoded. Not opened.
+- Skies open: textures `ts*.gvr`, `ea_mc_*.tpl`, `opening.bnr` are AKLZ-compressed on the disc. Not opened.
+- Skies open: text groups battle, bchara, beff, title, ending hold no `\h(` pages that match the field format. Weak hits:
+  two `battle/*.sml` files and two `field/*.mld` files. Not verified; not opened.
