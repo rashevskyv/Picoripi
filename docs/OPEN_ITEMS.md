@@ -1298,3 +1298,11 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - Skies writer blocker: `field/me201a.sct` freezes the game (black screen) once any page grows, while same-length
   edits and growth that keeps every code offset run fine. Literal-only AKLZ and turning off the word relocation did
   not fix it. The cause is a relocation the writer misses in that file (a relative reference or a non-aligned word).
+- Skies writer, segments (2026-10-17): `text_segments` splits each page's text at labels inside it; `grow_regions`
+  replaces byte regions (padded with spaces to a multiple of 4). All 25,312 pages of 229 files take a marker and pass
+  the structural checks. Dolphin run (8 min, pad timers) reaches battles and cutscenes; no marker line was seen in the
+  sampled frames yet.
+- Skies `field/me201a.sct` (holds the early Aika and Valuan dialogue, excluded from the proof): growth freezes the
+  game (black screen, static frames), even when only the last page grows. Control tests with the same file rewritten
+  unchanged as literal-only AKLZ, and with 12 bytes appended at the end (decompressed size changed, nothing moved),
+  run normally. Relocating only words, or only labels, also freezes. The missed reference is not found.

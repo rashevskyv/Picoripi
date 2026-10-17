@@ -156,3 +156,74 @@ def grow_page(body: bytes, page_index: int, new_text: bytes, big: bool) -> Tuple
 
 def _round4(n: int) -> int:
     return (n + 3) & ~3
+
+
+def text_segments(body: bytes, big: bool) -> List[Tuple[int, int, int]]:
+    """Each page's text split at the labels inside it: (page index, start, end) with absolute offsets.
+
+    A label strictly inside the text starts a new segment. A label at the start of the text stays at the start.
+    Segments cover the text of every page, without the head and the terminator.
+    """
+    pages = skies_sct.pages(body)
+    labels = read_labels(body, big)
+    out: List[Tuple[int, int, int]] = []
+    for index, page in enumerate(pages):
+        head = len(page_bytes(skies_sct.Page(page.start, page.end, page.speaker, b"", b"")))
+        text_start = page.start + head
+        text_end = page.end - len(page.terminator)
+        cuts = sorted({label.target for label in labels if text_start < label.target < text_end})
+        bounds = [text_start] + cuts + [text_end]
+        for a, b in zip(bounds, bounds[1:]):
+            if b > a:
+                out.append((index, a, b))
+    return out
+
+
+def grow_regions(body: bytes, replacements: Dict[Tuple[int, int], bytes], big: bool,
+                 words: bool = True, labels_on: bool = True) -> Tuple[bytes, int]:
+    """Replace byte regions ``[start, end)`` by new bytes. Each region's length changes; the bytes after it move.
+
+    The new bytes are padded with spaces (0x7f) so every region's length change is a multiple of 4 and aligned code
+    stays aligned. A label or an aligned absolute word whose value is at or after a region's end moves by the total
+    change of the regions that end at or before it. Labels inside a region are refused. Returns (new body, total delta).
+    """
+    fmt = ">I" if big else "<I"
+    labels = read_labels(body, big)
+    edits = []
+    for (start, end), new in sorted(replacements.items()):
+        if any(start < label.target < end for label in labels):
+            raise ValueError("a label points inside a replaced region")
+        block = new + b"\x7f" * ((-(len(new) - (end - start))) % 4)
+        edits.append((start, end, block, len(block) - (end - start)))
+    for prev, cur in zip(edits, edits[1:]):
+        if cur[0] < prev[1]:
+            raise ValueError("replaced regions overlap")
+    ends = [end for _, end, _, _ in edits]
+    cumulative = []
+    running = 0
+    for _, _, _, delta in edits:
+        running += delta
+        cumulative.append(running)
+
+    def shift(old: int) -> int:
+        k = bisect.bisect_right(ends, old)
+        return cumulative[k - 1] if k else 0
+
+    out = bytearray()
+    cursor = 0
+    for start, end, block, _ in edits:
+        out += body[cursor:start] + block
+        cursor = end
+    out += body[cursor:]
+    label_fields = {HEADER_SIZE + LABEL_SIZE * i + NAME_SIZE: i for i in range(len(labels))}
+    edited = [(start, end) for start, end, _, _ in edits]
+    for old in (range(0, len(body) - 3, 4) if words else []):
+        if old in label_fields or any(start <= old < end for start, end in edited):
+            continue
+        value = struct.unpack_from(fmt, body, old)[0]
+        if value % 4 == 0 and value < len(body):
+            struct.pack_into(fmt, out, old + shift(old), value + shift(value))
+    for i, label in enumerate(labels if labels_on else []):
+        at = HEADER_SIZE + LABEL_SIZE * i + NAME_SIZE
+        struct.pack_into(fmt, out, at + shift(at), label.target + shift(label.target))
+    return bytes(out), running

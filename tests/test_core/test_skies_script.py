@@ -55,3 +55,15 @@ def test_real_legends_script_grows_one_page_only():
     changed = [i for i, (a, b) in enumerate(zip(before, after)) if (a.speaker, a.text) != (b.speaker, b.text)]
     assert changed == [0]
     assert aklz.decode(aklz.encode(new_body)) == new_body
+
+
+def test_segments_split_at_labels_inside_text_and_grow_independently():
+    body = _script(True)
+    segs = S.text_segments(body, True)
+    assert segs and all(b > a for _, a, b in segs)
+    first = segs[0]
+    replaced = {(first[1], first[2]): body[first[1]:first[2]] + b"\n" + b"UA TEST"}
+    new_body, delta = S.grow_regions(body, replaced, True)
+    assert delta % 4 == 0 and delta > 0
+    assert skies_sct.pages(new_body)[0].text.endswith(b"\n" + b"UA TEST")
+    assert S.rebuild_pages(new_body) == new_body
