@@ -2805,5 +2805,7 @@
   "Rows updated: {updated}. Rows split by context: {split}. Rows given tag kinds: {tagged}. Saved strings without a row (left as they are): {missing}. Backup: {backup}.": "Рядків оновлено: {updated}. Рядків розділено за контекстом: {split}. Рядків з видами тегів: {tagged}. Збережених рядків без запису (залишено як є): {missing}. Копія: {backup}.",
   "The translation memory was not updated: {error}": "Пам'ять перекладу не оновлено: {error}",
   "No copy of the translation memory from before the update exists.": "Немає копії пам'яті перекладу з часу до оновлення.",
-  "The translation memory is restored from its copy.": "Пам'ять перекладу відновлено з копії."
+  "The translation memory is restored from its copy.": "Пам'ять перекладу відновлено з копії.",
+  "Series glossary": "Серійний глосарій",
+  "{0} ({1:,} terms)": "{0} ({1:,} термінів)"
 }
