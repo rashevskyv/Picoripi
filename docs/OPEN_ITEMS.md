@@ -253,7 +253,7 @@ Open after phase 3b:
 ## Family projects (2026-10-12, branch feat/family-projects-ui)
 
 - [ ] Project and wizard accept several folders or game images per project, each assigned to a member by the plugin (the engine and the TP recognition exist; the UI and image files do not).
-- [ ] Wind Waker family: plugin reads both GC BMG (`zelda_tww`) and HD MSBT (`zelda_ww`). Measured 2026-10-17 on the owner's unpacked folders: 3,624 of 5,040 HD messages link (71.9 %). The tag map (`family_tag_map.json`) was already derived; the match key now leaves out colour, text size and `[Capital]`. Of the 4,262 messages paired by id, 3,498 have the same key, 30 differ only in a tag the map lacks, and 734 have different text (not a tag problem: a link needs equal text). Open: the 30 tag gaps; a rule for the 734 text differences is a scope decision.
+- [ ] Wind Waker family: plugin reads both GC BMG (`zelda_tww`) and HD MSBT (`zelda_ww`). Measured 2026-10-17 on the owner's unpacked folders: 3,432 of 5,040 HD messages link (68.1 %). The tag map (`family_tag_map.json`) was already derived, so the old 23 % figure was stale. Of the 4,262 messages paired by id, 3,306 have the same match key, 222 differ only in tags the match key sees, and 734 have different text. Open: the 222 tag gaps are `[Capital]` and `[Size]` the HD text writes and GameCube does not. Leaving them out of the key would link them, but family output takes the GameCube text, which drops those HD tags from the linked HD message (checked in `write_hd_output`). So they stay out of the key until the output re-applies HD-only styling. A rule for the 734 text differences is a scope decision.
 - [ ] Shared files are copied by `python -m plugins.zelda_bmg.family shared` only; the Wii patcher (`GC + Wii\Patcher\patcher.py`, outside the repo) still copies its own `fontres.arc`. Connect it to the command.
 - [ ] Wind Waker font sync: the two copies "file-select font" and "name-entry font" (28335 and 148064 bytes) are not byte-equal; glyph sync by character code is not written.
 - [ ] Family store v1 to v2 migration: the old `_family/family_translations.json` is kept as `.bak_v1_20261012`; the new store is seeded from the translation folders.
@@ -1138,10 +1138,16 @@ omfs`) could be
   the original MD5, so its packs are taken as clean, but the WUX (`WWHD_UA\iso`) stays undecrypted (no keys here).
 - **Cemu 2.6 here crashes at boot** (0xc0000409 after "can't initialize tv audio") with Audio API XAudio 2.7, which is
   not installed; Cubeb works. `3_run.bat` leaves Cemu's settings as they are, so the user switches the audio API once.
-- **Wizard (2026-10-17)**: a Wind Waker HD project starts from the extracted `permanent_2d_UsEnglish.pack`
-  (`plugins/zelda_ww/message_pack.py`). A `.wua` (Cemu ZArchive, zstd) or `.wux` (Wii U keys) is not read: a ZArchive reader is
-  not in the repo, and the `.wux` needs the Wii U key store entry. The wizard refuses them with the pack's error text.
-- **No Build target yet**: the Cemu graphic pack (`2_build.bat` through `_shared\scripts\zt\wiiu.py`) is not ported.
+- **Wizard (2026-10-17)**: a Wind Waker HD project starts from the game folder or from `permanent_2d_UsEnglish.pack`
+  (`plugins/zelda_ww/message_pack.py`): `Message/`, `Font/`, `Pack/`, `Layout/`. On the owner's pack: 68 MSBT and 6 BFFNT.
+  A `.wua` (Cemu ZArchive, zstd) or `.wux` (Wii U keys) is not read: a ZArchive reader is not in the repo, and the
+  `.wux` needs the Wii U key store entry. The wizard refuses them with the pack's error text.
+- **Build (2026-10-17)**: the `cemu` target (`plugins/zelda_ww/graphic_pack.py`) repacks each changed message and font into
+  the pack and writes `graphicPacks\Picoripi_UA_WWHD\`. The owner's pack with no edits round-trips: 221 members, same
+  names and order, same inner data. Not done: the `sdcafiine` and SwitchWakerHD mirrors of the workspace script, and the
+  real-game check of an edited pack in Cemu.
+- **`glossary.md` (`plugins/zelda_ww/translation_prompts/glossary.md`)**: nothing reads it. Left in place in this
+  pass: whether the prompt or the glossary seed should read it is the owner's decision.
 
 ## The Wind Waker GameCube plugin (`plugins/zelda_tww`)
 

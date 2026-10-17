@@ -11,8 +11,7 @@ Colour (escape 255, type 0) and scale (escape 255, type 1) are not derived: the 
 and the data confirm the rule (each colour N is HD colour N; each scale value is the HD size value). Colour 0 is
 the box default: GameCube writes it as ``E255:000000``, HD as ``[/C]`` (0xFFFF), and as ``[White]`` (0x0000).
 
-The match key drops colour, text size and the upper-case flag (``STYLING_NAMES``): styling, which HD writes around
-every span and GameCube only where needed.
+The match key drops colour: it is styling, and HD writes colour around every span, GameCube only once.
 CLI (dev only, reads the real files): ``python -m plugins.zelda_ww.family_tags derive <bmg folder> <msbt folder>``
 """
 from __future__ import annotations
@@ -28,10 +27,9 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from plugins.common.msbt import EndTag, Tag
 from utils.atomic_io import atomic_write_text
 
-from .tags import TAGS, from_editor, render_tag, to_editor
+from .tags import from_editor, render_tag, to_editor
 
 MAP_FILE = Path(__file__).resolve().parent / "family_tag_map.json"
-STYLING_NAMES = frozenset({"Size", "Capital"})   # editor names of the tags the match key leaves out (besides colour)
 GC_ESCAPE = re.compile(r"\{escape:(\d+):([0-9a-fA-F]*)\}")
 COLOUR_GROUP, COLOUR_TYPE = 0, 3
 SCALE_GROUP, SCALE_TYPE = 0, 2
@@ -140,22 +138,14 @@ def hd_to_gc(text: str, tags: TagMap) -> Tuple[str, List[str]]:
 
 
 def match_key(text: str, side: str, tags: TagMap) -> str:
-    """The family match key of one editor text. side: "gc" or "hd". Styling tags are left out (see _is_styling)."""
+    """The family match key of one editor text. side: "gc" or "hd". Colour tags are left out."""
     hd_text = gc_to_hd(text, tags)[0] if side == "gc" else text
-    kept = [t.translate(_QUOTES) if isinstance(t, str) else t for t in from_editor(hd_text) if not _is_styling(t)]
+    kept = [t.translate(_QUOTES) if isinstance(t, str) else t for t in from_editor(hd_text) if not _is_colour(t)]
     return to_editor(kept)
 
 
 def _is_colour(token: Any) -> bool:
     return isinstance(token, Tag) and (token.group, token.type) == (COLOUR_GROUP, COLOUR_TYPE)
-
-
-def _is_styling(token: Any) -> bool:
-    """Colour, text size and the upper-case flag. GameCube writes them only where the text needs them; HD writes
-    them around every span, so the key leaves them out. The text and the other tags still decide the match."""
-    if _is_colour(token):
-        return True
-    return isinstance(token, Tag) and TAGS.get((token.group, token.type), ("",))[0] in STYLING_NAMES
 
 
 # -- derivation (dev tool; deterministic) ----------------------------------------------------------

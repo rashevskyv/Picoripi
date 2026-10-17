@@ -19,7 +19,7 @@ from plugins.common.config_factory import problem_ids
 from plugins.common.msbt import Msbt
 from utils.logging_utils import log_debug, log_warning
 
-from . import message_pack, messages, reference
+from . import graphic_pack, message_pack, messages, reference
 from .config import PROBLEM_DEFINITIONS
 from .tag_logic import process_segment_tags_aggressively_zww
 from .tag_manager import TagManager
@@ -27,6 +27,7 @@ from .tags import TAG_RE, describe, from_editor, to_editor
 
 ProblemIDs = problem_ids(PROBLEM_DEFINITIONS, "ZWW", without=("BROKEN_ICON_HYPHEN",))
 
+CEMU_TARGET = "cemu"
 _DIALOGUE_FILES = ("message", "message2", "message3", "message4")
 _LABEL_MAX_CHARS = 40
 
@@ -67,8 +68,8 @@ class GameRules(BaseGameRules):
         return [{"id": "wiiu", "label": tr("Wii U")}]
 
     def identify_source(self, path: str) -> Optional[Dict[str, str]]:
-        """The English message pack (``permanent_2d_UsEnglish.pack``); a .wua or .wux is not read (see message_pack)."""
-        if not message_pack.is_english_pack(path):
+        """The English message pack file, or the game folder that holds it. A .wua or .wux is not read (see message_pack)."""
+        if message_pack.pack_of(path) is None:
             return None
         return {"role": "base", "platform": "wiiu"}
 
@@ -78,8 +79,14 @@ class GameRules(BaseGameRules):
             return None
         return message_pack.unpack_messages(base, target_dir, progress, is_cancelled)
 
-    def get_source_subfolder(self) -> Optional[str]:
-        return message_pack.MESSAGE_FOLDER
+    def get_build_targets(self) -> List[Dict[str, Any]]:
+        return [{"id": CEMU_TARGET, "label": tr("Cemu graphic pack"), "platforms": ["wiiu"], "kind": "layeredfs"}]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress, is_cancelled) -> str:
+        if target_id != CEMU_TARGET:
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        return str(graphic_pack.build(Path(source_dir), Path(translation_dir), Path(output_dir), progress, is_cancelled))
 
     # -- load and save ---------------------------------------------------------
 
