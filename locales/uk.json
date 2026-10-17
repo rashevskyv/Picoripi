@@ -2776,5 +2776,11 @@
   "Data too short to be Yaz0": "Дані занадто короткі для Yaz0",
   "Invalid Yaz0 magic: {0!r}": "Неправильна магія Yaz0: {0!r}",
   "The folder is not empty: {0}": "Тека не порожня: {0}",
-  "the Oodle library cannot be used: {0}": "бібліотеку Oodle не вдалося використати: {0}"
+  "the Oodle library cannot be used: {0}": "бібліотеку Oodle не вдалося використати: {0}",
+  "Wii U": "Wii U",
+  "BlueWake (PC port)": "BlueWake (порт для ПК)",
+  "Disc image (ISO)": "Образ диска (ISO)",
+  "BlueWake disc (original main.dol)": "Диск для BlueWake (оригінальний main.dol)",
+  "{0} is not a Wind Waker HD message pack. Use the extracted {1}.": "{0} не є пакетом повідомлень Wind Waker HD. Використайте розпакований {1}.",
+  "The pack {0} holds no message files.": "У пакеті {0} немає файлів повідомлень."
 }

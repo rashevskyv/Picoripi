@@ -60,6 +60,12 @@ def test_match_key_leaves_colour_out():
     assert ft.match_key(gc, "gc", tags) == ft.match_key(hd, "hd", tags) == "ared b"
 
 
+def test_match_key_leaves_text_size_and_the_capital_flag_out():
+    tags = ft.TagMap({})
+    hd = "[Capital][Name], [Size:150]go[Size:100] far"
+    assert ft.match_key(hd, "hd", tags) == "[Name], go far"
+
+
 def test_derive_finds_the_shared_tag_and_ignores_noise():
     pairs = [("Start{escape:0:0001}go{escape:0:0002}", "Start[InstanceDispStart]go[InstanceDispEnd]")] * 5
     pairs.append(("plain", "plain"))

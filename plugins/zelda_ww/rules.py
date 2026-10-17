@@ -13,12 +13,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import utils.utils as uu
+from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
 from plugins.common.config_factory import problem_ids
 from plugins.common.msbt import Msbt
 from utils.logging_utils import log_debug, log_warning
 
-from . import messages, reference
+from . import message_pack, messages, reference
 from .config import PROBLEM_DEFINITIONS
 from .tag_logic import process_segment_tags_aggressively_zww
 from .tag_manager import TagManager
@@ -59,6 +60,26 @@ class GameRules(BaseGameRules):
         """MSBT files are binary; the Kruptar ``.txt`` dumps keep the default text formats."""
         from core.formats import DEFAULT_FORMATS, FileFormat
         return [FileFormat((".msbt",), "bytes", "MSBT"), *DEFAULT_FORMATS]
+
+    # -- unpack and platforms (Project Manager) ----------------------------------
+
+    def get_platforms(self) -> List[Dict[str, str]]:
+        return [{"id": "wiiu", "label": tr("Wii U")}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, str]]:
+        """The English message pack (``permanent_2d_UsEnglish.pack``); a .wua or .wux is not read (see message_pack)."""
+        if not message_pack.is_english_pack(path):
+            return None
+        return {"role": "base", "platform": "wiiu"}
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
+        base = sources.get("base")
+        if not base:
+            return None
+        return message_pack.unpack_messages(base, target_dir, progress, is_cancelled)
+
+    def get_source_subfolder(self) -> Optional[str]:
+        return message_pack.MESSAGE_FOLDER
 
     # -- load and save ---------------------------------------------------------
 
