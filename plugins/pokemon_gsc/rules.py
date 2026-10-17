@@ -22,7 +22,8 @@ from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
 
 from . import pret_context, pret_text
-from plugins.pokemon_gen1 import rom_project
+from plugins.pokemon_gen1 import rom_project, rom_text
+from plugins.pokemon_gen1.problem_analyzer import ProblemAnalyzer
 
 ROM_FACTS_DIR = Path(__file__).with_name("rom_facts")
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
@@ -57,6 +58,14 @@ def text_tiles(text: str) -> int:
     return len(_TOKEN_RE.sub(tiles, text).rstrip("@"))
 
 
+def _macro_of(token: pret_text.Token) -> Tuple[str, str]:
+    """A token of an edited unit as the codec reads it: a string as a quoted literal, a command as its macro line."""
+    if token.is_string:
+        return token.cmd, '"' + pret_text.escape(token.content) + '"'
+    word, _, args = token.raw.strip().partition(" ")
+    return word, args.strip()
+
+
 class GameRules(BaseGameRules):
     """Pokémon Gold / Silver / Crystal (GBC), pret decompilations."""
 
@@ -65,6 +74,7 @@ class GameRules(BaseGameRules):
     tag_manager_class = TagManager
     tag_style = "square"
     analyze_whole_string_first = True
+    problem_analyzer_class = ProblemAnalyzer
     show_spaces_as_dots_default = True
     game_name = "Pokémon Gold, Silver and Crystal (pret)"
 
@@ -73,9 +83,15 @@ class GameRules(BaseGameRules):
         self._save_source: Optional[str] = None
         self._last_loaded: Optional[str] = None
         self._file_cache: Dict[str, Tuple[int, List[pret_text.Unit], Dict[str, Dict[str, List[str]]]]] = {}
+        self._budget_cache: Dict[str, Any] = {}
 
     def get_display_name(self) -> str:
         return self.game_name
+
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """The message box in the game's own font (plugins/pokemon_gsc/preview_panel.py)."""
+        from .preview_panel import MessageWindowPreview
+        return MessageWindowPreview(main_window)
 
     def get_file_formats(self) -> list:
         from core.formats import FileFormat
@@ -143,6 +159,45 @@ class GameRules(BaseGameRules):
             return rel, None, {}
         unit = units[int(string_idx)]
         return rel, unit, cached[2].get(unit.label, {})
+
+    # -- byte budgets (a field the ROM keeps in place) -----------------------------------------------
+
+    def _budget_data(self, path: str) -> Optional[Tuple[Dict[str, int], rom_text.Names]]:
+        """The budgets and names of the ROM project a text file belongs to. meta.json is read once per project."""
+        meta = next((str(folder / rom_project.ROM_DIR / "meta.json") for folder in list(Path(path).parents)[:4]
+                     if (folder / rom_project.ROM_DIR / "meta.json").is_file()), "")
+        if not meta:
+            return None
+        if meta not in self._budget_cache:
+            self._budget_cache[meta] = rom_project.read_budgets(meta)
+        return self._budget_cache[meta]
+
+    def exceeds_byte_budget(self, block_idx: int, string_idx: int, text: str) -> bool:
+        """True when a field the ROM keeps in place cannot hold this text. Keys are ``label#k`` (see the Gen 1 rules).
+
+        A plain body has a budget only when it holds one unit, the same rule the unpack applies.
+        """
+        _rel, unit, _context = self._unit(block_idx, string_idx)
+        found = self._block_file(block_idx)
+        if unit is None or not unit.label or not found:
+            return False
+        units = self._file_cache[found[1]][1]
+        same_label = [other for other in units if other.label == unit.label]
+        if unit.kind != pret_text.LITERAL_KIND and len(same_label) != 1:
+            return False
+        ordinal = sum(1 for earlier in units[:int(string_idx)] if earlier.label == unit.label)
+        data = self._budget_data(found[1])
+        if data is None:
+            return False
+        budgets, names = data
+        size = budgets.get(f"{unit.label}#{ordinal}")
+        if size is None:
+            return False
+        try:
+            lines = [_macro_of(token) for token in pret_text.from_editor(text, unit.kind, unit.hidden_at)]
+            return rom_text.encoded_length(lines, names) > size
+        except (rom_text.CodecError, ValueError, IndexError):
+            return False
 
     def get_speaker_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
         """The one person, trainer or sign whose map script shows the text."""

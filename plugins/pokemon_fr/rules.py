@@ -31,6 +31,7 @@ from .rom_text import CodecError
 from .problem_analyzer import ProblemAnalyzer
 from .text_fixer import TextFixer
 from utils.logging_utils import log_debug
+from utils.thread_utils import WorkerThread
 from utils.utils import convert_spaces_to_dots_for_display
 
 class ProblemIDs:
@@ -49,6 +50,23 @@ def _config_aliases() -> Dict[str, str]:
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
     with open(path, encoding="utf-8") as handle:
         return dict(json.load(handle).get("default_tag_mappings") or {})
+
+
+class _BudgetLoader(WorkerThread):
+    """Reads the budgets of a project made before meta.json held them. The result goes to the rules' cache."""
+
+    def __init__(self, text_dir: str, done: Callable[[str, Any], None]):
+        super().__init__()
+        self._text_dir = text_dir
+        self._done = done
+
+    def run(self) -> None:
+        try:
+            result = rom_project.old_project_budgets(self._text_dir)
+        except (OSError, ValueError, KeyError) as error:
+            log_debug(f"pokemon_fr: no byte budgets for {self._text_dir}: {error}")
+            result = None
+        self._done(self._text_dir, result)
 
 
 class GameRules(BaseGameRules):
@@ -74,6 +92,7 @@ class GameRules(BaseGameRules):
         self._pret_cache: Dict[str, Tuple[int, list, Dict[str, list], Dict[str, list]]] = {}
         # The fixed name fields of each project's text folder (None outside a ROM project).
         self._budget_cache: Dict[str, Any] = {}
+        self._budget_loading: Set[str] = set()
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
@@ -414,6 +433,29 @@ class GameRules(BaseGameRules):
             raise ValueError(f"Unknown build target: {target_id}")
         return rom_project.build(source_dir, translation_dir, output_dir, progress, is_cancelled)
 
+    def _budgets_of(self, text_dir: str) -> Optional[Tuple[Dict[str, int], Any]]:
+        """The budgets of a text folder. Read from meta.json (small); an old project is read once in a worker.
+
+        Until that worker ends, its folder has no budget, so the check answers False for it.
+        """
+        if text_dir in self._budget_cache:
+            return self._budget_cache[text_dir]
+        if not rom_project.is_rom_project(text_dir):
+            self._budget_cache[text_dir] = None
+            return None
+        ready = rom_project.meta_budgets(text_dir)
+        if ready is not None:
+            self._budget_cache[text_dir] = ready
+            return ready
+        if text_dir not in self._budget_loading:
+            self._budget_loading.add(text_dir)
+            _BudgetLoader(text_dir, self._budget_loaded).start()
+        return None
+
+    def _budget_loaded(self, text_dir: str, result: Any) -> None:
+        self._budget_cache[text_dir] = result
+        self._budget_loading.discard(text_dir)
+
     def exceeds_byte_budget(self, block_idx: int, string_idx: int, text: str) -> bool:
         """True when a fixed name field of the ROM (a C-built table entry) cannot hold this text.
 
@@ -422,10 +464,7 @@ class GameRules(BaseGameRules):
         block = self._block_file(block_idx)
         if not block:
             return False
-        text_dir = os.path.dirname(block[1])
-        if text_dir not in self._budget_cache:
-            self._budget_cache[text_dir] = rom_project.field_budgets(text_dir)
-        budgets = self._budget_cache[text_dir]
+        budgets = self._budgets_of(os.path.dirname(block[1]))
         if budgets is None:
             return False
         sizes, charmap = budgets

@@ -97,24 +97,51 @@ def unpack(rom_path: str, target_dir: str, progress: Progress, is_cancelled: Can
     (target / ROM_DIR).mkdir(parents=True, exist_ok=True)
     (target / BASE_ROM).write_bytes(rom)
     unpointed = unpointed_budgets(rom, list(units) + [unit for unit in tables if not unit.fixed])
+    # The budgets and the charmap go into meta.json, so the editor's byte-budget check reads that small file only.
+    charmap = json.loads((FACTS_DIR / facts.get("charmap", CHARMAP_FILE)).read_text(encoding="utf-8"))
     (target / META_FILE).write_text(json.dumps({"facts": facts_name, "build_name": facts["build_name"],
-                                                "unpointed": unpointed}, ensure_ascii=False, indent=1), encoding="utf-8")
+                                                "unpointed": unpointed, "budgets": {**facts_budgets(facts_name), **unpointed},
+                                                "charmap": charmap}, ensure_ascii=False, indent=1), encoding="utf-8")
     progress(100, "Done")
     return str(target)
 
 
-def field_budgets(text_dir: str) -> Optional[Tuple[Dict[str, int], Charmap]]:
-    """The fixed name fields of the ROM project that holds ``text_dir``: label -> byte size, and the charmap.
+def facts_budgets(facts_name: str) -> Dict[str, int]:
+    """The fixed name fields of a facts file: label -> byte size. A message (not a C-built field) has no entry."""
+    facts = FACTS_DIR / facts_name
+    return {unit.label: unit.size for unit in load_tables(facts) + load_units(facts)[0] if unit.fixed}
 
-    None when the folder is not a ROM project. A message (not a C-built field) has no entry: it may grow.
-    """
-    meta_path = Path(text_dir).parent / ROM_DIR / "meta.json"
+
+def _meta(text_dir: str) -> Optional[Dict[str, object]]:
+    meta_path = Path(text_dir).parent / ROM_DIR / META_FILE.name
     if not meta_path.is_file():
         return None
-    meta = json.loads(meta_path.read_text(encoding="utf-8"))
-    facts = FACTS_DIR / meta["facts"]
-    header = json.loads(facts.read_text(encoding="utf-8"))
-    sizes = {unit.label: unit.size for unit in load_tables(facts) + load_units(facts)[0] if unit.fixed}
+    return json.loads(meta_path.read_text(encoding="utf-8"))
+
+
+def is_rom_project(text_dir: str) -> bool:
+    """True when the folder beside ``text_dir`` is a ROM project (it has a meta.json)."""
+    return _meta(text_dir) is not None
+
+
+def meta_budgets(text_dir: str) -> Optional[Tuple[Dict[str, int], Charmap]]:
+    """The byte budgets and the charmap that unpack wrote into the project's meta.json. Reads one small file.
+
+    None for an old project whose meta.json has no budgets yet: its facts are read in a worker (``facts_budgets``).
+    """
+    meta = _meta(text_dir)
+    if meta is None or "budgets" not in meta or "charmap" not in meta:
+        return None
+    return dict(meta["budgets"]), Charmap.from_data(meta["charmap"])
+
+
+def old_project_budgets(text_dir: str) -> Optional[Tuple[Dict[str, int], Charmap]]:
+    """The budgets of a project made before meta.json held them: read from its facts. Call it from a worker only."""
+    meta = _meta(text_dir)
+    if meta is None:
+        return None
+    header = json.loads((FACTS_DIR / meta["facts"]).read_text(encoding="utf-8"))
+    sizes = facts_budgets(meta["facts"])
     sizes.update(meta.get("unpointed", {}))   # messages no pointer reaches: their size is a budget
     return sizes, Charmap.load(FACTS_DIR / header.get("charmap", CHARMAP_FILE))
 

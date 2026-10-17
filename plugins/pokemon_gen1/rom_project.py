@@ -14,7 +14,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from core.i18n import tr
 from plugins.common.gb_rom import BANK_SIZE, FreeSpace, bank_of, cpu_of, fix_checksums
-from plugins.pokemon_gen1 import rom_text
+from plugins.pokemon_gen1 import asm_text, rom_text
 
 ROM_ROLE = "rom"
 SOURCE_DIR = "text"                       # the project's source root, inside the unpacked tree
@@ -78,6 +78,7 @@ def unpack(rom_path: str, target_dir: str, progress: Progress, is_cancelled: Can
     target = Path(target_dir)
     (target / SOURCE_DIR).mkdir(parents=True, exist_ok=True)
     files = facts["files"]
+    budgets: Dict[str, int] = {}
     for index, item in enumerate(files):
         if is_cancelled():
             return None
@@ -88,17 +89,61 @@ def unpack(rom_path: str, target_dir: str, progress: Progress, is_cancelled: Can
                 lines = rom_text.decode_names(region, names, body["mode"], body["width"])
             else:
                 lines = rom_text.decode(region, names, body.get("bcd_hex", ()), body.get("ram_args", ()),
-                                        body.get("end_char", False))
+                                        body.get("end_char", False), body.get("dex", False))
+            if not body.get("movable"):
+                budgets.update(_body_budgets(body, lines, names))
             bodies.append(rom_text.format_body(body["label"], lines))
         text = HEADER + "\n" + "\n".join(bodies)
         (target / SOURCE_DIR / unit_name(item["file"])).write_text(text, encoding="utf-8", newline="\n")
         progress(10 + 80 * (index + 1) // len(files), unit_name(item["file"]))
     (target / ROM_DIR).mkdir(parents=True, exist_ok=True)
     (target / BASE_ROM).write_bytes(rom)
-    (target / META_FILE).write_text(json.dumps({"facts": facts_name, "build_name": facts["build_name"]},
-                                               ensure_ascii=False, indent=1), encoding="utf-8")
+    # The budgets and the names go into meta.json, so the editor's byte-budget check reads that small file only.
+    (target / META_FILE).write_text(json.dumps({
+        "facts": facts_name, "build_name": facts["build_name"], "budgets": budgets,
+        "names": {"charmap": facts["charmap"], "ram": facts["ram"], "far": facts["far"],
+                  "gen2": facts.get("profile") == "gen2"}}, ensure_ascii=False, indent=1), encoding="utf-8")
     progress(100, "Done")
     return str(target)
+
+
+def read_budgets(meta_path: str) -> Optional[Tuple[Dict[str, int], rom_text.Names]]:
+    """The byte budgets and the names that unpack wrote into ``rom/meta.json``; None for a project without them."""
+    try:
+        meta = json.loads(Path(meta_path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if "budgets" not in meta or "names" not in meta:
+        return None
+    names = meta["names"]
+    return dict(meta["budgets"]), rom_text.Names(names["charmap"], names["ram"], names["far"], names["gen2"])
+
+
+TERMINATOR_WORDS = {"done", "prompt", "text_end", "dex", "text_asm"}
+
+
+def _body_budgets(body: Dict[str, Any], lines: Sequence[rom_text.Line], names: rom_text.Names) -> Dict[str, int]:
+    """Byte budgets of a body that stays where it is. Keys are ``label#k``, k the unit's index in its body.
+
+    A name field has its table's width. A list entry has its own length (its terminator included). A text unit has
+    its length without the terminator. Several units share the body's space: unit k may use the space that the other
+    units do not take at their current length, so its budget is the body's text minus the other units' lengths.
+    """
+    label = body["label"]
+    if body.get("mode") == "dname":
+        return {f"{label}#{k}": int(body["width"]) for k in range(len(lines))}
+    if body.get("mode") == "li":
+        return {f"{label}#{k}": rom_text.encoded_length([line], names) for k, line in enumerate(lines)}
+    units = asm_text.parse(rom_text.format_body(label, lines))[1]
+    text = [line for line in lines if line[0] not in TERMINATOR_WORDS]
+    if not units:
+        return {}
+    if len(units) == 1:
+        return {f"{label}#0": rom_text.encoded_length(text, names)}
+    # the macro lines of each unit: the label line is raw line 0, so raw line i is macro line i - 1
+    sizes = [rom_text.encoded_length(lines[unit.start - 1:unit.end - 1], names) for unit in units]
+    text_size = rom_text.encoded_length(text, names)
+    return {f"{label}#{k}": text_size - (sum(sizes) - size) for k, size in enumerate(sizes)}
 
 
 def _edited_bodies(text_dirs: Sequence[Path], facts: Dict[str, Any]) -> Dict[str, List[rom_text.Line]]:
@@ -138,7 +183,7 @@ def build(source_dir: str, translation_dir: str, output_dir: str, progress: Prog
             if lines is None:
                 continue
             try:
-                data = rom_text.encode(lines, names, body.get("width", 0))
+                data = rom_text.encode(lines, names, body.get("width", 0), body.get("dex", False))
             except rom_text.CodecError as error:
                 raise ValueError(f"{body['label']}: {error}") from error
             if data != base[body["offset"]:body["offset"] + body["size"]]:
@@ -169,7 +214,8 @@ def _patched(base: bytes, facts: Dict[str, Any], changes: List[Tuple[Dict[str, A
         elif body["fixed"] or not body.get("movable"):
             raise ValueError(tr("{0} is longer than its space and cannot move; shorten it.", body["label"]))
         else:
-            place = free.take(len(data), banks)
+            # A table pointer has no bank byte: the body must stay in the bank its table is read from.
+            place = free.take(len(data), [bank_of(body["offset"])] if body.get("pointers") else banks)
             if place is None:
                 raise ValueError(tr("No free space for {0}; shorten the text.", body["label"]))
             moved.append((body, place, data))
@@ -182,5 +228,11 @@ def _patched(base: bytes, facts: Dict[str, Any], changes: List[Tuple[Dict[str, A
             out[site] = cpu & 0xFF
             out[site + 1] = cpu >> 8
             out[site + 2] = bank_of(place)
+        for site in body.get("pointers", []):
+            if any(low <= site < high for low, high in texts):
+                raise ValueError(tr("A pointer to {0} sits inside a text body; it cannot be moved.", body["label"]))
+            cpu = cpu_of(place)
+            out[site] = cpu & 0xFF
+            out[site + 1] = cpu >> 8
     fix_checksums(out)
     return bytes(out)

@@ -83,6 +83,7 @@ _ARG_KINDS = {"ram_f": ["ram", "f"], "ram_nn": ["ram", "n", "n"], "ram_dn": ["ra
 # Flags of text_bcd (constants/text_constants.asm): a count and any of these, joined with "|".
 FLAGS = {"LEADING_ZEROES": 0x80, "LEFT_ALIGN": 0x40, "MONEY_SIGN": 0x20}
 _LABEL = re.compile(r"([A-Za-z_.][\w.]*)::?\s*$")
+_INLINE_LABEL = re.compile(r"([A-Za-z_.][\w.]*)::?\s+(\S.*)$")
 _LITERAL = re.compile(r'^"(.*)"$', re.S)
 _RAW_CELL = re.compile(r"<\$([0-9A-Fa-f]{2})>")
 
@@ -177,11 +178,13 @@ def _args(names: Names, kind: str, data: bytes, at: int, hexed: bool = False,
 
 
 def decode(region: bytes, names: Names, bcd_hex: Sequence[int] = (), ram_args: Sequence[str] = (),
-           end_char: bool = False) -> List[Line]:
+           end_char: bool = False, dex: bool = False) -> List[Line]:
     """The macro lines of a text body. Stops at ``text_asm`` (the bytes after it are code, not text).
 
     ``bcd_hex`` lists the text_bcd commands (counted from 0 in the body) whose flags the decompilation wrote as a
     hex literal; the others are written as ``3 | LEADING_ZEROES``. The bytes do not tell which form was used.
+    ``dex`` marks a Generation II Pokedex entry: its species name ends at the first "@", and two little-endian
+    words (height and weight, ``dw`` in the decompilation) follow it before the text.
     """
     out: List[Line] = []
     word: Optional[str] = None
@@ -201,6 +204,7 @@ def decode(region: bytes, names: Names, bcd_hex: Sequence[int] = (), ram_args: S
     # character (the game's line "an @" is followed by a text_ram command, not by an end).
     end = len(region) - 1 if region[-1:] == bytes([TEXT_ASM]) else len(region)
     at = 0
+    dims_next = dex
     while at < end:
         code = region[at]
         follow = region[at + 1] if at + 1 < end else None
@@ -225,6 +229,20 @@ def decode(region: bytes, names: Names, bcd_hex: Sequence[int] = (), ram_args: S
             flush()
             out.append(("dex", ""))
             at += 2
+        elif code == TX_END and dex and word is not None and at < end - 1:
+            # A Pokedex page: pret's ``page "..."`` is the "@" byte and then the page's text.
+            flush()
+            word = "page"
+            at += 1
+        elif code == TX_END and word is None and at < end - 1:
+            # In a db body each "@" ends one string: ``db "CUT@"`` then ``db "FLY@"`` (a menu's list of names).
+            chars.append("@")
+            flush()
+            at += 1
+            if dims_next:      # a Pokedex entry: the name's "@" is followed by height and weight
+                dims_next = False
+                out.append(("dw", f"{region[at] | region[at + 1] << 8}, {region[at + 2] | region[at + 3] << 8}"))
+                at += 4
         elif code == TEXT_ASM:
             flush()
             out.append(("text_asm", ""))
@@ -289,6 +307,33 @@ def _ram_addr(names: Names, value: str) -> int:
     raise CodecError(tr("Unknown RAM name {0}.", value))
 
 
+def _db_bytes(names: Names, args: str) -> bytes:
+    """The bytes of a ``db`` line: strings and numbers in turn (``db -6, "NAME@"``, ``db $76, "BADGES"``)."""
+    out = bytearray()
+    rest = args.strip()
+    while rest:
+        if rest.startswith('"'):
+            end = rest.find('"', 1)
+            if end < 0:
+                raise CodecError(tr("A string literal is expected, got {0}.", args))
+            out += _string_bytes(names, rest[:end + 1])
+            rest = rest[end + 1:]
+        else:
+            item, comma, after = rest.partition(",")
+            try:
+                value = int(item.strip()[1:], 16) if item.strip().startswith("$") else int(item.strip(), 0)
+            except ValueError:
+                raise CodecError(tr("A string literal is expected, got {0}.", args))
+            out.append(value & 0xFF)
+            rest = comma + after          # the comma stays for the separator check below
+        rest = rest.lstrip()
+        if rest:
+            if not rest.startswith(","):
+                raise CodecError(tr("A string literal is expected, got {0}.", args))
+            rest = rest[1:].lstrip()
+    return bytes(out)
+
+
 def _far_bytes(names: Names, value: str) -> bytes:
     if value in names.far:
         bank, cpu = names.far[value]
@@ -327,11 +372,12 @@ def _command_bytes(names: Names, name: str, args: str) -> bytes:
     return bytes(out)
 
 
-def encode(lines: Sequence[Line], names: Names, width: int = 0) -> bytes:
+def encode(lines: Sequence[Line], names: Names, width: int = 0, dex: bool = False) -> bytes:
     """The bytes of a text body from its macro lines. Lines after ``text_asm`` are code and are not encoded.
 
     ``width`` is the field width of a ``dname`` table (the table_width of the decompilation); a ``dname`` that does
     not fit the field raises, as pret's own assert does. ``li`` entries are "@"-terminated and any length.
+    ``dex`` is the Pokedex entry form (see ``decode``): its ``page`` line is the "@" byte and the page's text.
     """
     out = bytearray()
     for word, args in lines:
@@ -346,11 +392,17 @@ def encode(lines: Sequence[Line], names: Names, width: int = 0) -> bytes:
             out += _string_bytes(names, args) + bytes([TX_END])
         elif word in ("table_width", "list_start", "vc_patch", "vc_patch_end") or word.startswith("assert"):
             continue
+        elif dex and word == "page":
+            out.append(TX_END)
+            out += _string_bytes(names, args)
         elif word in FLOW_CODE:
             out.append(FLOW_CODE[word])
             out += _string_bytes(names, args) if args.strip() else b""
         elif word == "db":
-            out += _string_bytes(names, args)
+            out += _db_bytes(names, args)
+        elif word == "dw":      # two little-endian words: a Pokedex entry's height and weight
+            for value in args.split(","):
+                out += (_number(value) & 0xFFFF).to_bytes(2, "little")
         elif word in TERMINATOR:
             out += TERMINATOR[word]
         elif word == "text_asm":
@@ -361,6 +413,19 @@ def encode(lines: Sequence[Line], names: Names, width: int = 0) -> bytes:
         else:
             raise CodecError(tr("Unknown text macro {0}.", word))
     return bytes(out)
+
+
+def encoded_length(lines: Sequence[Line], names: Names) -> int:
+    """The bytes the lines of one unit take. A ``dname`` field counts its text only (the padding is not text)."""
+    total = 0
+    for word, args in lines:
+        if word == "dname":
+            total += len(_string_bytes(names, args))
+        elif word == "li":
+            total += len(_string_bytes(names, args)) + 1
+        else:
+            total += len(encode([(word, args)], names))
+    return total
 
 
 def decode_names(region: bytes, names: Names, mode: str, width: int = 0) -> List[Line]:
@@ -398,6 +463,10 @@ def read_labels(source: str) -> List[Tuple[str, List[Line]]]:
             if label:
                 groups.append((label.group(1), []))
                 continue
+            inline = _INLINE_LABEL.match(stripped)     # ``name: db "..."``: the label starts the body
+            if inline:
+                groups.append((inline.group(1), []))
+                stripped = inline.group(2).strip()
         if not groups:
             groups.append(("", []))
         word, _, args = stripped.partition(" ")

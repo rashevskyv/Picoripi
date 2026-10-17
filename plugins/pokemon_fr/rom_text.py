@@ -77,7 +77,11 @@ class Charmap:
 
     @classmethod
     def load(cls, path: Optional[Path] = None) -> "Charmap":
-        data = json.loads((path or FACTS_DIR / CHARMAP_FILE).read_text(encoding="utf-8"))
+        return cls.from_data(json.loads((path or FACTS_DIR / CHARMAP_FILE).read_text(encoding="utf-8")))
+
+    @classmethod
+    def from_data(cls, data: Dict[str, object]) -> "Charmap":
+        """The charmap of its JSON data (the file's content, also kept in a project's meta.json)."""
         chars = [(key, int(code, 16)) for key, code in data["chars"]]
         names = [(name, bytes.fromhex(code)) for name, code in data["names"]]
         sounds = [(name, bytes.fromhex(code)) for name, code in data["sounds"]]
