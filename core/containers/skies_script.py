@@ -12,8 +12,9 @@ it; every label offset at or after the insertion point grows by N.
 """
 from __future__ import annotations
 
+import bisect
 import struct
-from typing import List, NamedTuple, Sequence, Tuple
+from typing import Dict, List, NamedTuple, Sequence, Tuple
 
 from core.containers import skies_sct
 
@@ -79,46 +80,78 @@ def rebuild_pages(body: bytes) -> bytes:
     return bytes(out)
 
 
-def grow_page(body: bytes, page_index: int, new_text: bytes, big: bool) -> Tuple[bytes, int]:
-    """Replace the text of one page. The page length changes; the code after it moves by ``delta`` bytes.
+def grow_pages(body: bytes, texts: Dict[int, bytes], big: bool, relocate_words: bool = True) -> Tuple[bytes, int]:
+    """Replace the text of several pages in one pass. ``texts`` maps a page index to its new text.
 
-    ``delta`` is the change in length rounded up to a multiple of 4, so every later word keeps its alignment.
-    Padding is zero bytes. Every aligned 32-bit word whose value is at or after the old end of the page is an
-    absolute offset (label targets and the operands that point into the code); it grows by ``delta``. Words
-    below that point are not changed. Returns (new body, delta).
+    Each edited page moves the code after it by its own ``delta`` (its length change rounded up to 4, zero padded).
+    Every old offset maps to ``offset + sum(deltas of the edited pages that end at or before it)``. Absolute words
+    (aligned, pointing into the script) and label entries (any alignment) are mapped this way. Labels inside a page's
+    text or terminator are refused. Returns (new body, total delta).
     """
     pages = skies_sct.pages(body)
-    page = pages[page_index]
-    replaced = skies_sct.Page(page.start, page.end, page.speaker, new_text, page.terminator)
-    old_len = page.end - page.start
-    new_block = page_bytes(replaced)
-    delta = _round4(len(new_block)) - _round4(old_len)
-    new_block = new_block + b"\x00" * (_round4(len(new_block)) - len(new_block))
-    old_block_end = page.end + (_round4(old_len) - old_len)
-    old_tail = body[page.end:old_block_end]
-    if old_tail.strip(b"\x00"):
-        raise ValueError("the bytes after the page are not padding; cannot grow it safely")
-    labels = read_labels(body, big)
-    if any(page.start < label.target < old_block_end for label in labels):
-        raise ValueError("a label points inside the grown page")
-    out = bytearray(body[:page.start] + new_block + body[old_block_end:])
-    limit = len(body)
     fmt = ">I" if big else "<I"
+    limit = len(body)
+    edits = []
+    for index in sorted(texts):
+        page = pages[index]
+        old_len = page.end - page.start
+        old_block_end = page.end + (_round4(old_len) - old_len)
+        if body[page.end:old_block_end].strip(b"\x00"):
+            raise ValueError("the bytes after the page are not padding; cannot grow it safely")
+        new_block = page_bytes(skies_sct.Page(page.start, page.end, page.speaker, texts[index], page.terminator))
+        delta = _round4(len(new_block)) - _round4(old_len)
+        new_block += b"\x00" * (_round4(len(new_block)) - len(new_block))
+        prefix_len = len(page_bytes(skies_sct.Page(page.start, page.end, page.speaker, b"", b"")))
+        edits.append((page.start, page.start + prefix_len, old_block_end, new_block, delta))
+    labels = read_labels(body, big)
+    for start, prefix_end, end, _, _ in edits:
+        if any(prefix_end < label.target < end for label in labels):
+            raise ValueError("a label points inside the text of a grown page")
+    ends = [end for _, _, end, _, _ in edits]
+    cumulative = []
+    running = 0
+    for _, _, _, _, delta in edits:
+        running += delta
+        cumulative.append(running)
+
+    def shift(old: int) -> int:
+        k = bisect.bisect_right(ends, old)
+        return cumulative[k - 1] if k else 0
+
+    out = bytearray()
+    cursor = 0
+    for start, _, end, new_block, _ in edits:
+        out += body[cursor:start] + new_block
+        cursor = end
+    out += body[cursor:]
+    label_fields = {HEADER_SIZE + LABEL_SIZE * i + NAME_SIZE: i for i in range(len(labels))}
     relocated = 0
-    block_end_new = page.start + len(new_block)
-    label_fields = {HEADER_SIZE + LABEL_SIZE * i + NAME_SIZE for i in range(len(labels))}
-    for at in range(0, len(out) - 3, 4):
-        if page.start <= at < block_end_new or at in label_fields:
+    for old in range(0, limit - 3, 4):
+        if old in label_fields:
             continue
-        value = struct.unpack_from(fmt, out, at)[0]
-        if old_block_end <= value < limit and value % 4 == 0:
-            struct.pack_into(fmt, out, at, value + delta)
+        if any(start <= old < end for start, _, end, _, _ in edits):
+            continue
+        if not relocate_words:
+            break
+        value = struct.unpack_from(fmt, body, old)[0]
+        if ends and ends[0] <= value < limit and value % 4 == 0:
+            new_value = value + shift(value)
+            struct.pack_into(fmt, out, old + shift(old), new_value)
             relocated += 1
-    moved = [Label(label.name, label.target + delta if label.target >= old_block_end else label.target)
-             for label in labels]
-    write_labels(out, moved, big)
-    grow_page.last_relocated = relocated
-    return bytes(out), delta
+    moved = []
+    for label in labels:
+        target = label.target + shift(label.target)
+        moved.append(Label(label.name, target))
+    for i, label in enumerate(labels):
+        at = HEADER_SIZE + LABEL_SIZE * i + NAME_SIZE
+        struct.pack_into(fmt, out, at + shift(at), moved[i].target)
+    grow_pages.last_relocated = relocated
+    return bytes(out), running
+
+
+def grow_page(body: bytes, page_index: int, new_text: bytes, big: bool) -> Tuple[bytes, int]:
+    """Replace the text of one page. See ``grow_pages``. Returns (new body, delta)."""
+    return grow_pages(body, {page_index: new_text}, big)
 
 
 def _round4(n: int) -> int:

@@ -1291,3 +1291,10 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
   words (GameCube read big endian, Dreamcast little endian). Every `\h(` page starts 4-byte aligned, follows a 0x1d
   byte, and ends with `\c` or `\e` followed by zero bytes. Word 0x0b is followed by 0x98b0 (goto-subscript
   candidate, not yet proven). Instruction boundaries and operand sizes are not yet proven; no re-assembler exists.
+- Skies writer proof (2026-10-17, GameCube USA, Dolphin private muted, pad timers): an image with the first 15,000
+  marked pages (229 files) boots and reaches dialogue, but no marker line was seen in the sampled dialogue frames.
+  Reason: 10,268 of about 25,000 pages have a label inside their text, so the writer refuses them. A label inside a
+  text is a second kind of text reference that the writer does not map yet.
+- Skies writer blocker: `field/me201a.sct` freezes the game (black screen) once any page grows, while same-length
+  edits and growth that keeps every code offset run fine. Literal-only AKLZ and turning off the word relocation did
+  not fix it. The cause is a relocation the writer misses in that file (a relative reference or a non-aligned word).
