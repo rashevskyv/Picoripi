@@ -124,6 +124,7 @@ class GameRules(BaseGameRules):
         self.original_block_names = []
         self._pret_loaded = None
         self._pret_source = None
+        self._budget_cache.clear()
 
     def prepare_save_context(self, context: Any) -> None:
         """Narrow the keys to the blocks that go into the file being saved."""

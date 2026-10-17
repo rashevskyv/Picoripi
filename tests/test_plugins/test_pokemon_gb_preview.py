@@ -13,6 +13,7 @@ from plugins.common.gba_text_font import INK, PAPER, SHADOW
 from plugins.common.text_window_panel import SCALE
 from plugins.pokemon_gen1 import preview_panel
 from plugins.pokemon_gen1 import rom_project
+import romhacking_root
 
 FACTS = {
     "pokered.json": Path(rom_project.FACTS_DIR, "pokered.json"),
@@ -23,8 +24,8 @@ FACTS = {
     "pokecrystal.json": Path(rom_project.FACTS_DIR.parent.parent, "pokemon_gsc", "rom_facts", "pokecrystal.json"),
     "pokecrystal11.json": Path(rom_project.FACTS_DIR.parent.parent, "pokemon_gsc", "rom_facts", "pokecrystal11.json"),
 }
-RED_ROM = Path(os.environ.get("PICORIPI_RED_ROM", "E:/Emulators/RomHacking/Pokemon/Red and Blue/ISO/"
-                              "Pokemon Red Version (UE) [S][!].gb"))
+RED_ROM = Path(os.environ.get("PICORIPI_RED_ROM", romhacking_root.under(
+    "Pokemon/Red and Blue/ISO/Pokemon Red Version (UE) [S][!].gb")))
 PROOF_FRAME_INK = 294       # ink pixels of the box text in reports/proof/pkA3_oak/oak_intro_red_v1.png (mGBA)
 
 

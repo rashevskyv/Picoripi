@@ -71,7 +71,7 @@ class GameRules(BaseGameRules):
         self._template: Optional[str] = None
         self._files: Dict[int, Tuple[str, List[asm_text.Unit]]] = {}
         self._context_cache: Optional[Tuple[str, Dict[str, Any]]] = None
-        self._budget_cache: Dict[str, Optional[Tuple[Dict[str, int], rom_text.Names]]] = {}
+        self._budget_cache: Dict[int, Optional[Tuple[Dict[str, int], rom_text.Names]]] = {}
 
     def get_display_name(self) -> str:
         return self.game_name
@@ -116,6 +116,7 @@ class GameRules(BaseGameRules):
         self._template = None
         self._files.clear()
         self._context_cache = None
+        self._budget_cache.clear()
 
     # -- where a string comes from -----------------------------------------------------------
 
@@ -183,13 +184,15 @@ class GameRules(BaseGameRules):
         return ""
 
     def _budget_data(self, block_idx: int) -> Optional[Tuple[Dict[str, int], rom_text.Names]]:
-        """The budgets and names of the block's ROM project. Read once per meta.json (a small file)."""
+        """The budgets and names of the block's ROM project. Looked up once per block (the file stats and the small
+        meta.json read happen then, not on every edit); cleared with the other per-project state."""
+        if block_idx in self._budget_cache:
+            return self._budget_cache[block_idx]
         path = self._meta_path(block_idx)
-        if not path:
+        if not path:      # not cached: the project may not be loaded yet
             return None
-        if path not in self._budget_cache:
-            self._budget_cache[path] = rom_project.read_budgets(path)
-        return self._budget_cache[path]
+        self._budget_cache[block_idx] = rom_project.read_budgets(path)
+        return self._budget_cache[block_idx]
 
     def exceeds_byte_budget(self, block_idx: int, string_idx: int, text: str) -> bool:
         """True when a field the ROM keeps in place cannot hold this text.

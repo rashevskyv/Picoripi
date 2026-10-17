@@ -162,15 +162,18 @@ class GameRules(BaseGameRules):
 
     # -- byte budgets (a field the ROM keeps in place) -----------------------------------------------
 
+    def reset_runtime_state(self) -> None:
+        super().reset_runtime_state()
+        self._budget_cache.clear()
+
     def _budget_data(self, path: str) -> Optional[Tuple[Dict[str, int], rom_text.Names]]:
-        """The budgets and names of the ROM project a text file belongs to. meta.json is read once per project."""
-        meta = next((str(folder / rom_project.ROM_DIR / "meta.json") for folder in list(Path(path).parents)[:4]
-                     if (folder / rom_project.ROM_DIR / "meta.json").is_file()), "")
-        if not meta:
-            return None
-        if meta not in self._budget_cache:
-            self._budget_cache[meta] = rom_project.read_budgets(meta)
-        return self._budget_cache[meta]
+        """The budgets and names of the ROM project a text file belongs to. Looked up once per text file (the file
+        stats and the small meta.json read happen then, not on every edit); cleared with the other per-project state."""
+        if path not in self._budget_cache:
+            meta = next((str(folder / rom_project.ROM_DIR / "meta.json") for folder in list(Path(path).parents)[:4]
+                         if (folder / rom_project.ROM_DIR / "meta.json").is_file()), "")
+            self._budget_cache[path] = rom_project.read_budgets(meta) if meta else None
+        return self._budget_cache[path]
 
     def exceeds_byte_budget(self, block_idx: int, string_idx: int, text: str) -> bool:
         """True when a field the ROM keeps in place cannot hold this text. Keys are ``label#k`` (see the Gen 1 rules).
