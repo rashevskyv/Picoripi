@@ -173,19 +173,19 @@ class TestBanner:
         qtbot.addWidget(banner)
         return banner
 
-    def test_it_offers_the_series_translation_and_applies_it_here(self, qtbot, window):
+    def test_it_offers_the_series_translation_and_applies_it_here(self, qtbot, handler, window):
         banner = self._banner(qtbot, window)
 
         banner.refresh(7, 10)
 
         assert not banner.isHidden()
         assert banner.label.text() == 'Translated in TP HD: "Так (HD)"'
-        assert banner.apply_all_button.text() == "Apply to all 3 places"
+        assert banner.apply_all_button.text() == "Apply to places with the same context"
         banner.apply_here()
         assert window.data_processor.get_current_string_text(7, 10)[0] == "Так (HD)"
         assert window.data_processor.get_current_string_text(0, 3)[0] == "Yes"
 
-    def test_the_project_s_own_memory_wins_and_apply_everywhere_fills_every_copy(self, qtbot, window):
+    def test_the_project_s_own_memory_wins_and_apply_everywhere_fills_every_copy(self, qtbot, handler, window):
         banner = self._banner(qtbot, window)
         window.saved_translations_manager.save_translation(0, 3, "Так")
 
@@ -195,7 +195,7 @@ class TestBanner:
 
         assert [window.data_processor.get_current_string_text(b, s)[0] for b, s in ((0, 3), (3, 2), (7, 10))] == ["Так"] * 3
 
-    def test_a_translated_text_with_copies_offers_to_spread_its_own_translation(self, qtbot, window):
+    def test_a_translated_text_with_copies_offers_to_spread_its_own_translation(self, qtbot, handler, window):
         banner = self._banner(qtbot, window)
         window.saved_translations_manager.series_memory = {}
         window.data_processor.update_edited_data(7, 10, "Еге ж")
@@ -213,6 +213,17 @@ class TestBanner:
         banner.refresh(7, 10)
         banner.refresh(1, 0)  # "x": copies exist, but no translation yet
         assert banner.isHidden()
+
+    def test_apply_everywhere_skips_a_copy_said_by_another_speaker(self, qtbot, handler, window):
+        banner = self._banner(qtbot, window)
+        window.saved_translations_manager.context_for = _speaker_context({(0, 3): "Ann", (3, 2): "Bob", (7, 10): "Ann"})
+        window.data_processor.update_edited_data(7, 10, "Еге ж")
+
+        banner.refresh(7, 10)
+        banner.apply_everywhere()
+
+        assert window.data_processor.get_current_string_text(0, 3)[0] == "Еге ж"
+        assert window.data_processor.get_current_string_text(3, 2)[0] == "Yes"
 
 
 class TestSeriesRowsNeedTheSameSpeaker:

@@ -156,3 +156,18 @@ def check_translated(source_text: Any, translation: Any, *, item_id: Any = None)
         label = f"item {item_id}" if item_id is not None else "a line"
         raise TranslationLayoutError(
             f"{label} is not translated: {left} of {len(source_words)} source words are still in it")
+
+
+def text_fits_place(mw, source: Any, text: Any, block_idx: Any, string_idx: Any) -> bool:
+    """Whether ``text`` is a valid translation of ``source`` in the window of one place (its lines per window)."""
+    rules = getattr(mw, "current_game_rules", None)
+    try:
+        validate_translation_layout(
+            editor_text_for_layout(source, rules),
+            editor_text_for_layout(text, rules),
+            resolve_lines_per_window(mw, block_idx, string_idx),
+            allow_reflow=True,
+        )
+    except ValueError:
+        return False
+    return True

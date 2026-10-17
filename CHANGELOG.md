@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Translation memory bar: **Apply here** and **Apply to places with the same context** use the speaker and window rule (D41); "Apply to places" writes only where the text fits the window and runs the issue check on each place.
 - Series glossary: `scripts/seed_series_glossary.py` (`core/glossary/series_seeds.py`) adds the game's own terms from a plugin's seed hook to a series glossary file, headless and without translations; existing entries stay.
 - Glossary build: a structural seed whose term a series glossary already translates takes that translation and status (the build does not decide it again).
 - Cached Translation: a longer line (more than two words) from another game of the series starts unchecked; a name or a menu word starts checked.

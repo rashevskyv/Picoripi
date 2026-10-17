@@ -145,6 +145,40 @@ class SavedTranslationsManager:
         return [row for row in reversed(self.load_translation_memory().get(_source_hash(source), []))
                 if isinstance(row, dict) and row.get("source") == source and isinstance(row.get("translation"), str)]
 
+    def acceptable_rows(self, block_idx: int, string_idx: int, source: Any) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
+        """``(own rows, series rows)`` this string may take, newest first (the context rule of D41).
+
+        A text that occurs once in the project takes its newest own row. A repeated text takes an own row only under the
+        same fold key, and a series row only under the same speaker and addressee.
+        """
+        own_all = self.rows_by_source(source)
+        series_all = self.series_by_source(source)
+        if not own_all and not series_all:
+            return [], []
+        repeats = self.repeats_in_project(source)
+        context = self.context_of(block_idx, string_idx, source) if (repeats or series_all) else None
+        own = [row for row in own_all
+               if not repeats or (context is not None and row.get("fold") == context.get("fold"))]
+        series = [row for row in series_all
+                  if context is not None and "speaker" in row and row.get("speaker") == context.get("speaker")
+                  and row.get("addressee") == context.get("addressee")]
+        return own, series
+
+    def places_with_same_context(self, block_idx: int, string_idx: int, source: Any) -> List[Tuple[int, int]]:
+        """The other places of this project where this exact text is said under the same context (the same fold key)."""
+        if not isinstance(source, str) or not normalize_source(source):
+            return []
+        others = [place for place in self.positions_of_source(source) if place != (block_idx, string_idx)]
+        context = self.context_of(block_idx, string_idx, source) if others else None
+        if context is None:
+            return []
+        found = []
+        for other_block, other_string in others:
+            other = self.context_of(other_block, other_string, source)
+            if other is not None and other.get("fold") == context.get("fold"):
+                found.append((other_block, other_string))
+        return found
+
     def repeats_in_project(self, source: Any) -> bool:
         """Whether this exact source text sits at more than one place in the project (only then the context matters)."""
         return len(self.positions_of_source(source)) > 1

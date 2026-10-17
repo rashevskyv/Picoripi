@@ -17,6 +17,7 @@ from core.translation.run_memory import RunMemory, fold_duplicates
 from core.translation.layout_contract import (
     editor_text_for_layout,
     resolve_lines_per_window,
+    text_fits_place,
     validate_translation_layout,
 )
 
@@ -104,22 +105,7 @@ class AIBatchTranslator(BaseTranslationHandler):
         block_idx: int,
         string_idx: int,
     ) -> bool:
-        rules = getattr(self.mw, "current_game_rules", None)
-        source_editor = editor_text_for_layout(source_item.get("text", ""), rules)
-        saved_editor = editor_text_for_layout(saved_text, rules)
-        lines_per_window = resolve_lines_per_window(
-            self.mw, block_idx, string_idx
-        )
-        try:
-            validate_translation_layout(
-                source_editor,
-                saved_editor,
-                lines_per_window,
-                allow_reflow=True,
-            )
-        except ValueError:
-            return False
-        return True
+        return text_fits_place(self.mw, source_item.get("text", ""), saved_text, block_idx, string_idx)
 
     def _restorable_text(self, saved_mgr, saved_translations, item, block_idx, string_idx):
         """``(saved text that fits the row, origin)`` or ``(None, None)``.
@@ -139,19 +125,13 @@ class AIBatchTranslator(BaseTranslationHandler):
         if fits(saved_text):
             return saved_text, "saved"
         source = item.get("text", "")
-        repeats = saved_mgr.repeats_in_project(source)
-        series_rows = saved_mgr.series_by_source(source)
-        context = saved_mgr.context_of(block_idx, string_idx, source) if (repeats or series_rows) else None
-        for row in saved_mgr.rows_by_source(source):
-            # A text that occurs once has no other place to be confused with: its newest row is the one to use.
-            if repeats and (context is None or row.get("fold") != context.get("fold")):
-                continue
+        own_rows, series_rows = saved_mgr.acceptable_rows(block_idx, string_idx, source)
+        for row in own_rows:
             if fits(row.get("translation")):
                 return row["translation"], "memory"
-        # Then what another project of the series saved for exactly this text (nearest level first), if said by the same speaker.
-        for row in series_rows if context is not None else []:
-            if "speaker" in row and row.get("speaker") == context.get("speaker") \
-                    and row.get("addressee") == context.get("addressee") and fits(row.get("translation")):
+        # Then what another project of the series saved for exactly this text, said by the same speaker.
+        for row in series_rows:
+            if fits(row.get("translation")):
                 return row["translation"], "series"
         return None, None
 
