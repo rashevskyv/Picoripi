@@ -266,9 +266,9 @@ Open after phase 3b:
 ## Family projects (2026-10-12, branch feat/family-projects-ui)
 
 - [ ] Project and wizard accept several folders or game images per project, each assigned to a member by the plugin (the engine and the TP recognition exist; the UI and image files do not).
-- [ ] Wind Waker family: plugin reads both GC BMG (`zelda_tww`) and HD MSBT (`zelda_ww`); match rate by editor text is 23 % (tags differ: `{escape:255:...}` vs `[Size]`). Needs a tag map before the family works.
-- [ ] Shared files are copied by `python -m plugins.zelda_bmg.family shared` only; the Wii patcher (`GC + Wii\Patcher\patcher.py`, outside the repo) still copies its own `fontres.arc`. Connect it to the command.
-- [ ] Wind Waker font sync: the two copies "file-select font" and "name-entry font" (28335 and 148064 bytes) are not byte-equal; glyph sync by character code is not written.
+- [ ] Wind Waker family: plugin reads both GC BMG (`zelda_tww`) and HD MSBT (`zelda_ww`). Measured 2026-10-17 on the owner's unpacked folders: 3,432 of 5,040 HD messages link (68.1 %). The tag map (`family_tag_map.json`) was already derived, so the old 23 % figure was stale. Of the 4,262 messages paired by id, 3,306 have the same match key, 222 differ only in tags the match key sees, and 734 have different text. Open: the 222 tag gaps are `[Capital]` and `[Size]` the HD text writes and GameCube does not. Leaving them out of the key would link them, but family output takes the GameCube text, which drops those HD tags from the linked HD message (checked in `write_hd_output`). So they stay out of the key until the output re-applies HD-only styling. A rule for the 734 text differences is a scope decision.
+- [x] Shared files: `python -m plugins.zelda_bmg.family shared` copied the English GameCube `fontres.arc` (the family's base source), not the translated one the disc ships. Fixed: the family file's `translations` entry for the base is used (`ISO\UA\root\res\Fontus\fontres.arc`, SHA-1 `d01c5de…`, checked with the owner's `_family\family.json` through a scratch copy). The Wii patcher (`GC + Wii\Patcher\patcher.py`, outside the repo, line 406) still copies its own `Patcher\files\Fontus\fontres.arc` (SHA-1 `bbeafe…`), a third file. Open for the owner: point the patcher at `family_out\wii\Fontus\fontres.arc` after `family shared` (a change to the Wii font), or keep its file.
+- [x] Wind Waker font sync (checked 2026-10-18): the two copies are byte-equal (148064 bytes, SHA-1 `36d088df…`); the "28335" size was wrong. Glyph sync by character code is written (`core/font_formats/glyph_sync.py`, linked in `plugins/zelda_tww/font_sources.json`). It is opt-in per pair: the Font Editor asks once, and the "Copy changes to" box turns the pair on. Tests: 18 pass, including the real-data pair (`tests/test_core/test_glyph_sync_real.py`).
 - [ ] Family store v1 to v2 migration: the old `_family/family_translations.json` is kept as `.bak_v1_20261012`; the new store is seeded from the translation folders.
 - [ ] TP Wii only folder reads the Wii source from `<RomHacking_tmp>`; the family file must point elsewhere once that folder is removed.
 ## Zelda DS (`plugins/zelda_ds`, 2026-10-12)
@@ -1180,6 +1180,16 @@ omfs`) could be
   the original MD5, so its packs are taken as clean, but the WUX (`WWHD_UA\iso`) stays undecrypted (no keys here).
 - **Cemu 2.6 here crashes at boot** (0xc0000409 after "can't initialize tv audio") with Audio API XAudio 2.7, which is
   not installed; Cubeb works. `3_run.bat` leaves Cemu's settings as they are, so the user switches the audio API once.
+- **Wizard (2026-10-17)**: a Wind Waker HD project starts from the game folder or from `permanent_2d_UsEnglish.pack`
+  (`plugins/zelda_ww/message_pack.py`): `Message/`, `Font/`, `Pack/`, `Layout/`. On the owner's pack: 68 MSBT and 6 BFFNT.
+  A `.wua` (Cemu ZArchive, zstd) or `.wux` (Wii U keys) is not read: a ZArchive reader is not in the repo, and the
+  `.wux` needs the Wii U key store entry. The wizard refuses them with the pack's error text.
+- **Build (2026-10-17)**: the `cemu` target (`plugins/zelda_ww/graphic_pack.py`) repacks each changed message and font into
+  the pack and writes `graphicPacks\Picoripi_UA_WWHD\`. The owner's pack with no edits round-trips: 221 members, same
+  names and order, same inner data. Not done: the `sdcafiine` and SwitchWakerHD mirrors of the workspace script, and the
+  real-game check of an edited pack in Cemu.
+- **`glossary.md` (`plugins/zelda_ww/translation_prompts/glossary.md`)**: nothing reads it. Left in place in this
+  pass: whether the prompt or the glossary seed should read it is the owner's decision.
 
 ## The Wind Waker GameCube plugin (`plugins/zelda_tww`)
 
@@ -1200,6 +1210,28 @@ omfs`) could be
   (`SessionMixin._session_misses_project_blocks` falls back to a full load only without unsaved edits).
 - **Removed project blocks stay in virtual folders**: `Project.remove_block` (used by the folder sync) leaves the
   block id in its folder, so empty folders remain in the block tree (the WW project was cleaned by hand).
+- **Build (2026-10-17)**: `plugins/zelda_tww/disc.py` writes the disc from the unpacked tree (no original image). On the
+  owner's data: 2,210 of 2,213 FST files equal the original; the 3 others are the translated files; `main.dol` and the
+  apploader are byte-equal; 5.1 s. The `bluewake` target keeps the original `main.dol` (BlueWake checks its SHA-1).
+  Boot checked 2026-10-18 in a private muted Dolphin copy (`D:\RomHacking_tmp\zelda-ww-ready\dolphin`, portable, no audio):
+  the original and the rebuilt image both boot to the game's own screens; the boot DVD reads are identical (15 lines
+  each, no read error). A test copy with two shortened lines of `zel_00.bmg` (units 19 and 24, the save prompts) shows
+  its text in game. The rebuilt disc needed no layout change. The card prompt differs between runs even for the
+  original image (a card-check timing effect, not the disc).
+  Not done: BlueWake texture packs (`Load\Textures\GZLE01`), and the `main.dol` text suffixes.
+- **BlueWake (checked 2026-10-18, BlueWake 0.7.0 copied to a scratch folder)**: the built `GZLE01.iso` is accepted: BlueWake
+  prepares it (main.dol SHA-1 revision 0, 415 RELs) and runs the game loop for 120 s with no crash; the picture was not
+  judged. Refused, each with its own message: a header-only 0x440-byte file (the SHA-1 message: the file has no
+  executable), a GZLP01 id, a non-GameCube file. BlueWake does not check the image size. The build refuses a source
+  `main.dol` that is not revision 0 (`plugins/zelda_tww/rules.py`).
+- **Project Manager walk (2026-10-18, scratch copies, `pm\gc` and `pm\hd`)**: the wizard creates and unpacks both
+  projects; the open call takes 0.15 s (GC) and 0.12 s (HD); the longest UI-thread gap during the open is 16 ms (GC)
+  and 44 ms (HD); the scan that follows takes about 3 s. Builds: GC ISO 1.15 s, GC BlueWake 1.14 s, HD Cemu pack 11.7 s.
+  Not walked: the editor's save, the preview.
+- **Outside the plugins, not fixed**: (a) `core/project_library/plugin_facts.py` `count_project` skips archive members (its
+  own ponytail note). On the GC project the card shows 5 lines and 0 translated; the message archives hold the game's
+  text. (b) `handlers/issue_scan_handler.py` `_scan_next_batch` raises `RuntimeError: QTreeWidgetItem has been deleted`
+  when a project is opened again while its background scan runs (seen once in the HD walk, which opened it twice).
 
 ## Zelda: Tears of the Kingdom plugin (`plugins/zelda_totk`)
 

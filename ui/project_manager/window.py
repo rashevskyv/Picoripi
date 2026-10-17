@@ -23,6 +23,7 @@ from PyQt6.QtWidgets import (
 
 from core.i18n import tr
 from core.project_library import index, registry, resources, views
+from core.project_library import build
 from core.project_library.build import emulator_argv, emulator_platform, emulator_template_for
 from core.project_library.cards import fallback_name, percent_translated, read_card
 from core.project_library.discovery import find_projects, platform_from_parts
@@ -1280,7 +1281,7 @@ class ProjectManagerDialog(QDialog):
         argv = emulator_argv(self._emulator_template(platform), path)
         if not argv:
             return tr("Set the emulator command for this platform first (Emulator... button).")
-        started, _pid = QProcess.startDetached(argv[0], argv[1:])
+        started, _pid = QProcess.startDetached(argv[0], argv[1:], build.emulator_working_dir(argv))
         if not started:
             return tr("The emulator did not start: {0}", argv[0])
         log_info(f"Started the emulator {argv[0]} with {path}.")

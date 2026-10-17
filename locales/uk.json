@@ -2820,5 +2820,11 @@
   "The font texture pack does not match the font's glyph sheets.": "Пакет текстур шрифту не збігається з аркушами гліфів.",
   "The font sheet is {0} pixels wide; its texture layout is not checked.": "Аркуш шрифту завширшки {0} пікселів: його розкладку текстур не перевірено.",
   "The font texture pack holds {0} textures, the font {1} sheets.": "Пакет текстур шрифту має {0} текстур, а шрифт {1} аркушів.",
-  "The font texture pack holds more than one file: a texture cannot be added.": "Пакет текстур шрифту має більше одного файлу: текстуру додати не можна."
+  "The font texture pack holds more than one file: a texture cannot be added.": "Пакет текстур шрифту має більше одного файлу: текстуру додати не можна.",
+  "BlueWake (PC port)": "BlueWake (порт для ПК)",
+  "Disc image (ISO)": "Образ диска (ISO)",
+  "BlueWake disc (original main.dol)": "Диск для BlueWake (оригінальний main.dol)",
+  "The source main.dol is not USA revision 0 (GZLE01), so BlueWake would refuse the disc.": "Вихідний main.dol не є USA revision 0 (GZLE01), тому BlueWake відхилить диск.",
+  "{0} is not a Wind Waker HD message pack. Use the extracted {1}.": "{0} не є пакетом повідомлень Wind Waker HD. Використайте розпакований {1}.",
+  "The pack {0} holds no message files.": "У пакеті {0} немає файлів повідомлень."
 }

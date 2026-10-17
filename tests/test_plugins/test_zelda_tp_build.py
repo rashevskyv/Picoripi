@@ -246,4 +246,5 @@ def test_an_undeclared_target_id_is_refused():
 
 def test_wind_waker_inherits_the_base_class_but_no_twilight_princess_target():
     from plugins.zelda_tww.rules import GameRules as WindWakerRules
-    assert WindWakerRules().get_build_targets() == []
+    ids = [target["id"] for target in WindWakerRules().get_build_targets()]
+    assert ids == ["iso", "bluewake"]

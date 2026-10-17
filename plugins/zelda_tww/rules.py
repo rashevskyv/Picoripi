@@ -7,8 +7,10 @@ replaces only what is game data: the escape-tag catalogue, the color table, the
 INF1 attributes and the per-window line width.  Sources: zeldaret/tww
 (``include/f_op/f_op_msg_mng.h``, ``src/f_op/f_op_msg_mng.cpp``, ``src/d/d_msg.cpp``).
 """
+import hashlib
 import os
-from typing import Any, Dict, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from core.containers import ContainerManager
 from core.i18n import tr
@@ -18,10 +20,18 @@ from plugins.common.msbt import MAGIC as MSBT_MAGIC, Msbt
 from plugins.zelda_ww.tags import TAG_RE as HD_TAG_RE, from_editor, to_editor
 from plugins.zelda_bmg.rules import GameRules as TwilightPrincessRules
 
+from . import disc
 from .dol import DolResources
 from .tag_catalog import COLOR_NAMES, COLOR_TABLE, WW_CATALOG
 
 plugin_dir = os.path.dirname(os.path.abspath(__file__))
+
+DISC_TARGET = "iso"
+BLUEWAKE_TARGET = "bluewake"
+DISC_NAME = "The Wind Waker (UA).iso"
+BLUEWAKE_NAME = "GZLE01.iso"
+# main.dol of GZLE01 USA revision 0. BlueWake checks its SHA-1 before it reads the disc (disc_import.c).
+BLUEWAKE_DOL_SHA1 = "8d28bab68bb5078c38e43f29206f0bd01f7e7a67"
 
 # INF1 textbox type (byte 0x0C of the entry) -> what the player sees (d_msg.cpp, d_message.cpp).
 TEXTBOX_TYPES = {
@@ -65,6 +75,16 @@ def decode_ww_attributes(info: bytes) -> Optional[Dict[str, int]]:
     }
 
 
+def _require_bluewake_dol(path: Path) -> None:
+    """BlueWake refuses any other main.dol, so a BlueWake disc is not built from one."""
+    digest = hashlib.sha1()
+    with open(path, "rb") as stream:
+        for chunk in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(chunk)
+    if digest.hexdigest() != BLUEWAKE_DOL_SHA1:
+        raise ValueError(tr("The source main.dol is not USA revision 0 (GZLE01), so BlueWake would refuse the disc."))
+
+
 class GameRules(TwilightPrincessRules):
     """Zelda: The Wind Waker (GameCube)."""
 
@@ -90,7 +110,7 @@ class GameRules(TwilightPrincessRules):
 
     # Project Manager: the GameCube disc (USA) is extracted whole into sys\ and files\, as zt/gc.py does.
     def get_platforms(self) -> list:
-        return [{"id": "gc", "label": tr("GameCube")}]
+        return [{"id": "gc", "label": tr("GameCube")}, {"id": "bluewake", "label": tr("BlueWake (PC port)")}]
 
     def identify_source(self, path: str) -> Optional[Dict[str, str]]:
         return images.base_identity(path, ("GZLE01",))
@@ -103,9 +123,27 @@ class GameRules(TwilightPrincessRules):
         """The whole disc is the source (the Twilight Princess base class names a subfolder)."""
         return None
 
-    def get_build_targets(self) -> list:
-        """No build yet. The Twilight Princess targets (disc, Dusklight mod, Wii U pack) are inherited, not Wind Waker's."""
-        return []
+    def get_build_targets(self) -> List[Dict[str, Any]]:
+        """The Dolphin disc (translated main.dol) and the BlueWake disc (original main.dol: BlueWake checks its SHA-1).
+
+        BlueWake run (3_run_bluewake.bat): from the BlueWake folder (pushd), ``BlueWake.exe --disc <GZLE01.iso>``. Set the
+        BlueWake platform command to ``"<BlueWake folder>\\BlueWake.exe" --disc {path}``; Run starts it in that folder.
+        """
+        return [{"id": DISC_TARGET, "label": tr("Disc image (ISO)"), "platforms": ["gc"], "kind": "patch"},
+                {"id": BLUEWAKE_TARGET, "label": tr("BlueWake disc (original main.dol)"),
+                 "platforms": ["bluewake"], "kind": "patch"}]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress, is_cancelled) -> str:
+        if target_id not in (DISC_TARGET, BLUEWAKE_TARGET):
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        if target_id == BLUEWAKE_TARGET:
+            _require_bluewake_dol(Path(source_dir) / "sys" / "main.dol")
+        name = DISC_NAME if target_id == DISC_TARGET else BLUEWAKE_NAME
+        out = Path(output_dir) / name
+        disc.build_disc(Path(source_dir), Path(translation_dir), out, target_id == DISC_TARGET,
+                        progress, is_cancelled)
+        return str(out)
 
     def get_display_name(self) -> str:
         """Get the display name."""

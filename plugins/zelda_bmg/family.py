@@ -202,10 +202,14 @@ def write_member(source: Path, out: Path, texts: Dict[str, str], rules: GameRule
     return changed_total
 
 
-def copy_shared_files(plan: FamilyPlan, member: str, res_out: Path) -> List[str]:
-    """Copy the base member's shared files into res_out (the member's res folder). Returns the file paths copied."""
+def copy_shared_files(plan: FamilyPlan, member: str, res_out: Path, base_res: Optional[Path] = None) -> List[str]:
+    """Copy the base member's shared files into res_out (the member's res folder). Returns the file paths copied.
+
+    base_res is the base member's res folder as it ships (the translated one); default: the folder the base was
+    read from, which is the source (original) copy.
+    """
     copied = []
-    base_res = Path(plan.member(plan.base).path).parent
+    base_res = base_res or Path(plan.member(plan.base).path).parent
     for rel, members in plan.shared_files.items():
         if member not in members:
             continue
@@ -246,7 +250,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "shared":
         if not args.member or not args.out:
             parser.error("shared needs --member and --out (the member's res folder)")
-        copied = copy_shared_files(plan, args.member, args.out)
+        # The family file names the base's translated folder; its shared files are the ones the disc ships.
+        translated = config.get("translations", {}).get(plan.base)
+        base_res = (config["_dir"] / translated).parent if translated else None
+        copied = copy_shared_files(plan, args.member, args.out, base_res)
         print(f"{args.member}: copied {len(copied)} shared file(s): {', '.join(copied) or 'none'}")
         return 0
     if args.command in ("project", "push", "pull", "verify"):
