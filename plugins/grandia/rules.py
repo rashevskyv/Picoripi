@@ -27,7 +27,8 @@ PS1_GAME_IDS = ("SCUS-94457", "SCUS-94465")   # Grandia PlayStation, disc 1 and 
 def _is_psx_text(path: str) -> bool:
     """The PlayStation files that hold text: field scripts (dialogue) and battle string tables."""
     upper = path.upper()
-    return (path.startswith("FIELD/") and upper.endswith(".MDP")) or (path.startswith("BATLE/") and upper.endswith(".BBG"))
+    return ((path.startswith("FIELD/") and upper.endswith(".MDP")) or (path.startswith("BATLE/") and upper.endswith(".BBG"))
+            or path.upper() == "FIELD/WINDT.BIN")   # the window and menu string table (1252 records on disc 1)
 
 
 TEXT_DIR = "files/MAP/"
