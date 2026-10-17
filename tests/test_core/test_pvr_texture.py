@@ -49,9 +49,25 @@ def test_a_block_that_is_not_pvr_is_refused():
         read("pvr", b"not a texture at all, only text" * 4)
 
 
-def test_a_data_type_other_than_square_twiddled_is_refused():
+def test_a_data_type_other_than_square_twiddled_or_rectangle_is_refused():
     with pytest.raises(ValueError):
-        read("pvr", pvr_block(16, 16, dtype=9))
+        read("pvr", pvr_block(16, 16, dtype=3))
+
+
+def test_a_rectangle_is_row_major_and_round_trips():
+    width, height = 32, 16
+    texels = [(i * 53) & 0xFFFF for i in range(width * height)]
+    raw = (b"GBIX" + struct.pack("<II", 8, 0) + b"    " + b"PVRT" + struct.pack("<I", 8 + 2 * width * height)
+           + bytes([0, 9, 0, 0]) + struct.pack("<HH", width, height)
+           + b"".join(struct.pack("<H", v) for v in texels))
+    image = read("pvr", raw)[0].image
+    edited = image.convert("RGBA")
+    edited.putpixel((5, 3), (255, 0, 0, 255))
+    out = write("pvr", raw, {0: edited})
+    changed = [i for i in range(len(raw)) if raw[i] != out[i]]
+    assert changed and all(i in (0x20 + 2 * (3 * width + 5), 0x20 + 2 * (3 * width + 5) + 1) for i in changed)
+    assert image.size == (width, height)
+    assert write("pvr", raw, {0: image}) == raw
 
 
 def test_a_rectangle_is_refused():
