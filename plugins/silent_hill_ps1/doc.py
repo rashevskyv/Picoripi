@@ -22,7 +22,7 @@ import struct
 from dataclasses import dataclass
 from typing import List, Optional, Sequence, Tuple
 
-from . import codec
+from . import codec, pal_text
 from .menu_slots import menu_group
 
 OVERLAY_BASE = 0x800C9578          # USA map overlay link base (the port's USA_OVL_BASE)
@@ -188,7 +188,7 @@ def _unique(starts: Sequence[int]) -> List[int]:
     return out
 
 
-def parse(data: bytes) -> List[Group]:
+def parse(data: bytes, pal: bool = False) -> List[Group]:
     """The blocks of the file. Strings that are not plain game text are left out."""
     groups = _groups_of(data)
     all_starts = sorted({s for _, starts, _ in groups for s in starts})
@@ -207,25 +207,26 @@ def parse(data: bytes) -> List[Group]:
                 padding += 1
                 pos += 1
             room = end + 1 - start + padding
-            slots.append(Slot(start, room, codec.decode(data[start:end])))
+            raw = data[start:end]
+            slots.append(Slot(start, room, pal_text.decode_message(raw) if pal else codec.decode(raw)))
         groups_out.append(Group(label, slots))
     return groups_out
 
 
-def texts(data: bytes) -> List[List[str]]:
-    return [[slot.text for slot in group.slots] for group in parse(data)]
+def texts(data: bytes, pal: bool = False) -> List[List[str]]:
+    return [[slot.text for slot in group.slots] for group in parse(data, pal)]
 
 
 def labels(data: bytes) -> List[str]:
     return [group.label for group in parse(data)]
 
 
-def build(source: bytes, edited: Sequence[Sequence[str]]) -> Tuple[bytes, List[str]]:
+def build(source: bytes, edited: Sequence[Sequence[str]], pal: bool = False) -> Tuple[bytes, List[str]]:
     """``source`` with the edited texts written in place. Returns (bytes, problems); a text that does
     not fit its room or has a character the game cannot print keeps its original bytes."""
     out = bytearray(source)
     problems: List[str] = []
-    for gi, group in enumerate(parse(source)):
+    for gi, group in enumerate(parse(source, pal)):
         if gi >= len(edited):
             break
         for si, slot in enumerate(group.slots):
@@ -235,7 +236,8 @@ def build(source: bytes, edited: Sequence[Sequence[str]]) -> Tuple[bytes, List[s
             if new_text == slot.text:
                 continue
             try:
-                raw = codec.encode(new_text)
+                raw = (pal_text.encode_message(new_text, source[slot.start:slot.start + slot.room]) if pal
+                       else codec.encode(new_text))
             except ValueError as error:
                 problems.append(f"{group.label} #{si}: {error}")
                 continue

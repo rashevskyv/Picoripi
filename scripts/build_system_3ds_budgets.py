@@ -5,8 +5,8 @@
 <nand_dec folder> holds the decrypted titles as <tid high>/<tid low>/content/*.app (NoCrypto NCCH, lowercase ids).
 Each title's romfs is unpacked into a temporary folder (deleted at the end); nothing is written into either folder.
 The budgets are the owner's own (its tools/validate.py, imported read-only, no bytecode): per MSBT label the widest
-official localisation (label_budgets, with its budget_groups and budget_px), per layout pane the widest line of the
-languages the mod does not take (validate_layouts). The file holds numbers and identifiers only, no game text.
+official localisation (label_budgets, with its budget_groups and budget_px) and its line count (the most lines of any
+official localisation), per layout pane the widest line of the languages the mod does not take (validate_layouts). The file holds numbers and identifiers only, no game text.
 """
 import argparse
 import json
@@ -55,7 +55,7 @@ def build(nand_dec: Path, repo: Path, work: Path) -> dict:
 
     widths = validate.load_widths()  # read from the repo before ROOT points at the unpacked titles
     validate.ROOT = work
-    labels, panes, missing = {}, {}, []
+    labels, lines, panes, missing = {}, {}, {}, []
     for name, cfg in validate.TITLES.items():
         tid = cfg["source_tid"].lower()
         content = nand_dec / tid[:8] / tid[8:] / "content"
@@ -66,8 +66,10 @@ def build(nand_dec: Path, repo: Path, work: Path) -> dict:
         # Only the labels the mod's string files carry (validate.py skips the "_" files too).
         known = {label for path in (repo / "src" / "strings" / name).glob("*.json") if not path.name.startswith("_")
                  for label, entry in json.loads(path.read_text(encoding="utf-8")).items() if isinstance(entry, dict)}
-        labels[name] = {label: budget.width_px for label, budget in sorted(validate.label_budgets(name, widths).items())
+        budgets = validate.label_budgets(name, widths)
+        labels[name] = {label: budget.width_px for label, budget in sorted(budgets.items())
                         if budget.width_px and label in known}
+        lines[name] = {label: budgets[label].lines for label in labels[name]}
         spec_file = repo / "src" / "layouts" / f"{name}.json"
         if not spec_file.is_file():
             continue
@@ -82,7 +84,7 @@ def build(nand_dec: Path, repo: Path, work: Path) -> dict:
                     if others:
                         panes.setdefault(name, {})[f"{rel}/{inner}/{pane}"] = max(
                             validate.pixel_width(line, widths) for line in others)
-    return {"labels": labels, "panes": panes, "missing": missing}
+    return {"labels": labels, "lines": lines, "panes": panes, "missing": missing}
 
 
 def main() -> int:
