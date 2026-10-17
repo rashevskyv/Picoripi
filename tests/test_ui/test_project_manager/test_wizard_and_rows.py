@@ -309,12 +309,13 @@ def test_run_in_emulator_needs_a_command_and_starts_it_detached(qtbot, tmp_path,
     qtbot.addWidget(dialog)
     qtbot.waitUntil(lambda: dialog._loaded and key in dialog._items, timeout=5000)
 
-    started = []
+    started, directories = [], []
 
     class FakeProcess:
         @staticmethod
-        def startDetached(program, arguments):
+        def startDetached(program, arguments, working_dir=""):
             started.append([program, *arguments])
+            directories.append(working_dir)
             return True, 42
 
     monkeypatch.setattr(window, "QProcess", FakeProcess)
@@ -378,12 +379,13 @@ def test_a_project_with_no_platform_edits_the_shared_command(qtbot):
 def test_run_starts_the_emulator_of_the_platform_the_build_is_for(qtbot, tmp_path, monkeypatch):
     dialog, key, _menu = _run_action_menu(
         qtbot, tmp_path, {"emulator_command.3ds": "emu3 {path}", "emulator_command.switch": "emus {path}"}, ["switch"])
-    started = []
+    started, directories = [], []
 
     class FakeProcess:
         @staticmethod
-        def startDetached(program, arguments):
+        def startDetached(program, arguments, working_dir=""):
             started.append([program, *arguments])
+            directories.append(working_dir)
             return True, 7
 
     monkeypatch.setattr(window, "QProcess", FakeProcess)

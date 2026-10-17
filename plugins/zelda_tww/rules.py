@@ -127,7 +127,7 @@ class GameRules(TwilightPrincessRules):
         """The Dolphin disc (translated main.dol) and the BlueWake disc (original main.dol: BlueWake checks its SHA-1).
 
         BlueWake run (3_run_bluewake.bat): from the BlueWake folder (pushd), ``BlueWake.exe --disc <GZLE01.iso>``. Set the
-        BlueWake platform command to ``"<BlueWake folder>\BlueWake.exe" --disc {path}``; Run starts it in that folder.
+        BlueWake platform command to ``"<BlueWake folder>\\BlueWake.exe" --disc {path}``; Run starts it in that folder.
         """
         return [{"id": DISC_TARGET, "label": tr("Disc image (ISO)"), "platforms": ["gc"], "kind": "patch"},
                 {"id": BLUEWAKE_TARGET, "label": tr("BlueWake disc (original main.dol)"),
