@@ -97,8 +97,10 @@ def build(messages: List[bytes]) -> bytes:
 # Cells 1..94 are the ASCII printable characters shifted by 0x20 (byte 0x0E is "." and 0x0C is ","), cell 0 is a
 # space, cell 95 is empty. Cells 96..222 are Cyrillic and Latin-1 letters. Cell 223 and bytes 0xE0..0xFF are
 # not letters: they stay tags (0xFD is the line break, 0xFF ends a message).
-# The atlas has no capital Ї: it cannot be written (encode raises, the message keeps its old bytes).
-_UK_CYRILLIC_UPPER = "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЄЮЯ"   # cells 96..127
+# Cell 122 (byte 0x7A) is the spare Russian-only Ъ of the atlas, reused for the capital Ї that the atlas lacks.
+# Its bitmap still looks like Ъ until the translator draws Ї in the Font Editor (the cell is labelled Ї there).
+# Ъ has no cell now: encode raises for it, like for any letter outside Ukrainian.
+_UK_CYRILLIC_UPPER = "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЇЫЬЄЮЯ"   # cells 96..127
 _UK_CYRILLIC_LOWER = "абвгдежзийклмнопрстуфхцчшщъыьєюя"   # cells 128..159
 _UK_LATIN1 = (                                              # cells 160..222
     "ÀÁÂÃÄÅÆÇÈÉÊËІÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß"

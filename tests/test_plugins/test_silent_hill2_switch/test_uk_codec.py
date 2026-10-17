@@ -20,9 +20,46 @@ def test_codes_stay_tags_and_round_trip():
     assert mes.encode_uk(text) == raw
 
 
-def test_letter_without_glyph_is_refused():
+UKRAINIAN_CAPITALS = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯ"  # the 33 letters of the Ukrainian alphabet
+
+
+def test_capital_yi_is_the_spare_cell_of_the_atlas():
+    assert mes.UK_CELLS[0x7A] == "Ї"
+    assert mes.decode_uk(bytes([0x7A, 0x86, 0x80])) == "Їжа"
+    assert mes.encode_uk("Їжа") == bytes([0x7A, 0x86, 0x80])
+
+
+def test_russian_only_letter_is_refused():
     with pytest.raises(ValueError):
-        mes.encode_uk("Їжа")  # the atlas has no capital Ї
+        mes.encode_uk("Ъ")  # Russian only: the atlas has no cell for it any more
+
+
+def test_every_ukrainian_letter_has_one_cell():
+    letters = UKRAINIAN_CAPITALS + UKRAINIAN_CAPITALS.lower()
+    assert len(letters) == 66
+    assert all(0x400 <= ord(ch) <= 0x4FF for ch in letters)  # Cyrillic, no Latin look-alikes
+    for ch in letters:
+        raw = mes.encode_uk(ch)
+        assert len(raw) == 1, ch
+        assert mes.decode_uk(raw) == ch, ch
+
+
+def test_every_byte_round_trips_through_the_table():
+    for b in range(256):
+        raw = bytes([b])
+        assert mes.encode_uk(mes.decode_uk(raw)) == raw, hex(b)
+
+
+def test_font_sheet_labels_match_the_codec_table():
+    import json
+    from pathlib import Path
+
+    import plugins.silent_hill2_switch as switch
+
+    sheet = json.loads((Path(switch.__file__).parent / "font_sources.json").read_text(encoding="utf-8"))
+    labels = sheet[0]["params"]["chars"]
+    for b in range(223):
+        assert labels[b] == (mes.UK_CELLS[b] or "\u0000"), hex(b)
 
 
 def test_ukrainian_message_files_round_trip_byte_exact():
