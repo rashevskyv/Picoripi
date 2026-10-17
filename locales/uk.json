@@ -2794,5 +2794,16 @@
   "Source: saved for the same text in another project of the series, tags converted": "Джерело: збережено для того самого тексту в іншому проєкті серії, теги перетворено",
   "(same text in another project of the series, tags converted)": "(той самий текст в іншому проєкті серії, теги перетворено)",
   "The translation lacks a tag of the current text: {tag}": "У перекладі немає тега поточного тексту: {tag}",
-  "Conflict: the series glossary {name} translates this as \"{translation}\".": "Конфлікт: серійний глосарій {name} перекладає це як «{translation}»."
+  "Conflict: the series glossary {name} translates this as \"{translation}\".": "Конфлікт: серійний глосарій {name} перекладає це як «{translation}».",
+  "Update Translation Memory with Context": "Оновити пам'ять перекладу з контекстом",
+  "Restore Translation Memory Before the Context Update": "Повернути пам'ять перекладу до оновлення контексту",
+  "Update Translation Memory": "Оновлення пам'яті перекладу",
+  "This project has no translation memory yet.": "У цього проєкту ще немає пам'яті перекладу.",
+  "Open the project before its translation memory is updated.": "Відкрийте проєкт, перш ніж оновлювати його пам'ять перекладу.",
+  "Giving the translation memory the context of its rows...": "Додаємо пам'яті перекладу контекст її рядків...",
+  "Cancelled. The translation memory is unchanged.": "Скасовано. Пам'ять перекладу не змінено.",
+  "Rows updated: {updated}. Rows split by context: {split}. Rows given tag kinds: {tagged}. Saved strings without a row (left as they are): {missing}. Backup: {backup}.": "Рядків оновлено: {updated}. Рядків розділено за контекстом: {split}. Рядків з видами тегів: {tagged}. Збережених рядків без запису (залишено як є): {missing}. Копія: {backup}.",
+  "The translation memory was not updated: {error}": "Пам'ять перекладу не оновлено: {error}",
+  "No copy of the translation memory from before the update exists.": "Немає копії пам'яті перекладу з часу до оновлення.",
+  "The translation memory is restored from its copy.": "Пам'ять перекладу відновлено з копії."
 }

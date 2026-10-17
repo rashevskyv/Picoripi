@@ -52,6 +52,10 @@ class SavedTranslationsManager:
 
     # ------------------------------------------------------- memory by source text
 
+    def memory_file(self) -> Optional[Path]:
+        """The translation memory file of the open project (None without one)."""
+        return self._memory_path()
+
     def _memory_path(self) -> Optional[Path]:
         path = self._get_saved_translations_path()
         if not path:
@@ -67,7 +71,7 @@ class SavedTranslationsManager:
             return None
         return value if isinstance(value, str) else None
 
-    def _tag_fields(self, source: Optional[str]) -> Dict[str, Any]:
+    def tag_fields_of(self, source: Optional[str]) -> Dict[str, Any]:
         """The tag kinds a row of ``source`` keeps (``syntax``, ``tags``, ``neutral``); empty without a tag map."""
         return tag_fields(source, self.series_tag_map) if source else {}
 
@@ -112,7 +116,7 @@ class SavedTranslationsManager:
             for string_idx, source in enumerate(block):
                 text = saved.get(self._get_string_unique_key(block_idx, string_idx))
                 if isinstance(source, str) and isinstance(text, str):
-                    self._remember(memory, source, text, tags=self._tag_fields(source))
+                    self._remember(memory, source, text, tags=self.tag_fields_of(source))
         return memory
 
     def load_translation_memory(self) -> Dict[str, List[Dict[str, str]]]:
@@ -299,6 +303,14 @@ class SavedTranslationsManager:
 
     def _get_string_unique_key(self, block_idx: int, string_idx: int) -> str:
         """Internal helper to get the string unique key."""
+        return f"{self._block_key_prefix(block_idx)}{string_idx}"
+
+    def block_key_prefixes(self, block_count: int) -> List[str]:
+        """The key prefix (``file::internal::``) of every block: the saved key of string ``n`` is the prefix and ``n``."""
+        return [self._block_key_prefix(index) for index in range(block_count)]
+
+    def _block_key_prefix(self, block_idx: int) -> str:
+        """Internal helper: the source file and internal key of a block, as the saved key starts."""
         block_source_file = "single_file"
         block_internal_key = ""
         if hasattr(self.mw, 'block_to_project_file_map') and self.mw.block_to_project_file_map:
@@ -310,7 +322,7 @@ class SavedTranslationsManager:
         elif hasattr(self.mw, 'data_store') and self.mw.data_store.block_names:
             block_source_file = self.mw.data_store.block_names.get(str(block_idx), f"block_{block_idx}")
             
-        return f"{block_source_file}::{block_internal_key}::{string_idx}"
+        return f"{block_source_file}::{block_internal_key}::"
 
     def load_all_saved_translations(self) -> Dict[str, str]:
         """Load all saved translations."""
@@ -374,7 +386,7 @@ class SavedTranslationsManager:
         self.save_all_saved_translations(translations)
         source = self._source_text(block_idx, string_idx)
         remembered = self._remember(self.load_translation_memory(), source, text,
-                                    self._context_to_save(block_idx, string_idx, source), self._tag_fields(source))
+                                    self._context_to_save(block_idx, string_idx, source), self.tag_fields_of(source))
         if remembered or self._memory_unsaved:
             self._save_translation_memory()
         log_info(f"Saved translation for key {key}")
@@ -392,7 +404,7 @@ class SavedTranslationsManager:
                 any_saved = True
                 source = self._source_text(block_idx, string_idx)
                 if self._remember(memory, source, text, self._context_to_save(block_idx, string_idx, source),
-                                  self._tag_fields(source)):
+                                  self.tag_fields_of(source)):
                     any_remembered = True
         if any_saved:
             self.save_all_saved_translations(translations)
