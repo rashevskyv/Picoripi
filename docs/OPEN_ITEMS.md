@@ -145,11 +145,51 @@ the line when it is done or moved into a plan.
 - Collab residual risk: `lan_addresses()` looks up the host name once per process, only after the host allows other computers, and in a background thread (`LanLookup`); a slow DNS shows the invitation a moment later.
 - Collab residual risk: the room is plain HTTP with a shared password; the window says so.
 
+## Project Manager phase 3 (2026-10-17, branch `feat/pm-phase3`)
+
+Audit against the owner design of 2026-10-11 and the goal of 2026-10-16. Checked in code (plugin hook table of
+every `plugins/*/rules.py`, scratch script outside the repo) and by the 147 Project Manager tests that pass on
+`origin/main` 8cfc53e0.
+
+Exists:
+- Manager opens with no project open. Only added projects are listed. Folders, group and sort choices are kept.
+- Row details: path, lines, translated %, blocks, dates, folder tree (blocks and lines per source folder), needs
+  attention (issue codes, count errors, blocks not counted yet), flags Built and Verified in game.
+- Build mod, Export mod and Run in emulator are on for the 16 plugins that override `get_build_targets`:
+  ffta_gba, plain_text, pokemon_bdsp, pokemon_fr, pokemon_gen1, pokemon_gen4, pokemon_gen5, pokemon_gen6,
+  pokemon_gen7, pokemon_gsc, pokemon_md_3ds, pokemon_nx, pokemon_trinity, super_mario_galaxy,
+  super_mario_sunshine, zelda_las. The other plugins show the buttons off. Only the dispatch is tested here;
+  a real build of each target needs the owner's data.
+- Wizard: roles and platforms come from the plugin (`get_source_roles`: 9 plugins; `get_platforms`: 27 plugins)
+  and file identity from `identify_source` (30 plugins). Several files; unpack on create with cancel; key files
+  asked per console (`unpack_key_consoles`: 8 plugins).
+
+Missing (phase 3 work package, in this order):
+- (a) One emulator command for every platform (`settings.emulator_command` in the registry). The owner wants one
+  command per platform.
+- (b) The row has no resource tree by kind (texts, fonts, textures, other). The tree is by source folder only.
+- (c) The wizard has no "use an existing translation folder" option (the old `NewProjectDialog` had one).
+  `metadata.source_roles` is written by the wizard and read by no code. A project that is not unpacked uses only the
+  base file.
+- (d) Fixed-extension file dialogs: `components/project_dialogs.py` `NewProjectDialog` (no longer opened) and
+  `ui/settings/path_picker_mixin.py`. The wizard and the icon dialogs already list all files.
+- (e) `ImageError` texts (about 228 raise sites in `core/containers/`, `core/project_library/images.py` and the
+  plugins' `unpack.py`) are not translated. The wizard shows them in "Unpacking failed".
+
+Missing, outside phase 3 (for the owner's decision):
+- No settings page for console keys. Keys are asked by the wizard only, one per file (the design says one page).
+- No count of opens. Only the last opened time is kept.
+- The grid view has no details pane (Build, Export, Run and the flags are in the list view only).
+- No zip export. Single-file export works (`build.export_build` copies a file).
+- macOS `.app` bundles: the emulator command needs the path of the program inside the bundle (no helper yet).
+- `metroid_prime_trilogy` has no `identify_source`, so its wizard takes the role from the user.
+- Icons changed while the window is open show at the next scan (no file watcher).
+
 ## Project Manager phase 2 (2026-10-12)
 
 - Owner screenshot of 2026-10-14 showed the Project Manager in English while the menus were Ukrainian. Not reproduced on HEAD: every Project Manager literal has a `locales/uk.json` key (keys dated 2026-10-11 and 2026-10-13), and a freshly built dialog renders in Ukrainian. Check whether the owner's running build predates these keys. The walk test `tests/test_ui/test_project_manager/test_translation_walk.py` guards against regressions.
 - Qt's own dialog text ("OK", "Yes", "No") follows the language only where Qt ships the translation (`qtbase_uk.qm` has Cancel and Yes but not OK). Other Qt text stays English.
-- Only `plugins/plain_text` declares a build target, and no real game plugin implements `get_source_roles`, `identify_source`, `unpack_sources` or `build_target` yet. Until a game does, the wizard takes roles and platforms from the user and the Build, Export and Run buttons stay off for it.
+- Stale (2026-10-17): the 16 build-target plugins and the wizard hooks are in place; see "Project Manager phase 3" above. The Build, Export and Run buttons stay off only for plugins with no target.
 - Counts skip archive members (blocks inside containers) and report them as "not counted yet". Counting them needs the load worker's archive path (`handlers/project_action/load_worker.py`).
 - Closed in D28: a count is kept while its input signature (project file, plugin config, source and translation files) is unchanged. An edit to a translation file made outside Picoripi is seen at the next scan.
 - Closed in D28 for the scan: the scan runs in its own process with its own modules, so a plugin load of the window cannot wait for it. The window's own plugin loads still share `PLUGIN_IMPORT_LOCK` on the UI thread.
@@ -1172,8 +1212,8 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - Not read: the 3DS seed database (flag 0x20 titles that need it report a wrong key). Wii U is not read.
 - Duplicate code: `core/containers/romfs.py` reads the 3DS RomFS only; `switch_images.py` has its own walker for the Switch RomFS (a 0x50-byte header, UTF-8 names). Merge the two when the next RomFS change lands.
 - `core/containers/gcm.py` cannot run on a decrypted Wii partition view. `wii_disc.py` has its own copy of the FST walk with the `<< 2` shifts. A refactor of `gcm.py` that takes a reader and a shift would remove the copy.
-- No plugin is wired for 3DS, Switch or Wii. The 3DS zt scripts that run `ctr3ds.main(... "extract" ...)` (for example `zt/aot3ds.py`, `zt/layton3ds.py`, `zt/mii3ds.py`, `zt/pmd3ds.py`) also copy text or build a CXI, or need the seed database; each needs its own wiring and a check against its workspace. `zelda_mm3d` takes its files from texture and font JSON with globs and archive members; not wired. Candidates are listed in the ROADMAP A18 row.
-- The wizard asks for a key only when the chosen plugin lists the console in `unpack_key_consoles()` (new hook, D30 addendum) and the file is encrypted. No plugin lists one yet, so no key is asked for.
+- Stale (2026-10-17): plugins now unpack 3DS and Switch images (see phase 2c and phase 3). The 3DS zt scripts that run `ctr3ds.main(... "extract" ...)` (for example `zt/aot3ds.py`, `zt/layton3ds.py`, `zt/mii3ds.py`, `zt/pmd3ds.py`) also copy text or build a CXI, or need the seed database; each needs its own wiring and a check against its workspace. `zelda_mm3d` takes its files from texture and font JSON with globs and archive members; not wired. Candidates are listed in the ROADMAP A18 row.
+- The wizard asks for a key only when the chosen plugin lists the console in `unpack_key_consoles()` (new hook, D30 addendum) and the file is encrypted. Stale (2026-10-17): 8 plugins list one (pokemon_bdsp, pokemon_gen6, pokemon_gen7, pokemon_md_3ds, pokemon_nx, pokemon_trinity, super_mario_galaxy, zelda_las); the 3DS, Switch and Wii readers are wired through them.
 - `pycryptodome==3.23.0` is in `requirements.txt` (decided in D30 addendum 2c). When the package is missing, an encrypted image gives the pycryptodome message, not a crash.
 - Wiki EN and UK pages for the key file and the Switch and Wii sentences in the wizard paragraph need a check after the merge; `docs/wiki/3_Plugin_Developer_Guide.md` names the new hook.
 - Audit r17 (2026-10-14), fixed: a missing or unreadable 3DS key file or boot9 file no longer chains its OS error, so a logged traceback does not show the key folder (`core/containers/n3ds.py`, two tests in `tests/test_core/test_n3ds_decrypt.py`).
