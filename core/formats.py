@@ -12,6 +12,7 @@ blocks of strings, and building it back, stays in the plugin's
 ``load_data_from_json_obj`` / ``save_data_to_json_obj``.
 """
 from __future__ import annotations
+from core.i18n import tr
 from utils.atomic_io import atomic_write_bytes
 
 import json
@@ -109,9 +110,9 @@ def dialog_filter(rules: Any, extra: Iterable[Tuple[str, Sequence[str]]] = ()) -
     ]
     entries += list(extra)
     everything = " ".join(f"*{extension}" for _label, extensions in entries for extension in extensions)
-    parts = [f"Supported Files ({everything})"]
+    parts = [f"{tr('Supported Files')} ({everything})"]
     parts += [f"{label} ({' '.join('*' + extension for extension in extensions)})" for label, extensions in entries]
-    parts.append("All (*)")
+    parts.append(f"{tr('All')} (*)")
     return ";;".join(parts)
 
 
