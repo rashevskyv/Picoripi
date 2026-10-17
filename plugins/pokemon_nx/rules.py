@@ -292,12 +292,13 @@ class GameRules(BaseGameRules):
 
         Only the games with that layout (Sword / Shield) get it; the others keep the BFN preview.
         """
-        from plugins.common.switch_message_preview import (ARCEUS_BATTLE_BOX, SWORD_SHIELD_BOX, SwitchMessagePreview,
-                                                          sibling_layout_exists)
+        from plugins.common.switch_message_preview import (ARCEUS_BATTLE_BOX, ARCEUS_FIELD_BOX, SWORD_SHIELD_BOX,
+                                                          SwitchMessagePreview, sibling_layout_exists)
         project_dir = getattr(getattr(main_window, "project_manager", None), "project_dir", None)
         if not project_dir:
             return None
-        for spec in (SWORD_SHIELD_BOX, ARCEUS_BATTLE_BOX):
+        # Arceus first: its msg_00.arc is the same file name as Sword's, and only Arceus has the archive folder.
+        for spec in (ARCEUS_FIELD_BOX, SWORD_SHIELD_BOX, ARCEUS_BATTLE_BOX):
             if sibling_layout_exists(str(project_dir), spec):
                 return SwitchMessagePreview(main_window, spec)
         return None

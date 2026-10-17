@@ -46,6 +46,7 @@ class BoxSpec:
     font_dir: str                 # the folder of the scrambled font files, relative to the source folder
     background: Tuple[int, int, int, int] = (238, 240, 242, 255)
     em_y: Optional[float] = None  # glyph height in px when it differs from the pane's X size (stretched in X)
+    marker: Optional[str] = None  # a folder that only this game has (Arceus: bin/archive/appli); None for no check
 
 
 # The text is drawn at each pane's own fontSize (the layout's value), unless the spec sets em_y. The font is UDKakugo;
@@ -60,6 +61,12 @@ SWORD_SHIELD_BOX = BoxSpec("bin/appli/msg/bin/msg_00.arc", "blyt/msg_00.bflyt", 
 # Not yet checked that this is the field dialogue (msg_btl_00 is the battle box, also two panes).
 SCARLET_VIOLET_SUB_BOX = BoxSpec("appli/data/msg_sub/msg_sub_body_00.arc", "blyt/msg_sub_00.bflyt",
                                  "fcpx/system32_jpn.bfcpx", "appli/font/bin", background=(38, 42, 52, 255))
+# Legends: Arceus field dialogue: msg_00.bflyt (the same archive as Sword / Shield; the wizard writes it for Arceus). Window
+# (405, 790)-(1515, 1016), two panes at x 540, layout size 42 x 52. MEASURED on Eden frames (2026-10-17, field, name
+# Laventon, lines "Yes, Pokémon suc" and "My name is Laven" while typing): UDKakugo, X 42 (fit 40.5 to 41.5), glyph
+# height about 36. Ink-box error 3 to 5 px over the grid. The marker folder tells Arceus from Sword (Sword has no archive).
+ARCEUS_FIELD_BOX = BoxSpec("bin/appli/msg/bin/msg_00.arc", "blyt/msg_00.bflyt", "fcpx/system32_jpn.bfcpx", "bin/font",
+                           background=(246, 240, 222, 255), em_y=36.0, marker="bin/archive/appli")
 # Legends: Arceus: the battle message box (msg_sys_00_s, in the battle_menu pack, decoded by the wizard). Two 960 px
 # panes, no text from the field dialogue yet. Its cliff is weak: 303 battle lines, none above 1.02 of the pane.
 ARCEUS_BATTLE_BOX = BoxSpec("bin/archive/appli/battle_menu_eng.gfpak.d/11_msg_sys_00_s.arc", "blyt/msg_sys_00_s.bflyt",
@@ -97,7 +104,8 @@ def sibling_layout_exists(project_dir: str, spec: BoxSpec) -> bool:
     """A cheap check for the host hook (UI thread): the box's archive is in the project's source folder. Two places:
     the owner's ``source`` next to the project folder, or the wizard's ``unpacked/source`` inside the project folder."""
     folder = Path(project_dir)
-    return any((root / spec.arc).is_file() for root in (folder.parent / "source", folder / "unpacked" / "source"))
+    return any((root / spec.arc).is_file() and (spec.marker is None or (root / spec.marker).is_dir())
+               for root in (folder.parent / "source", folder / "unpacked" / "source"))
 
 
 def _font_file(font_dir: Path, name: str) -> Optional[Path]:
@@ -250,6 +258,5 @@ def _to_qimage(image: Any) -> QImage:
     return QImage(raw, rgba.width, rgba.height, rgba.width * 4, QImage.Format.Format_RGBA8888).copy()
 
 
-__all__ = ["ARCEUS_BATTLE_BOX", "BoxSpec", "LayoutLoader", "SCARLET_VIOLET_SUB_BOX", "SWORD_SHIELD_BOX",
-           "SwitchMessagePreview",
-           "font_files", "sibling_layout_exists", "source_folder"]
+__all__ = ["ARCEUS_BATTLE_BOX", "ARCEUS_FIELD_BOX", "BoxSpec", "LayoutLoader", "SCARLET_VIOLET_SUB_BOX",
+           "SWORD_SHIELD_BOX", "SwitchMessagePreview", "font_files", "sibling_layout_exists", "source_folder"]

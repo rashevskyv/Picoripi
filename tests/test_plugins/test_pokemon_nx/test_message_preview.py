@@ -48,6 +48,21 @@ def test_sibling_layout_gate(tmp_path):
     assert mp.sibling_layout_exists(str(project), mp.SWORD_SHIELD_BOX) is True
 
 
+def test_the_arceus_field_box_is_told_apart_from_sword_by_the_archive_folder(tmp_path):
+    """Both games have bin/appli/msg/bin/msg_00.arc. Only Arceus has bin/archive/appli (its packs)."""
+    sword = tmp_path / "Sword project"
+    (sword / "unpacked" / "source" / "bin" / "appli" / "msg" / "bin").mkdir(parents=True)
+    (sword / "unpacked" / "source" / "bin" / "appli" / "msg" / "bin" / "msg_00.arc").write_bytes(b"SARC")
+    assert mp.sibling_layout_exists(str(sword), mp.SWORD_SHIELD_BOX) is True
+    assert mp.sibling_layout_exists(str(sword), mp.ARCEUS_FIELD_BOX) is False
+    arceus = tmp_path / "Arceus project"
+    (arceus / "unpacked" / "source" / "bin" / "appli" / "msg" / "bin").mkdir(parents=True)
+    (arceus / "unpacked" / "source" / "bin" / "appli" / "msg" / "bin" / "msg_00.arc").write_bytes(b"SARC")
+    assert mp.sibling_layout_exists(str(arceus), mp.ARCEUS_FIELD_BOX) is False
+    (arceus / "unpacked" / "source" / "bin" / "archive" / "appli").mkdir(parents=True)
+    assert mp.sibling_layout_exists(str(arceus), mp.ARCEUS_FIELD_BOX) is True
+
+
 def test_sibling_gate_finds_the_wizard_unpacked_source(tmp_path):
     project = tmp_path / "Sword project"
     layout = project / "unpacked" / "source" / "bin" / "appli" / "msg" / "bin"
