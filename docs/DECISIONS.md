@@ -993,7 +993,8 @@ was all or nothing, so the only way out was Translate Anew for every line.
 The context is read only for a text that repeats in the project (`SavedTranslationsManager.repeats_in_project`); a
 text that occurs once has no other place to be confused with and restores as before. A repeated text restores from
 its own project's memory only when the row's `fold` equals the current one. A row from another project of the series
-restores only when `speaker` and `addressee` equal. Rows saved before this record have no context: they are not offered
+restores only when `speaker` and `addressee` equal. A row with a context is never trimmed (one row per context, so a line
+said by six speakers keeps six rows); rows without a context keep the five-row cap. Rows saved before this record have no context: they are not offered
 for a repeated text until the line is saved again. The Cached Translation window has one check box per line, checked
 by default; an unchecked line is translated anew. The backup by position (`saved_translations.json`) is unchanged. The memory bar (**Apply here**, **Apply to places with
 the same context**) uses the same rule, and its apply writes only into the places where the text fits the window.

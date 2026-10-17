@@ -78,8 +78,14 @@ class SavedTranslationsManager:
         if rows and rows[-1] == row:
             return False
         fold = row.get("fold")
-        rows[:] = [existing for existing in rows
-                   if not (existing.get("source") == source and existing.get("fold") == fold)][-(MEMORY_VARIANTS - 1):] + [row]
+        kept = [existing for existing in rows
+                if not (existing.get("source") == source and existing.get("fold") == fold)]
+        if fold:
+            # One row per context, never trimmed: a line said by six speakers keeps six rows.
+            rows[:] = kept + [row]
+        else:
+            # Rows without a context keep the cap they always had, among themselves.
+            rows[:] = [r for r in kept if r.get("fold")] + [r for r in kept if not r.get("fold")][-(MEMORY_VARIANTS - 1):] + [row]
         return True
 
     def _memory_from_saved_translations(self) -> Dict[str, List[Dict[str, str]]]:

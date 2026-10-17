@@ -279,3 +279,17 @@ class TestRememberKeepsContexts:
 
         rows = memory[next(iter(memory))]
         assert [(r["translation"], r["fold"]) for r in rows] == [("Ні", "b"), ("Так, знову", "a")]
+
+    def test_a_line_said_by_six_speakers_keeps_six_rows_while_legacy_rows_stay_capped(self):
+        from core.saved_translations_manager import MEMORY_VARIANTS, SavedTranslationsManager as Manager
+        memory = {}
+        for index in range(6):
+            Manager._remember(memory, "Yes", f"t{index}", {"speaker": f"S{index}", "addressee": "", "fold": f"f{index}"})
+        rows = memory[next(iter(memory))]
+        assert [r["fold"] for r in rows] == [f"f{index}" for index in range(6)]
+
+        legacy = {}
+        spellings = ["No", "no", "NO", "nO", "No ", "no ", "NO ", "nO "]  # one normalised key, eight exact texts
+        for index, spelling in enumerate(spellings):
+            Manager._remember(legacy, spelling, f"v{index}")
+        assert len(legacy[next(iter(legacy))]) == MEMORY_VARIANTS

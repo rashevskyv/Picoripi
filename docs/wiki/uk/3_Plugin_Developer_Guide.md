@@ -135,7 +135,7 @@ class GameRules(BaseGameRules):
 
 | Назва | Гачок, який вона обіцяє | Що з'являється |
 |---|---|---|
-| `glossary_seed` | `get_glossary_seed_entries()` | Терміни глосарію з даних гри без AI-запиту (`term`, `description`, `section`, `icon`, `source_ref`, `blocks`) |
+| `glossary_seed` | `get_glossary_seed_entries()` | Терміни глосарію з даних гри без AI-запиту (`term`, `description`, `section`, `icon`, `source_ref`, `blocks`). Хук читає лише `self.mw.project_manager`: безголовий запуск засівання (`scripts/seed_series_glossary.py`) передає лише цей атрибут. |
 | `external_lore` | `get_external_lore(term)` | Зовнішні відомості для описів у глосарії |
 | `speaker_attribution` | `get_speaker_for_string()` | Крок **Name the speakers** і поле Speaker |
 | `message_window_preview` | `get_preview_window_style()` та гачки `get_window_*` | Ігрові вікна повідомлень у попередньому перегляді, ліміти за типом вікна в Settings |

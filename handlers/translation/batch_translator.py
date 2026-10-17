@@ -107,6 +107,15 @@ class AIBatchTranslator(BaseTranslationHandler):
     ) -> bool:
         return text_fits_place(self.mw, source_item.get("text", ""), saved_text, block_idx, string_idx)
 
+    def _series_sentence_words(self) -> int:
+        """Texts longer than this many words, from another game, start unchecked. Config key ``series_sentence_words``."""
+        config = getattr(self.mw, 'translation_config', None)
+        value = config.get('series_sentence_words', SERIES_SENTENCE_WORDS) if isinstance(config, dict) else SERIES_SENTENCE_WORDS
+        try:
+            return max(int(value), 0)
+        except (TypeError, ValueError):
+            return SERIES_SENTENCE_WORDS
+
     def _restorable_text(self, saved_mgr, saved_translations, item, block_idx, string_idx):
         """``(saved text that fits the row, origin)`` or ``(None, None)``.
 
@@ -201,6 +210,7 @@ class AIBatchTranslator(BaseTranslationHandler):
         # Collect cached items info. ``offered`` holds the text per (block, string) that may be restored.
         cached_items_info = []
         offered: Dict[Tuple[Any, Any], str] = {}
+        sentence_words = self._series_sentence_words()
         for item in source_items:
             item_id = item.get("id")
             if temp_id_map and item_id in temp_id_map:
@@ -229,7 +239,7 @@ class AIBatchTranslator(BaseTranslationHandler):
                     'from_memory': origin != "saved",
                     'origin': origin,
                     # A sentence from another game is off by default (the user ticks it); a name or a menu word is on.
-                    'series_sentence': origin == 'series' and len(str(item.get('text', '')).split()) > SERIES_SENTENCE_WORDS,
+                    'series_sentence': origin == 'series' and len(str(item.get('text', '')).split()) > sentence_words,
                 })
 
         if force_prompt:

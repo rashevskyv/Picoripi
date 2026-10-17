@@ -25,6 +25,13 @@ class _ProjectHolder:
         self.project_manager = project_manager
 
 
+def _from_game(entry: Dict[str, Any], game: str) -> Dict[str, Any]:
+    """The entry with its source game first in the description, so the series file says where a term comes from."""
+    description = str(entry.get("description") or "").strip()
+    text = f"{game}: {description}" if game and description else (game or description)
+    return {**entry, "description": text}
+
+
 def game_seed_entries(project_file: Path, load_rules: LoadRules = plugin_facts.default_load_rules) -> List[Dict[str, Any]]:
     """The plugin's seed entries for the project at ``project_file`` (empty when the plugin has no seed hook)."""
     manager = ProjectManager()
@@ -34,7 +41,8 @@ def game_seed_entries(project_file: Path, load_rules: LoadRules = plugin_facts.d
     hook = getattr(rules, "get_glossary_seed_entries", None)
     if not callable(hook):
         return []
-    return [entry for entry in (hook() or []) if isinstance(entry, dict)]
+    game = str(manager.project.name or "")
+    return [_from_game(entry, game) for entry in (hook() or []) if isinstance(entry, dict)]
 
 
 def seed_series_file(project_file: Path, series_file: Path,

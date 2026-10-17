@@ -48,7 +48,9 @@ def test_the_game_terms_are_added_as_seeds_without_translations(tmp_path):
     by_term = {row["original"]: row for row in rows}
     assert set(by_term) == {"Alpha", "Beta"}
     assert by_term["Alpha"]["translation"] == "" and by_term["Beta"]["translation"] == ""
-    assert by_term["Alpha"]["status"] == "fragments" and by_term["Beta"]["status"] == "seeded"
+    assert by_term["Alpha"]["status"] == "fragments" and by_term["Beta"]["status"] == "fragments"
+    assert by_term["Alpha"]["notes"] == "Synthetic game: table"
+    assert by_term["Beta"]["notes"] == "Synthetic game"
     assert FakeGameRules.seen_projects[-1] == "Synthetic game"
 
 

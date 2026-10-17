@@ -136,7 +136,7 @@ Everything above is the required minimum. Beyond it a plugin can mine the game's
 
 | Name | Hook it promises | What appears |
 |---|---|---|
-| `glossary_seed` | `get_glossary_seed_entries()` | Glossary terms taken from game data without an AI request (`term`, `description`, `section`, `icon`, `source_ref`, `blocks`) |
+| `glossary_seed` | `get_glossary_seed_entries()` | Glossary terms taken from game data without an AI request (`term`, `description`, `section`, `icon`, `source_ref`, `blocks`). The hook reads only `self.mw.project_manager`: a headless seed run (`scripts/seed_series_glossary.py`) gives that attribute and nothing else. |
 | `external_lore` | `get_external_lore(term)` | Outside knowledge for glossary descriptions |
 | `speaker_attribution` | `get_speaker_for_string()` | The **Name the speakers** step and the Speaker field |
 | `message_window_preview` | `get_preview_window_style()` and the `get_window_*` hooks | In-game message windows in the preview, per-window limits in Settings |
