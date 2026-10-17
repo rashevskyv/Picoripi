@@ -1279,3 +1279,58 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - FFTARecomp: upstream runs a translated ROM "Unpatched" (whole-ROM hash: no widescreen patches). A one-line fork
   (`ffta_rom::eligible` = `verify_hooks`) shows it in 16:9 with the patches on (checked headless, 2026-10-15); the fork
   is local and unpublished, and its installer still checks `KNOWN_SHA1`.
+
+## Skies of Arcadia (GameCube Legends, Dreamcast): script writer (2026-10-17)
+
+- Open: the `*.sct` writer. Text pages sit inside the bytecode, so a longer page moves the bytecode after it.
+  The 32-bit words of the script do not point at page starts (4 matches, about 5 by chance on `field/me002a.sct`),
+  so relocation needs the bytecode decoder first. The same layout holds on Dreamcast (little endian).
+- Open: the GD-ROM image kind is not wired into the Project Manager wizard (`core/containers/gdrom.py` only).
+- Open: the other text groups of the GameCube disc (battle, bchara, beff, title, ending) and the AFNT font are not read.
+- Skies script analysis (2026-10-17, field/me002a): the Dreamcast and GameCube code streams hold the same 32-bit
+  words (GameCube read big endian, Dreamcast little endian). Every `\h(` page starts 4-byte aligned, follows a 0x1d
+  byte, and ends with `\c` or `\e` followed by zero bytes. Word 0x0b is followed by 0x98b0 (goto-subscript
+  candidate, not yet proven). Instruction boundaries and operand sizes are not yet proven; no re-assembler exists.
+- Skies writer proof (2026-10-17, GameCube USA, Dolphin private muted, pad timers): an image with the first 15,000
+  marked pages (229 files) boots and reaches dialogue, but no marker line was seen in the sampled dialogue frames.
+  Reason: 10,268 of about 25,000 pages have a label inside their text, so the writer refuses them. A label inside a
+  text is a second kind of text reference that the writer does not map yet.
+- Skies writer blocker: `field/me201a.sct` freezes the game (black screen) once any page grows, while same-length
+  edits and growth that keeps every code offset run fine. Literal-only AKLZ and turning off the word relocation did
+  not fix it. The cause is a relocation the writer misses in that file (a relative reference or a non-aligned word).
+- Skies writer, segments (2026-10-17): `text_segments` splits each page's text at labels inside it; `grow_regions`
+  replaces byte regions (padded with spaces to a multiple of 4). All 25,312 pages of 229 files take a marker and pass
+  the structural checks. Dolphin run (8 min, pad timers) reaches battles and cutscenes; no marker line was seen in the
+  sampled frames yet.
+- Skies `field/me201a.sct` (holds the early Aika and Valuan dialogue, excluded from the proof): growth freezes the
+  game (black screen, static frames), even when only the last page grows. Control tests with the same file rewritten
+  unchanged as literal-only AKLZ, and with 12 bytes appended at the end (decompressed size changed, nothing moved),
+  run normally. Relocating only words, or only labels, also freezes. The missed reference is not found.
+- Skies plugin (2026-10-17, GameCube USA): `plugins/skies_of_arcadia` identifies GEAE8P, unpacks the disc (field
+  scripts decoded), builds a disc copy, and opens field scripts as editor strings (one per text segment). The text
+  codec is exact on all 258 field scripts (36,008 segments). Bytes outside printable ASCII show as `{xx}` tokens; most
+  are lead bytes 0x81 to 0x83 (punctuation). Their meaning is not mapped yet.
+- Skies budget: `me201a.sct` is the only file in `FIXED_SIZE`. Its segments keep their length (in-place saves). Other
+  scripts may grow. Growth is not proven in game for any script except the structural checks.
+- Skies open: the in-game growth proof. A same-length marker on every script (228 files) ran 7 min in a private muted
+  Dolphin. The game reached the title, a cabin and cutscenes. No marker showed in 61 sampled frames. Next: sample every
+  frame during a dialogue (slower A presses) to find the first script on screen.
+- Skies open: AFNT font `FontData.US` (77,856 bytes). Header: magic, 4 words (0x10 = header size), then 8-byte
+  records `(u32 flag|size low16, u32 offset)`, blocks contiguous. Glyph format not decoded. Not opened.
+- Skies open: textures `ts*.gvr`, `ea_mc_*.tpl`, `opening.bnr` are AKLZ-compressed on the disc. Not opened.
+- Skies open: text groups battle, bchara, beff, title, ending hold no `\h(` pages that match the field format. Weak hits:
+  two `battle/*.sml` files and two `field/*.mld` files. Not verified; not opened.
+
+## Skies of Arcadia Dreamcast (USA, MK-51052): status 2026-10-17
+
+- Done: plugin `plugins/skies_of_arcadia_dc` identifies the USA disc (IP.BIN area `U`), unpacks `FIELD/*.SCT`, opens them
+  as editor text (LE codec), and builds a GD-ROM set through `core/containers/gdrom_writer.py`.
+- Done: text is on the same pages as GameCube. 227 script names exist on both discs; 22,605 of 22,980 pages match the
+  GameCube text exactly. The 406 USA scripts (both discs) round trip unchanged.
+- Open: in-game proof. Flycast (private copy `D:\RomHacking_tmp\skies\flycast`) runs the marked disc: title, New Game
+  (C key), narration and the opening cinematic were reached. No dialogue box was reached yet. The cinematic returns to
+  the title; the first gameplay dialogue is not reached by script. Owner shortcut: `Dreamcast\play_to_first_dialogue.bat`.
+- Open: growth. Only `FIELD/ME201A.SCT` is fixed (as on GameCube, not tested on Dreamcast). Other scripts may grow but
+  no grown script was run in game.
+- Open: other text groups (`BATTLE/*.SML`, `FIELD/*.MLD`, `1ST_READ.BIN` with 23 `\h(` pages) are not editor text yet.
+- Open: Disc 2 (USA) is identified and extracts the same way; its build is not proven in game.

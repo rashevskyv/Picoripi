@@ -633,6 +633,10 @@ def _build() -> Dict[str, Codec]:
     add(value_codec("gx:RGB5A3", 16, *_rgb5a3(), tile=(4, 4)))
     add(_gx_rgba8())
     add(_cmpr())
+    # Dreamcast (PVR): little-endian 16-bit texels in row order; the PVR backend gives the twiddled element offsets
+    add(value_codec("pvr:ARGB1555", 16, *_packed((("a", 1), ("r", 5), ("g", 5), ("b", 5))), endian="<"))
+    add(value_codec("pvr:RGB565", 16, *_packed((("r", 5), ("g", 6), ("b", 5))), endian="<"))
+    add(value_codec("pvr:ARGB4444", 16, *_packed((("a", 4), ("r", 4), ("g", 4), ("b", 4))), endian="<"))
     # 3DS (PICA200)
     pica = dict(endian="<", low_first=True, pica=True)
     add(value_codec("pica:RGBA8", 32, *_bytes_order("rgba"), **pica))   # bytes A, B, G, R (u32 LE = RGBA)
