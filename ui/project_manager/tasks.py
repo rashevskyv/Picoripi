@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PyQt6.QtCore import pyqtSignal
 
-from core.project_library import build, console_keys, plugin_facts
+from core.project_library import build, console_keys, plugin_facts, resources
 from utils.constants import plugins_root
 from utils.logging_utils import log_error, log_warning
 from utils.thread_utils import WorkerThread
@@ -176,3 +176,25 @@ class ActionJob(WorkerThread):
 
     def _report(self, percent: int, text: str) -> None:
         self.progress.emit(int(percent), str(text))
+
+
+class ResourceJob(WorkerThread):
+    """Counts the texts, fonts, textures and other files of one project's source folder. The walk stops on cancel."""
+
+    done = pyqtSignal(dict)  # {kind: {"files", "bytes"}}; not emitted when cancelled
+    failed = pyqtSignal(str)
+
+    def __init__(self, project_file: str):
+        super().__init__()
+        self._project_file = project_file
+
+    def run(self) -> None:
+        try:
+            _plugin, source, _translation = _project_paths(self._project_file)
+            counts = resources.count_resources(source, self.isInterruptionRequested)
+        except Exception as exc:  # a project that cannot be read shows a line in its row, not an error box
+            log_warning(f"Resources of {self._project_file} not counted: {exc}")
+            self.failed.emit(str(exc))
+            return
+        if counts is not None:
+            self.done.emit(counts)

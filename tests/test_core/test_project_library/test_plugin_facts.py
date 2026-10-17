@@ -190,3 +190,18 @@ def test_count_project_names_a_missing_plugin_instead_of_failing(tmp_path):
     with pytest.raises(plugin_facts.PluginMissing) as caught:
         plugin_facts.count_project(project, load_rules=loader)
     assert str(caught.value) == "fake"
+
+
+def test_count_project_counts_the_blocks_whose_translation_file_is_missing(tmp_path):
+    (tmp_path / "source.json").write_text(json.dumps([["Hi"]]), encoding="utf-8")
+    (tmp_path / "translation.json").write_text(json.dumps([["Salut"]]), encoding="utf-8")
+    project = _project(tmp_path, [
+        {"source_file": "source.json", "translation_file": "none.json"},
+        {"source_file": "source.json", "translation_file": "translation.json"},
+        {"source_file": "source.json", "translation_file": ""},
+    ])
+
+    result = plugin_facts.count_project(project, load_rules=_loader(FakeRules()))
+
+    # an empty translation name is not a missing file: only a named file that is absent counts
+    assert result["missing_translations"] == 1

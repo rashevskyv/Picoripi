@@ -22,7 +22,7 @@ from PyQt6.QtWidgets import (
 )
 
 from core.i18n import tr
-from core.project_library import index, registry, views
+from core.project_library import index, registry, resources, views
 from core.project_library.build import emulator_argv, emulator_platform, emulator_template_for
 from core.project_library.cards import fallback_name, percent_translated, read_card
 from core.project_library.discovery import find_projects, platform_from_parts
@@ -34,7 +34,7 @@ from core.project_library.scan import ICON_FILE_NAME
 from ui.project_manager.emulator_dialog import EmulatorDialog
 from ui.project_manager.jobs import BackgroundJob
 from ui.project_manager.scan_process import ScanProcess
-from ui.project_manager.tasks import ActionJob
+from ui.project_manager.tasks import ActionJob, ResourceJob
 from utils.logging_utils import log_debug, log_info, log_warning
 from utils.thread_utils import safe_shutdown_thread, single_shot
 
@@ -219,6 +219,14 @@ def _initials(name: str) -> str:
     return "".join(word[0] for word in words[:2]).upper() or "?"
 
 
+def _size_text(size: int) -> str:
+    if size >= 1024 ** 3:
+        return tr("{0} GB", f"{size / 1024 ** 3:,.1f}")
+    if size >= 1024 ** 2:
+        return tr("{0} MB", f"{size / 1024 ** 2:,.1f}")
+    return tr("{0} KB", f"{size / 1024:,.1f}")
+
+
 def _eta_text(seconds: float) -> str:
     if seconds < 90:
         return tr("about {0} s left", max(1, int(round(seconds))))
@@ -306,6 +314,9 @@ class ProjectManagerDialog(QDialog):
         self._action_text: Dict[str, str] = {}
         self._action_jobs: Dict[str, ActionJob] = {}
         self._action_platform: Dict[str, str] = {}  # job key -> platform whose emulator command Run uses
+        self._resource_trees: Dict[str, QTreeWidget] = {}  # row key -> the resource tree shown in its details
+        self._resource_cache: Dict[str, Dict[str, Dict[str, int]]] = {}  # row key -> counts (kept for this window)
+        self._resource_jobs: Dict[str, ResourceJob] = {}
         self._icon_images: Dict[str, QImage] = {}
         self._icons: Dict[str, QIcon] = {}
         self._tiles: Dict[Tuple[str, str], QIcon] = {}
@@ -658,6 +669,7 @@ class ProjectManagerDialog(QDialog):
                 "targets": list(cached.get("targets") or []),
                 "groups": dict(cached.get("groups") or {}),
                 "skipped": int(cached.get("skipped") or 0),
+                "missing_translations": int(cached.get("missing_translations") or 0),
                 "count_error": str(cached.get("count_error") or ""),
                 "counted_at": cached.get("counted_at") or "",
                 "flags": self._flag_state.get(key) or card.get("flags") or flags_of({}),
@@ -979,6 +991,7 @@ class ProjectManagerDialog(QDialog):
         form.addRow(tr("Counted"), QLabel(format_modified(row["counted_at"])))
         layout.addLayout(form)
 
+        layout.addWidget(self._resource_tree(row))
         if row["groups"]:
             tree = QTreeWidget()
             tree.setHeaderLabels([tr("Folder"), tr("Blocks"), tr("Lines")])
@@ -991,6 +1004,8 @@ class ProjectManagerDialog(QDialog):
         attention = [tr(ISSUE_TEXT[issue]) for issue in row["issues"] if issue in ISSUE_TEXT]
         if row["count_error"] and row["count_error"] != PLUGIN_MISSING:
             attention.append(tr("The lines could not be counted: {0}.", row["count_error"]))
+        if row.get("missing_translations"):
+            attention.append(tr("{0} blocks have no translation file yet.", row["missing_translations"]))
         if row["skipped"]:
             attention.append(tr("{0} blocks are not counted yet (archive members or missing files).", row["skipped"]))
         layout.addWidget(QLabel(tr("Needs attention:") + " " + (" ".join(attention) if attention
@@ -1029,6 +1044,61 @@ class ProjectManagerDialog(QDialog):
         layout.addWidget(status)
         self._status_labels[row["key"]] = status
         return widget
+
+    def _resource_tree(self, row: Dict[str, Any]) -> QTreeWidget:
+        """The kinds of the project's source files. The files are counted on a worker the first time a row shows them."""
+        key = row["key"]
+        tree = QTreeWidget()
+        tree.setHeaderLabels([tr("Resource"), tr("Files"), tr("Size")])
+        tree.setRootIsDecorated(False)
+        tree.setMaximumHeight(150)
+        self._resource_trees[key] = tree
+        if key in self._resource_cache:
+            self._fill_resources(tree, self._resource_cache[key])
+        else:
+            self._show_resource_message(tree, tr("Counting the files..."))
+            if key not in self._resource_jobs:
+                self._start_resources(key, row["path"])
+        return tree
+
+    def _start_resources(self, key: str, project_file: str) -> None:
+        job = ResourceJob(project_file)
+        self._resource_jobs[key] = job
+        self._jobs.append(job)
+        job.done.connect(lambda counts, k=key, j=job: self._resources_ended(k, j, counts))
+        job.failed.connect(lambda _message, k=key, j=job: self._resources_ended(k, j, None))
+        job.start()
+
+    def _resources_ended(self, key: str, job: ResourceJob, counts: Optional[Dict[str, Dict[str, int]]]) -> None:
+        self._forget(job)
+        self._resource_jobs.pop(key, None)
+        if counts is not None:
+            self._resource_cache[key] = counts
+        tree = self._resource_trees.get(key)
+        if tree is None:
+            return
+        try:
+            if counts is None:
+                self._show_resource_message(tree, tr("The files could not be counted."))
+            else:
+                self._fill_resources(tree, counts)
+        except RuntimeError:  # the row was drawn again, or the window closed, meanwhile
+            pass
+
+    @staticmethod
+    def _show_resource_message(tree: QTreeWidget, text: str) -> None:
+        tree.clear()
+        tree.addTopLevelItem(QTreeWidgetItem([text, "", ""]))
+
+    @staticmethod
+    def _fill_resources(tree: QTreeWidget, counts: Dict[str, Dict[str, int]]) -> None:
+        labels = {resources.TEXT: tr("Text files"), resources.FONT: tr("Font files"),
+                  resources.TEXTURE: tr("Texture files"), resources.OTHER: tr("Other files")}
+        tree.clear()
+        for kind in resources.KINDS:
+            bucket = counts.get(kind) or {}
+            tree.addTopLevelItem(QTreeWidgetItem([labels[kind], f"{int(bucket.get('files', 0)):,}",
+                                                  _size_text(int(bucket.get("bytes", 0)))]))
 
     def _action_button(self, label: str, mode: str, row: Dict[str, Any]) -> QToolButton:
         """A button that lists the plugin's build targets. Off when the game declares none."""

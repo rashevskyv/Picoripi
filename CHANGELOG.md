@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Project Manager details: the source folder's files by kind (text, font, texture, other) are counted on a worker when a row first opens, and "needs attention" lists the blocks with no translation file yet.
 - Project Manager: the error texts of the GameCube reader, the shared image helpers and the image identify layer go through `tr()`; the wizard's "Unpacking failed" line shows them in Ukrainian.
 - Project Manager wizard: "Use an existing translation folder" keeps a folder of translations as it is (no translation files are created in it); refused for a game of one file.
 - Project Manager: the unused `NewProjectDialog` is removed; the Import block and settings file pickers list the game's own formats (`formats.dialog_filter`) instead of a fixed list.
