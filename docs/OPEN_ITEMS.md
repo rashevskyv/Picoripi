@@ -321,7 +321,7 @@ Open after phase 3b:
 ## Pokémon series: same text and series glossary (measured 2026-10-17, round 2 on 2026-10-18, branch feat/pokemon-series-ready)
 
 Measured by `python -I scripts/measure_series_text.py <series root> <out.json>` on the 23 projects of
-`E:\Emulators\RomHacking\Pokemon` (read-only, English source text, the Project Manager's parser; no archive member
+the owner's Pokémon series folder (read-only, English source text, the Project Manager's parser; no archive member
 skipped). Numbers only; the tables are on the Emu Radar page `pokemon-series-ready`.
 
 Round 1 (2026-10-17):
