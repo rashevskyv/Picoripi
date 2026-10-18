@@ -107,6 +107,15 @@ and_dec`) has all of them. A scratch tree was built from it with the owner's `to
 - A killed process or a power loss during an unpack leaves `.unpack-<id>` in the project folder (a cancel or an error removes it), now with the NCZ cache inside; nothing removes it later.
 - An `.nsz` needs Python 3.14: `core/containers/switch_nsz.py` takes the streaming decoder from `core/zstd_frame.stdlib()` (no `zstandard` fallback). NCZBLOCK blocks above 16 MiB (`MAX_BLOCK_EXP` 24) are refused; nsz writes 1 MiB by default.
 
+## 3DS manual preview UX (`manual_3ds`, 2026-10-18)
+
+- Done: a click selects the paragraph (`ManualPreviewPanel.select_at` -> `paragraph_at` -> `navigate_to_physical_string`); a drag scrolls; the selector draws the original beside the translation (`ru`: the stored console layout; `en`: the English field in the Russian panes); NEWLINE with its autofix and `Enter` -> `{br}`; the fit numbers in the status line and the problem details (`layout.fit_hint`, `_cell_hint`). Tests: `test_manual_ux.py`.
+- Done, measured (`home_menu_manual`, `small/Page_021_small`, offscreen): a click on 20 of 20 random drawn lines selects its own string on each canvas; the translation shows in 0.68 s with the selector on, 0.63 s with it off; a cached selection takes 1.5 ms.
+- Open, owner decision: the English side lays the `en` field into the Russian panes. The console's English slot (`EUR_en`, 103 small files, in `Manual.bcma`) is not drawn yet: its pane names differ from `EUR_ru`, so the click map needs its own flows.
+- Open, finding: the layout model breaks the Russian lines of `small/Page_021_small` differently from the stored console layout in 41 of 375 lines (for example a word left at the end of a line). The fit checks use the model, so this may hide or invent a line problem. Compare more pages before the model is trusted for Russian.
+- Open: Shift+Enter and Ctrl+Enter still type a newline (NEWLINE flags it). Only Enter types `{br}`, because those keys feed the text formatter's page break (`get_shift_enter_char`).
+- Open: the original selector is not kept between sessions. A click in a plugin virtual folder (Small text, Sections) selects the physical row and leaves the folder (the existing navigation route).
+
 ## 3DS manual simulator (`plugins/manual_3ds`, 2026-10-14)
 
 - Done: `core/texture_formats/flim.py` reads 3DS CLIM / flag 0 BFLIM pictures as stored (top row first, picture top-left; `fix/flim-orientation`), and `console_render.decode_bclim` is `flim.read`; the merged render still matches the console on the pages with pictures (home_menu_manual page 7: text difference 0.86).

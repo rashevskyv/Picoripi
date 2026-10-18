@@ -535,7 +535,9 @@ def test_the_render_problems_of_the_page_reach_the_strings_that_own_them(widths,
     cell, two paragraphs' ink meeting, a line painted over) are the editor problems of the strings that own them."""
     rules, render = _rules_with_render(monkeypatch, {SAMPLE_KEYS[0]: {"over_cell", "text_overlap"}, SAMPLE_KEYS[1]: {"covered"}})
     assert rules.manual_problems(0, 0, "Привіт") == {"M3D_CELL", "M3D_OVERLAP"}
-    assert rules.get_problem_detail(0, 0, "M3D_CELL") == "over_cell d"
+    detail = rules.get_problem_detail(0, 0, "M3D_CELL")
+    assert detail.startswith("over_cell d. The cell has 2 pane(s) of 300 px")
+    assert "a longer wording does not fit" in detail and "abbreviation" in detail
     assert rules.manual_problems(0, 1, "") == {"M3D_COVERED"}
     assert render.calls == [("synthetic", "large", 0, {SAMPLE_KEYS[0]: "Привіт", SAMPLE_KEYS[1]: ""})]
     # The same texts again: the page is not rendered again. A changed text renders it once more.
@@ -600,7 +602,7 @@ def test_on_the_ui_thread_the_page_renders_in_the_background_and_the_block_is_re
     rules.manual_problems(0, 1, "")   # the same block again: not a second render
     qtbot.waitUntil(lambda: rules.mw.issue_scan_handler.rescanned == [0], timeout=10000)
     assert rules._render_worker is None and len(render.calls) == 1
-    assert rules._page_problems[(0, m3d.group_key_of(PAGE))][1] == {SAMPLE_KEYS[0]: {"M3D_CELL": "over_cell d"}}
+    assert rules._page_problems[(0, m3d.group_key_of(PAGE))][1][SAMPLE_KEYS[0]]["M3D_CELL"].startswith("over_cell d. The cell has")
     assert rules.manual_problems(0, 0, "Привіт") == {"M3D_CELL"}
     worker.wait(5000)
 
