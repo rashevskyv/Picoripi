@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from plugins.base_game_rules import BaseGameRules
-from plugins.common import name_seeds
+from plugins.common import gamefaqs_script, name_seeds
 from plugins.common.block_loader import ReadThrough, rescan_block, source_of
 from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
@@ -116,6 +116,7 @@ class GameRules(BaseGameRules):
         # Read off the UI thread (plugins/common/block_loader.py): a block's text units and its ROM budgets.
         self._texts = ReadThrough("pokemon_gsc text", lambda block_idx: rescan_block(self.mw, block_idx))
         self._budgets = ReadThrough("pokemon_gsc budgets", lambda block_idx: rescan_block(self.mw, block_idx))
+        self._transcripts = ReadThrough("pokemon_gsc transcript index")
 
     def get_display_name(self) -> str:
         return self.game_name
@@ -248,10 +249,21 @@ class GameRules(BaseGameRules):
         except (rom_text.CodecError, ValueError, IndexError):
             return False
 
+    def _transcript_entry(self, block_idx: int, string_idx: int) -> Dict[str, str]:
+        """Speaker and location a local GameFAQs transcript gives this text (plugins/common/gamefaqs_script.py)."""
+        path = gamefaqs_script.index_path_for(getattr(self.mw, "project_manager", None) if self.mw else None)
+        _rel, unit, _context = self._unit(block_idx, string_idx)
+        if path is None or unit is None:
+            return {}
+        index = self._transcripts.get(str(path), lambda: gamefaqs_script.load_index(path)) or {}
+        return index.get(gamefaqs_script.normalize(pret_text.to_editor(unit)), {})
+
     def get_speaker_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
-        """The one person, trainer or sign whose map script shows the text."""
+        """The one person, trainer or sign whose map script shows the text, else the transcript speaker."""
         speakers = self._unit(block_idx, string_idx)[2].get("speakers") or []
-        return speakers[0] if len(speakers) == 1 else None
+        if len(speakers) == 1:
+            return speakers[0]
+        return self._transcript_entry(block_idx, string_idx).get("speaker")
 
     def get_translation_context_for_string(self, block_idx: int, string_idx: int) -> Dict[str, Any]:
         rel, unit, _context = self._unit(block_idx, string_idx)
@@ -276,6 +288,11 @@ class GameRules(BaseGameRules):
             result["flow_ids"] = list(context["scripts"])
         if context.get("speakers"):
             result["candidate_actors"] = list(context["speakers"])
+        transcript = self._transcript_entry(block_idx, string_idx)
+        if transcript.get("location") and "locations" not in result:
+            result["locations"] = [transcript["location"]]
+        if transcript.get("speaker") and "candidate_actors" not in result:
+            result["candidate_actors"] = [transcript["speaker"]]
         return result
 
     def get_ai_flow_context_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
