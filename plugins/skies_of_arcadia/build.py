@@ -14,7 +14,7 @@ from core.containers import aklz
 from core.containers.gcm_writer import write_disc
 from core.i18n import tr
 
-from . import unpack
+from . import scripts, unpack
 
 SOURCE_MARK = ".picoripi_disc.json"
 ISO_NAME = "Skies of Arcadia Legends (UA).iso"
@@ -44,8 +44,22 @@ def disc_of_source(source_dir: str | os.PathLike) -> Path:
     return image
 
 
-def changed_files(source_dir: str | os.PathLike, translation_dir: str | os.PathLike) -> Dict[str, bytes]:
-    """{path relative to the disc's files folder: new decoded bytes} for each translation file that differs."""
+def _refuse_over_budget(rel: str, base: bytes, data: bytes, big: bool) -> None:
+    """Raise when a script's text is over its budget. Its typed text is in the file, but the build never writes it."""
+    if len(data) <= len(base):   # a script within its budget keeps its length (scripts.write_strings)
+        return
+    state = scripts.budget_of(base, scripts.read_strings(data, big), big)
+    lines = ", ".join(str(i + 1) for i, is_changed in enumerate(state.changed) if is_changed)
+    raise ValueError(tr("{0}: the script's text is {1} bytes over its budget, so it is not built. Shorten these lines "
+                        "or other lines of the script: {2}.").format(rel, -state.free, lines))
+
+
+def changed_files(source_dir: str | os.PathLike, translation_dir: str | os.PathLike,
+                  big: bool = scripts.BIG_ENDIAN) -> Dict[str, bytes]:
+    """{path relative to the disc's files folder: new decoded bytes} for each translation file that differs.
+
+    Raises ValueError for a script over its budget (both disc builds share this check; ``big`` is the script's byte order).
+    """
     source, translation = Path(source_dir), Path(translation_dir)
     changes: Dict[str, bytes] = {}
     for path in sorted(translation.rglob("*")):
@@ -57,8 +71,10 @@ def changed_files(source_dir: str | os.PathLike, translation_dir: str | os.PathL
         base = source / rel
         if not base.is_file():
             raise ValueError(tr("{0}: not on the disc (new files are not written)", rel))
-        data = path.read_bytes()
-        if data != base.read_bytes():
+        data, old = path.read_bytes(), base.read_bytes()
+        if data != old:
+            if rel.lower().endswith(".sct"):
+                _refuse_over_budget(rel, old, data, big)
             changes[rel] = data
     return changes
 

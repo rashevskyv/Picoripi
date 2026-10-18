@@ -1,26 +1,36 @@
 """Field scripts (``field/*.sct``) as editor strings: one string per text segment, saved back into the decoded body.
 
-A segment is a page's text cut at each label inside it (``core.containers.skies_script.text_segments``), so the game
-reads each string in order. A file in ``FIXED_SIZE`` keeps every segment's byte length: a longer text is refused
-and the source text stays; a shorter text is padded with spaces to the same length. The game freezes when such a
-file grows, so these edits are in-place only. Other files may grow: their bytes move through ``grow_regions``.
+A segment is a page's text cut at each label inside it (``core.containers.skies_script.text_segments``). The field
+scripts have no label inside a text, so a segment is a page.
+
+Budget (one per script, the same on GameCube and Dreamcast): the script's text bytes may not grow in total. A changed
+line takes its encoded length, padded with spaces so the next code word stays aligned: its length moves in steps of 4
+bytes. ``budget_of`` computes this; the writer, the editor's problem and the build all use it. A script within its
+budget keeps its length (``grow_regions`` net zero). A script over its budget is written with its typed text and a
+longer body; the build refuses such a script, so the typed text is never lost and the game never reads it.
 """
 from __future__ import annotations
 
-from typing import List, Sequence, Set, Tuple
+import functools
+from typing import List, NamedTuple, Sequence, Set, Tuple
 
 from core.containers import skies_script
 
 from . import text
 
 BIG_ENDIAN = True   # GameCube
-# Scripts that freeze the game when a text grows (see the module docstring). A path matches by its end.
-FIXED_SIZE = ("field/me201a.sct",)
+PAD = " "           # the editor's space; trailing spaces are padding (the writer adds and removes them)
 
 
-def is_fixed(rel_path: str, names: Tuple[str, ...] = FIXED_SIZE) -> bool:
-    key = rel_path.replace("\\", "/")
-    return any(key == name or key.endswith("/" + name) for name in names)
+class Budget(NamedTuple):
+    """A script's budget and use, in bytes. ``changed`` has one flag per text segment (its string differs)."""
+    budget: int
+    used: int
+    changed: Tuple[bool, ...]
+
+    @property
+    def free(self) -> int:
+        return self.budget - self.used   # negative when the script is over its budget
 
 
 def segments(body: bytes, big: bool = BIG_ENDIAN) -> List[Tuple[int, int]]:
@@ -32,36 +42,57 @@ def read_strings(body: bytes, big: bool = BIG_ENDIAN) -> List[str]:
     return [text.decode(body[start:end]) for start, end in segments(body, big)]
 
 
-def write_strings(source: bytes, strings: Sequence[str], fixed: bool,
-                  big: bool = BIG_ENDIAN) -> Tuple[bytes, List[int], Set[str]]:
-    """The body with the edited strings written in. Returns (new body, refused string indices, missing characters).
+def _trimmed(value: str) -> str:
+    return value.rstrip(PAD)
 
-    Every string is compared with the source text, so an unchanged string keeps its bytes. The source body is the only
-    base: the offsets come from it, never from a previous save.
+
+@functools.lru_cache(maxsize=8192)
+def _encoded_length(value: str) -> int:
+    return len(text.encode(value)[0])
+
+
+def budget_of(source: bytes, strings: Sequence[str], big: bool = BIG_ENDIAN) -> Budget:
+    """The budget of the script whose source body is ``source``, and what ``strings`` (one per segment) use.
+
+    A string equal to its source text (trailing spaces aside) is unchanged and uses its source length. A changed string
+    uses its encoded length plus the spaces that keep the length in the source's residue mod 4.
     """
     spans = segments(source, big)
     if len(strings) != len(spans):
         raise ValueError(f"expected {len(spans)} strings, got {len(strings)}")
-    replacements = {}
-    refused: List[int] = []
-    missing: Set[str] = set()
-    for index, ((start, end), new_text) in enumerate(zip(spans, strings)):
-        if new_text == text.decode(source[start:end]):
+    budget = used = 0
+    changed: List[bool] = []
+    for (start, end), new_text in zip(spans, strings):
+        old = end - start
+        budget += old
+        if _trimmed(new_text) == _trimmed(text.decode(source[start:end])):
+            used += old
+            changed.append(False)
             continue
-        new, lost = text.encode(new_text)
+        n = _encoded_length(_trimmed(new_text))
+        used += n + (old - n) % 4
+        changed.append(True)
+    return Budget(budget, used, tuple(changed))
+
+
+def write_strings(source: bytes, strings: Sequence[str], big: bool = BIG_ENDIAN) -> Tuple[bytes, Set[str]]:
+    """The body with the edited strings written in. Returns (new body, missing characters).
+
+    Every string is compared with the source text, so an unchanged string keeps its bytes. The source body is the only
+    base: the offsets come from it, never from a previous save. An over-budget script is written too (see the module
+    docstring): the build refuses it.
+    """
+    spans = segments(source, big)
+    state = budget_of(source, strings, big)   # also checks the string count
+    replacements = {}
+    missing: Set[str] = set()
+    for (start, end), new_text, is_changed in zip(spans, strings, state.changed):
+        if not is_changed:
+            continue
+        new, lost = text.encode(_trimmed(new_text))
         missing |= lost
-        if fixed:
-            if len(new) > end - start:
-                refused.append(index)
-                continue
-            new += bytes([text.SPACE]) * (end - start - len(new))
         replacements[(start, end)] = new
     if not replacements:
-        return source, refused, missing
-    if fixed:
-        out = bytearray(source)
-        for (start, end), new in replacements.items():
-            out[start:end] = new
-        return bytes(out), refused, missing
-    out, _delta = skies_script.grow_regions(source, replacements, big)
-    return out, refused, missing
+        return source, missing
+    out, _delta = skies_script.grow_regions(source, replacements, big, net_zero=state.free >= 0)
+    return out, missing

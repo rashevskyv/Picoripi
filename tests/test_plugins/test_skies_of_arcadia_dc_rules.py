@@ -132,8 +132,8 @@ def test_a_changed_script_is_written_into_a_new_disc_set(tmp_path):
 def test_the_little_endian_codec_reads_and_writes_the_same_segments():
     body = _script_le(b"\\h(Hello\\c\\h(Bye\\e")
     assert scripts.read_strings(body, big=False) == ["Hello", "Bye"]
-    out, refused, missing = scripts.write_strings(body, ["Hullo", "Bye"], fixed=False, big=False)
-    assert refused == [] and missing == set()
+    out, missing = scripts.write_strings(body, ["Hullo", "Bye"], big=False)
+    assert missing == set() and len(out) == len(body)
     assert scripts.read_strings(out, big=False) == ["Hullo", "Bye"]
 
 
@@ -155,10 +155,10 @@ def test_the_plugin_opens_a_dreamcast_script_as_editor_text_and_saves_the_edit()
     assert scripts.read_strings(saved, big=False) == ["Hullo", "Bye"]
 
 
-def test_me201a_keeps_its_segment_lengths_and_other_scripts_may_grow():
-    fixed = GameRules.fixed_scripts
-    assert scripts.is_fixed("FIELD/ME201A.SCT", fixed)
-    assert not scripts.is_fixed("FIELD/ME002A.SCT", fixed)
-    body = _script_le(b"\\h(Hi\\c\\h(Bye\\e")
-    _out, refused, _missing = scripts.write_strings(body, ["Hello there", "Bye"], fixed=True, big=False)
-    assert refused == [0]
+def test_a_script_within_its_budget_keeps_its_length_and_an_over_budget_one_grows():
+    body = _script_le(b"\\h(Hello\\c\\h(Bye\\e")   # budget 5 + 3
+    same_length, _missing = scripts.write_strings(body, ["Hullo", "Bye"], big=False)
+    assert len(same_length) == len(body)
+    grown, _missing = scripts.write_strings(body, ["Hello there", "Bye"], big=False)
+    assert len(grown) > len(body)
+    assert scripts.budget_of(body, scripts.read_strings(grown, big=False), big=False).free < 0

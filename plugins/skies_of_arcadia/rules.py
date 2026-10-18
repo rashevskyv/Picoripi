@@ -12,8 +12,8 @@ from plugins.base_game_rules import BaseGameRules
 from plugins.common.block_loader import ReadThrough, rescan_block, source_of
 from utils.logging_utils import log_debug, log_warning
 
-from . import build, scripts, text, unpack
-from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
+from . import build, scripts, unpack
+from .config import PLUGIN_PREFIX, PROBLEM_BYTE_BUDGET, PROBLEM_DEFINITIONS
 from .problem_analyzer import ProblemAnalyzer
 from .tag_manager import TagManager
 
@@ -30,15 +30,14 @@ class GameRules(BaseGameRules):
     tag_manager_class = TagManager
     tag_style = "curly"   # the byte tokens are {xx}
     big_endian = scripts.BIG_ENDIAN   # the byte order of the script's words (GameCube: big endian)
-    fixed_scripts = scripts.FIXED_SIZE   # the scripts whose text keeps its length (see scripts.py)
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
         self._save_source: Optional[bytes] = None
-        self._save_fixed = False
         self._last_loaded: Optional[bytes] = None
-        # Segment lengths of a fixed-size script, read off the UI thread (a miss returns None until the read ends).
-        self._budgets = ReadThrough("skies_of_arcadia budgets", lambda block_idx: rescan_block(self.mw, block_idx))
+        # Source bodies, read off the UI thread (a miss returns None until the read ends; then the block is rescanned).
+        self._sources = ReadThrough("skies_of_arcadia sources", lambda block_idx: rescan_block(self.mw, block_idx))
+        self._details: Dict[Tuple[int, int], str] = {}   # (block, string) -> the budget text of a flagged line
 
     def get_display_name(self) -> str:
         return "Skies of Arcadia Legends (GameCube)"
@@ -91,46 +90,64 @@ class GameRules(BaseGameRules):
         """Every save starts from the source file (the last version offered), so offsets never drift."""
         versions = list(context.existing_versions())
         self._save_source = versions[-1] if versions else None
-        self._save_fixed = scripts.is_fixed(context.relative_path, self.fixed_scripts)
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
+        """The decoded script with the typed text. Over its budget the text is still saved as typed: the build refuses it."""
         source = self._save_source if self._save_source is not None else self._last_loaded
         if source is None:
             return super().save_data_to_json_obj(data, block_names)
         strings = [str(t) for t in (data[0] if data else [])]
-        out, refused, missing = scripts.write_strings(source, strings, self._save_fixed, self.big_endian)
-        if refused:
-            log_warning(f"skies_of_arcadia: {len(refused)} text(s) are longer than their fixed-size page; "
-                        "they keep the original text")
+        out, missing = scripts.write_strings(source, strings, self.big_endian)
+        state = scripts.budget_of(source, strings, self.big_endian)
+        if state.free < 0:
+            log_warning(tr("Script over its budget by {0} bytes. The text is saved as typed; the build refuses this "
+                           "script until its text is shorter.").format(-state.free))
         if missing:
             log_warning("skies_of_arcadia: the game has no byte for these characters, they were written as '?': "
                         + "".join(sorted(missing)))
         return out
 
     def exceeds_byte_budget(self, block_idx: int, string_idx: int, text_value: str) -> bool:
-        """True when a fixed-size script's text is longer than the segment it replaces (the source length)."""
+        """True when this line is changed and its script is over its budget. Every changed line of such a script is
+        flagged; the flag's detail gives the script's budget."""
+        key = (block_idx, string_idx)
+        state = self._budget_at(block_idx, string_idx, text_value)
+        if state is None or state.free >= 0 or not state.changed[string_idx]:
+            self._details.pop(key, None)
+            return False
+        self._details[key] = tr("Script budget: {0} of {1} bytes used, {2} over. Shorten this line or another line of "
+                                "this script. Lines change in steps of 4 bytes.").format(
+            state.used, state.budget, -state.free)
+        return True
+
+    def get_problem_detail(self, block_idx: int, string_idx: int, problem_id: str) -> str:
+        return self._details.get((block_idx, string_idx), "") if problem_id == PROBLEM_BYTE_BUDGET else ""
+
+    def _budget_at(self, block_idx: int, string_idx: int, text_value: str) -> Optional[scripts.Budget]:
+        """The budget of the script that holds the string, with ``text_value`` in its place (None when unknown)."""
         source = source_of(self.mw, block_idx)
-        if source is None or not scripts.is_fixed(source[0], self.fixed_scripts):
-            return False
+        processor = getattr(self.mw, "data_processor", None)
+        if source is None or processor is None:
+            return None
+        body = self._sources.get(block_idx, lambda: _read_body(source[1]))
+        strings = processor.get_block_texts(block_idx)
+        if body is None or not 0 <= string_idx < len(strings):
+            return None
+        strings[string_idx] = text_value
         try:
-            index = int(string_idx)
-        except (TypeError, ValueError):
-            return False
-        lengths = self._budgets.get(block_idx, lambda: _segment_lengths(source[1], self.big_endian))
-        if lengths is None or not 0 <= index < len(lengths):
-            return False
-        return len(text.encode(text_value)[0]) > lengths[index]
+            return scripts.budget_of(body, strings, self.big_endian)
+        except (ValueError, IndexError, struct.error):
+            return None
 
     def reset_runtime_state(self) -> None:
         self._save_source = self._last_loaded = None
-        self._save_fixed = False
-        self._budgets.clear()
+        self._sources.clear()
+        self._details.clear()
 
 
-def _segment_lengths(path: Path, big: bool) -> Optional[List[int]]:
-    """Byte length of each text segment of a source script (None when it cannot be read)."""
+def _read_body(path: Path) -> Optional[bytes]:
+    """The source body of a script (None when it cannot be read; a broken file is not read again)."""
     try:
-        body = Path(path).read_bytes()
-        return [end - start for start, end in scripts.segments(body, big)]
-    except (OSError, ValueError, IndexError, struct.error):
+        return Path(path).read_bytes()
+    except OSError:
         return None
