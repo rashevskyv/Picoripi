@@ -203,14 +203,22 @@ class BatchMixin:
         is equal too: who says it and to whom (gender, politeness), what the
         plugin and the user say about the row, and the window it must fit.
         """
-        return self._duplicate_key_and_identity(item, block_idx, temp_id_map)[0]
+        return self._duplicate_key_and_identity(item, block_idx, temp_id_map, identity=False)[0]
 
-    def _duplicate_key_and_identity(self, item: Dict, block_idx: Optional[int], temp_id_map: Optional[Dict]) -> Tuple[Tuple, Optional[str]]:
-        """``(duplicate key, speaker identity)``: the key is the one the fold hashes; the identity is the English name (D45)."""
+    def _duplicate_key_and_identity(self, item: Dict, block_idx: Optional[int], temp_id_map: Optional[Dict],
+                                    identity: bool = True) -> Tuple[Tuple, Optional[str]]:
+        """``(duplicate key, speaker identity)``: the key is the one the fold hashes; the identity is the English name (D45).
+
+        ``identity=False`` keeps the fold's own speaker call (``_resolve_prompt_speaker``) and returns no identity.
+        """
         _, current_text, _, _ = self._item_text_for_ai(item)
         real_b_idx, real_s_idx = self._real_pair(item, block_idx, temp_id_map)
         translation_context = self._plugin_translation_context(real_b_idx, real_s_idx)
-        speaker, _, identity = self._resolve_prompt_identity(real_b_idx, real_s_idx, current_text, translation_context)
+        if identity:
+            speaker, _, name = self._resolve_prompt_identity(real_b_idx, real_s_idx, current_text, translation_context)
+        else:
+            speaker, _ = self._resolve_prompt_speaker(real_b_idx, real_s_idx, current_text, translation_context)
+            name = None
         manual = get_story_context_override(self.mw, real_b_idx, real_s_idx)
         key = (
             str(speaker or ""),
@@ -219,7 +227,7 @@ class BatchMixin:
             json.dumps(translation_context, ensure_ascii=False, sort_keys=True, default=str),
             json.dumps(manual, ensure_ascii=False, sort_keys=True, default=str),
         )
-        return key, identity
+        return key, name
 
     def saved_context(self, block_idx: int, string_idx: int, source: str) -> Dict[str, str]:
         """``{"speaker", "addressee", "fold", "speaker_en"}`` of a saved row: the duplicate key, split for the restore.

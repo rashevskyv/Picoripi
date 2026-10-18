@@ -111,5 +111,3 @@ class TestReusableAndLink:
     def test_the_summary_says_the_link_and_the_reusable_count(self):
         text = series_summary({"files": [{"name": "Series"}], "terms": 3, "link": "linked", "reusable": 7})
         assert "linked" in text and "7 texts" in text
-
-

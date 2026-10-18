@@ -73,7 +73,8 @@ def test_translation_archive_glossary_settings_and_session_are_written_as_before
         if key.endswith("_splitter_state") and key in new:
             old[key] = new[key]
     added = set(new["translation_config"]) - set(old["translation_config"])
-    assert added == {"review_enabled", "fold_duplicates", "fixed_output_sections", "shorten_enabled"}
+    assert added == {"review_enabled", "fold_duplicates", "fixed_output_sections", "shorten_enabled",
+                     "series_reuse_sentences", "series_sentence_words", "series_safe_ticked"}
     assert set(new["translation_config"]["providers"]["openai"]) - set(old["translation_config"]["providers"]["openai"]) == {"profile"}
     # The splitter states are window geometry, which the bar above the editor (2026-10-09) changed.
     geometry = {key for key in new if key.endswith("_splitter_state")}

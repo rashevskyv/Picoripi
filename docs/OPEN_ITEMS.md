@@ -375,7 +375,25 @@ Open:
   audited for thread safety in every plugin. The speaker lookup of the save and restore paths (4.1) is not moved and not
   measured in round 2.
 - Project Manager: the count of reusable repeated texts is not built (it needs every memory file of the series).
-- Owner decision: whether a sentence shared across games is offered (default: off, D41 rule for longer lines).
+- Decided 2026-10-18 (D45): a sentence of another game is offered only behind a setting (off by default), one check box per line; a name or a single term comes from the series glossary.
+
+## Pokémon series round 3 (2026-10-18, D45, branch feat/pokemon-series-r3)
+
+- Item 4 (speaker lookup off the interface thread): not moved and not measured. A headless probe of the plugin hook
+  (`get_speaker_for_string` on `Sun and Moon`, 41,810 calls) found no speaker at all: the plugin's speaker state is
+  built when the window loads. The real cost is `saved_context` in a loaded window. Next: open an offscreen copy of a
+  Pokémon project and time `saved_context` over its repeated texts.
+- The fill of a glossary term does not yet mark the row in the editor (the source term in the row marker is not built).
+- Other projects of the series: the width check does not run (the project is not open). A backup entry takes effect
+  only when the project's own Restore is used; its live translation file is never written.
+- The open project's conflict rule uses the series entries of the open project's chain for every other project too.
+  A project with its own series chain would need its own table (not built).
+- The memory bar offers only safe candidates; doubtful ones are listed in the batch dialog only. A toggle in the memory
+  bar is not built (the toggle is in Settings, AI page, and the batch dialog).
+- The owner's Pokémon series folder has no `_glossary/glossary.json` (not linked). The cross-project fill has not run on
+  real series data; it was tested with synthetic projects and the parser on `Sun and Moon` (44,042 strings, equal to the
+  Project Manager count).
+- Two programs writing the same project's `saved_translations.json` (the owner and a fill run): the last write wins.
 
 ## Pokémon generation III-V (`plugins/pokemon_fr`, `pokemon_gen4`, `pokemon_gen5`, 2026-10-10)
 
