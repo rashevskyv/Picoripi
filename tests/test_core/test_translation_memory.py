@@ -138,7 +138,7 @@ class TestRestore:
             remaining, remaining_places = handler._filter_already_saved_translations(items, places)
 
         assert dialog.call_args.args[2] == [
-            {'block_idx': 7, 'block_name': 'Block7', 'string_idx': 10, 'text': 'Так', 'from_memory': True, 'origin': 'memory', 'series_sentence': False}
+            {'block_idx': 7, 'block_name': 'Block7', 'string_idx': 10, 'text': 'Так', 'from_memory': True, 'origin': 'memory'}
         ]
         assert remaining == [{"id": 1, "text": "x"}] and remaining_places == {1: (7, 9)}
         assert window.data_processor.get_current_string_text(7, 10)[0] == "Так"

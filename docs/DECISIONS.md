@@ -1077,3 +1077,39 @@ size and time. The registry and the project file are not written. The count of r
 needs every memory file of the series.
 **Seeding speed.** `GlossaryManager.seed_entries` gives the answers of `seed_entry` one term at a time, with the presence
 test built once for the batch. The per-term version scanned and copied the glossary for each term.
+
+## D45. Series reuse: terms come from the glossary, sentences are opt-in and chosen per line (2026-10-18, owner)
+
+**Context.** The series memory offered any text another game translated (D41, D43). A name or a menu word then took
+a translation that a glossary term decides better, and a sentence said by another speaker was offered by default.
+The owner decided the rules on 2026-10-18.
+**Decision.**
+- A single term or a short name (up to `series_sentence_words`, default 2 words) is never reused from another game. The
+  series glossary translates it: **File > Fill Terms from the Glossary** fills every string whose whole normalised
+  text equals a term (`core/glossary/term_fill.py`; tags compared by the plugin's tag kinds, `get_series_tag_map`).
+- An untranslated string takes the term's translation when its tags and window fit. A string with another translation
+  keeps it. Two series entries with different translations of one term make a conflict: nothing is written.
+- Other registered projects of the series get the same fill in their backup `saved_translations.json`, on a worker
+  (`handlers/series_term_fill_worker.py`). Their translation files are read first (`plugin_facts.project_block_strings`),
+  so a translated line is never offered a replacement. The first write keeps `saved_translations.before_terms.json`.
+  The project takes the backup with its **Restore** action.
+- A sentence of another game is offered only when the setting **Offer sentences translated in other games of the
+  series** is on (Settings, AI page; off by default). Candidates come from `SavedTranslationsManager.series_candidates`,
+  the same memory as before (no parallel mechanism). Each has a reason; safe candidates start ticked when **Safe matches
+  start ticked** is on (default on). Safe = same exact text, speaker English name equal on both sides, addressee equal,
+  text fits the window, tags match. Doubtful = any other case; the reason says which. Shown in
+  `dialogs/series_sentence_dialog.py`: one row per line (the best candidate, safe first), **Select safe**, **Select all**,
+  **Clear**, **Apply selected**. Nothing is applied automatically.
+- Speakers match by the English name. The memory stores it as `speaker_en` beside `speaker`, which the fold key keeps
+  as it was (the duplicate fold hash does not change). A row saved before this record has no `speaker_en`: it is
+  offered unticked (missing name), never excluded.
+- Before a ticked row is written it passes the tag check and the window check; a failing row stays untouched and goes
+  on to the AI pass, with a status message.
+- The Project Manager details show the link state (linked, or found in the folders above) and the number of strings
+  another project of the series translated (`core/project_library/series_facts.py`, kept while the signature holds).
+**Cost.** The series dialog is built for the lines of one batch only. A candidate costs one speaker lookup and one
+window fit per series sentence of the batch when the setting is on; when it is off, nothing is looked up. The
+cross-project fill reads each project's translation files once per run (about 1 s parse for a 44,000-string project,
+measured on `Sun and Moon`). Other projects are not open: their width is not checked, and a backup entry takes effect
+only through the project's own Restore. The memory bar offers only safe candidates; a doubtful one is offered in the
+list only. The source term does not yet mark the row in the editor (not built).

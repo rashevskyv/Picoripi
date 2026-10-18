@@ -4,9 +4,12 @@ import json
 from pathlib import Path
 from typing import Optional, Dict, List, Any, Tuple, Callable
 
+from core.i18n import tr
+from core.translation.layout_contract import text_fits_place
 from core.translation.run_memory import normalize_source
 from core.translation.series_memory import source_hash as _source_hash
 from plugins.common.series_tags import TagMap, carry, neutral_key, neutral_of, tag_fields
+from plugins.common.tag_logic import TAG_STATUS_OK, compare_tags
 from utils.logging_utils import log_info, log_error, log_warning
 
 # Translations kept per source text (the newest last): the same words in another
@@ -42,6 +45,10 @@ class SavedTranslationsManager:
         # that carry a neutral text (core/translation/series_memory.index_neutral_rows).
         self.series_tag_map: Optional[TagMap] = None
         self.series_neutral: Dict[str, List[Dict[str, Any]]] = {}
+        # Series sentence reuse (D45): off by default; set by configure_series_reuse from the settings.
+        self.series_reuse_enabled = False
+        self.series_min_words = 2
+        self.series_safe_ticked = True
 
     def clear_cache(self) -> None:
         """Clear the in-memory cache."""
@@ -87,7 +94,7 @@ class SavedTranslationsManager:
         rows = memory.setdefault(_source_hash(source), [])
         row: Dict[str, Any] = {"source": source, "translation": translation}
         if context:
-            row.update({key: str(context.get(key) or "") for key in ("speaker", "addressee", "fold")})
+            row.update({key: str(context.get(key) or "") for key in ("speaker", "addressee", "fold", "speaker_en")})
         if tags:
             row.update(tags)
         if rows and rows[-1] == row:
@@ -166,29 +173,83 @@ class SavedTranslationsManager:
         return [row for row in reversed(self.load_translation_memory().get(_source_hash(source), []))
                 if isinstance(row, dict) and row.get("source") == source and isinstance(row.get("translation"), str)]
 
-    def acceptable_rows(self, block_idx: int, string_idx: int, source: Any) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
-        """``(own rows, series rows)`` this string may take, newest first (the context rule of D41).
+    def configure_series_reuse(self, enabled: bool, min_words: int, safe_ticked: bool = True) -> None:
+        """Set the series reuse from the settings: on or off, the word count that makes a sentence, and the ticked default.
+
+        The handler calls this before a batch or a memory bar reads the candidates (D45). Core reads no settings.
+        """
+        self.series_reuse_enabled = bool(enabled)
+        self.series_min_words = max(int(min_words), 0)
+        self.series_safe_ticked = bool(safe_ticked)
+
+    def is_series_sentence(self, source: Any) -> bool:
+        """Whether a text is a sentence (more words than ``series_min_words``): only sentences are reused from other games."""
+        return isinstance(source, str) and len(normalize_source(source).split()) > self.series_min_words
+
+    def acceptable_rows(self, block_idx: int, string_idx: int, source: Any) -> Tuple[List[Dict[str, str]], List[Dict[str, Any]]]:
+        """``(own rows, series candidates)`` this string may take, newest first (the context rule of D41).
 
         A text that occurs once in the project takes its newest own row. A repeated text takes an own row only under the
-        same fold key, and a series row only under the same speaker and addressee. A series row is an exact translation
-        of another game, or one carried to this game's tags (``series_mapped_for``) that could be carried.
+        same fold key. Series candidates come from ``series_candidates`` (sentences only, each classified).
         """
         own_all = self.rows_by_source(source)
-        series_all = self.series_by_source(source)
-        mapped_all = self.series_mapped_by_source(source)
-        if not own_all and not series_all and not mapped_all:
-            return [], []
+        if not own_all:
+            return [], self.series_candidates(block_idx, string_idx, source)
         repeats = self.repeats_in_project(source)
-        context = self.context_of(block_idx, string_idx, source) if (repeats or series_all or mapped_all) else None
+        context = self.context_of(block_idx, string_idx, source) if repeats else None
         own = [row for row in own_all
                if not repeats or (context is not None and row.get("fold") == context.get("fold"))]
-        series = [row for row in series_all
-                  if context is not None and "speaker" in row and row.get("speaker") == context.get("speaker")
-                  and row.get("addressee") == context.get("addressee")]
-        series += [row for row in mapped_all
-                   if row["translation"].strip() and context is not None and "speaker" in row
-                   and row.get("speaker") == context.get("speaker") and row.get("addressee") == context.get("addressee")]
-        return own, series
+        return own, self.series_candidates(block_idx, string_idx, source)
+
+    def series_candidates(self, block_idx: int, string_idx: int, source: Any) -> List[Dict[str, Any]]:
+        """The sentences of other games this string may take, each classified (D45). Nothing here applies a row.
+
+        Empty unless the series reuse is on and the text is a sentence. A candidate has ``translation`` (empty when the
+        tags of the other game could not be carried), ``project``, ``origin`` (``series`` or ``series_mapped``),
+        ``speaker_en`` (the other game's English speaker name), ``own_speaker_en`` (this game's), ``addressee``,
+        ``safe`` (True only without any reason) and ``reason`` (the texts that make it doubtful, joined; empty when safe).
+        Safe candidates come first; otherwise the nearest level comes first.
+        """
+        if not self.series_reuse_enabled or not self.is_series_sentence(source):
+            return []
+        exact = self.series_by_source(source)
+        mapped = self.series_mapped_by_source(source)
+        if not exact and not mapped:
+            return []
+        context = self.context_of(block_idx, string_idx, source) or {}
+        own_speaker = str(context.get("speaker_en") or "")
+        own_addressee = str(context.get("addressee") or "")
+        found: List[Dict[str, Any]] = []
+        for row in [*exact, *mapped]:
+            translation = str(row.get("translation") or "")
+            other_speaker = str(row.get("speaker_en") or "")
+            reasons: List[str] = []
+            if not own_speaker or not other_speaker:
+                reasons.append(tr("A speaker name is missing in one game."))
+            elif own_speaker.casefold() != other_speaker.casefold():
+                reasons.append(tr("The speaker names differ."))
+            if str(row.get("addressee") or "") != own_addressee:
+                reasons.append(tr("The addressee differs."))
+            if row.get("reason"):
+                reasons.append(str(row["reason"]))
+            elif not translation.strip():
+                reasons.append(tr("The tags cannot be carried to this game."))
+            elif not text_fits_place(self.mw, source, translation, block_idx, string_idx):
+                reasons.append(tr("The text is too long for this window."))
+            elif compare_tags(translation, source)[0] != TAG_STATUS_OK:
+                reasons.append(tr("The tags do not match this text."))
+            found.append({
+                "translation": translation,
+                "project": str(row.get("project") or ""),
+                "origin": "series_mapped" if "origin" in row else "series",
+                "speaker_en": other_speaker,
+                "own_speaker_en": own_speaker,
+                "addressee": str(row.get("addressee") or ""),
+                "safe": not reasons,
+                "applicable": bool(translation.strip()),
+                "reason": " ".join(reasons),
+            })
+        return sorted(found, key=lambda candidate: not candidate["safe"])  # stable: exact rows keep their order
 
     def series_mapped_by_source(self, source: Any) -> List[Dict[str, Any]]:
         """What the other games of the series translated for this text, in this game's tags (plugins/common/series_tags.py).
@@ -210,7 +271,7 @@ class SavedTranslationsManager:
             mapped: Dict[str, Any] = {"source": row.get("source", ""), "translation": translation or "",
                                       "project": str(row.get("project") or ""), "origin": "series_mapped",
                                       "reason": reason}
-            mapped.update({key: row[key] for key in ("speaker", "addressee") if key in row})
+            mapped.update({key: row[key] for key in ("speaker", "addressee", "speaker_en") if key in row})
             found.append(mapped)
         return found
 

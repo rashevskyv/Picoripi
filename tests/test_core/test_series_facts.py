@@ -4,6 +4,7 @@ import os
 
 from core.glossary import series as series_module
 from core.project_library import series_facts as facts
+from core.translation.series_memory import source_hash as _hash
 from ui.project_manager.window import series_summary
 
 
@@ -37,7 +38,8 @@ class TestSeriesFacts:
 
     def test_a_project_with_no_series_glossary_has_no_files(self, tmp_path):
         project = _project(tmp_path / "Lonely")
-        assert facts.series_facts(str(project)) == {"files": [], "terms": 0}
+        found = facts.series_facts(str(project))
+        assert found["files"] == [] and found["terms"] == 0 and found["link"] == "none" and found["reusable"] == 0
 
     def test_an_unchanged_file_keeps_its_count_and_is_not_read_again(self, tmp_path, monkeypatch):
         _glossary(tmp_path / "Series" / "_glossary" / "glossary.json", 4)
@@ -63,3 +65,49 @@ class TestSeriesFacts:
         assert series_summary(None) == "None"
         text = series_summary({"files": [{"name": "Series"}], "terms": 1234})
         assert "Series" in text and "1,234" in text
+
+
+class TestReusableAndLink:
+    def _series_with_other_project(self, tmp_path):
+        series_file = _glossary(tmp_path / "Series" / "_glossary" / "glossary.json", 1)
+        memory = tmp_path / "Other" / "translation_memory.json"
+        memory.parent.mkdir(parents=True)
+        memory.write_text(json.dumps({
+            _hash("Pikachu"): [{"source": "Pikachu", "translation": "Пікачу"}],
+            _hash("Mew"): [{"source": "Mew", "translation": ""}],
+        }), encoding="utf-8")
+        (series_file.parent / "projects.json").write_text(json.dumps({"Other": str(memory)}), encoding="utf-8")
+        return _project(tmp_path / "Series")
+
+    def test_the_reusable_count_is_the_strings_another_project_translated(self, tmp_path, monkeypatch):
+        project = self._series_with_other_project(tmp_path)
+        monkeypatch.setattr(facts.plugin_facts, "project_block_strings", lambda *a, **k: {
+            "plugin": "fake", "blocks": [("f.dat", "", ["Pikachu", "Pikachu", "Hello", "Mew"], None)],
+        })
+
+        found = facts.series_facts(str(project))
+
+        assert found["reusable"] == 2
+        assert found["link"] == "folders"
+
+    def test_an_unchanged_project_and_memory_keep_the_reusable_count(self, tmp_path, monkeypatch):
+        project = self._series_with_other_project(tmp_path)
+        monkeypatch.setattr(facts.plugin_facts, "project_block_strings", lambda *a, **k: {
+            "plugin": "fake", "blocks": [("f.dat", "", ["Pikachu"], None)],
+        })
+        first = facts.series_facts(str(project))
+
+        def must_not_count(*args):
+            raise AssertionError("an unchanged project is counted again")
+
+        monkeypatch.setattr(facts, "reusable_texts", must_not_count)
+        assert facts.series_facts(str(project), first)["reusable"] == 1
+
+    def test_an_explicit_link_is_named_as_linked(self, tmp_path):
+        linked = _glossary(tmp_path / "elsewhere" / "glossary.json", 2)
+        project = _project(tmp_path / "Series", metadata={series_module.METADATA_KEY: str(linked)})
+        assert facts.series_facts(str(project))["link"] == "linked"
+
+    def test_the_summary_says_the_link_and_the_reusable_count(self):
+        text = series_summary({"files": [{"name": "Series"}], "terms": 3, "link": "linked", "reusable": 7})
+        assert "linked" in text and "7 texts" in text

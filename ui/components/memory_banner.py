@@ -6,6 +6,7 @@ from typing import Any, List, Optional, Tuple
 from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton
 
 from core.i18n import tr
+from core.translation.config import series_reuse_settings
 from core.translation.layout_contract import text_fits_place
 
 # How much of a remembered translation the bar shows.
@@ -73,6 +74,8 @@ class MemoryBanner(QFrame):
         self._same_source = [p for p in saved_mgr.positions_of_source(source) if p != (block_idx, string_idx)]
 
         where = ""
+        # the series settings are read here too: the bar may show before any batch has run (D45)
+        saved_mgr.configure_series_reuse(*series_reuse_settings(getattr(self.mw, 'translation_config', None)))
         own_rows, series_rows = saved_mgr.acceptable_rows(block_idx, string_idx, source)
         for row in own_rows:
             if row["translation"].strip() and row["translation"] != current:
@@ -80,8 +83,9 @@ class MemoryBanner(QFrame):
                 break
         mapped = False
         if self._suggestion is None:
+            # a doubtful sentence of another game is offered only in the checkbox list (SeriesSentenceDialog, D45)
             for row in series_rows:
-                if row["translation"].strip() and row["translation"] != current:
+                if row.get("safe") and row["translation"].strip() and row["translation"] != current:
                     self._suggestion, where = row["translation"], row["project"]
                     mapped = row.get("origin") == "series_mapped"
                     break

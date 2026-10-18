@@ -59,12 +59,8 @@ class CachedTranslationDialog(QDialog):
         self.info_label.setWordWrap(True)
         layout.addWidget(self.info_label)
         
-        # 2. Source Label
-        if cached_count == 1 and cached_info[0].get('origin') == 'series':
-            self.source_label = QLabel(tr('Source: saved for the same text in another project of the series'), self)
-        elif cached_count == 1 and cached_info[0].get('origin') == 'series_mapped':
-            self.source_label = QLabel(tr('Source: saved for the same text in another project of the series, tags converted'), self)
-        elif cached_count == 1 and cached_info[0].get('from_memory'):
+        # 2. Source Label (series sentences have their own dialog: SeriesSentenceDialog, D45)
+        if cached_count == 1 and cached_info[0].get('from_memory'):
             self.source_label = QLabel(tr('Source: saved for the same text elsewhere in the project'), self)
         else:
             self.source_label = QLabel(tr('Source: Loaded from cache'), self)
@@ -91,13 +87,13 @@ class CachedTranslationDialog(QDialog):
 
         # One check box per line: checked lines take the saved text; an unchecked line is translated anew.
         self._row_boxes: list = []
-        if cached_count > 1 or any(item.get("series_sentence") for item in cached_info):
+        if cached_count > 1:
             rows_widget = QWidget(self)
             rows_layout = QVBoxLayout(rows_widget)
             rows_layout.setContentsMargins(0, 0, 0, 0)
             for item in cached_info:
                 box = QCheckBox(f"[{item['block_name']}] Line {item['string_idx'] + 1}", rows_widget)
-                box.setChecked(not item.get("series_sentence"))
+                box.setChecked(True)
                 box.setToolTip(tr('Checked: use the saved text. Unchecked: translate this line anew.'))
                 self._row_boxes.append((item, box))
                 rows_layout.addWidget(box)
@@ -139,11 +135,7 @@ class CachedTranslationDialog(QDialog):
 
     @staticmethod
     def _origin_label(item: dict) -> str:
-        """Where a remembered row comes from: another project of the series, or another place of this project."""
-        if item.get('origin') == 'series':
-            return tr('(same text in another project of the series)')
-        if item.get('origin') == 'series_mapped':
-            return tr('(same text in another project of the series, tags converted)')
+        """Where a remembered row comes from: another place of this project."""
         return tr('(same text elsewhere)')
 
     def accepted_positions(self) -> list:
