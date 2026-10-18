@@ -208,7 +208,14 @@ def series_summary(series: Optional[Dict[str, Any]]) -> str:
     if not files:
         return tr("None")
     names = ", ".join(str(entry.get("name") or "") for entry in files)
-    return tr("{0} ({1:,} terms)", names, int((series or {}).get("terms") or 0))
+    parts = [tr("{0} ({1:,} terms)", names, int((series or {}).get("terms") or 0))]
+    link = {"linked": tr("linked"), "folders": tr("found in the folders above")}.get(str((series or {}).get("link") or ""))
+    if link:
+        parts.append(link)
+    reusable = (series or {}).get("reusable")
+    if isinstance(reusable, int):
+        parts.append(tr("{0:,} texts translated in other games", reusable))
+    return "; ".join(parts)
 
 
 def series_of(path: str) -> str:
