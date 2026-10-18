@@ -1518,8 +1518,8 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
   scripts decoded), builds a disc copy, and opens field scripts as editor strings (one per text segment). The text
   codec is exact on all 258 field scripts (36,008 segments). Bytes outside printable ASCII show as `{xx}` tokens; most
   are lead bytes 0x81 to 0x83 (punctuation). Their meaning is not mapped yet.
-- Skies budget: `me201a.sct` is the only file in `FIXED_SIZE`. Its segments keep their length (in-place saves). Other
-  scripts may grow. Growth is not proven in game for any script except the structural checks.
+- Skies budget (superseded 2026-10-18): the per-file `FIXED_SIZE` mode is removed. Every script uses the script-level
+  budget (see the Dreamcast status block below).
 - Skies open: the in-game growth proof. A same-length marker on every script (228 files) ran 7 min in a private muted
   Dolphin. The game reached the title, a cabin and cutscenes. No marker showed in 61 sampled frames. Next: sample every
   frame during a dialogue (slower A presses) to find the first script on screen.
@@ -1557,9 +1557,28 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
   from New Game). +8 on segment 0 with -8 on the last segment runs (Alfonso box). +40 on segment 0 with -40 on the last
   segment runs, and +40 with -40 on segment 4 runs (both boxes shown; the longer line is still typing at cycle 14, not
   yet seen in full). The disc build keeps the source size and every other entry offset.
-- Open: the full in-game text of the longer line (later cycles), the GameCube (big endian) proof, the editor's pooled
-  budget display (per-line budget is gone; the save only refuses an over-budget script), the cause of the tail freeze
-  (a reference into the tail is not shifted; not found, not needed for the net-zero model).
+- Done (2026-10-18, full longer line in game, Dreamcast): a net-zero marker disc (ME201A segment 0 from 40 to 80 bytes,
+  the last segment from 106 to 66 bytes, file size 60,746 unchanged) boots and types the 80-byte line in the Alfonso
+  box in two rows (private muted Flycast, cold boot, no state, no key during the box; frames 10 and 30 of the run). No
+  freeze through the 40 frames after cycle 14. The line is a marker, the game text is not shown here.
+- Done (2026-10-18, GameCube, in game): the same net-zero model on `field/me201a.sct` (big endian: 40 to 80 bytes on
+  segment 0, 98 to 58 on the last segment, file size 64,282 unchanged). Private muted Dolphin (no audio output, volume
+  0), GCPad timers, cold boot, 420 s. The full 80-byte line shows in the Alfonso box in two rows; the game goes on to
+  later scenes with no freeze (frames 72 to 120).
+- Done (2026-10-18, translator budget): the budget is per script (the sum of segment lengths). A changed line takes its
+  encoded length padded to the source length mod 4, so each line moves in steps of 4 bytes. A script over its budget
+  flags every changed line ("Byte budget exceeded"); the problem tooltip shows bytes used, budget and bytes over. A save
+  keeps the typed text. The build refuses an over-budget script and names its lines (both disc builds). The fixed-size
+  mode is removed (no script used it). The free bytes figure shows only on a flagged line, not on every line.
+- Measured (2026-10-18, read-only, no text): ME201A has 24 text segments on GameCube (pooled budget 1,703 bytes, no
+  padding bytes in the source) and 19 on Dreamcast (1,413 bytes). Each changed line costs 1.2 to 2.1 bytes of
+  rounding on average. Synthetic ratios (every line set to ratio times its source length, all lines changed):
+  0.9 gives 128 bytes free (GameCube); 1.0 gives 0; 1.1 gives 200 bytes over; 1.2 gives 372 over; 1.3 gives 556 over.
+  So a translator who writes about 10 to 20 percent longer lines must shorten other lines of the same script by the same
+  amount. The ratio is synthetic; the real Ukrainian-to-English ratio is not measured.
+- Open: the free bytes figure on lines that are within budget (not shown: the tooltip exists only for a flagged line),
+  the cause of the tail freeze (a reference into the tail is not shifted; not found, not needed for the net-zero
+  model), other scripts in game (only ME201A is proven).
 - Done: labels are code-relative; branch operands after `0x0b` and `0x90` are relocated; the aligned-word heuristic is
   removed. Not decoded: opcode `0x0a` and the four absolute words (`1d 2b <offset>`) were not moved (the tail is fixed
   now, so they are not moved by the net-zero model).
