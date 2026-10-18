@@ -29,7 +29,9 @@ the line when it is done or moved into a plan.
   of each script, and absolute 6-byte records (`psx_text` docstring). Open: the message opcode and reader, the meaning
   of the absolute addresses, and the rule that moves offsets when a section grows.
 - Grandia PS1 disc writer: `psx_disc.write_file` rewrites one file in place with the same length and regenerates EDC and
-  P/Q parity; the parity code matches the disc's own sectors. Not wired into the plugin build target yet.
+  P/Q parity; the parity code matches the disc's own sectors. The plugin target `psx_disc_set` copies the cue set
+  (`psx_disc.write_set`) and writes the edited files into the copy. Tested on a synthetic disc only; not built on the
+  owner's disc yet. Growing a text stays refused: the 6-byte RAM addresses are not resolved, so a shift is not safe.
 - Grandia PS1 emulator proof (2026-10-18): DuckStation (private portable copy, muted, hidden desktop) loads the owner's
   save state with a same-length edit in the RAM copy of a script; the edited text shows on screen. A fresh boot of a
   patched disc copy did not reach the dialogue: key input stopped at the title and the memory card screen.
