@@ -1521,7 +1521,7 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
   GameCube text exactly. The 406 USA scripts (both discs) round trip unchanged.
 - Done: in-game marker proof (2026-10-18, private muted Flycast, cold boot, no state). A same-length marker on the
   first segment of `FIELD/ME201A.SCT` shows in the Alfonso dialogue box (frame c014 of the run; schedule
-  `C:\RomHacking_scratch\skies-dc-b\schedule_runB.txt`). Title, New Game (C), Start (Enter), X held 1000 ms, then
+  a schedule file kept outside the repository). Title, New Game (C), Start (Enter), X held 1000 ms, then
   cinematics, the Valuan ship and battles follow with no input stall.
 - Done: growth of `FIELD/ME201A.SCT` freezes the game on Dreamcast. A +8 byte segment 0 gives a black screen right after
   New Game and no further picture in 90 input cycles. The same-length build ran the same schedule. `ME201A` stays
