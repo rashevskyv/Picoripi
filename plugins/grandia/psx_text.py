@@ -11,10 +11,19 @@ Each dialogue block is a run plus the bytes after it (up to TAIL_MAX bytes, the 
 sequence). In the editor text a control byte is a tag ``<XX>`` (two hex digits); a printable byte is itself, and
 ``<`` is written ``<3C>``. The aliases in config.json (``default_tag_mappings``) name the common tags.
 
-Writing is bounded: a block's new text must encode to at most its original byte count. A shorter text is padded with
-spaces to the original length; a longer one is refused and the original bytes stay. Rendering and parsing are exact
-inverses, so an unchanged block writes back byte-exact. Growing a block needs the script stream's references, which
-are not decoded yet. Text must be printable ASCII plus tags; other characters are refused.
+Writing uses a pooled budget per script (net-zero growth, the model of plugins/skies_of_arcadia): a longer text is
+allowed when later shorter blocks of the same script give up the bytes. A shorter text without a payer is padded with
+spaces to its own size. A growth no later block can pay is refused. Rendering and parsing are exact inverses, so an
+unchanged block writes back byte-exact. Text must be printable ASCII plus tags; other characters are refused.
+
+Growth proof (2026-10-18, owner's disc 1 copy, the state from the first dialogue): in FIELD/2000.MDP the message
+"Oh, Justin, not you again!" gained one "!" and "trashing my shed again!!" lost one, with the file length kept. The
+frame shows both messages and the script goes on. Only the bytes between the two messages moved (32 bytes, control
+bytes only). Not checked: references into a moved region (the 6-byte RAM address records of the section are not
+resolved), so growth in other scripts is not proven.
+
+Message and stream facts seen in FIELD/2000.MDP: text ends with 0x0E 0x00; 0x01 is a line break inside a message;
+0x02 ends a box; the speaker sequence 0F 03 0A 0C 00 is followed by one byte and then the next text.
 
 Script structure of a field script (measured on the owner's disc 1; "not decoded" marks what is still open):
 
@@ -35,7 +44,7 @@ from __future__ import annotations
 
 import re
 import struct
-from typing import List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 MIN_CHAIN = 12           # records in a battle string chain (a real table has 30 or more)
 MAX_RECORD = 80          # longest battle string record in bytes
@@ -185,26 +194,70 @@ def blocks(data: bytes) -> Tuple[List[str], dict]:
 
 
 def write(data: bytes, texts: Sequence[str]) -> Tuple[bytes, List[int]]:
-    """The file with the new texts, bounded to each block's byte count.
+    """The file with the new texts, with a pooled byte budget per script (net-zero growth).
 
-    Returns (new bytes, refused block indices). A refused block keeps its original bytes, and so does a block with no
-    entry in ``texts``. An unchanged text writes the original bytes exactly.
+    A text may be longer than its block when shorter blocks later in the same script give up the bytes: the
+    first-come growth is paid by the next shrunk blocks (FIFO). The lender block keeps its size minus the bytes it
+    gives, padded with spaces. Only the bytes between a growing block and the block that pays move; the file keeps
+    its length, so nothing after the last payer moves. A growth no later block can pay is refused and the block keeps
+    its original text; the other blocks of the script are written. Without growth a shorter text is padded in place.
+
+    Returns (new bytes, refused block indices). A block with no entry in ``texts`` keeps its original bytes.
+    Relocation of references inside the script is not checked: one growing pair is proven in a frame, see the
+    Grandia notes in docs/OPEN_ITEMS.md.
     """
     _kind, found = entries(data)
-    out = bytearray(data)
+    want: Dict[int, bytes] = {}
     refused: List[int] = []
-    for index in reversed(range(len(found))):
-        if index >= len(texts):
-            continue
-        offset, original = found[index]
+    for index in range(min(len(found), len(texts))):
         new = parse(texts[index])
-        if new is None or len(new) > len(original):
+        if new is None:
             refused.append(index)
-            continue
-        if new == original:
-            continue
-        out[offset:offset + len(original)] = new + b" " * (len(original) - len(new))
+        else:
+            want[index] = new
+    while True:
+        sizes, finals, unpaid = _plan(found, want)
+        if not unpaid:
+            break
+        for index in unpaid:
+            del want[index]
+            refused.append(index)
+    out = bytearray()
+    at = 0
+    for index, (offset, original) in enumerate(found):
+        out += data[at:offset]
+        out += finals.get(index, original)
+        out += b" " * (sizes[index] - len(finals.get(index, original)))
+        at = offset + len(original)
+    out += data[at:]
+    assert len(out) == len(data), "pooled write must keep the script length"
     return bytes(out), sorted(refused)
+
+
+def _plan(found: List[Tuple[int, bytes]], want: Dict[int, bytes]) -> Tuple[Dict[int, int], Dict[int, bytes], List[int]]:
+    """Sizes and final bytes of every block, and the growing blocks no later block can pay (their indices)."""
+    sizes = {index: len(original) for index, (_, original) in enumerate(found)}
+    finals = {index: new for index, new in want.items()}
+    pending: List[List[int]] = []   # [grower index, bytes still owed]
+    for index, (_, original) in enumerate(found):
+        new = want.get(index)
+        if new is None:
+            continue
+        if len(new) > len(original):
+            pending.append([index, len(new) - len(original)])
+            sizes[index] = len(new)
+        elif len(new) < len(original) and pending:
+            slack = len(original) - len(new)
+            paid = 0
+            while pending and slack > 0:
+                take = min(slack, pending[0][1])
+                pending[0][1] -= take
+                slack -= take
+                paid += take
+                if pending[0][1] == 0:
+                    pending.pop(0)
+            sizes[index] = len(original) - paid
+    return sizes, finals, [grower for grower, owed in pending if owed > 0]
 
 
 def budget(data: bytes) -> dict:

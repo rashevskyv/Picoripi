@@ -134,7 +134,11 @@ class GameRules(BaseGameRules):
             if not _is_psx_text(rel) or not source_path.is_file():
                 continue
             edited = path.read_bytes()
-            if edited != source_path.read_bytes():
+            original = source_path.read_bytes()
+            if len(edited) != len(original):   # loud refusal: a pooled script keeps its length (psx_text.write)
+                raise ValueError(tr("{0} changed length ({1} bytes, was {2}); the script budget is not kept.",
+                                    rel, len(edited), len(original)))
+            if edited != original:
                 out[rel] = edited
         return out
 

@@ -236,3 +236,47 @@ def test_plugin_psx_build_target_writes_the_edited_text_into_a_disc_copy(tmp_pat
     disc = open_psx(result)
     assert disc.read_file(next(e for e in disc.files() if e.path == "FIELD/3034.MDP")) == b"HOLA!"
     assert open_psx(cue).read_file(next(e for e in open_psx(cue).files() if e.path == "FIELD/3034.MDP")) == b"hello"
+
+
+def test_growth_is_paid_by_the_next_shrunk_block_and_the_length_stays():
+    data = dialogue("Hello.", "Bye now, friend.")
+    out, refused = psx_text.write(data, ["Hello, sir.<02>", "Bye now.<02>"])
+    assert refused == []
+    assert len(out) == len(data)
+    assert out.startswith(SPEAKER_SEQ + b"\x08Hello, sir.\x02")
+    assert b"Bye now.\x02" + b" " * 2 in out          # the lender pays 5 bytes: 17 - 5 = 12
+
+
+def test_growth_with_no_later_shrunk_block_is_refused():
+    data = dialogue("Hello.", "Bye.")
+    out, refused = psx_text.write(data, ["Hi there, my friend.<02>", "Bye.<02>"])
+    assert refused == [0] and out == data
+
+
+def test_two_growers_share_one_lender():
+    data = dialogue("Hello.", "Okay now.", "Long line here to give away.")
+    out, refused = psx_text.write(data, ["Hello there.<02>", "Okay now, sir.<02>", "Short.<02>"])
+    assert refused == [] and len(out) == len(data)
+    assert b"Hello there.\x02" in out and b"Okay now, sir.\x02" in out
+    assert b"Short.\x02" + b" " * 10 in out          # 29 - 12 owed = 17 bytes for the lender
+
+
+def test_growth_larger_than_the_lenders_slack_refuses_the_grower_only():
+    data = dialogue("Hello.", "Bye now, friend.")
+    out, refused = psx_text.write(data, ["Hi there, a much longer hello.<02>", "Bye.<02>"])
+    assert refused == [0]
+    assert len(out) == len(data)
+    assert b"Hello.\x02" in out and b"Bye.\x02" in out
+
+
+def test_build_refuses_a_translated_script_of_another_length(tmp_path):
+    from plugins.grandia.rules import GameRules
+
+    source = tmp_path / "source" / "FIELD"
+    source.mkdir(parents=True)
+    (source / "2000.MDP").write_bytes(dialogue("Hi.", "Bye."))
+    translation = tmp_path / "translation" / "FIELD"
+    translation.mkdir(parents=True)
+    (translation / "2000.MDP").write_bytes(dialogue("Hi.", "Bye.") + b"x")
+    with pytest.raises(ValueError):
+        GameRules()._psx_replacements(str(tmp_path / "source"), str(tmp_path / "translation"))

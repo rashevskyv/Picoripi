@@ -2620,6 +2620,7 @@
   "Writing the disc set...": "Запис набору диска...",
   "The unpacked folder has no {0}: unpack the disc again.": "У розпакованій папці немає {0}: розпакуйте диск знову.",
   "The disc image {0} is not on disk.": "Образ диска {0} не знайдено на диску.",
+  "{0} changed length ({1} bytes, was {2}); the script budget is not kept.": "{0} змінив довжину ({1} байт, було {2}); бюджет тексту скрипта не дотримано.",
   "the output folder is the folder of the disc image": "папка виводу є папкою образу диска",
   "{0} is not a file of the HD volume": "{0} не є файлом тому HD",
   "not an AFS archive": "це не архів AFS",
