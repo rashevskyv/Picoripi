@@ -1551,7 +1551,18 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
   arity of call ids, and any other operand that points into the code. Cause not found.
 - Done: growth of `FIELD/ME355A.SCT` (+8 bytes, segment 0) ran the same schedule with no freeze. Only a boot and run check:
   the grown script's own text was not seen on screen.
-- Open: growth of other scripts (in-game text proof), and the relative-branch analysis for ME201A.
+- Done (2026-10-18, net-zero model): a script's total text length must not grow. A growing line needs a shorter line in
+  the same script; the last edit absorbs the difference in spaces, so the file size and the tail stay put. Freeze
+  evidence (Dreamcast ME201A, cold boot, cycle 14): +4, +8 and +16 on segment 0 and +8 on the last segment freeze (black
+  from New Game). +8 on segment 0 with -8 on the last segment runs (Alfonso box). +40 on segment 0 with -40 on the last
+  segment runs, and +40 with -40 on segment 4 runs (both boxes shown; the longer line is still typing at cycle 14, not
+  yet seen in full). The disc build keeps the source size and every other entry offset.
+- Open: the full in-game text of the longer line (later cycles), the GameCube (big endian) proof, the editor's pooled
+  budget display (per-line budget is gone; the save only refuses an over-budget script), the cause of the tail freeze
+  (a reference into the tail is not shifted; not found, not needed for the net-zero model).
+- Done: labels are code-relative; branch operands after `0x0b` and `0x90` are relocated; the aligned-word heuristic is
+  removed. Not decoded: opcode `0x0a` and the four absolute words (`1d 2b <offset>`) were not moved (the tail is fixed
+  now, so they are not moved by the net-zero model).
 - Open: other text groups (`BATTLE/*.SML`, `FIELD/*.MLD`, `1ST_READ.BIN` with 23 `\h(` pages) are not editor text yet.
 - Open: Disc 2 (USA) is identified and extracts the same way; its build is not proven in game.
 
