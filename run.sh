@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+# Work in the folder of this file, whatever the current folder is.
+cd "$(dirname "$0")" || exit 1
 
 VENV_DIR=".venv"
 REQUIREMENTS_FILE="requirements.txt"

@@ -141,3 +141,14 @@ def test_the_launch_scripts_call_tasks_py_instead_of_naming_an_environment():
         text = (root / name).read_text(encoding="utf-8")
         assert "tasks.py" in text, name
         assert "venv\\Scripts" not in text and "venv/bin" not in text, name
+
+
+def test_the_setup_and_launch_scripts_work_in_their_own_folder():
+    """Started as administrator, or from a shortcut, the current folder is another one (C:\Windows\System32): a script
+    that uses .venv or requirements.txt before it changes to its own folder deletes and makes the environment there."""
+    root = Path(tasks.__file__).resolve().parent
+    for name, change, first_use in (("setup.bat", 'cd /d "%~dp0"', "rmdir"), ("run.bat", 'cd /d "%~dp0"', "python tasks.py"),
+                                    ("run.sh", 'cd "$(dirname "$0")"', "VENV_DIR=")):
+        text = (root / name).read_text(encoding="utf-8")
+        assert change in text, name
+        assert text.index(change) < text.index(first_use), name
