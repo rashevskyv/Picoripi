@@ -30,7 +30,7 @@ from utils.logging_utils import log_warning
 from utils.thread_utils import WorkerThread, safe_shutdown_thread
 
 from . import folders, layout, page_build, repo_tools
-from .layout import fingerprint
+from .layout import HARD_BREAK, fingerprint
 from .config import CUSTOM_IDS, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 
 # The layout problems that decide whether a text fits one paragraph (get_text_fit_problems_for_string, D46).
@@ -38,6 +38,9 @@ FIT_PROBLEMS = frozenset({"LINES", "WORD", "WIDTH", "WRAP", "BESIDE", "PANES"})
 
 # The defects only the render can see (page_build.RENDER_PROBLEMS) as the editor's problem ids.
 RENDER_IDS = {kind: f"{PLUGIN_PREFIX}_{name}" for kind, name in page_build.RENDER_PROBLEMS.items()}
+NEWLINE_ID = f"{PLUGIN_PREFIX}_NEWLINE"
+# The problems whose detail gets the paragraph's fit numbers (layout.fit_hint): what the translator shortens by.
+FIT_HINT_IDS = tuple(f"{PLUGIN_PREFIX}_{name}" for name in ("LINES", "WORD", "PANES"))
 
 _DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 _STRING_KEY_PATTERN = re.compile(r"(large|small)/Page_(\d+)_(large|small)_\d+")
@@ -172,6 +175,14 @@ class _Manual:
             self.geo = geo  # geo before name: a reader that sees the name sees the geometry
             self.name = name
         return self
+
+
+def _cell_hint(geo: layout.Geometry) -> str:
+    """What a label that leaves its cell needs: the cell's panes, and a shorter wording or an abbreviation."""
+    panes = len(geo.lines)
+    box = geo.lines[0].box
+    return (f"The cell has {panes} pane(s) of {box:.0f} px: a longer wording does not fit; use a shorter "
+            "wording or an abbreviation.")
 
 
 class ManualProblemAnalyzer(GenericProblemAnalyzer):
@@ -406,6 +417,11 @@ class GameRules(BaseGameRules):
                     continue
                 ids.add(pid)
                 details[pid] = f"{details[pid]}; {message}" if pid in details else message
+            if key in manual.geo and any(pid in details for pid in FIT_HINT_IDS):
+                hint = layout.fit_hint(text, manual.geo[key], _DATA.widths)
+                for pid in FIT_HINT_IDS:
+                    if pid in details:
+                        details[pid] = f"{details[pid]}. {hint}"
             self._problem_cache[cache_key] = (ids, details)
         ids, details = self._problem_cache[cache_key]
         rendered = self._render_problems(block_idx, found_entry[0], found_entry[1])
@@ -465,8 +481,17 @@ class GameRules(BaseGameRules):
                 self._render_warned = True
                 log_warning(f"manual_3ds: the page render for the problem scan is off: {exc!r}")
             return {}
-        return {key: {RENDER_IDS[kind]: detail for kind, detail in found.items() if kind in RENDER_IDS}
-                for key, found in kinds.items()}
+        out: Dict[str, Dict[str, str]] = {}
+        for key, found in kinds.items():
+            ids: Dict[str, str] = {}
+            for kind, detail in found.items():
+                if kind not in RENDER_IDS:
+                    continue
+                if kind == "over_cell" and key in manual.geo:
+                    detail = f"{detail}. {_cell_hint(manual.geo[key])}"
+                ids[RENDER_IDS[kind]] = detail
+            out[key] = ids
+        return out
 
     def _store_page(self, block_idx: int, manual: "_Manual", group: str, texts: Dict[str, str],
                     found: Dict[str, Dict[str, str]]) -> bool:
@@ -577,6 +602,25 @@ class GameRules(BaseGameRules):
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 8) -> Optional[int]:
         return None
 
+    def get_enter_char(self) -> str:
+        """Enter types the hard break: a typed newline is a space on the console (NEWLINE)."""
+        return HARD_BREAK
+
+    def autofix_data_string(self, data_string: str, editor_font_map: dict, editor_line_width_threshold: int,
+                            logical_hard_limit: Optional[int] = None, allowed_problems: Optional[Set[str]] = None,
+                            block_idx: Optional[int] = None, string_idx: Optional[int] = None,
+                            page_local: bool = False, disable_pagination: bool = False) -> Tuple[str, bool]:
+        """A typed line break becomes the hard break {br} (NEWLINE); the shared fixes see the other ids."""
+        if allowed_problems is None:
+            allowed_problems = {key for key, on in (getattr(self.mw, "autofix_enabled", None) or {}).items() if on}
+        text, changed = data_string, False
+        if NEWLINE_ID in allowed_problems and "\n" in data_string:
+            text, changed = re.sub(r"[ \t]*\n[ \t]*", HARD_BREAK, data_string), True
+        fixed, more = super().autofix_data_string(
+            text, editor_font_map, editor_line_width_threshold, logical_hard_limit,
+            set(allowed_problems) - {NEWLINE_ID}, block_idx, string_idx, page_local, disable_pagination)
+        return fixed, changed or more
+
     # -- live preview ---------------------------------------------------------------------
 
     def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
@@ -619,6 +663,32 @@ class GameRules(BaseGameRules):
     def get_virtual_folders(self, block_idx: int, text_of) -> List[Dict[str, Any]]:
         """Small text, Large text, Sections and Contents of the manual, from its keys (folders.build_folders)."""
         return folders.build_folders(block_idx, self._keys_of(block_idx), text_of)
+
+    def english_texts(self, block_idx: int, group: str) -> Dict[str, str]:
+        """The English of a page's paragraphs, where the English lines up with the Russian paragraph by paragraph
+        (pairs_agree); {} when it does not. Read from the loaded file, so the translation's edits do not change it."""
+        manuals = self._manuals
+        if not (0 <= block_idx < len(manuals)):
+            return {}
+        doc = manuals[block_idx].doc
+        keys = [key for key in manuals[block_idx].keys if group_key_of(key) == group]
+        if not pairs_agree([(str(doc[k].get("en", "")), str(doc[k].get("ru", ""))) for k in keys]):
+            return {}
+        return {key: str(doc[key].get("en", "")) for key in keys}
+
+    def string_index_of(self, block_idx: int, key: str) -> Optional[int]:
+        """The string index of a manual key in its block, or None."""
+        keys = self._keys_of(block_idx)
+        return keys.index(key) if key in keys else None
+
+    def fit_hint(self, block_idx: int, key: str, text: str) -> str:
+        """The fit numbers of one paragraph's text (layout.fit_hint); "" for a paragraph without geometry."""
+        manual = self._manual(block_idx)
+        geo = manual.geo.get(key) if manual is not None else None
+        if geo is None or not text:
+            return ""
+        _DATA.load()
+        return layout.fit_hint(text, geo, _DATA.widths)
 
     def preview_budget(self, block_idx: int, key: str) -> Optional[float]:
         """The column width a paragraph is drawn in on the console (from geometry.json), or None."""

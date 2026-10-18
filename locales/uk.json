@@ -2931,5 +2931,10 @@
   "Cached translations are available for <b>{count}</b> of the selected lines.<br>For cached lines, the translation will be restored instantly. Other lines will be translated via AI.<br><br>Use cached translations?": "Для <b>{count}</b> із вибраних рядків є збережені переклади.<br>Збережені переклади відновляться одразу. Решту рядків буде перекладено через ШІ.<br><br>Використати збережені переклади?",
   "Script budget: {0} of {1} bytes used, {2} over. Shorten this line or another line of this script. Lines change in steps of 4 bytes.": "Бюджет скрипта: використано {0} з {1} байтів, перевищення на {2}. Скоротіть цей рядок або інший рядок цього скрипта. Рядки змінюються кроками по 4 байти.",
   "Script over its budget by {0} bytes. The text is saved as typed; the build refuses this script until its text is shorter.": "Скрипт перевищує бюджет на {0} байтів. Текст збережено так, як введено; збірка відхиляє цей скрипт, доки текст не стане коротшим.",
-  "{0}: the script's text is {1} bytes over its budget, so it is not built. Shorten these lines or other lines of the script: {2}.": "{0}: текст скрипта перевищує бюджет на {1} байтів, тому його не збирають. Скоротіть ці рядки або інші рядки скрипта: {2}."
+  "{0}: the script's text is {1} bytes over its budget, so it is not built. Shorten these lines or other lines of the script: {2}.": "{0}: текст скрипта перевищує бюджет на {1} байтів, тому його не збирають. Скоротіть ці рядки або інші рядки скрипта: {2}.",
+    "No original": "Без оригіналу",
+    "Original: Russian (ru)": "Оригінал: російська (ru)",
+    "Original: English (en)": "Оригінал: англійська (en)",
+    "No English text on this page: it does not line up with the Russian.": "На цій сторінці немає англійського тексту: він не збігається з російським.",
+    "No original text on this page.": "На цій сторінці немає оригінального тексту."
 }

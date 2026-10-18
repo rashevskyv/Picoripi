@@ -1,6 +1,10 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- 3DS manual preview: a click on a paragraph selects its string in the editor, through the main window's normal selection (history and panels follow); a drag of more than 4 px still scrolls the page.
+- 3DS manual preview: a selector above the preview draws the original beside the translation: the Russian as the console stores it, or the English in the Russian panes; scroll, text size and the selected paragraph are shared, and the original renders after the translation.
+- 3DS manuals: a typed line break is the problem NEWLINE (a space on the console), autofixed to `{br}`; Enter types `{br}`. `{br}` no longer counts as a marker change against the Russian; its fit is judged by LINES and PANES.
+- 3DS manuals: the problem details and the preview status give a paragraph's fit numbers (panes, pane width, lines and their widths, longest word); a CELL problem says how many panes its cell has.
 - Font Editor: the standalone window is closed when another project opens or the project closes (it kept the fonts of the old project). Its own close still asks about unsaved glyph edits; cancelling keeps it open. Tests in `tests/test_handlers/test_font_editor_project_switch.py`.
 - 3DS manual preview: the page is drawn at a whole-number zoom of the console pixels (no smoothing when it is enlarged, smoothing only when it must shrink), so it no longer looks smeared when the panel is resized.
 - 3DS manuals: the same paragraph text in two manuals shares one translation (D46): the plugin's `get_duplicate_context_for_string` replaces the window and the translation context in the duplicate key, and `get_text_fit_problems_for_string` refuses a place whose layout the text does not fit (repeated translations, memory rows, series rows, glossary fill and batch followers; a refused follower stays untranslated and the status bar says so).
