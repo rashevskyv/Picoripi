@@ -1539,11 +1539,16 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
   first segment of `FIELD/ME201A.SCT` shows in the Alfonso dialogue box (frame c014 of the run; schedule
   a schedule file kept outside the repository). Title, New Game (C), Start (Enter), X held 1000 ms, then
   cinematics, the Valuan ship and battles follow with no input stall.
-- Done: growth of `FIELD/ME201A.SCT` freezes the game on Dreamcast. A +8 byte segment 0 gives a black screen right after
-  New Game and no further picture in 90 input cycles. The same-length build ran the same schedule. `ME201A` stays
-  fixed-size. Cause not found: `grow_regions` relocates every aligned word that points past the edit by a heuristic
-  (`core/containers/skies_script.py`). Relative branches across the edit point are not mapped, so they are the likely
-  missing reference. Not proven.
+- Done (2026-10-18, scripts analysis): labels are code-relative (label = code start + value; the old writer read them as
+  file offsets, so it cut text at fake labels and moved the wrong labels). Branch operands: a word `0x0b` (goto, also
+  call id `1d 0b`) and a word `0x90` (dispatch entry: operand, mask) are followed by a branch operand; target =
+  operand position + 4 + signed operand; 98 to 99.7 percent of those operands land after a `0x09` word, 1 percent by
+  chance. Absolute offsets also exist (`1d 2b <file offset>`, four words in ME201A). `core/containers/skies_script.py`
+  moves the labels and the branch operands; it does not move the absolute words.
+- Done: growth of `FIELD/ME201A.SCT` still freezes the game on Dreamcast after the fix (2026-10-18). +8 bytes on
+  segment 0: black from New Game, cycle 0 to 40. Same with the four absolute words moved too. The writer now keeps
+  every script fixed-size (`FIXED_SIZE = ("*",)`). Not decoded: opcode `0x0a` (operand not a branch in general), the
+  arity of call ids, and any other operand that points into the code. Cause not found.
 - Done: growth of `FIELD/ME355A.SCT` (+8 bytes, segment 0) ran the same schedule with no freeze. Only a boot and run check:
   the grown script's own text was not seen on screen.
 - Open: growth of other scripts (in-game text proof), and the relative-branch analysis for ME201A.

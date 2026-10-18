@@ -21,7 +21,7 @@ def _script(pages, labels=()):
     header = bytes(8) + struct.pack(">I", len(labels)) + bytes(4)
     table = b""
     for name, (page_index, at) in enumerate(labels):
-        target = offsets[page_index] + 3 + at
+        target = offsets[page_index] + 3 + at - code_start   # labels are code-relative
         table += f"L{name}".encode().ljust(16, b"\x00") + struct.pack(">I", target)
     return header + table + b"".join(bodies)
 
@@ -80,7 +80,11 @@ def test_growable_edit_writes_the_longer_text_back():
     ("other/me201a.sct", False),
 ])
 def test_fixed_size_scripts_match_by_path_end(rel, fixed):
-    assert scripts.is_fixed(rel) is fixed
+    assert scripts.is_fixed(rel, ("field/me201a.sct",)) is fixed
+
+
+def test_default_fixed_size_covers_every_script():
+    assert scripts.is_fixed("field/me202a.sct") is True
 
 
 class _Context:

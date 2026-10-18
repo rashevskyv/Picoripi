@@ -1,9 +1,9 @@
 """Field scripts (``field/*.sct``) as editor strings: one string per text segment, saved back into the decoded body.
 
-A segment is a page's text cut at each label inside it (``core.containers.skies_script.text_segments``), so the game
-reads each string in order. A file in ``FIXED_SIZE`` keeps every segment's byte length: a longer text is refused
-and the source text stays; a shorter text is padded with spaces to the same length. The game freezes when such a
-file grows, so these edits are in-place only. Other files may grow: their bytes move through ``grow_regions``.
+A segment is a page's text cut at each label inside it (``core.containers.skies_script.text_segments``). The field
+scripts have no label inside a text, so a segment is a page. A file in ``FIXED_SIZE`` keeps every segment's byte length:
+a longer text is refused and the source text stays; a shorter text is padded with spaces to the same length. Other
+files may grow: ``grow_regions`` moves the labels and the branch operands to the new places of their targets.
 """
 from __future__ import annotations
 
@@ -15,10 +15,14 @@ from . import text
 
 BIG_ENDIAN = True   # GameCube
 # Scripts that freeze the game when a text grows (see the module docstring). A path matches by its end.
-FIXED_SIZE = ("field/me201a.sct",)
+# "*" = every script. Growth moves labels and branch operands (core.containers.skies_script), but no growing script
+# has been proven in game: a +8 byte growth of field/me201a.sct still freezes the game on Dreamcast (2026-10-18).
+FIXED_SIZE = ("*",)
 
 
 def is_fixed(rel_path: str, names: Tuple[str, ...] = FIXED_SIZE) -> bool:
+    if "*" in names:
+        return True
     key = rel_path.replace("\\", "/")
     return any(key == name or key.endswith("/" + name) for name in names)
 

@@ -31,9 +31,9 @@ def test_fixed_script_flags_a_text_longer_than_its_segment(monkeypatch, tmp_path
     assert rules.exceeds_byte_budget(0, 0, "Hello") is False
 
 
-def test_other_scripts_have_no_budget(monkeypatch, tmp_path):
+def test_every_script_has_a_budget_until_growth_is_proven(monkeypatch, tmp_path):
     rules = _fake_source(monkeypatch, tmp_path, "field/me202a.sct", b"Hello")
-    assert rules.exceeds_byte_budget(0, 0, "a much longer text than the source") is False
+    assert rules.exceeds_byte_budget(0, 0, "a much longer text than the source") is True
 
 
 def test_unknown_string_index_has_no_budget(monkeypatch, tmp_path):
