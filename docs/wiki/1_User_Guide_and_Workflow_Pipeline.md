@@ -696,8 +696,10 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `source\text\bank_1A\` (the catapult instruction book) and `source\text\bank_1C\` (menu, pause menu, chapter
      names, credits): one JSON per table, text as plain characters with `[@hh]` tags for inline codes; the font
      `source\font\glyph_00.pgm` to `glyph_94.pgm` with `glyphs.json` and `glyph_map.json`; the voice streams
-     `source\voice\streams\NNNN.mp3` with the index `source\voice\streams.json`. No build target yet: the ROM is
-     not changed. The in-game preview is not verified yet.
+     `source\voice\streams\NNNN.mp3` with the index `source\voice\streams.json`. Build targets: `rom` writes a
+     patched ROM; `bps` writes a BPS patch from the US ROM. The text can grow: when a table gets longer, banks 0x1A to
+     0x1D move to the free end of the ROM, and the ROM keeps its size. The text box does not grow yet, and the in-game
+     preview is not verified yet.
    - `paper_mario_ok` — Paper Mario: The Origami King (Switch, 2020), the same formats. **Source:** the
      workspace's `source` (`1_unpack.bat`: base + update): `msg\EU_English\*.msbt` (59 files, 9,708 messages),
      `font\*.bffnt` (12 fonts) and `ui\...\*.bntx`; a picture the game keeps once per language opens as its
