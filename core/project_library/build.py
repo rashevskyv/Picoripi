@@ -68,6 +68,7 @@ def run_unpack(rules: Any, sources: Dict[str, str], project_dir: str | os.PathLi
         if is_cancelled():
             raise Cancel()
         if result is None:
+            _refuse_unread_image(sources)
             _remove_own(temporary)
             return None
         subfolder = rules.get_source_subfolder()
@@ -81,6 +82,18 @@ def run_unpack(rules: Any, sources: Dict[str, str], project_dir: str | os.PathLi
     except BaseException:
         _remove_own(temporary)
         raise
+
+
+def _refuse_unread_image(sources: Dict[str, str]) -> None:
+    """Refuse a game image that the plugin did not unpack: used as it is, it is not a source the plugin reads.
+
+    The plugin returned no folder for it (no unpack hook, or none for this image), so nothing is created.
+    """
+    for path in sources.values():
+        kind = (images.identify(path) or {}).get("kind")
+        if kind in images.UNPACK_KINDS:
+            raise ValueError(tr("This game cannot read the {0} image {1}. Unpack the image into a folder first, "
+                                "then add that folder.", tr(images.KIND_LABEL[kind]), Path(path).name))
 
 
 def _free_bytes(path: Path) -> int:
