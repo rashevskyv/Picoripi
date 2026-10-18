@@ -6,6 +6,8 @@ import re
 from math import ceil
 from typing import Any, Optional
 
+from utils.logging_utils import log_warning
+
 
 class TranslationLayoutError(ValueError):
     pass
@@ -159,15 +161,32 @@ def check_translated(source_text: Any, translation: Any, *, item_id: Any = None)
 
 
 def text_fits_place(mw, source: Any, text: Any, block_idx: Any, string_idx: Any) -> bool:
-    """Whether ``text`` is a valid translation of ``source`` in the window of one place (its lines per window)."""
+    """Whether ``text`` is a valid translation of ``source`` in the window of one place (its lines per window).
+
+    The plugin's own layout problems of the place are checked too (``get_text_fit_problems_for_string``,
+    D46): a place where the plugin reports a problem does not take the text. A failing check refuses the text.
+    """
     rules = getattr(mw, "current_game_rules", None)
+    shown = editor_text_for_layout(text, rules)
     try:
         validate_translation_layout(
             editor_text_for_layout(source, rules),
-            editor_text_for_layout(text, rules),
+            shown,
             resolve_lines_per_window(mw, block_idx, string_idx),
             allow_reflow=True,
         )
     except ValueError:
         return False
-    return True
+    return not _place_fit_problems(rules, block_idx, string_idx, shown)
+
+
+def _place_fit_problems(rules: Any, block_idx: Any, string_idx: Any, text: str) -> list:
+    """The plugin's layout problems of ``text`` at one place; a check that raises counts as a problem."""
+    check = getattr(rules, "get_text_fit_problems_for_string", None)
+    if not callable(check):
+        return []
+    try:
+        return list(check(block_idx, string_idx, text) or [])
+    except Exception as exc:
+        log_warning(f"Layout check failed for ({block_idx}, {string_idx}), the text is refused: {exc!r}")
+        return ["check failed"]

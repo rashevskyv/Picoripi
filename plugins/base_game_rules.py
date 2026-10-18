@@ -355,6 +355,19 @@ class BaseGameRules:
         """
         return None
 
+    def get_duplicate_context_for_string(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
+        """The context that decides whether two strings with the same text may share one translation (D46).
+
+        Default None: the engine compares the window (``lines_per_window``) and the translation context
+        (``get_translation_context_for_string``), so a text repeated in another window or with other layout
+        text is translated again. A plugin whose windows vary but whose translation does not returns a dict
+        here: the dict replaces those two values in the duplicate key, and the key keeps the speaker, the
+        addressee and the user's story-context override. Put only what the translation depends on in it. The
+        dict must be JSON-serialisable and equal for every place that may share a translation. The fit to
+        each place is then checked by ``get_text_fit_problems_for_string``.
+        """
+        return None
+
     def get_external_lore(self, term: str) -> Optional[str]:
         """Background knowledge about a term from a source outside the game.
 
@@ -668,6 +681,17 @@ class BaseGameRules:
         Default: None (the generic wrapping by ``get_string_layout`` widths).
         """
         return None
+
+    def get_text_fit_problems_for_string(self, block_idx: int, string_idx: int, text: str) -> List[str]:
+        """The layout problems that stop ``text`` from fitting the place ``(block_idx, string_idx)`` (D46).
+
+        Checked before a translation is written to a place it was not made for: a repeated translation,
+        a memory row or a series row (``text_fits_place``). Return the problem ids (short, stable strings
+        the plugin defines), or an empty list when the text fits. Only layout belongs here: a check that
+        needs a render of the page or the editor's current text is left to the issue scan. Default: no
+        problems, so the line-count contract alone decides.
+        """
+        return []
 
     # -- message windows (capability "message_window_preview") ------------------
     # A game that shows text in several kinds of window can teach the preview to

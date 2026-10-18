@@ -150,6 +150,11 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
              call=(0, 0), returns=dict, optional=True),
         Hook("fit_text_to_window", "A translation re-wrapped with the game's own line and page breaks; None: the "
              "generic wrapping.", call=("text", 0, 0), **_STR_OR_NONE),
+        Hook("get_duplicate_context_for_string", "The context that decides whether a repeated text may share one "
+             "translation; a dict replaces the window and the translation context in the duplicate key; None: the "
+             "default key.", call=(0, 0), returns=dict, optional=True),
+        Hook("get_text_fit_problems_for_string", "Layout problem ids that stop a text from fitting one place (a "
+             "repeated translation, a memory row); empty: it fits.", call=(0, 0, "text"), returns=list),
         Hook("get_ai_flow_context_for_string", "Dialogue-flow note for one line in an AI prompt.",
              call=(0, 0), **_STR_OR_NONE),
         Hook("get_ai_flow_group_for_string", "Id of the line's conversation: lines that share it travel in one AI request.",

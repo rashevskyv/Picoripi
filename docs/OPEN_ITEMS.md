@@ -10,6 +10,14 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Same text in manuals (`plugins/manual_3ds`, D46, 2026-10-18, branch `feat/manual-same-text`)
+
+- Done: one paragraph text in two manuals folds into one translation (the manual's duplicate context is a constant); every writer of a repeated translation checks the place's layout first.
+- Open (owner): the coordinator's count of 37 texts and 172 places does not match the files. The fold compares the Russian source: 148 texts and 3161 places. Confirm which count the owner meant.
+- Open: a repeated place that the translation does not fit stays untranslated after a run. A batch could send these places to the model instead (not built; the status bar says how many).
+- Open: the apply-time check is layout only. The render checks (CELL, OVERLAP, COVERED) stay with the issue scan, so a place can pass the apply and still be flagged.
+- Open: the speaker of a manual paragraph is equal across manual blocks in the tests (a two-word text). It is not yet checked in a run of the owner's project in the app.
+
 ## Grandia PS1, PC HD Remaster and Grandia II HD (`plugins/grandia`, 2026-10-17)
 
 - Grandia PS1: the plugin lists the PlayStation 1 platform; the wizard unpacks the disc (`core/containers/psx_disc.py`,

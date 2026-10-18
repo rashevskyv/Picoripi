@@ -91,6 +91,8 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | `get_external_reference_url` | Web page about a term. |  |
 | `get_string_layout` | Layout of a string from game data: warn_width, max_width, font_file, lines_per_page. |  |
 | `fit_text_to_window` | A translation re-wrapped with the game's own line and page breaks; None: the generic wrapping. |  |
+| `get_duplicate_context_for_string` | The context that decides whether a repeated text may share one translation; a dict replaces the window and the translation context in the duplicate key; None: the default key. |  |
+| `get_text_fit_problems_for_string` | Layout problem ids that stop a text from fitting one place (a repeated translation, a memory row); empty: it fits. |  |
 | `get_ai_flow_context_for_string` | Dialogue-flow note for one line in an AI prompt. |  |
 | `get_ai_flow_group_for_string` | Id of the line's conversation: lines that share it travel in one AI request. |  |
 | `get_ai_flow_overview` | Conversation outline for the lines of one AI request. |  |

@@ -1843,6 +1843,7 @@
   "Apply to all {count} places": "Застосувати в усі {count} місць",
   "Apply to places with the same context": "Застосувати до місць з тим самим контекстом",
   "{count} other places did not take the text: it does not fit their window.": "{count} інших місць не отримали текст: він не вміщається в їхнє вікно.",
+  "{count} repeated places did not take the translation: it does not fit their place.": "{count} повторюваних місць не отримали переклад: він не вміщається в їхнє місце.",
   "Use the _glossary folders above the project": "Використовувати теки _glossary над проєктом",
   "New Series Glossary": "Новий глосарій серії",
   "Glossary JSON (*.json)": "Глосарій JSON (*.json)",

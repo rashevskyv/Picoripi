@@ -203,3 +203,60 @@ def test_the_managers_three_argument_context_serves_a_saved_place():
     place = mc.SavedPlace(2, 5, "Source text", "Saved text")
     assert mc.place_context(manager_context_for)(place) == {"speaker": "A", "addressee": "B", "fold": "f1"}
     assert calls == [(2, 5, "Source text")]
+
+
+# -- D46: a plugin's duplicate context carries the legacy fold too; a row keeps the four stored fields only ---
+
+def _ctx_legacy(speaker, fold, legacy):
+    return {"speaker": speaker, "addressee": "", "fold": fold, "fold_legacy": legacy}
+
+
+def test_a_row_saved_before_the_plugin_context_matches_at_its_own_place():
+    context = _ctx_legacy("", "new", "old-wide")
+    assert mc.same_context({"fold": "old-wide"}, context) is True
+    assert mc.same_context({"fold": "new"}, context) is True
+    assert mc.same_context({"fold": "old-narrow"}, context) is False
+    assert mc.same_context({}, context) is False, "a row without a context is not the same context"
+    assert mc.same_context({"fold": "new"}, None) is False
+
+
+def test_the_rebuild_keeps_the_legacy_row_and_stores_only_the_four_fields():
+    memory = _memory({"Текст": [{"source": "Текст", "translation": "Так", "fold": "old-wide"}]})
+    places = [mc.SavedPlace(0, 0, "Текст", "Так"), mc.SavedPlace(0, 1, "Текст", "Так")]
+    contexts = {0: _ctx_legacy("", "new", "old-wide"), 1: _ctx_legacy("", "new", "old-narrow")}
+    result = mc.plan_rebuild(memory, places, lambda s: True, lambda p: contexts[p.string], no_tags)
+    rows = result.memory[source_hash("Текст")]
+    assert [row["fold"] for row in rows] == ["old-wide", "new"]
+    assert all("fold_legacy" not in row for row in rows)
+    assert (result.updated, result.split) == (0, 1)
+
+
+def test_the_saved_fields_of_a_context_are_the_four_stored_ones():
+    context = {"speaker": "A", "addressee": "B", "fold": "f", "speaker_en": "Ann", "fold_legacy": "g"}
+    assert mc.stored_context(context) == {"speaker": "A", "addressee": "B", "fold": "f", "speaker_en": "Ann"}
+
+
+def test_the_manager_offers_a_repeated_text_at_its_own_place_by_either_fold(monkeypatch):
+    from types import SimpleNamespace
+
+    from core.saved_translations_manager import SavedTranslationsManager
+
+    text = "Текст"
+    manager = SavedTranslationsManager(SimpleNamespace(data_store=SimpleNamespace(data=[[text, text]])))
+    path = SimpleNamespace()
+    monkeypatch.setattr(manager, "_memory_path", lambda: path)
+    manager._memory_path_loaded = path
+    manager._memory = {source_hash(text): [
+        {"source": text, "translation": "A", "fold": "old-wide"},
+        {"source": text, "translation": "B", "fold": "new"},
+        {"source": text, "translation": "C", "fold": "old-narrow"},
+    ]}
+    manager.source_positions = {source_hash(text): [(0, 0), (0, 1)]}
+    legacy = {0: "old-wide", 1: "old-narrow"}
+    manager.context_for = lambda b, s, src: _ctx_legacy("", "new", legacy[s])
+
+    own_wide, _ = manager.acceptable_rows(0, 0, text)
+    own_narrow, _ = manager.acceptable_rows(0, 1, text)
+
+    assert sorted(row["translation"] for row in own_wide) == ["A", "B"]
+    assert sorted(row["translation"] for row in own_narrow) == ["B", "C"]

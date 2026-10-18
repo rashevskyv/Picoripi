@@ -60,6 +60,11 @@ def _hoist_layout_defaults(items: List[Dict]) -> Dict:
     return defaults
 
 
+def _fold_hash(key: Tuple) -> str:
+    """The short hash a saved row keeps for a duplicate key (``fold``)."""
+    return hashlib.sha1(json.dumps(key, ensure_ascii=False, default=str).encode("utf-8")).hexdigest()[:16]
+
+
 def _dump_payload(payload: Dict) -> str:
     """The payload as JSON: sections indented, one string item per line.
 
@@ -196,12 +201,27 @@ class BatchMixin:
                 log_debug(f"AIPromptComposer: addressee failed for ({real_b_idx},{real_s_idx}): {e}")
         return ""
 
+    def _plugin_duplicate_context(self, real_b_idx: Any, real_s_idx: Any) -> Optional[Dict]:
+        """What the plugin says decides a repeated text's translation (D46); ``None`` keeps the default key."""
+        rules = getattr(self.mw, 'current_game_rules', None)
+        if rules is not None and hasattr(rules, 'get_duplicate_context_for_string'):
+            try:
+                candidate = rules.get_duplicate_context_for_string(real_b_idx, real_s_idx)
+                if isinstance(candidate, dict):
+                    return candidate
+            except Exception as e:
+                # The default key is stricter (it keeps the window), so a failure can only fold less.
+                log_debug(f"AIPromptComposer: duplicate context failed for ({real_b_idx},{real_s_idx}): {e}")
+        return None
+
     def duplicate_context_key(self, item: Dict, block_idx: Optional[int], temp_id_map: Optional[Dict]) -> Tuple:
         """Everything except the text that decides how a string is translated.
 
         Two strings with the same text may share one translation only when this
         is equal too: who says it and to whom (gender, politeness), what the
-        plugin and the user say about the row, and the window it must fit.
+        plugin and the user say about the row, and the window it must fit. A plugin
+        that gives a duplicate context (D46) replaces the window and the translation
+        context by that context.
         """
         return self._duplicate_key_and_identity(item, block_idx, temp_id_map, identity=False)[0]
 
@@ -210,6 +230,18 @@ class BatchMixin:
         """``(duplicate key, speaker identity)``: the key is the one the fold hashes; the identity is the English name (D45).
 
         ``identity=False`` keeps the fold's own speaker call (``_resolve_prompt_speaker``) and returns no identity.
+        """
+        key, _, name = self._fold_keys(item, block_idx, temp_id_map, identity)
+        return key, name
+
+    def _fold_keys(self, item: Dict, block_idx: Optional[int], temp_id_map: Optional[Dict],
+                   identity: bool = True) -> Tuple[Tuple, Optional[Tuple], Optional[str]]:
+        """``(key, legacy key, identity)``. The legacy key is the default key (window and translation context);
+        it is ``None`` when the plugin gives no duplicate context, because then the key is the legacy one.
+
+        Without a plugin context the key is the same five-value tuple as before D46, so every saved fold
+        hash stays valid. With one, the fourth value is the plugin context (JSON) instead of the window and
+        translation context; the speaker, the addressee and the user's override stay.
         """
         _, current_text, _, _ = self._item_text_for_ai(item)
         real_b_idx, real_s_idx = self._real_pair(item, block_idx, temp_id_map)
@@ -220,14 +252,24 @@ class BatchMixin:
             speaker, _ = self._resolve_prompt_speaker(real_b_idx, real_s_idx, current_text, translation_context)
             name = None
         manual = get_story_context_override(self.mw, real_b_idx, real_s_idx)
-        key = (
+        addressee = self._plugin_addressee(real_b_idx, real_s_idx, speaker)
+        legacy = (
             str(speaker or ""),
-            self._plugin_addressee(real_b_idx, real_s_idx, speaker),
+            addressee,
             str(resolve_lines_per_window(self.mw, real_b_idx, real_s_idx)),
             json.dumps(translation_context, ensure_ascii=False, sort_keys=True, default=str),
             json.dumps(manual, ensure_ascii=False, sort_keys=True, default=str),
         )
-        return key, name
+        duplicate = self._plugin_duplicate_context(real_b_idx, real_s_idx)
+        if duplicate is None:
+            return legacy, None, name
+        key = (
+            legacy[0],
+            addressee,
+            json.dumps(duplicate, ensure_ascii=False, sort_keys=True, default=str),
+            legacy[4],
+        )
+        return key, legacy, name
 
     def saved_context(self, block_idx: int, string_idx: int, source: str) -> Dict[str, str]:
         """``{"speaker", "addressee", "fold", "speaker_en"}`` of a saved row: the duplicate key, split for the restore.
@@ -235,10 +277,15 @@ class BatchMixin:
         ``fold`` is a hash of the whole key (the same test as the duplicate fold); the restore compares
         ``speaker`` and ``addressee`` alone for a row from another project of the series. ``speaker_en`` is the
         speaker's own (English) name; the series memory matches speakers by it (D45).
+        With a plugin duplicate context (D46) ``fold_legacy`` is the hash of the default key too: a row saved
+        before that context was given carries that hash, and it is still offered at its own place. A row
+        stores only the four fields above (``fold_legacy`` is not saved).
         """
-        key, identity = self._duplicate_key_and_identity({"id": string_idx, "text": source}, block_idx, None)
-        fold = hashlib.sha1(json.dumps(key, ensure_ascii=False, default=str).encode("utf-8")).hexdigest()[:16]
-        return {"speaker": key[0], "addressee": key[1], "fold": fold, "speaker_en": identity or ""}
+        key, legacy, identity = self._fold_keys({"id": string_idx, "text": source}, block_idx, None)
+        context = {"speaker": key[0], "addressee": key[1], "fold": _fold_hash(key), "speaker_en": identity or ""}
+        if legacy is not None:
+            context["fold_legacy"] = _fold_hash(legacy)
+        return context
 
     def _run_memory_rows(self, source_items: List[Any]) -> List[Dict[str, str]]:
         """Earlier translations of this run whose source matches one of ``source_items``, as the model sees text."""

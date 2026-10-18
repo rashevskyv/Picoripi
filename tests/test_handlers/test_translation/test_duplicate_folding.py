@@ -186,3 +186,118 @@ def test_a_follower_that_is_already_translated_is_not_overwritten(handler, windo
     assert window.data_processor.get_current_string_text(0, 3)[0] == "Авжеж"       # the user's text stays
     assert (3, "Авжеж") in handler.current_session_previous_translations[0]       # and is offered for comparison
     assert window.data_processor.get_current_string_text(0, 2)[0] == "Так"
+
+
+# -- D46: a plugin's duplicate context (the 3DS manual: one context for every paragraph) ----------------------
+
+MANUAL_TEXT = "Текст"
+WIDE = "large/Page_000_large_0#0"
+NARROW = "small/Page_001_small_0#1"
+FITS_ONLY_WIDE = "а" * 12
+
+
+def _manual_rules(monkeypatch, doc, window, data):
+    """The 3DS manual plugin with one synthetic manual loaded as block 0; ``data`` is the block's source column."""
+    from plugins.manual_3ds import layout
+    from plugins.manual_3ds import rules as m3d
+
+    advances = {ch: 10.0 for ch in "абвгґдеєжзиіїйклмнопрстуфхцчшщьюяabcdefghijklmnopqrstuvwxyz"}
+    advances[" "] = 9.0
+    monkeypatch.setattr(m3d._DATA, "widths", layout.Widths({"advances": advances, "homoglyphs": {}}))
+    wide = {"part": "large", "font_size": 24.0, "char_space": 0.0, "icon_widths": [], "lines": [[[10.0, 300.0]]]}
+    narrow = {"part": "small", "font_size": 24.0, "char_space": 0.0, "icon_widths": [],
+              "lines": [[[20.0, 100.0, 250.0]]]}
+    keys = list(doc)
+    table = {m3d.fingerprint(keys): {"name": "synthetic", "entries": {WIDE: wide, NARROW: narrow}}}
+    monkeypatch.setattr(m3d._DATA, "geometry", table)
+    rules = m3d.GameRules()
+    rules.load_data_from_json_obj(json.dumps(doc, ensure_ascii=False))
+    window.current_game_rules = rules
+    window.data_store.data = data
+    return rules
+
+
+def _manual_doc(width_narrow=100.0):
+    return {WIDE: {"lines": 1, "width": 300.0, "en": "", "ru": MANUAL_TEXT},
+            NARROW: {"lines": 1, "width": width_narrow, "en": "", "ru": MANUAL_TEXT}}
+
+
+def test_without_a_plugin_context_the_key_is_the_five_value_tuple_of_before(handler, window):
+    window.current_game_rules = None
+    composer = handler.prompt_composer
+
+    key = composer.duplicate_context_key({"id": 0, "text": "Yes"}, 0, None)
+
+    assert key == ("NONE", "", "99", "{}", "{}")   # a one-word text has no speaker
+    saved = composer.saved_context(0, 0, "Yes")
+    assert saved == {"speaker": "NONE", "addressee": "", "fold": _sha(key), "speaker_en": ""}
+
+
+def _sha(key):
+    import hashlib
+    return hashlib.sha1(json.dumps(key, ensure_ascii=False, default=str).encode("utf-8")).hexdigest()[:16]
+
+
+def test_the_paragraphs_of_one_manual_share_one_key_whatever_their_window(monkeypatch, handler, window):
+    _manual_rules(monkeypatch, _manual_doc(), window, [[MANUAL_TEXT, MANUAL_TEXT]])
+    composer = handler.prompt_composer
+
+    wide = composer.duplicate_context_key({"id": 0, "text": MANUAL_TEXT}, 0, None)
+    narrow = composer.duplicate_context_key({"id": 1, "text": MANUAL_TEXT}, 0, None)
+
+    assert wide == narrow == ("NONE", "", json.dumps({"content_role": "Manual text"}, sort_keys=True), "{}")
+
+
+def test_the_saved_context_keeps_the_legacy_fold_of_its_own_place(monkeypatch, handler, window):
+    _manual_rules(monkeypatch, _manual_doc(), window, [[MANUAL_TEXT, MANUAL_TEXT]])
+    composer = handler.prompt_composer
+
+    wide = composer.saved_context(0, 0, MANUAL_TEXT)
+    narrow = composer.saved_context(0, 1, MANUAL_TEXT)
+
+    assert wide["fold"] == narrow["fold"]
+    assert wide["fold_legacy"] != narrow["fold_legacy"], "the legacy fold still tells the two windows apart"
+    assert wide["fold_legacy"] != wide["fold"]
+
+
+def test_the_paragraph_of_another_manual_block_gets_the_same_key(monkeypatch, handler, window):
+    rules = _manual_rules(monkeypatch, _manual_doc(), window, [[MANUAL_TEXT], [MANUAL_TEXT]])
+    other = {"large/Page_007_large_0#0": {"lines": 2, "width": 240.0, "en": "", "ru": MANUAL_TEXT}}
+    rules.load_data_from_json_obj(json.dumps(other, ensure_ascii=False))
+    composer = handler.prompt_composer
+
+    first = composer.duplicate_context_key({"id": 0, "text": MANUAL_TEXT}, 0, None)
+    second = composer.duplicate_context_key({"id": 0, "text": MANUAL_TEXT}, 1, None)
+
+    assert first == second, "the speaker and the addressee of a manual paragraph do not depend on its block"
+
+
+def test_a_follower_that_does_not_fit_its_place_stays_untranslated(monkeypatch, handler, window):
+    _manual_rules(monkeypatch, _manual_doc(), window, [[MANUAL_TEXT, MANUAL_TEXT]])
+    context = _context(window)
+    context['source_items'] = [{"id": 0, "text": MANUAL_TEXT}, {"id": 1, "text": MANUAL_TEXT}]
+    handler._initiate_batch_translation(context)
+    assert context['duplicate_followers'] == {0: [1]}
+    sent = handler._run_ai_task.call_args.args[1]['source_items']
+    context['calculated_chunks'] = [sent]
+
+    handler._handle_chunk_translated(0, _reply(sent, lambda text: FITS_ONLY_WIDE), context)
+
+    assert window.data_processor.get_current_string_text(0, 0)[0] == FITS_ONLY_WIDE   # the wide paragraph takes it
+    assert not window.data_processor.is_string_translated(0, 1)                      # the narrow one refuses it
+
+
+def test_a_two_word_manual_paragraph_has_the_same_key_in_two_blocks(monkeypatch, handler, window):
+    """A text of two words goes through the speaker resolver (a one-word text is never a speaker)."""
+    phrase = "Текст один"
+    rules = _manual_rules(monkeypatch, {WIDE: {"lines": 1, "width": 300.0, "en": "", "ru": phrase}},
+                          window, [[phrase], [phrase]])
+    other = {"large/Page_007_large_0#0": {"lines": 2, "width": 240.0, "en": "", "ru": phrase}}
+    rules.load_data_from_json_obj(json.dumps(other, ensure_ascii=False))
+    composer = handler.prompt_composer
+
+    first = composer.duplicate_context_key({"id": 0, "text": phrase}, 0, None)
+    second = composer.duplicate_context_key({"id": 0, "text": phrase}, 1, None)
+
+    assert first == second
+    assert first[0] == ""   # no speaker is looked up for a manual paragraph
