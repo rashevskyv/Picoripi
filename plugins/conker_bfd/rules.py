@@ -1,20 +1,21 @@
-"""Conker's Bad Fur Day (N64, USA) plugin: source ROM unpack, text blocks, font metrics, voice streams.
+"""Conker's Bad Fur Day (N64, USA) plugin: source ROM unpack, text tables, font metrics, voice streams, ROM build.
 
 Scope of this version:
 - identify and unpack the US ROM (the pinned SHA-1 and internal title are required);
-- write each text table as JSON: text segments with [@hh] tags for inline codes, binary segments as hex, and the
-  glyph metrics and map the width measure needs (bank 0x1A entries; bank 0x1C sub-tables: menu, pause, chapters, credits);
+- write each text table as JSON (format ``conker-bfd-text/3``): instruction-book pages (bank 0x1A) and menu
+  sub-tables (bank 0x1C), with the glyph metrics the width measure needs;
 - write the 95 font glyphs as PGM sources and the RLE records as JSON;
 - write the 453 bank-0x16 streams as MP3 files and an index (frames, cues, duration);
-- load and save the text blocks; unchanged text re-saves to the same segments;
-- problems: a translation longer than its original bytes, and a character the text form cannot carry.
-Not in this version: ROM build (no build targets), text growth, wiring of the custom preview widget,
-and the font in the Font Editor.
+- build a patched ROM and a BPS patch from the edited tables. Text may grow: a changed bank is relaid out at the
+  end of the ROM, and the tables it holds are rebuilt. Old ``conker-bfd-text/2`` files still open but cannot build.
+Not in this version: the form growth of the text box, Ukrainian glyphs, and the N64 header checksum (not needed:
+the changed banks lie past the checksummed range).
 """
 from __future__ import annotations
 
 import binascii
 import json
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -22,13 +23,19 @@ from core.formats import FileFormat
 from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
 
-from . import font, n64_archive, preview, text_blocks, voice
+from . import book_text, bps, font, n64_archive, preview, rom_layout, text_blocks, voice
 from .config import PROBLEM_CHARACTER, PROBLEM_DEFINITIONS, PROBLEM_LENGTH
 
 ROLE_ROM = "rom"
 PLATFORM_N64 = "n64"
 VOICE_BANK = 0x16
-FORMAT_ID = "conker-bfd-text/2"
+FORMAT_ID = "conker-bfd-text/3"
+LEGACY_FORMAT_ID = "conker-bfd-text/2"
+REF_NAME = "rom_source.json"
+TARGET_ROM = "rom"
+TARGET_BPS = "bps"
+OUTPUT_ROM = "Conker's Bad Fur Day (USA) (translation).z64"
+OUTPUT_BPS = "Conker's Bad Fur Day (USA) (translation).bps"
 
 
 def _rom_bytes(path: str) -> bytes:
@@ -43,20 +50,26 @@ def _font_block(rom: bytes) -> Dict[str, Any]:
             "glyphs": [[g.width, g.height, g.meta[0], g.meta[1]] for g in glyphs]}
 
 
+def _write_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8", newline="\n")
+
+
 class GameRules(BaseGameRules):
-    """Conker's Bad Fur Day (N64, USA): text blocks, one block per text table."""
+    """Conker's Bad Fur Day (N64, USA): text tables, font metrics, voice streams and the ROM build."""
 
     problem_prefix = "CBFD"
     problem_definitions = PROBLEM_DEFINITIONS
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
-        self._headers: List[Dict[str, Any]] = []
-        self._segments: List[List[Dict[str, Any]]] = []
-        self._limits: List[List[int]] = []
+        self._table: Optional[book_text.Table] = None
+        self._font_block: Optional[Dict[str, Any]] = None
+        self._legacy_headers: List[Dict[str, Any]] = []
+        self._legacy_segments: List[List[Dict[str, Any]]] = []
+        self._legacy_limits: List[List[int]] = []
         self._metrics: Optional[List[preview.Metric]] = None
         self._glyph_map: Optional[bytes] = None
-        self._font_block: Optional[Dict[str, Any]] = None
 
     def get_display_name(self) -> str:
         return "Conker's Bad Fur Day (N64)"
@@ -91,20 +104,14 @@ class GameRules(BaseGameRules):
         font_block = _font_block(rom)
 
         progress(5, tr("Reading the text tables"))
-        for folder, name, data in n64_archive.read_text_sources(rom):
+        for table in book_text.extract(rom):
             if is_cancelled():
                 return None
-            directory = root / "text" / folder
-            directory.mkdir(parents=True, exist_ok=True)
-            payload = {
-                "format": FORMAT_ID,
-                "source": f"{folder}/{name}",
-                "bytes": len(data),
-                "segments": text_blocks.to_json_segments(text_blocks.split_segments(data)),
-                "font": font_block,
-            }
-            (directory / f"{name}.json").write_text(json.dumps(payload, ensure_ascii=False, indent=1),
-                                                    encoding="utf-8", newline="\n")
+            obj = book_text.table_to_json(table, font_block)
+            _write_text(Path(root, "text", *table.name.split("/")).with_suffix(".json"),
+                        json.dumps(obj, ensure_ascii=False, indent=1))
+        _write_text(Path(root, REF_NAME),
+                    json.dumps({"rom": os.path.abspath(rom_path), "sha1": n64_archive.US_SHA1}, indent=1))
 
         progress(40, tr("Writing the font sources"))
         if is_cancelled():
@@ -144,53 +151,102 @@ class GameRules(BaseGameRules):
         return str(root)
 
     def get_build_targets(self) -> List[Dict[str, Any]]:
-        return []
+        return [
+            {"id": TARGET_ROM, "label": tr("Patched ROM (US)"), "platforms": [PLATFORM_N64], "kind": "patch"},
+            {"id": TARGET_BPS, "label": tr("BPS patch (US ROM to translation)"), "platforms": [PLATFORM_N64],
+             "kind": "patch"},
+        ]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress, is_cancelled) -> str:
+        if target_id not in (TARGET_ROM, TARGET_BPS):
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        ref = Path(source_dir, REF_NAME)
+        if not ref.is_file():
+            raise ValueError(tr("The unpacked folder has no {0}: unpack the disc again.", REF_NAME))
+        rom_path = json.loads(ref.read_text(encoding="utf-8")).get("rom", "")
+        if not os.path.isfile(rom_path):
+            raise ValueError(tr("The ROM {0} is not on disk.", rom_path))
+        rom = _rom_bytes(rom_path)
+        if not n64_archive.is_us_rom(rom):
+            raise ValueError(tr("The ROM is not the pinned US release."))
+        progress(10, tr("Reading the edited text tables"))
+        tables = self._edited_tables(translation_dir)
+        if is_cancelled():
+            return output_dir
+        progress(30, tr("Rebuilding the text banks"))
+        changed = book_text.rebuild(rom, tables)
+        new_rom = rom_layout.relayout_banks(rom, changed) if changed else rom
+        if is_cancelled():
+            return output_dir
+        progress(70, tr("Writing the result"))
+        if target_id == TARGET_ROM:
+            out = Path(output_dir, OUTPUT_ROM)
+            out.write_bytes(new_rom)
+        else:
+            out = Path(output_dir, OUTPUT_BPS)
+            out.write_bytes(bps.make_bps(rom, new_rom))
+        progress(100, tr("Done"))
+        return str(out)
+
+    def _edited_tables(self, translation_dir: str) -> List[book_text.Table]:
+        root = Path(translation_dir, "text")
+        if not root.is_dir():
+            return []
+        tables: List[book_text.Table] = []
+        for path in sorted(root.rglob("*.json")):
+            obj = json.loads(path.read_text(encoding="utf-8"))
+            if obj.get("format") == LEGACY_FORMAT_ID:
+                raise ValueError(tr("{0} uses the old text format: unpack the disc again.", path.name))
+            if obj.get("format") == FORMAT_ID:
+                tables.append(book_text.table_from_json(obj))
+        return tables
 
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Dict[str, str]]:
-        if not isinstance(json_obj, dict) or json_obj.get("format") != FORMAT_ID:
-            self.reset_runtime_state()
-            return [[]], {"0": tr("Conker texts")}
-        self._headers = [{k: json_obj[k] for k in ("format", "source", "bytes")}]
-        self._segments = [json_obj["segments"]]
-        self._limits = [[len(text_blocks.string_to_bytes(item["text"])) for item in json_obj["segments"]
-                         if item["kind"] == "text"]]
-        self._metrics = [preview.Metric(width=w, height=h, meta=bytes([m0, m1]))
-                         for w, h, m0, m1 in json_obj["font"]["glyphs"]]
-        self._glyph_map = bytes.fromhex(json_obj["font"]["map"])
-        self._font_block = json_obj["font"]
-        texts = [item["text"] for item in json_obj["segments"] if item["kind"] == "text"]
-        return [texts], {"0": json_obj["source"]}
+        if isinstance(json_obj, dict) and json_obj.get("format") == FORMAT_ID:
+            table = book_text.table_from_json(json_obj)
+            self._table = table
+            self._font_block = json_obj.get("font")
+            self._set_metrics(self._font_block)
+            texts = [text_blocks.bytes_to_string(item.text) for item in book_text.text_items(table)]
+            return [texts], {"0": table.name}
+        if isinstance(json_obj, dict) and json_obj.get("format") == LEGACY_FORMAT_ID:
+            return self._load_legacy(json_obj)
+        self.reset_runtime_state()
+        return [[]], {"0": tr("Conker texts")}
 
     def save_data_to_json_obj(self, data: list, block_names: Optional[Dict[str, str]] = None) -> Any:
-        if not self._headers:
-            return {}
-        values = data[0] if data and isinstance(data[0], list) else []
-        items = []
-        pos = 0
-        for item in self._segments[0]:
-            if item["kind"] == "text":
-                new = values[pos] if pos < len(values) and values[pos] is not None else item["text"]
+        if self._table is not None:
+            values = data[0] if data and isinstance(data[0], list) else []
+            for pos, item in enumerate(book_text.text_items(self._table)):
+                if pos >= len(values) or values[pos] is None:
+                    continue
                 try:
-                    text_blocks.string_to_bytes(str(new))
-                    items.append({"kind": "text", "text": str(new)})
+                    new = text_blocks.string_to_bytes(str(values[pos]))
                 except ValueError:
-                    items.append({"kind": "text", "text": item["text"]})  # keep the original until fixed
-                pos += 1
-            else:
-                items.append(dict(item))
-        out = dict(self._headers[0])
-        out["segments"] = items
-        out["font"] = self._font_block
-        return out
+                    continue  # keep the original until the character is fixed
+                if item.kind == book_text.KIND_STRING and 0 in new:
+                    continue  # a NUL would split the string list
+                item.text = new
+            return book_text.table_to_json(self._table, self._font_block)
+        return self._save_legacy(data)
 
     def get_text_fit_problems_for_string(self, block_idx: int, string_idx: int, text: str) -> List[str]:
-        if block_idx != 0 or not self._limits or not 0 <= string_idx < len(self._limits[0]):
+        if self._table is not None:
+            try:
+                new = text_blocks.string_to_bytes(text)
+            except ValueError:
+                return [PROBLEM_CHARACTER]
+            if 0 in new and any(item.kind == book_text.KIND_STRING for item in book_text.text_items(self._table)):
+                return [PROBLEM_CHARACTER]
+            return []  # pages and string lists grow: the banks are rebuilt around the new length
+        if block_idx != 0 or not self._legacy_limits or not 0 <= string_idx < len(self._legacy_limits[0]):
             return []
         try:
             size = len(text_blocks.string_to_bytes(text))
         except ValueError:
             return [PROBLEM_CHARACTER]
-        return [PROBLEM_LENGTH] if size > self._limits[0][string_idx] else []
+        return [PROBLEM_LENGTH] if size > self._legacy_limits[0][string_idx] else []
 
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 6) -> Optional[int]:
         if self._metrics is None or self._glyph_map is None:
@@ -202,6 +258,50 @@ class GameRules(BaseGameRules):
         return preview.measure_px(raw, self._metrics, self._glyph_map)
 
     def reset_runtime_state(self) -> None:
-        self._headers, self._segments, self._limits = [], [], []
-        self._metrics, self._glyph_map = None, None
+        self._table = None
         self._font_block = None
+        self._legacy_headers, self._legacy_segments, self._legacy_limits = [], [], []
+        self._metrics, self._glyph_map = None, None
+
+    def _set_metrics(self, font_block: Optional[Dict[str, Any]]) -> None:
+        if not font_block:
+            self._metrics, self._glyph_map = None, None
+            return
+        self._metrics = [preview.Metric(width=w, height=h, meta=bytes([m0, m1]))
+                         for w, h, m0, m1 in font_block["glyphs"]]
+        self._glyph_map = bytes.fromhex(font_block["map"])
+
+    # -- legacy conker-bfd-text/2 files: they open and save, but cannot build ----------------------------
+
+    def _load_legacy(self, json_obj: Dict[str, Any]) -> Tuple[List[List[str]], Dict[str, str]]:
+        self._table = None
+        self._legacy_headers = [{k: json_obj[k] for k in ("format", "source", "bytes")}]
+        self._legacy_segments = [json_obj["segments"]]
+        self._legacy_limits = [[len(text_blocks.string_to_bytes(item["text"])) for item in json_obj["segments"]
+                                if item["kind"] == "text"]]
+        self._font_block = json_obj["font"]
+        self._set_metrics(self._font_block)
+        texts = [item["text"] for item in json_obj["segments"] if item["kind"] == "text"]
+        return [texts], {"0": json_obj["source"]}
+
+    def _save_legacy(self, data: list) -> Any:
+        if not self._legacy_headers:
+            return {}
+        values = data[0] if data and isinstance(data[0], list) else []
+        items = []
+        pos = 0
+        for item in self._legacy_segments[0]:
+            if item["kind"] == "text":
+                new = values[pos] if pos < len(values) and values[pos] is not None else item["text"]
+                try:
+                    text_blocks.string_to_bytes(str(new))
+                    items.append({"kind": "text", "text": str(new)})
+                except ValueError:
+                    items.append({"kind": "text", "text": item["text"]})
+                pos += 1
+            else:
+                items.append(dict(item))
+        out = dict(self._legacy_headers[0])
+        out["segments"] = items
+        out["font"] = self._font_block
+        return out

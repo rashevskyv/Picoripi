@@ -2949,5 +2949,13 @@
     "Original: Russian (ru)": "Оригінал: російська (ru)",
     "Original: English (en)": "Оригінал: англійська (en)",
     "No English text on this page: it does not line up with the Russian.": "На цій сторінці немає англійського тексту: він не збігається з російським.",
-    "No original text on this page.": "На цій сторінці немає оригінального тексту."
+    "No original text on this page.": "На цій сторінці немає оригінального тексту.",
+  "Patched ROM (US)": "Пропатчений ROM (US)",
+  "BPS patch (US ROM to translation)": "BPS-патч (від US ROM до перекладу)",
+  "The ROM {0} is not on disk.": "ROM {0} немає на диску.",
+  "The ROM is not the pinned US release.": "ROM не є закріпленим релізом US.",
+  "Reading the edited text tables": "Читання відредагованих таблиць тексту",
+  "Rebuilding the text banks": "Перебудова банків тексту",
+  "Writing the result": "Запис результату",
+  "{0} uses the old text format: unpack the disc again.": "{0} має старий формат тексту: розпакуйте ROM знову."
 }
