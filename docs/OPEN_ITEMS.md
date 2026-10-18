@@ -947,6 +947,22 @@ omfs`) could be
 - The fonts `normal_01`/`special_01` the layouts name are mapped by the executable to the `_00` files (seen working on
   the title screen); not traced in the code.
 
+## SkyRecomp target (`plugins/zelda_sshd`, build `skyrecomp`, 2026-10-18)
+
+- Proof on a private build of the SkyRecomp port (v1.0.0 base, not published, no game files in git): a same-length
+  edit of one intro line shows in the game; a line 6 characters longer fits the dialogue box; a line 40 characters
+  longer wraps in the middle of a word and runs past the box. A Cyrillic word shows with the owner's draft
+  `normal_00.brfnt` in the translation folder; with the English font the Cyrillic letters are spaced wrongly
+  (the width table does not cover them). The owner draws the glyphs and sets the widths.
+- The title screen was not reached: the intro runs for several minutes before the title. The proof used the intro line.
+- The target reads the raw `romfs` folder next to `source`; the sshd plugin has no unpack step in the Project Manager.
+- The main build id is checked when `exefs\main` exists in that game folder; the owner's workspace has no `exefs`,
+  so SkyRecomp checks the id at its own start.
+- The port's start-screen build lifts `sdk` at `0x7004000000` (`runtime/gamebuild.c`), but the loader places `sdk` at
+  `SDK_BASE` `0x7030000000` (`runtime/rt.h`). A library built that way fails at start with a missing guest function.
+  The private proof build lifts `sdk` at `0x7030000000`. The port's `GEN_SRC` also skips `subsdk0` and `subsdk1`, and its
+  game-library link line exceeds the command-line limit for a full game. These are port findings, not Picoripi code.
+
 ## Review-queue test gaps (agent work; `docs/REVIEW_QUEUE.md` keeps only owner items)
 
 - Real-window tests for single-string translation, variation and the legacy build (the attempt hung on

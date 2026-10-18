@@ -22,11 +22,12 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 import utils.utils as uu
 from core.containers import ContainerManager
 from plugins.base_game_rules import BaseGameRules
+from core.i18n import tr
 from plugins.common.msbt import Msbt
 from utils.logging_utils import log_debug, log_warning
 from utils.utils import clean_spaces
 
-from . import messages, msbf, reference
+from . import messages, msbf, reference, skyrecomp
 from .banner import WiiBannerContainer
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from plugins.common.wii_home_menu import HomeCsv, is_home_csv
@@ -426,6 +427,21 @@ class GameRules(BaseGameRules):
 
     def get_editor_page_size(self) -> int:
         return DEFAULT_LINES_PER_PAGE
+
+    # -- build (Project Manager) -----------------------------------------------
+
+    def get_platforms(self) -> List[Dict[str, str]]:
+        return [{"id": "switch", "label": tr("Nintendo Switch")}]
+
+    def get_build_targets(self) -> List[Dict[str, Any]]:
+        return [{"id": skyrecomp.TARGET_ID, "label": tr("SkyRecomp (Windows port, mod folder)"),
+                 "platforms": ["switch"], "kind": "files"}]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress, is_cancelled) -> str:
+        if target_id != skyrecomp.TARGET_ID:
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        return skyrecomp.build(source_dir, translation_dir, output_dir, progress, is_cancelled)
 
 
 # Glossary sources: message file -> (label prefix, section, description).
