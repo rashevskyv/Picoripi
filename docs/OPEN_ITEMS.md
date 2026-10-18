@@ -24,20 +24,27 @@ the line when it is done or moved into a plan.
   `images.identify`). The input is two RAR archives: Picoripi has no RAR reader, so one extract step runs outside it
   until the owner decides otherwise.
 - Grandia PS1 text: field dialogue (`FIELD/*.MDP`) and battle strings (`BATLE/B*.BBG`, `FIELD/WINDT.BIN`) open as
-  editor text (`plugins/grandia/psx_text.py`). The writer is bounded: a text keeps its original byte count, and a longer
-  text is refused. Growing a text is not done. Found: the dialogue section (`script_section`, entry 0x60), the RAM copy
-  of each script, and absolute 6-byte records (`psx_text` docstring). Open: the message opcode and reader, the meaning
-  of the absolute addresses, and the rule that moves offsets when a section grows.
+  editor text (`plugins/grandia/psx_text.py`). The writer uses a pooled byte budget per script: a longer text is paid
+  for by the shorter blocks that follow it, the file keeps its length, and a growth nothing pays for is refused. The
+  build refuses a translated script whose length changed. Proven in a frame: one pair of messages in FIELD/2000.MDP
+  (one extra "!" in one message, one fewer in the next). Not proven: references into a moved region. The section's
+  6-byte RAM address records and the message opcode are not decoded (`psx_text` docstring).
 - Grandia PS1 disc writer: `psx_disc.write_file` rewrites one file in place with the same length and regenerates EDC and
-  P/Q parity; the parity code matches the disc's own sectors. The plugin target `psx_disc_set` copies the cue set
-  (`psx_disc.write_set`) and writes the edited files into the copy. Tested on a synthetic disc only; not built on the
-  owner's disc yet. Growing a text stays refused: the 6-byte RAM addresses are not resolved, so a shift is not safe.
-- Grandia PS1 emulator proof (2026-10-18): DuckStation (private portable copy, muted, hidden desktop) loads the owner's
-  save state with a same-length edit in the RAM copy of a script; the edited text shows on screen. A fresh boot of a
-  patched disc copy did not reach the dialogue: key input stopped at the title and the memory card screen.
+  P/Q parity. The plugin target `psx_disc_set` copies the cue set (`psx_disc.write_set`) and writes the edited files into
+  the copy. Run on a copy of the owner's disc 1 (original read only): the two edited files change, the rest is equal, and
+  the build boots and shows the edited text in the game.
+- Grandia PS1 emulator state trap (2026-10-18): a DuckStation save state stores the disc path. When the state loads,
+  DuckStation boots that path, not the path on the command line. A proof disc must sit at the path in the state header,
+  or the state header must be patched to the proof folder (same length). Earlier "fresh boot" and "disc" runs in this
+  work ran the clean disc for this reason.
+- Grandia PS1 emulator proof (2026-10-18): DuckStation (private portable copy, muted, hidden desktop) shows an edit
+  from disc: every message of FIELD/2000.MDP starts with a same-length marker, and the message box shows it after the
+  scene loads from disc. The owner's save state (first dialogue) is the start; the route is a fixed key list. A fresh
+  boot still does not reach the dialogue (key input stops at the title and the memory card screen).
 - Grandia PS1 font: not located. Checked: the TIM headers of FIELD, BATLE, BIN and the boot executable; two TIM images
   match VRAM in the save state (a star field and a battle ground, not text). AKLZ: no AKLZ file among the extracted
-  files. `FIELD/FWIN.BIN` is a text table with pointers; `BIN/WIN.BIN` is compressed (format not identified).
+  files. `BIN/WIN.BIN` (7094 bytes) starts with a bit-packed stream and no Game Arts header; `FIELD/FWIN.BIN` is a text
+  table with pointers. The VRAM glyph page was not searched in the disc files.
 - Grandia HD Remaster (PC, scene release): the game data is inside `skidrow.bin`, an installer payload with no known
   format. Owner question: a copy of the installed game folder.
 - Grandia II HD Remaster (PC, scene release): the image is UDF, not ISO 9660; Picoripi has no UDF reader.
