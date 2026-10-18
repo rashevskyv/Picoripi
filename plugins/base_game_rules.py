@@ -686,7 +686,8 @@ class BaseGameRules:
         """The layout problems that stop ``text`` from fitting the place ``(block_idx, string_idx)`` (D46).
 
         Checked before a translation is written to a place it was not made for: a repeated translation,
-        a memory row or a series row (``text_fits_place``). Return the problem ids (short, stable strings
+        a memory row or a series row (``text_fits_place``). ``text`` is in editor form (the text the editor
+        shows, after ``get_text_representation_for_editor``). Return the problem ids (short, stable strings
         the plugin defines), or an empty list when the text fits. Only layout belongs here: a check that
         needs a render of the page or the editor's current text is left to the issue scan. Default: no
         problems, so the line-count contract alone decides.

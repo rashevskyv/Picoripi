@@ -1148,12 +1148,16 @@ the same text, provided it fits each place.
 - Restore into the places that have no Ukrainian text yet: 14 places, all pass the fit check (0 refused).
 - Hypothetical, the kept Ukrainian text of each shared text applied to every other place: 3011 places, 3007 pass,
   4 refused (WRAP, LINES and WORD ids).
-- 36 shared texts already have different Ukrainian texts in different places. A fold never overwrites an existing
-  text, so the restore changes none of them.
+- 36 shared texts already have different Ukrainian texts in different places. The batch fold and the restore never
+  overwrite one. **Apply to places with the same context** (memory bar) does overwrite a place that holds another text;
+  that is unchanged from D41 and undoable, and it now reaches more manual places. The owner decides whether it
+  should skip translated places for manuals.
 **Cost.** A place that the text does not fit stays untranslated after a run; the user translates it or runs the batch
 again. The fit check runs on the interface thread at apply time (layout only, one check per place and text; no
 render). The render checks of a place stay with the issue scan, so a text can pass here and still be flagged there.
-A plugin that returns a dict must return the same dict for every place that may share a text. The speaker resolver
+A plugin that returns a dict must return the same dict for every place that may share a text. The kept place is
+written from the translation as it came back (the reflow of `_fit_translation_to_window` is not re-checked); only the
+followers are checked. The speaker resolver
 runs per place; a test with two blocks and the same two-word text gives one key, so no speaker depends on the block.
 **Rejected.** A `part` field in the key (keeps most folds apart, the fit check already covers size). Changing the
 manual's AI prompt (it stays as it is).
