@@ -8,7 +8,7 @@ import pytest
 
 from tools import wwf_img_format as f
 
-IMG_DIR = r"C:\RomHacking_scratch\snes-wwf-ready\wwf-src\IMG"
+IMG_DIR = os.environ.get("PICORIPI_WWF_IMG", "")   # the port's IMG folder, read only: unset skips the real-data check
 
 
 def _library() -> bytes:

@@ -573,6 +573,10 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      character. The Font Editor lists the font (format `ffta2`); the Textures window lists the title and company
      logos and the auction and world map effects (format `ffta2_efx`) and 11 menu tile sheets. `2_build.bat`
      writes changed members into `pc.bin` (in place when they fit, else at its end) and rebuilds the ROM.
+   - `rock_n_roll_racing` — Rock N' Roll Racing (SNES, USA). **Source:** `source\text\rrr_text.rrrtext` (223 strings of the
+     ROM text table, each with its byte budget) and `source\rom\` (the ROM copy); **Translation:** `translation`. A line
+     break is a new line; `[80]`..`[8F]` are picture codes and stay as they are. A translation longer than its budget is
+     refused at build time. **Build:** a patched ROM and an IPS patch (header checksum fixed). Not yet: the font.
    - `ffta_gba` — Final Fantasy Tactics Advance (Game Boy Advance, USA AFXE). **Source:** the project's `unpacked`
      folder: New Project (Project Manager) recognises the ROM and writes `rom/` (the copy the build starts from),
      `text/*.fftatext` (menus, items, names, missions and notices, story events and battles: 9,543 strings in 104

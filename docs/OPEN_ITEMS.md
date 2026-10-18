@@ -1499,3 +1499,26 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
   no grown script was run in game.
 - Open: other text groups (`BATTLE/*.SML`, `FIELD/*.MLD`, `1ST_READ.BIN` with 23 `\h(` pages) are not editor text yet.
 - Open: Disc 2 (USA) is identified and extracts the same way; its build is not proven in game.
+
+## Rock N' Roll Racing (SNES, USA) plugin (`plugins/rock_n_roll_racing`, 2026-10-18)
+
+- Not done: the font. The text uses ASCII codes; the 2bpp font tiles are not located (the table at 0xDBD0 looks like a
+  list of codes, not a glyph map: not verified). Until it is found, Ukrainian letters have no code and save refuses them.
+- Not done: texture sources (the picture codes 0x80-0x8F are tile numbers of the table's pictures, not in a texture source).
+- Not done: a boot proof in ares. The shared hidden-desktop launcher has no ares script yet.
+- Not done: the Picoripi project (wizard) and the Project Manager open check. `tools/rrr_workspace.py` covers unpack and build.
+- PC port (`Junior-Jones/Rock-N-Roll-Racing-SNES-Static-Recomp`, no licence file): the USA SHA-256 pin is at
+  `frontend/windows/rnr_app_core.c` line 30 and is checked at 102; snapshots also store it (478, 543). A patched ROM is
+  refused. Smallest port patch: a second accepted hash for the patched ROM, or a data-only check in that one function. Not made.
+
+## WWF WrestleMania arcade (`tools/wwf_img_format.py`, 2026-10-18)
+
+- The port reads the public IMG tree from `historicalsource/wwf-wrestlemania` (`tools/fetch_orig.sh`), not the MAME romset.
+  Owner decision needed: may the workspace use that tree as input?
+- Text in source: 958 active `.STRING` and `.byte "..."` directives (about 24,600 characters) in `*.ASM`. They compile
+  into the port; an override PNG cannot replace them.
+- Text in images: 267 screen images (`screens` layer) and the HUD and font libraries. The reader reads all 264 libraries
+  (17,514 images, 0 errors); indexed PNG export and import round trip is exact (checked on the screens layer).
+- Not done: the plugin (no `config.json` or `rules.py`), the build target (override folder), the boot proof (not run).
+- The two other zips (`WWF WrestleMania - The Arcade Game (USA).zip` = 32X, `(USA, Europe).zip` = Genesis) are not arcade.
+  They are in `WWF WrestleMania\ISO\_not_used\`.

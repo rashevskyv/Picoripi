@@ -1,15 +1,15 @@
 """Rock N' Roll Racing (SNES): the plugin's load, save and build hooks. The real-ROM test skips without the owner's zip."""
 import json
 from pathlib import Path
-import os
 import zipfile
 
 import pytest
 
+import romhacking_root
 from plugins.rock_n_roll_racing import rom_text as rt
 from plugins.rock_n_roll_racing.rules import GameRules, TARGET_ID, TEXT_FILE
 
-USA_ZIP = r"E:\Emulators\RomHacking\Rock N Roll Racing\ISO\Rock N' Roll Racing (USA).zip"
+USA = ("Rock N Roll Racing", "ISO", "Rock N' Roll Racing (USA).zip")
 
 
 def _progress(_percent, _text):
@@ -41,7 +41,7 @@ def test_load_shows_text_and_save_keeps_untouched_strings_and_encodes_edits():
 def test_save_refuses_a_character_the_game_has_no_code_for():
     rules = GameRules()
     blocks, names = rules.load_data_from_json_obj(_bank_with([(0xE180, 6, b"PLAYER")]))
-    blocks[0][0] = "\u0413"
+    blocks[0][0] = "Г"
     with pytest.raises(ValueError, match="no code"):
         rules.save_data_to_json_obj(blocks, names)
 
@@ -68,14 +68,14 @@ def test_build_target_writes_rom_and_ips_from_the_unpacked_folder(tmp_path):
     out.mkdir()
     result = GameRules().build_target(TARGET_ID, str(source), str(translation), str(out),
                                       _progress, _never_cancelled)
-    patched = (out / os.path.basename(result)).read_bytes()
+    patched = Path(result).read_bytes()
     assert patched[rt.TEXT_START:rt.TEXT_START + 6] == b"UA    "
     assert (out / "Rock N' Roll Racing (USA) (UA).ips").read_bytes().startswith(b"PATCH")
 
 
-@pytest.mark.skipif(not os.path.isfile(USA_ZIP), reason="owner's USA ROM zip is not on disk")
+@romhacking_root.needs(USA)
 def test_real_rom_unpacks_and_builds_a_one_string_patch(tmp_path):
-    with zipfile.ZipFile(USA_ZIP) as archive:
+    with zipfile.ZipFile(romhacking_root.path(*USA)) as archive:
         name = next(info.filename for info in archive.infolist() if info.filename.lower().endswith(".sfc"))
         original = archive.read(name)
     usa = tmp_path / "usa.sfc"

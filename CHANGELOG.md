@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Rock N' Roll Racing (SNES, USA): `tools/rrr_workspace.py` runs the plugin's unpack and build headless for the workspace scripts (`1_unpack.bat`, `2_build.bat`); docs list the plugin in the wiki (EN, UK) and `docs/OPEN_ITEMS.md` lists the open font, proof and port items.
 - WWF WrestleMania (arcade, REV 1.30): `tools/wwf_img_format.py` reads the port's IMG libraries (images, palettes, anchors) and checks override sizes; all 264 libraries of the port parse to its documented 17,514 images. No plugin yet: the port reads the public IMG tree, not the MAME romset.
 - Rock N' Roll Racing (SNES, USA): plugin `plugins/rock_n_roll_racing` opens the 223 strings of the USA ROM text table (0xE180-0xF453) as editor text (`[XX]` tags for the picture codes), keeps each string's budget (its ROM length, the room for a translation), and builds a patched ROM plus an IPS patch with the header checksum fixed; Europe and Japan ROMs are refused as targets.
 - First start with no chosen data folder: the application object made for the chooser is kept alive (it was dropped at once, and the chooser failed with "QWidget: Must construct a QApplication before a QWidget", seen on macOS). Regression test with a subprocess probe in `tests/test_dialogs/`.

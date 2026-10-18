@@ -1,27 +1,24 @@
 """Rock N' Roll Racing (SNES, USA) on the owner's ROM zip (skipped without it): the text table reads, an unchanged build is the
 same ROM, the codec round-trips every string, and the Europe ROM is not taken as the target."""
-import os
 import zipfile
 
-import pytest
-
+import romhacking_root
 from plugins.rock_n_roll_racing import rom_text as rt
 
-ISO_DIR = r"E:\Emulators\RomHacking\Rock N Roll Racing\ISO"
-USA_ZIP = os.path.join(ISO_DIR, "Rock N' Roll Racing (USA).zip")
-EUROPE_ZIP = os.path.join(ISO_DIR, "Rock 'N' Roll Racing (Europe).zip")
+USA = ("Rock N Roll Racing", "ISO", "Rock N' Roll Racing (USA).zip")
+EUROPE = ("Rock N Roll Racing", "ISO", "Rock 'N' Roll Racing (Europe).zip")
 
-pytestmark = pytest.mark.skipif(not os.path.isfile(USA_ZIP), reason="owner's USA ROM zip is not on disk")
+pytestmark = romhacking_root.needs(USA)
 
 
-def _member(path: str) -> bytes:
-    with zipfile.ZipFile(path) as archive:
+def _member(parts) -> bytes:
+    with zipfile.ZipFile(romhacking_root.path(*parts)) as archive:
         name = next(info.filename for info in archive.infolist() if info.filename.lower().endswith(".sfc"))
         return archive.read(name)
 
 
 def test_usa_table_has_its_223_strings_and_each_one_round_trips():
-    data = _member(USA_ZIP)
+    data = _member(USA)
     assert rt.is_usa_rom(data)
     bank = rt.extract(data)
     strings = rt.strings_of(bank)
@@ -33,11 +30,10 @@ def test_usa_table_has_its_223_strings_and_each_one_round_trips():
 
 
 def test_unchanged_build_is_the_same_rom():
-    data = _member(USA_ZIP)
+    data = _member(USA)
     assert rt.build(data, rt.extract(data)) == data
 
 
+@romhacking_root.needs(EUROPE)
 def test_europe_rom_is_not_the_target():
-    if not os.path.isfile(EUROPE_ZIP):
-        pytest.skip("owner's Europe ROM zip is not on disk")
-    assert not rt.is_usa_rom(_member(EUROPE_ZIP))
+    assert not rt.is_usa_rom(_member(EUROPE))
