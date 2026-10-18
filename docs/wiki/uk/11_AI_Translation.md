@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: handlers/translation, core/translation
-tokens: 7.0k
+tokens: 8.0k
 ---
 # AI-переклад
 
