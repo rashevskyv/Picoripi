@@ -7,6 +7,7 @@ PLUGIN_PREFIX = "ABM"
 
 PROBLEM_PLACEHOLDER = "ABM_PLACEHOLDER_MISMATCH"
 PROBLEM_HINT_ROW_WIDTH = "ABM_HINT_ROW_TOO_WIDE"
+PROBLEM_OPTIONS_ROW_WIDTH = "ABM_OPTIONS_ROW_TOO_WIDE"
 
 custom_problems = {
     PROBLEM_PLACEHOLDER: {
@@ -20,6 +21,12 @@ custom_problems = {
         "color": QColor(255, 165, 0, 140),
         "priority": 3,
         "description": "The bottom hint row of a menu is wider than the free set's screen (see HINT_ROW_LIMIT_PX in rules.py).",
+    },
+    PROBLEM_OPTIONS_ROW_WIDTH: {
+        "name": "Options Row Too Wide",
+        "color": QColor(255, 165, 0, 140),
+        "priority": 3,
+        "description": "The Options row 'Language: <name>' is wider than the free set's screen with one of the language names (see OPTIONS_ROW_LIMIT_PX in rules.py).",
     },
 }
 

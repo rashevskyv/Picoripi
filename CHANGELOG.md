@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Atomic Bomberman plugin: the Options row "Language: <name>" is measured with the free font's widths: the label beside each language name of the table and the program's English must fit 580 px (problem `ABM_OPTIONS_ROW_TOO_WIDE`; a name is measured beside the label as it was loaded). Tests in `tests/test_atomic_bomberman_plugin.py`.
 - Font Editor: the standalone window is closed when another project opens or the project closes (it kept the fonts of the old project). Its own close still asks about unsaved glyph edits; cancelling keeps it open. Tests in `tests/test_handlers/test_font_editor_project_switch.py`.
 - 3DS manual preview: the page is drawn at a whole-number zoom of the console pixels (no smoothing when it is enlarged, smoothing only when it must shrink), so it no longer looks smeared when the panel is resized.
 - Atomic Bomberman plugin (`plugins/atomic_bomberman`): the port's Ukrainian text table (`data/lang/uk.json`, one JSON object, the English text as key) opens and saves with the same content; placeholders `{0}`-`{3}` are tags and must match the English text; the bottom hint row is measured with the free font's widths; the build copies `lang/uk.json` for the PC port and the Switch export folder `switch/atomic-bomberman/lang`.
