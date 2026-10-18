@@ -2917,5 +2917,9 @@
   "Not filled: the tags do not match": "Не заповнено: теги не відповідають",
   "Not filled: the text does not fit the window": "Не заповнено: текст не вміщається у вікно",
   "No project file": "Немає файлу проєкту",
-  "No series terms to fill": "Немає термінів серії для заповнення"
+  "No series terms to fill": "Немає термінів серії для заповнення",
+  "USA ROM": "ROM США",
+  "Super Nintendo": "Super Nintendo",
+  "{0} is not the USA ROM of Rock N' Roll Racing.": "{0} не є ROM США гри Rock N' Roll Racing.",
+  "Translated ROM and IPS patch": "Перекладений ROM і патч IPS"
 }
