@@ -141,9 +141,9 @@ def test_disc_without_a_data_partition_is_refused(common_key):
         WiiImage(io.BytesIO(disc), common_key)
 
 
-def test_load_common_key_reads_the_key_at_0x158(tmp_path, common_key):
+def test_load_common_key_reads_the_key_at_0x114(tmp_path, common_key):
     keys = bytearray(0x400)
-    keys[0x158:0x168] = common_key
+    keys[0x114:0x124] = common_key
     path = tmp_path / "keys.bin"
     path.write_bytes(bytes(keys))
     assert load_common_key(str(path)) == common_key
@@ -152,7 +152,7 @@ def test_load_common_key_reads_the_key_at_0x158(tmp_path, common_key):
 @pytest.mark.parametrize("size", [0x3FF, 0x401])
 def test_load_common_key_refuses_a_bad_size_without_leaking_the_key(tmp_path, common_key, size):
     keys = bytearray(size)
-    keys[0x158:0x168] = common_key
+    keys[0x114:0x124] = common_key
     path = tmp_path / "keys.bin"
     path.write_bytes(bytes(keys))
     with pytest.raises(ImageError, match="0x400 bytes") as info:
