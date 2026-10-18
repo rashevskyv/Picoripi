@@ -1556,3 +1556,22 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - Not done: the plugin (no `config.json` or `rules.py`), the build target (override folder), the boot proof (not run).
 - The two other zips (`WWF WrestleMania - The Arcade Game (USA).zip` = 32X, `(USA, Europe).zip` = Genesis) are not arcade.
   They are in `WWF WrestleMania\ISO\_not_used\`.
+
+## GameFAQs script transcripts (Pokémon gen1 and gsc, 2026-10-18)
+
+- Done: `plugins/common/gamefaqs_script.py` parses a transcript, matches it to the project strings, writes three local
+  files into the project `script` folder, and the gen1 and gsc speaker and scene hooks use the index.
+- Measured on the owner's transcripts (counts only): gen1 matched 1,845 of 2,574 records (1,727 exact) and 1,518 of 3,621
+  project strings. Dialogue: 477 of 664 lines. gsc matched 2,127 of 4,162 records (1,884 exact) and 2,043 of 7,621
+  strings. Dialogue: 1,037 of 1,560 lines. Action lines are author notes and mostly do not match. Not analysed yet:
+  why 187 gen1 and 523 gsc dialogue lines do not match (typos, wrapped strings, names, or other text).
+- Open: a branch record has no speaker. The index holds one speaker per project string; a string with two speakers
+  keeps none.
+- Open: the hooks read the index once per project load (`ReadThrough`). Rebuilding the index needs a project reload.
+- Open: the build is a command (`python -m plugins.common.gamefaqs_script`), not a menu item.
+
+## Wii Twilight Princess font check (blocked, 2026-10-18)
+
+- The owner's Wii key path is not stored: the Wii slot in `console_keys.json` is empty (the 3DS and Switch slots are
+  set). Without it the Wii disc cannot be read, so `res/Fontus/fontres.arc` of the Wii disc is not compared with the GC
+  original. Owner action: set the Wii key file in the console key settings.
