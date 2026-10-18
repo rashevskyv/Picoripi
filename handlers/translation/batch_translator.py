@@ -640,6 +640,7 @@ class AIBatchTranslator(BaseTranslationHandler):
             temp_id_map = context.get('temp_id_map')
             modified_blocks = set()
             translations_by_block = {}
+            refused_followers = 0
 
             def apply_row(real_block_idx, real_string_idx, final_text):
                 modified_blocks.add(real_block_idx)
@@ -716,14 +717,25 @@ class AIBatchTranslator(BaseTranslationHandler):
                     source_item = source_items_for_chunk[idx_in_response] if idx_in_response < len(source_items_for_chunk) else None
                     if isinstance(source_item, dict):
                         self._run_memory().remember(source_item.get('text', ''), final_text)
-                        # The identical strings that were not sent take the same translation.
+                        # The identical strings that were not sent take the same translation, where it fits (D46).
                         for follower_id in self._followers_of(context, source_item.get('id')):
                             pair = self._real_pair(follower_id, block_idx, temp_id_map)
-                            if pair is not None:
+                            if pair is None:
+                                continue
+                            if text_fits_place(self.mw, source_item.get('text', ''), final_text, pair[0], pair[1]):
                                 apply_row(pair[0], pair[1], final_text)
+                            else:
+                                refused_followers += 1
 
             self.mw.undo_manager.end_group("TRANSLATE")
             group_open = False
+            if refused_followers:
+                # A repeated place whose window or layout the translation does not fit stays untranslated (D46).
+                log_debug(f"BatchTranslator: {refused_followers} repeated strings did not take the translation (no fit).")
+                if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
+                    self.mw.statusBar.showMessage(
+                        tr('{count} repeated places did not take the translation: it does not fit their place.',
+                           count=refused_followers), 5000)
 
             saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
             if saved_mgr:

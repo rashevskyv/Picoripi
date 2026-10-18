@@ -1113,3 +1113,51 @@ cross-project fill reads each project's translation files once per run (about 1 
 measured on `Sun and Moon`). Other projects are not open: their width is not checked, and a backup entry takes effect
 only through the project's own Restore. The memory bar offers only safe candidates; a doubtful one is offered in the
 list only. The source term does not yet mark the row in the editor (not built).
+
+## D46. A plugin says what decides a repeated text's translation; each place checks its own fit (2026-10-18)
+
+**Context.** The fold (D41) keys a repeated text on the window (`lines_per_window`) and the plugin's translation
+context. For the 3DS manuals both differ almost everywhere: the page name, the line count and the pane width are in
+the key. The same Health and Safety paragraph in two manuals is never folded, so it is translated again in each. The
+fold and the memory compare the source column, which for a manual is the Russian text (`ru`), not the English. A
+line wraps on the console by the build, not by the translation, so one Ukrainian text can serve every place that has
+the same text, provided it fits each place.
+**Decision.**
+- Hook `get_duplicate_context_for_string(block, string)`. `None` (the default) keeps the duplicate key as it was: the
+  same five values, so every saved fold hash stays valid. A dict replaces the window and the translation context in
+  the key. The speaker, the addressee and the user's story-context override stay. The AI prompt is unchanged.
+- The manual plugin returns one constant dict, `{"content_role": "Manual text"}`. Small and large text share a
+  translation: 112 of the 148 shared texts occur as both, so a `part` field would keep most of them apart. A place
+  that does not fit a text of the other size is refused by the fit check below.
+- Hook `get_text_fit_problems_for_string(block, string, text)`, default `[]`. `text_fits_place` refuses a text when
+  the plugin reports a problem. The manual plugin reports the layout ids of `layout.check_entry` only: LINES, WORD,
+  WIDTH, WRAP, BESIDE, PANES. CELL, OVERLAP and COVERED need the page drawn with the editor's current texts, so the
+  issue scan keeps them. A paragraph with no geometry is not measured.
+- Every writer of a repeated translation runs the check: the batch followers (new), the memory bar (**Apply to places
+  with the same context**), the restore, the series rows and the glossary term fill (they already called
+  `text_fits_place`). A refused follower is not written; it stays untranslated, and the status bar says how many.
+- Rows keep their `fold` and the four stored fields. A plugin context also carries `fold_legacy` (the default key's
+  hash, computed at the same place): a row saved before the plugin context matches at its own place by that hash. A
+  row never stores `fold_legacy`. The rebuild (**Update Translation Memory with Context**) appends a row for a new
+  context and keeps the old one.
+- Series reuse (D45) compares the English speaker and the addressee; it does not use the fold. It is unchanged.
+**Measured on the owner's 18 manual files (read-only; counts only, 9198 paragraphs):**
+- The coordinator's count (37 texts, 172 places) could not be reproduced. On the English with the plugin's own filter
+  (`english_pages`) there are 44 texts, 344 places; on the Russian source there are 148 texts, 3161 places.
+- Folding across manuals, default key: 58 texts, 1409 places. New key: 148 texts, 3161 places.
+- Restore into the places that have no Ukrainian text yet: 14 places, all pass the fit check (0 refused).
+- Hypothetical, the kept Ukrainian text of each shared text applied to every other place: 3011 places, 3007 pass,
+  4 refused (WRAP, LINES and WORD ids).
+- 36 shared texts already have different Ukrainian texts in different places. The batch fold and the restore never
+  overwrite one. **Apply to places with the same context** (memory bar) does overwrite a place that holds another text;
+  that is unchanged from D41 and undoable, and it now reaches more manual places. The owner decides whether it
+  should skip translated places for manuals.
+**Cost.** A place that the text does not fit stays untranslated after a run; the user translates it or runs the batch
+again. The fit check runs on the interface thread at apply time (layout only, one check per place and text; no
+render). The render checks of a place stay with the issue scan, so a text can pass here and still be flagged there.
+A plugin that returns a dict must return the same dict for every place that may share a text. The kept place is
+written from the translation as it came back (the reflow of `_fit_translation_to_window` is not re-checked); only the
+followers are checked. The speaker resolver
+runs per place; a test with two blocks and the same two-word text gives one key, so no speaker depends on the block.
+**Rejected.** A `part` field in the key (keeps most folds apart, the fit check already covers size). Changing the
+manual's AI prompt (it stays as it is).

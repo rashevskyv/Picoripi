@@ -33,6 +33,9 @@ from . import folders, layout, page_build, repo_tools
 from .layout import fingerprint
 from .config import CUSTOM_IDS, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 
+# The layout problems that decide whether a text fits one paragraph (get_text_fit_problems_for_string, D46).
+FIT_PROBLEMS = frozenset({"LINES", "WORD", "WIDTH", "WRAP", "BESIDE", "PANES"})
+
 # The defects only the render can see (page_build.RENDER_PROBLEMS) as the editor's problem ids.
 RENDER_IDS = {kind: f"{PLUGIN_PREFIX}_{name}" for kind, name in page_build.RENDER_PROBLEMS.items()}
 
@@ -543,6 +546,27 @@ class GameRules(BaseGameRules):
                 "role_instruction": (f"Electronic manual, {part} text of page {page.split('#')[0]}: at most "
                                      f"{meta.get('lines')} lines of about {meta.get('width')} px. Keep every "
                                      "{i0}, {s1|...} and {br} marker.")}
+
+    def get_duplicate_context_for_string(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
+        """One constant context for every paragraph (D46): the page, the line count and the width are not part of
+        the key, so the same Health and Safety paragraph of two manuals may share a translation. The fit to each
+        place is checked when the translation is written (get_text_fit_problems_for_string)."""
+        if self._entry(block_idx, string_idx) is None:
+            return None
+        return {"content_role": "Manual text"}
+
+    def get_text_fit_problems_for_string(self, block_idx: int, string_idx: int, text: str) -> List[str]:
+        """The layout problems of ``text`` in its paragraph's panes (layout.check_entry), restricted to the ones that
+        decide whether the text fits: LINES, WORD, WIDTH, WRAP, BESIDE, PANES. The render problems (CELL, OVERLAP,
+        COVERED) need the page drawn with the editor's texts, so they stay with the issue scan. A paragraph without
+        geometry is not measured here (nothing to fit against)."""
+        found = self._entry(block_idx, string_idx)
+        if found is None or not text:
+            return []
+        manual, key, entry = found
+        _DATA.load()
+        problems = layout.check_entry(text, str(entry.get("ru", "")), entry, manual.geo.get(key), _DATA.widths)
+        return sorted({name for name, _ in problems if name in FIT_PROBLEMS})
 
     def get_scene_context_for_string(self, block_idx: int, string_idx: int) -> Dict[str, Any]:
         found = self._entry(block_idx, string_idx)

@@ -6,6 +6,7 @@ from typing import Optional, Dict, List, Any, Tuple, Callable
 
 from core.i18n import tr
 from core.translation.layout_contract import text_fits_place
+from core.translation.memory_context import same_context
 from core.translation.run_memory import normalize_source
 from core.translation.series_memory import source_hash as _source_hash
 from plugins.common.series_tags import TagMap, carry, neutral_key, neutral_of, tag_fields
@@ -198,7 +199,7 @@ class SavedTranslationsManager:
         repeats = self.repeats_in_project(source)
         context = self.context_of(block_idx, string_idx, source) if repeats else None
         own = [row for row in own_all
-               if not repeats or (context is not None and row.get("fold") == context.get("fold"))]
+               if not repeats or (context is not None and same_context(row, context))]
         return own, self.series_candidates(block_idx, string_idx, source)
 
     def series_candidates(self, block_idx: int, string_idx: int, source: Any) -> List[Dict[str, Any]]:

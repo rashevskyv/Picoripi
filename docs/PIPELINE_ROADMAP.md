@@ -95,6 +95,14 @@ def get_external_reference_url(self, term: str) -> Optional[str]:
 def get_addressee_for_string(self, block_idx, string_idx) -> Optional[str]:
     """До кого звернена репліка. Дефолт: None."""
 
+def get_duplicate_context_for_string(self, block_idx, string_idx) -> Optional[Dict[str, Any]]:
+    """Контекст, що вирішує, чи можна ділити переклад однакового тексту (D46): замість вікна і контексту
+    перекладу. Дефолт: None (ключ як раніше). Реалізовано в plugins/manual_3ds (стала ціль на всі абзаци)."""
+
+def get_text_fit_problems_for_string(self, block_idx, string_idx, text) -> List[str]:
+    """Проблеми розкладки, через які текст не вміщається в це місце (D46); перед записом повторного перекладу.
+    Дефолт: []. Реалізовано в plugins/manual_3ds (LINES, WORD, WIDTH, WRAP, BESIDE, PANES)."""
+
 def supports_reference_patch(self) -> bool:
     """Чи підтримує плагін завантаження референсного перекладу. Дефолт: False."""
 

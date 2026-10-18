@@ -21,6 +21,26 @@ from utils.atomic_io import atomic_write_json
 BACKUP_NAME = "translation_memory.before_context.json"
 
 
+# The context fields a memory row keeps. A context may carry more (``fold_legacy``, D46) that is only compared.
+STORED_CONTEXT_KEYS = ("speaker", "addressee", "fold", "speaker_en")
+
+
+def stored_context(context: Dict[str, Any]) -> Dict[str, Any]:
+    """The part of a context that a memory row keeps."""
+    return {key: context[key] for key in STORED_CONTEXT_KEYS if key in context}
+
+
+def same_context(row: Dict[str, Any], context: Optional[Dict[str, Any]]) -> bool:
+    """Whether a memory row was made under ``context`` (its fold).
+
+    A context of a plugin with a duplicate context (D46) also carries ``fold_legacy``: the fold a row saved
+    before that context has. Such a row is the same context at its own place, so it still matches here.
+    """
+    if not context or not row.get("fold"):
+        return False
+    return row["fold"] in (context.get("fold"), context.get("fold_legacy"))
+
+
 @dataclass(frozen=True)
 class SavedPlace:
     """A string that has a saved translation: its place, source text and saved text."""
@@ -98,17 +118,17 @@ def plan_rebuild(
                     row.update(tags)
                     result.tagged += 1
             continue
-        fold = context.get("fold")
-        if any(row.get("fold") == fold for row in matches):
+        if any(same_context(row, context) for row in matches):
             continue
+        saved = stored_context(context)
         legacy = [row for row in matches if not row.get("fold")]
         if legacy:
-            legacy[0].update(context)
+            legacy[0].update(saved)
             if tags and not legacy[0].get("tags"):
                 legacy[0].update(tags)
             result.updated += 1
         else:
-            rows.append({"source": place.source, "translation": place.translation, **context, **tags})
+            rows.append({"source": place.source, "translation": place.translation, **saved, **tags})
             result.split += 1
     report(total, total)
     return result
