@@ -69,16 +69,13 @@ class LifecycleMixin:
         # Update UI
         self.ui_updater.update_title()
 
+        project_file = str(Path(info['directory']) / "project.uiproj")
+        self._register_opened(project_file, save_project_settings=True)   # undone by _abandon_new_project
+
         def on_created(_state_restored):
             if self._populate_failed:
                 self._abandon_new_project(info)
                 return
-            project_file = str(Path(info['directory']) / "project.uiproj")
-            self.mw.last_opened_path = project_file
-            if hasattr(self.mw, 'settings_manager'):
-                self.mw.settings_manager.add_recent_project(project_file)
-                self.mw.settings_manager.save_settings()
-                self._update_recent_projects_menu()
             if info.get('icon_source'):
                 self.copy_project_icon(info['directory'], info['icon_source'])
             self.note_project_opened(project_file, platform=info.get('platform', ''))
@@ -90,10 +87,32 @@ class LifecycleMixin:
             )
         self._populate_blocks_from_project(on_completed=on_created)
 
+    def _register_opened(self, project_file: str, save_project_settings: bool = False) -> None:
+        """The project is the last one opened and in the recent list. A failed open undoes it (_forget_opened)."""
+        self.mw.last_opened_path = project_file
+        if hasattr(self.mw, 'settings_manager'):
+            if project_file not in (getattr(self.mw, 'recent_projects', None) or []):
+                self._added_to_recent.add(project_file)
+            self.mw.settings_manager.add_recent_project(project_file)
+            self.mw.settings_manager.save_settings(save_project_settings=save_project_settings)
+            self._update_recent_projects_menu()
+
+    def _forget_opened(self, project_file: str) -> None:
+        """Undo _register_opened: not the last one any more; it leaves the recent list if this open added it."""
+        if getattr(self.mw, 'last_opened_path', '') == project_file:
+            self.mw.last_opened_path = ""
+        if project_file in self._added_to_recent:
+            self._added_to_recent.discard(project_file)
+            if hasattr(self.mw, 'settings_manager'):
+                self.mw.settings_manager.remove_recent_project(project_file)
+                self.mw.settings_manager.save_settings(save_project_settings=False)
+                self._update_recent_projects_menu()
+
     def _abandon_new_project(self, info: Dict) -> None:
         """A created project that did not open: close it, remove the files the create made, register nothing."""
         log_error(f"Project '{info['name']}' did not open after its create; its files are removed.")
         self.close_project_action()
+        self._forget_opened(str(Path(info['directory']) / "project.uiproj"))
         self._discard_new_project(info)
         QMessageBox.critical(self.mw, tr('Project Creation Failed'),
                              tr('The project did not open, so it was removed. Its files were deleted.'))
@@ -177,12 +196,6 @@ class LifecycleMixin:
             if self._populate_failed:
                 self._project_open_failed(project_path, tr("The project files could not be read."))
                 return
-            # Registered only now: a project that did not open is never the last one opened.
-            self.mw.last_opened_path = project_path
-            if hasattr(self.mw, 'settings_manager'):
-                self.mw.settings_manager.add_recent_project(project_path)
-                self.mw.settings_manager.save_settings(save_project_settings=False)
-                self._update_recent_projects_menu()
             self.note_project_opened(project_path)
             self.record_project_counts()
             if hasattr(self.mw, 'bookmark_handler'):
@@ -194,6 +207,7 @@ class LifecycleMixin:
             except Exception as exc:
                 log_debug(f"Failed to auto-sync companion on open: {exc}")
 
+        self._register_opened(project_path)   # a failed open undoes it (_project_open_failed)
         self._populate_blocks_from_project(on_completed=on_opened)
 
     def close_project_action(self) -> None:

@@ -46,6 +46,7 @@ class ProjectActionHandler(
         self._startup_watchdog.timeout.connect(self._on_startup_stalled)
         self._startup_project = ""
         self._open_generation = 0
+        self._added_to_recent: set = set()   # recent entries this session's open added (undone on failure)
 
     def _report_startup(self, value: int, message: str) -> None:
         reporter = getattr(self.mw, 'report_startup_progress', None)

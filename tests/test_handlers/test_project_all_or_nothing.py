@@ -149,6 +149,7 @@ def test_a_create_whose_project_does_not_open_registers_nothing_and_removes_its_
 
     assert not (folder / "project.uiproj").exists()
     assert window.last_opened_path == ""
+    assert str(folder / "project.uiproj") not in (window.recent_projects or [])
     assert shown and "did not open" in shown[-1]
 
 

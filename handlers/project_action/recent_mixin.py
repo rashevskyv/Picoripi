@@ -97,6 +97,7 @@ class RecentMixin:
 
         project = self.mw.project_manager.project
         log_info(f"Recent project '{project.name}' metadata loaded. Required plugin: '{project.plugin_name}'")
+        self._register_opened(project_path)   # a failed open undoes it (_project_open_failed)
 
         # 1. FORCE correct plugin to load BEFORE any data parsing happens
         # Even if it's the same plugin, we reload it to ensure a clean state for this project
@@ -153,12 +154,6 @@ class RecentMixin:
             if self._populate_failed:
                 self._project_open_failed(project_path, tr("The project files could not be read."))
                 return None
-            # Registered only now: a project that did not open is never the last one opened.
-            self.mw.last_opened_path = project_path
-            if hasattr(self.mw, 'settings_manager'):
-                self.mw.settings_manager.add_recent_project(project_path)
-                self.mw.settings_manager.save_settings(save_project_settings=False)
-                self._update_recent_projects_menu()
             self.note_project_opened(project_path)
             self.record_project_counts()
             if hasattr(self.mw, 'bookmark_handler'):
@@ -193,12 +188,11 @@ class RecentMixin:
         log_error(f"Project {project_path} did not open: {reason}")
         self._disarm_startup_watchdog()
         self._open_generation += 1   # a late callback of this load is ignored
-        if getattr(self.mw, 'last_opened_path', '') == project_path:
-            self.mw.last_opened_path = ""
-            settings = getattr(self.mw, 'settings_manager', None)
-            if settings is not None:
-                settings.set("last_opened_path", "")
-                settings.save_settings(save_project_settings=False)
+        self._forget_opened(project_path)
+        settings = getattr(self.mw, 'settings_manager', None)
+        if settings is not None and not getattr(self.mw, 'last_opened_path', ''):
+            settings.set("last_opened_path", "")
+            settings.save_settings(save_project_settings=False)
         self.mw.project_manager = ProjectManager()
         self.mw._project_loading_pending = False
         self._set_project_actions_enabled(False)
