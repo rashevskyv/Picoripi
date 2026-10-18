@@ -268,6 +268,11 @@ class SavedTranslationsHandler(BaseHandler):
         dialog.close()
         QMessageBox.warning(self.ctx, tr('Update Translation Memory'), tr('The translation memory was not updated: {error}', error=text))
 
+    def fill_terms_from_glossary_action(self) -> None:
+        """Preview the strings a series glossary term translates, and fill the untranslated ones (D45, item 1)."""
+        from dialogs.glossary_term_fill_dialog import GlossaryTermFillDialog
+        GlossaryTermFillDialog(self.ctx, self.ctx).exec()
+
     def restore_memory_before_context_action(self) -> None:
         """Put the translation memory back from the copy kept before the context update."""
         manager = self.ctx.saved_translations_manager

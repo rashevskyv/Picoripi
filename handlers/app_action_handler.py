@@ -291,7 +291,7 @@ class AppActionHandler(BaseHandler):
         if hasattr(self.data_processor, 'load_session_file') and self.data_processor.load_session_file() is True:
             if hasattr(self.mw, 'close_project_action') and self.mw.close_project_action:
                 self.mw.close_project_action.setEnabled(True)
-            for act_name in ['save_translated_action', 'restore_translated_action', 'export_translations_action', 'export_original_action', 'import_translations_action', 'update_memory_context_action', 'restore_memory_context_action']:
+            for act_name in ['save_translated_action', 'restore_translated_action', 'export_translations_action', 'export_original_action', 'import_translations_action', 'update_memory_context_action', 'restore_memory_context_action', 'fill_terms_action']:
                 act = getattr(self.mw, act_name, None)
                 if act:
                     act.setEnabled(True)
@@ -387,7 +387,7 @@ class AppActionHandler(BaseHandler):
 
             if hasattr(self.mw, 'close_project_action') and self.mw.close_project_action:
                 self.mw.close_project_action.setEnabled(True)
-            for act_name in ['save_translated_action', 'restore_translated_action', 'export_translations_action', 'export_original_action', 'import_translations_action', 'update_memory_context_action', 'restore_memory_context_action']:
+            for act_name in ['save_translated_action', 'restore_translated_action', 'export_translations_action', 'export_original_action', 'import_translations_action', 'update_memory_context_action', 'restore_memory_context_action', 'fill_terms_action']:
                 act = getattr(self.mw, act_name, None)
                 if act:
                     act.setEnabled(True)

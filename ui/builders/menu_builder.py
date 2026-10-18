@@ -117,6 +117,10 @@ class MenuBuilder:
         self.mw.restore_memory_context_action.setEnabled(False)
         file_menu.addAction(self.mw.restore_memory_context_action)
 
+        self.mw.fill_terms_action = QAction(tr('Fill Terms from the Glossary...'), self.mw)
+        self.mw.fill_terms_action.setEnabled(False)
+        file_menu.addAction(self.mw.fill_terms_action)
+
         self.mw.export_original_action = QAction(QIcon.fromTheme("document-export"), tr('&Export Original to JSON...'), self.mw)
         self.mw.export_original_action.setEnabled(False)
         file_menu.addAction(self.mw.export_original_action)

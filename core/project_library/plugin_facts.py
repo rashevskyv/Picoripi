@@ -250,6 +250,44 @@ def count_project(project_file: str | os.PathLike, load_rules: LoadRules = defau
             "missing_translations": missing_translations}
 
 
+def project_block_strings(project_file: str | os.PathLike, load_rules: LoadRules = default_load_rules,
+                          is_cancelled: Cancelled = lambda: False) -> Optional[Dict[str, Any]]:
+    """The strings of every block of a project, read with its plugin's parser. None when cancelled.
+
+    Result: ``plugin`` (the plugin name) and ``blocks``: ``(source_file, internal_key, source strings, translation
+    strings or None)`` per block whose source parses. The translation strings are read in the translation role, as
+    ``count_project`` does; None when the block has no readable translation file. Archive members and unparsed blocks
+    are left out. A list index is the editor's string index (the parser's own list, empty strings included). Used by
+    the series term fill (D45), which must know what a project already translates before it writes anything.
+    """
+    path = Path(project_file)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("project file is not a JSON object")
+    plugin_name = str(data.get("plugin_name") or "")
+    rules = load_rules(plugin_name)
+    base = path.parent
+    metadata = data.get("metadata") or {}
+    source_roots = [_root(base, metadata.get("source_path")), base]
+    translation_roots = [_root(base, metadata.get("translation_path")), base]
+    cache: Dict[Any, Any] = {}
+    blocks = []
+    for block in data.get("blocks") or []:
+        if is_cancelled():
+            return None
+        if (block.get("metadata") or {}).get("is_archive_member"):
+            continue
+        internal_key = block.get("internal_key") or None
+        source = _resolve(str(block.get("source_file") or ""), source_roots)
+        original = _block_of(_parse(rules, source, cache), internal_key) if source else None
+        if original is None:
+            continue
+        translation = _resolve(str(block.get("translation_file") or ""), translation_roots)
+        translated = _block_of(_parse(rules, translation, cache, translation=True), internal_key) if translation else None
+        blocks.append((str(block.get("source_file") or ""), internal_key or "", list(original), translated))
+    return {"plugin": plugin_name, "blocks": blocks}
+
+
 def _stat_part(path: Optional[Path]) -> Optional[List[int]]:
     """``[mtime_ns, size]`` of a file, or None when it is missing."""
     if path is None:
