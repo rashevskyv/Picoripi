@@ -222,8 +222,13 @@ class _Screens(QWidget):
     def _transform(self) -> Tuple[float, float, float]:
         """-> (scale, left, top) of the canvas inside the widget, keeping the aspect ratio."""
         canvas_h = TOP_SIZE[1] + BOTTOM_SIZE[1]
-        scale = max(0.1, min(self.width() / TOP_SIZE[0], self.height() / canvas_h))
-        return scale, (self.width() - TOP_SIZE[0] * scale) / 2, (self.height() - canvas_h * scale) / 2
+        ratio = self.devicePixelRatioF()
+        fit = max(0.1, min(self.width() / TOP_SIZE[0], self.height() / canvas_h))
+        # A whole number of device pixels per canvas pixel keeps the 3DS pixels crisp; a smaller space scales down.
+        scale = (int(fit * ratio) / ratio) if fit * ratio >= 1.0 else fit
+        left = round((self.width() - TOP_SIZE[0] * scale) / 2 * ratio) / ratio
+        top = round((self.height() - canvas_h * scale) / 2 * ratio) / ratio
+        return scale, left, top
 
     def _to_canvas(self, point: QPointF) -> QPointF:
         scale, left, top = self._transform()
@@ -233,6 +238,8 @@ class _Screens(QWidget):
         painter = QPainter(self)
         try:
             scale, left, top = self._transform()
+            # Whole-number zoom: nearest-neighbour keeps the console's pixels sharp; only a shrink is smoothed.
+            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, scale * self.devicePixelRatioF() < 1.0)
             painter.translate(left, top)
             painter.scale(scale, scale)
             self._owner.paint_screens(painter)

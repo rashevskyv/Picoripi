@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- 3DS manual preview: the page is drawn at a whole-number zoom of the console pixels (no smoothing when it is enlarged, smoothing only when it must shrink), so it no longer looks smeared when the panel is resized.
 - 3DS manuals: the same paragraph text in two manuals shares one translation (D46): the plugin's `get_duplicate_context_for_string` replaces the window and the translation context in the duplicate key, and `get_text_fit_problems_for_string` refuses a place whose layout the text does not fit (repeated translations, memory rows, series rows, glossary fill and batch followers; a refused follower stays untranslated and the status bar says so).
 - Wii discs: the common key is read at 0x114 of `keys.bin` (it was 0x158, the NAND AES key), so a real Wii disc decrypts; `test_wii_image.py` checks the 0x114 offset.
 - `setup.bat` and `run.sh` change to their own folder first (`run.bat` already did): started with "Run as administrator" the current folder is `C:WindowsSystem32`, where `setup.bat` deleted and made `.venv` and then failed with "Could not open requirements file: requirements.txt". `setup.bat` also checks that `requirements.txt` and `main.py` are beside it and that Python is in PATH, and prints the folder and the Python version. Test in `tests/test_tools/test_tasks.py`.
