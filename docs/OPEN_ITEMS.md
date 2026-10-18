@@ -10,6 +10,17 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-bfd`)
+
+- Open: no speech subtitle table found. Text tables found: bank 0x1A (entries 0-4, catapult book) and bank 0x1C sub-tables 0-3 (menu options, pause menu, chapter names, credits). The compressed game data section (task names) is not opened yet.
+- Open: no link from the 453 bank-0x16 streams to events or text lines. The decompilation documents one loader call site ("the exact US caller", `docs/rzip-assets.md`); its table of event to stream index is not extracted. Proxy only, unverified: 220 streams with L: cues (speech-like) and 233 without (music or ambient-like).
+- Open: the text preview uses the decompiled metrics and is not checked in an emulator frame. The canvas (320x240), the box position and the icon widths are assumptions. An owner save state at the catapult book is needed (`owner_play_to_catapult_book.bat`). The preview widget is not wired into the app; only the width hook is.
+- Owner decision: commit 7a3765db holds real game sentences in its test file (since removed). A local squash of the unpushed branch would remove them from its history.
+- Open: the font has no Font Editor format yet; the 95 glyphs are PGM sources only.
+- Open: no ROM build. Text growth needs a budget model; a longer voice stream needs a bank 0x16 repack (the index holds start and length per entry).
+- Open: the port (CBFD-Recompiled) plays speech through the game's MP3 player and extracts its assets at build time from the ROM. No runtime audio override exists in its `host/src`: a new voice needs a patched ROM and a port rebuild (not yet built).
+- Open: the voice re-encode and cue re-splice are proven on a file (`voice.splice_cues`, 40 of 40 cues); the stream has not played in the game or in the port.
+
 ## Same text in manuals (`plugins/manual_3ds`, D46, 2026-10-18, branch `feat/manual-same-text`)
 
 - Done: one paragraph text in two manuals folds into one translation (the manual's duplicate context is a constant); every writer of a repeated translation checks the place's layout first.

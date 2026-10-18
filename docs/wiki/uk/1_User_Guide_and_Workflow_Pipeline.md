@@ -690,6 +690,11 @@ tokens: 70.6k
      `source\font\charset_standard.bin` (сітка 166 глифів 16x16 CI4) і логотипи `source\texture\LOGO_*.bin` (RGBA16).
      `2_build.bat` пише змінені повідомлення, глифи й логотипи в мод порту `build\mods\zz_Picoripi_UA.o2r`; ROM не змінюється.
      У наборі символів українських літер ще немає.
+   - `conker_bfd` — Conker's Bad Fur Day (N64, USA 1.0), плагін у роботі. **Source:** тека `source\text\bank_1A\`
+     (книжка катапульти) і `source\text\bank_1C\` (меню, пауза, назви глав, титри): по одному JSON на таблицю,
+     текст звичайними символами, внутрішні коди як теги `[@hh]`; шрифт `source\font\glyph_00.pgm` до
+     `glyph_94.pgm`, `glyphs.json` і `glyph_map.json`; голосові потоки `source\voice\streams\NNNN.mp3` з індексом
+     `source\voice\streams.json`. Збірки ще немає: ROM не змінюється. Перегляд у грі ще не перевірений.
    - `paper_mario_ok` — Paper Mario: The Origami King (Switch, 2020), ті самі формати. **Source:** тека `source`
      робочої теки (`1_unpack.bat`: гра + оновлення): `msg\EU_English\*.msbt` (59 файлів, 9 708 повідомлень),
      `font\*.bffnt` (12 шрифтів) і `ui\...\*.bntx`; картинка, яку гра тримає окремо для кожної мови,

@@ -692,6 +692,12 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      CI4 glyphs) and the logo pictures `source\texture\LOGO_*.bin` (RGBA16). `2_build.bat` writes the changed
      messages, glyphs and logos into the port's mod `build\mods\zz_Picoripi_UA.o2r`; the ROM is not changed.
      The charset has no Ukrainian letters yet.
+   - `conker_bfd` — Conker's Bad Fur Day (N64, USA 1.0), plugin in progress. **Source:** the workspace's
+     `source\text\bank_1A\` (the catapult instruction book) and `source\text\bank_1C\` (menu, pause menu, chapter
+     names, credits): one JSON per table, text as plain characters with `[@hh]` tags for inline codes; the font
+     `source\font\glyph_00.pgm` to `glyph_94.pgm` with `glyphs.json` and `glyph_map.json`; the voice streams
+     `source\voice\streams\NNNN.mp3` with the index `source\voice\streams.json`. No build target yet: the ROM is
+     not changed. The in-game preview is not verified yet.
    - `paper_mario_ok` — Paper Mario: The Origami King (Switch, 2020), the same formats. **Source:** the
      workspace's `source` (`1_unpack.bat`: base + update): `msg\EU_English\*.msbt` (59 files, 9,708 messages),
      `font\*.bffnt` (12 fonts) and `ui\...\*.bntx`; a picture the game keeps once per language opens as its
