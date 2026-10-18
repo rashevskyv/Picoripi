@@ -4,6 +4,10 @@
   "format": "texture_grid",
   "path": "BIN/F_GAME.BIN.pic",
   "font_map": "castlevania_sotn_font.json",
+  "copies": [
+   {"path": "BIN/F_GAME2.BIN.pic", "offset": "0x30000", "size": "0x2000"},
+   {"path": "BIN/F_TITLE1.BIN.pic", "offset": "0x30000", "size": "0x2000"}
+  ],
   "params": {
    "texture": "raw",
    "cell": [
@@ -24,6 +28,9 @@
   "label": "Damage numbers and status words (red 8x8 in F_GAME.BIN page 0x10000; row 1 = digits 1-0; the word rows are not mapped yet)",
   "format": "texture_grid",
   "path": "BIN/F_GAME.BIN.pic",
+  "copies": [
+   {"path": "BIN/F_GAME2.BIN.pic", "offset": "0x10000", "size": "0x2000"}
+  ],
   "params": {
    "texture": "raw",
    "cell": [

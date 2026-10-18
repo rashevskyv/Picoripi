@@ -9,6 +9,7 @@ from utils.logging_utils import log_debug, log_warning
 
 from . import codec
 from . import doc as docs
+from . import text_window
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TAG_PATTERN, TagManager
 
@@ -179,6 +180,19 @@ class GameRules(BaseGameRules):
         if line.speaker:
             attributes["speaker"] = line.speaker
         return attributes
+
+    def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
+        """Cutscene dialogue is drawn in the 8x8 font in a strip of ``text_window.TEXT_WIDTH`` pixels. Other lines
+        keep the global widths: their fonts (the console's 12x16 font) have no widths on the disc."""
+        found = self._line(block_idx, string_idx)
+        if found is None or found[1].kind != "dialogue":
+            return None
+        return {"max_width": text_window.TEXT_WIDTH, "warn_width": text_window.TEXT_WIDTH}
+
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """The cutscene window with the 8x8 font (text_preview.py)."""
+        from plugins.castlevania_sotn.text_preview import SotnTextPreview
+        return SotnTextPreview(main_window)
 
     def get_translation_context_for_string(self, block_idx: int, string_idx: int) -> Dict[str, Any]:
         found = self._line(block_idx, string_idx)

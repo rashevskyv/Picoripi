@@ -10,6 +10,8 @@ a compressed archive or member is read decompressed and written compressed again
 (the label of another descriptor whose same-named file takes the glyphs drawn here: ``glyph_sync``). A G1T
 whose widths live in the game's executable (``params.widths.patches``) also has exefs patch files in
 the translation folder, one per build of the game (``widths_patches``: file -> table address).
+``copies`` (a list of ``{path, offset, size}``, ``path`` relative to the source folder) names other game files
+that hold the same block: a save writes the block into each copy's translation file.
 ``companion`` (a path relative to the source folder) is a second file the font needs, e.g. the texture
 of a Level-5 G4 font: the format then gets both files as one ``join_pair`` blob and saves both.
 
@@ -60,6 +62,7 @@ class FontSource:
     companion_translation: str = ""
     descriptor: str = ""                     # the label of the descriptor this file came from
     sync_with: str = ""                      # the label of the descriptor whose glyphs this file follows
+    copies: List[Tuple[str, str, int, int]] = field(default_factory=list)  # (source, translation, offset, size)
     sync_partner: Optional["FontSource"] = field(default=None, repr=False, compare=False)
 
     @property
@@ -105,9 +108,25 @@ class FontSource:
             if not self.companion_translation:
                 raise ValueError("The project has no translation folder to write the font to")
             atomic_write_bytes(self.companion_translation, companion)
+        plain = bytes(data)
         if self.member:
             data = unwrap(Path(self._current_path()).read_bytes(), self.member, {})[1](bytes(data))
         atomic_write_bytes(self.translation_path, data)
+        if not self.member and not self.companion_source:
+            self._write_copies(plain)
+
+    def _write_copies(self, data: bytes) -> None:
+        """Write the same block of the edited font into the copies (other game files that hold it), where
+        the block differs from the copy's current version."""
+        for source, translation, offset, size in self.copies:
+            base = translation if Path(translation).is_file() else source
+            current = Path(base).read_bytes()
+            block = data[offset:offset + size]
+            if len(block) != size or len(current) < offset + size:
+                raise ValueError(f"The font block does not fit the copy {Path(source).name}")
+            updated = current[:offset] + block + current[offset + size:]
+            if updated != current:
+                atomic_write_bytes(translation, updated)
 
     @staticmethod
     def read_widths_patch(path: str) -> bytes:
@@ -132,6 +151,10 @@ def _candidates(path: Any) -> List[str]:
     if isinstance(path, (list, tuple)):
         return [str(item) for item in path]
     return [str(path)] if path else []
+
+
+def _int(value: Any) -> int:
+    return int(value, 0) if isinstance(value, str) else int(value)
 
 
 def resolve(descriptors: Iterable[Dict[str, Any]], project_metadata: Dict[str, Any]) -> List[FontSource]:
@@ -186,7 +209,15 @@ def _sources_for(descriptor: Dict[str, Any], source_path: str, translation_path:
                     companion_translation=os.path.normpath(os.path.join(translation_root, companion))
                     if translation_root else "")
     patches = (params.get("widths") or {}).get("patches") or {}
+    copies = []
+    for spec in descriptor.get("copies") or []:
+        # The same block (offset, size) in another game file, e.g. a font page copied into a second file.
+        copy_source = os.path.normpath(os.path.join(source_root, str(spec["path"])))
+        if translation_root and Path(copy_source).is_file():
+            copies.append((copy_source, os.path.normpath(os.path.join(translation_root, str(spec["path"]))),
+                           _int(spec["offset"]), _int(spec["size"])))
     common = dict(format=str(descriptor["format"]), source_path=source_path, translation_path=translation_path,
+                  copies=copies,
                   font_map=str(descriptor.get("font_map") or ""), params=params,
                   widths_patches={os.path.normpath(os.path.join(translation_root, rel)): str(address)
                                   for rel, address in patches.items()} if translation_root else {},
