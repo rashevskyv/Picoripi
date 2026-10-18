@@ -1,4 +1,6 @@
 """Data folder chooser dialog: the confirmed choice is written to the pointer; cancel writes nothing."""
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -137,3 +139,13 @@ def test_an_explicit_choice_skips_the_chooser(qtbot, monkeypatch):
     monkeypatch.setattr(app_mode, "headless", False)
     assert dld.ensure_data_location_chosen() is True   # conftest sets PICORIPI_HOME: an explicit choice
     assert opened == []
+
+
+def test_first_start_keeps_the_application_alive_for_the_chooser():
+    """Regression: the QApplication made for the chooser was dropped at once, so the dialog failed with
+    'Must construct a QApplication before a QWidget' on a start with no chosen folder (seen on macOS)."""
+    probe = Path(__file__).with_name("first_start_probe.py")
+    done = subprocess.run([sys.executable, "-I", str(probe)], capture_output=True, text=True, timeout=120,
+                          stdin=subprocess.DEVNULL, cwd=str(probe.parent))
+    assert done.returncode == 0, done.stderr
+    assert "RESULT True True" in done.stdout

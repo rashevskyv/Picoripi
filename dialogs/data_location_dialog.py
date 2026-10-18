@@ -355,6 +355,9 @@ class DataLocationDialog(QDialog):
         super().reject()
 
 
+_app: Optional[QApplication] = None   # the application made for the first-start chooser, kept alive for main.py
+
+
 def ensure_data_location_chosen() -> bool:
     """First start: show the chooser unless an explicit choice exists. False means the user quit."""
     if app_mode.headless:
@@ -362,7 +365,10 @@ def ensure_data_location_chosen() -> bool:
     location = resolve_data_location()
     if not location.needs_choice:
         return True
-    QApplication.instance() or QApplication(sys.argv)
+    global _app
+    # Keep the reference: a QApplication nobody holds is destroyed at once, and the dialog below then fails with
+    # "Must construct a QApplication before a QWidget". main.py reuses this instance through QApplication.instance().
+    _app = QApplication.instance() or QApplication(sys.argv)
     current = location.path if location.problem else None
     notice = tr("The saved data folder is missing or read-only. Choose a folder.") if location.problem else ""
     dialog = DataLocationDialog(app_root(), current=current, legacy=legacy_dir(), first_start=True, notice=notice)
