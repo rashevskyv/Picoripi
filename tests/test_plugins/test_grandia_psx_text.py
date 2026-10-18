@@ -2,6 +2,7 @@
 writer, and the plugin. Synthetic bytes only; the owner's disc 1 is used when present."""
 import json
 import os
+import struct
 from pathlib import Path
 
 import pytest
@@ -169,3 +170,45 @@ def test_plugin_loads_and_saves_dialogue_through_the_bounded_writer():
     out = rules.save_data_to_json_obj([["Hi.<02>", "Bye now.<02>"]], names)
     assert out == psx_text.write(data, ["Hi.<02>", "Bye now.<02>"])[0]
     assert len(out) == len(data)
+
+
+def test_budget_counts_blocks_and_bytes():
+    data = dialogue("Hello there.", "Bye.")
+    measured = psx_text.budget(data)
+    assert measured["blocks"] == 2
+    assert measured["bytes"] == len(b"Hello there.\x02") + len(b"Bye.\x02")
+    assert measured["largest"] == len(b"Hello there.\x02")
+    assert psx_text.budget(b"nothing here") == {"blocks": 0, "bytes": 0, "largest": 0}
+
+
+def _table(*entries):
+    """A field script's entry table: (offset word, size) pairs, then empty entries up to 0x200."""
+    out = b"".join(struct.pack("<II", word, size) for word, size in entries)
+    return out + b"\xff" * (0x200 - len(out))
+
+
+def test_script_section_is_the_entry_that_holds_the_speakers():
+    data = bytearray(_table((0x100, 0x80), (0x01000200, 0x80)) + b"\x00" * (0x400 - 0x200))
+    for at in (0x110, 0x130):
+        data[at:at + 5] = SPEAKER_SEQ
+    data[0x210:0x215] = SPEAKER_SEQ
+    assert psx_text.script_section(bytes(data)) == (0x100, 0x80)
+
+
+def test_script_section_ignores_the_flag_byte_and_empty_entries():
+    data = bytearray(_table((0x07000100, 0x80)) + b"\x00" * 0x200)
+    data[0x120:0x125] = SPEAKER_SEQ
+    assert psx_text.script_section(bytes(data)) == (0x100, 0x80)
+
+
+def test_script_section_is_none_without_speakers_or_outside_every_entry():
+    assert psx_text.script_section(_table() + b"\x00" * 0x200) is None
+    data = bytearray(_table((0x100, 0x80)) + b"\x00" * 0x300)
+    data[0x300:0x305] = SPEAKER_SEQ
+    assert psx_text.script_section(bytes(data)) is None
+
+
+def test_script_section_skips_an_entry_that_runs_past_the_data():
+    data = bytearray(_table((0x100, 0x10000)) + b"\x00" * 0x200)
+    data[0x120:0x125] = SPEAKER_SEQ
+    assert psx_text.script_section(bytes(data)) is None

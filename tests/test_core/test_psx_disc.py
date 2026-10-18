@@ -7,7 +7,7 @@ import pytest
 import romhacking_root
 
 from core.containers.image_files import ImageError
-from core.containers.psx_disc import XA_INTERLEAVED, identify_psx, open_psx, product_code
+from core.containers.psx_disc import XA_INTERLEAVED, fix_sector, identify_psx, open_psx, product_code, write_file
 
 RAW = 2352
 SECTOR = 2048
@@ -143,3 +143,64 @@ def test_images_identify_and_extract_a_psx_cue(tmp_path):
     assert images.extract(cue, str(out), lambda _pct, _name: None, lambda: False) == str(out)
     assert (out / "FIELD" / "3034.MDP").read_bytes() == b"hello"
     assert not (out / "FIELD" / "MOV.STR").exists()
+
+
+def _sector_is_consistent(raw: bytes) -> bool:
+    """A raw sector is consistent when its EDC and ECC rebuild to the same bytes from its user data."""
+    rebuilt = bytearray(raw)
+    rebuilt[2072:2352] = bytes(280)
+    fix_sector(rebuilt)
+    return bytes(rebuilt) == raw
+
+
+def _script_entry(image, path="FIELD/3034.MDP"):
+    return {entry.path: entry for entry in image.files()}[path]
+
+
+def test_write_file_replaces_the_bytes_and_keeps_the_sector_consistent(tmp_path):
+    cue = make_disc(tmp_path)
+    before = (tmp_path / "disc.bin").read_bytes()
+    entry = _script_entry(open_psx(cue))
+    assert write_file(cue, entry, b"HOLA!") == 1
+    after = (tmp_path / "disc.bin").read_bytes()
+    assert after[21 * RAW + 24:21 * RAW + 24 + 5] == b"HOLA!"
+    assert _sector_is_consistent(after[21 * RAW:22 * RAW])
+    assert after[22 * RAW:23 * RAW] == before[22 * RAW:23 * RAW]        # the next sector is untouched
+    assert open_psx(cue).read_file(_script_entry(open_psx(cue))) == b"HOLA!"
+
+
+def test_write_file_refuses_a_length_change_and_leaves_the_disc(tmp_path):
+    cue = make_disc(tmp_path)
+    before = (tmp_path / "disc.bin").read_bytes()
+    with pytest.raises(ImageError):
+        write_file(cue, _script_entry(open_psx(cue)), b"too long")
+    assert (tmp_path / "disc.bin").read_bytes() == before
+
+
+def test_write_file_with_the_same_bytes_rewrites_nothing(tmp_path):
+    cue = make_disc(tmp_path)
+    before = (tmp_path / "disc.bin").read_bytes()
+    assert write_file(cue, _script_entry(open_psx(cue)), b"hello") == 0
+    assert (tmp_path / "disc.bin").read_bytes() == before
+
+
+def test_write_file_refuses_an_interleaved_stream(tmp_path):
+    cue = make_disc(tmp_path)
+    stream = _script_entry(open_psx(cue), "FIELD/MOV.STR")
+    with pytest.raises(ImageError):
+        write_file(cue, stream, b"x" * stream.size)
+
+
+@pytest.mark.skipif(not __import__("os").path.exists(REAL_CUE), reason="the owner's Grandia disc 1 is not on disk")
+def test_real_disc_sectors_rebuild_their_edc_and_ecc_byte_for_byte():
+    """Zeroing the EDC and ECC and rebuilding them gives the original bytes: the code matches the disc's own sectors."""
+    from core.containers.gdrom import parse_layout
+
+    seg = parse_layout(REAL_CUE)[0]
+    with open(seg.path, "rb") as handle:
+        for lba in range(seg.first + 1, seg.first + 201):
+            handle.seek(seg.file_offset + (lba - seg.first) * seg.raw)
+            raw = handle.read(seg.raw)
+            if raw[18] & 0x20:
+                continue
+            assert _sector_is_consistent(raw), lba
