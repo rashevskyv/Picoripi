@@ -190,3 +190,16 @@ class TestHandlerActions:
         monkeypatch.setattr(module.QMessageBox, "information", lambda parent, title, text: shown.append(text))
         handler.restore_memory_before_context_action()
         assert len(shown) == 1 and "No copy" in shown[0]
+
+
+def test_the_managers_three_argument_context_serves_a_saved_place():
+    """Regression: the worker calls ``context_for(place)``; the manager's function takes block, string and source."""
+    calls = []
+
+    def manager_context_for(block_idx, string_idx, source):
+        calls.append((block_idx, string_idx, source))
+        return {"speaker": "A", "addressee": "B", "fold": "f1"}
+
+    place = mc.SavedPlace(2, 5, "Source text", "Saved text")
+    assert mc.place_context(manager_context_for)(place) == {"speaker": "A", "addressee": "B", "fold": "f1"}
+    assert calls == [(2, 5, "Source text")]

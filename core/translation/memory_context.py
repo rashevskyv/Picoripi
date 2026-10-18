@@ -57,6 +57,11 @@ def places_of(data: Sequence[Any], block_prefixes: Sequence[str], saved: Dict[st
     return places
 
 
+def place_context(context_for: Callable[[int, int, str], Optional[Dict[str, str]]]) -> Callable[[SavedPlace], Optional[Dict[str, str]]]:
+    """The manager's ``context_for(block, string, source)`` as the ``context_for(place)`` that ``plan_rebuild`` calls."""
+    return lambda place: context_for(place.block, place.string, place.source)
+
+
 def plan_rebuild(
     memory: Dict[str, List[Dict[str, Any]]],
     places: Sequence[SavedPlace],

@@ -238,7 +238,7 @@ class SavedTranslationsHandler(BaseHandler):
         data = [list(block) if isinstance(block, list) else [] for block in (self.data_store.data or [])]
         worker = MemoryContextWorker(
             path, memory, data, manager.block_key_prefixes(len(data)), dict(manager.load_all_saved_translations()),
-            manager.context_for, manager.tag_fields_of, parent=self.ctx,
+            memory_context.place_context(manager.context_for), manager.tag_fields_of, parent=self.ctx,
         )
         dialog = QProgressDialog(tr('Giving the translation memory the context of its rows...'), tr('Cancel'), 0, 0, self.ctx)
         dialog.setWindowModality(Qt.WindowModality.WindowModal)

@@ -42,17 +42,15 @@ class CachedTranslationDialog(QDialog):
         info_text = ""
         if cached_count == 1:
             item = cached_info[0]
-            info_text = (
-                f"A cached translation is available for <b>{item['block_name']}</b>, "
-                f"Line <b>{item['string_idx'] + 1}</b>.<br><br>"
-                "Use cached translation?"
-            )
+            info_text = tr(
+                "A cached translation is available for <b>{block}</b>, Line <b>{line}</b>.<br><br>Use cached translation?"
+            ).format(block=item['block_name'], line=item['string_idx'] + 1)
         else:
-            info_text = (
-                f"Cached translations are available for <b>{cached_count}</b> of the selected lines.<br>"
+            info_text = tr(
+                "Cached translations are available for <b>{count}</b> of the selected lines.<br>"
                 "For cached lines, the translation will be restored instantly. Other lines will be translated via AI.<br><br>"
                 "Use cached translations?"
-            )
+            ).format(count=cached_count)
             
         self.info_label = QLabel(info_text, self)
         self.info_label.setTextFormat(Qt.TextFormat.RichText)
