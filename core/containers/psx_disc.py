@@ -13,14 +13,17 @@ for byte, so an unchanged sector rebuilds to itself. The image is changed in pla
 """
 from __future__ import annotations
 
+import os
 import re
 import struct
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 
 from core.containers.gdrom import MODE2_FORM1_OFFSET, RAW_2352, SECTOR, GdRomStream, Segment, parse_layout
 from core.containers.image_files import ImageError, ImageFile, ImageReader, check_name
 from core.i18n import tr
+
+COPY_CHUNK = 1 << 20   # bytes copied per read when a disc set is copied
 
 PVD_SECTOR = 16
 EDC_AT = 2072            # EDC after the 2048 user bytes of a Mode 2 Form 1 raw sector (user data at byte 24)
@@ -276,3 +279,55 @@ def write_file(cue_path: str, entry: PsxFile, data: bytes) -> int:
             handle.seek(position)
             handle.write(raw)
     return len(planned)
+
+
+def _copy_file(src_path: str, dst_path: str, progress: Callable[[int, str], None],
+               is_cancelled: Callable[[], bool]) -> bool:
+    """Copy one file in chunks, reporting progress. False when cancelled."""
+    total = os.path.getsize(src_path)
+    name = os.path.basename(src_path)
+    done = 0
+    with open(src_path, "rb") as src, open(dst_path, "wb") as out:
+        while done < total:
+            if is_cancelled():
+                return False
+            chunk = src.read(min(COPY_CHUNK, total - done))
+            if not chunk:
+                raise ImageError(tr("the image ends inside a file"))
+            out.write(chunk)
+            done += len(chunk)
+            progress(min(99, 100 * done // total), name)
+    return True
+
+
+def write_set(cue_path: str, out_dir: str, replacements: Mapping[str, bytes], progress: Callable[[int, str], None],
+              is_cancelled: Callable[[], bool]) -> Optional[str]:
+    """Copy the disc set to ``out_dir`` and write ``replacements`` (disc path -> same-length bytes) into the copy.
+
+    Returns the new cue path, or None when cancelled. The source set is not changed. ImageError for a path that is not
+    a plain file of the disc, or for a length that differs from the file's.
+    """
+    src_dir = os.path.dirname(os.path.abspath(cue_path))
+    if os.path.abspath(out_dir) == src_dir:
+        raise ImageError(tr("the output folder is the folder of the disc image"))
+    os.makedirs(out_dir, exist_ok=True)
+    tracks: List[str] = []
+    for seg in parse_layout(cue_path):
+        if seg.path not in tracks:
+            tracks.append(seg.path)
+    for src_path in [*tracks, cue_path]:
+        if not _copy_file(src_path, os.path.join(out_dir, os.path.basename(src_path)), progress, is_cancelled):
+            return None
+    out_cue = os.path.join(out_dir, os.path.basename(cue_path))
+    stream = GdRomStream(out_cue)
+    try:
+        entries = {entry.path: entry for entry in PsxDiscImage(stream).files()}
+    finally:
+        stream.close()
+    for path in sorted(replacements):
+        if is_cancelled():
+            return None
+        if path not in entries:
+            raise ImageError(tr("{0} is not a file of the disc", path))
+        write_file(out_cue, entries[path], replacements[path])
+    return out_cue

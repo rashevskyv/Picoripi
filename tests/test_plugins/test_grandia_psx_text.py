@@ -212,3 +212,27 @@ def test_script_section_skips_an_entry_that_runs_past_the_data():
     data = bytearray(_table((0x100, 0x10000)) + b"\x00" * 0x200)
     data[0x120:0x125] = SPEAKER_SEQ
     assert psx_text.script_section(bytes(data)) is None
+
+
+def test_plugin_psx_build_target_writes_the_edited_text_into_a_disc_copy(tmp_path):
+    from core.containers.psx_disc import open_psx
+    from plugins.grandia.rules import PSX_TARGET_ID, GameRules
+    from test_core.test_psx_disc import make_disc
+
+    disc_dir = tmp_path / "disc"
+    disc_dir.mkdir()
+    cue = make_disc(disc_dir)
+    source = tmp_path / "source"
+    (source / "FIELD").mkdir(parents=True)
+    (source / "FIELD" / "3034.MDP").write_bytes(b"hello")
+    (source / "source_image.ref").write_text(json.dumps({"game_id": "SCUS-94457", "cue": cue}), encoding="utf-8")
+    translation = tmp_path / "translation"
+    (translation / "FIELD").mkdir(parents=True)
+    (translation / "FIELD" / "3034.MDP").write_bytes(b"HOLA!")
+    rules = GameRules()
+    assert PSX_TARGET_ID in {t["id"] for t in rules.get_build_targets()}
+    result = rules.build_target(PSX_TARGET_ID, str(source), str(translation), str(tmp_path / "build"),
+                                lambda p, n: None, lambda: False)
+    disc = open_psx(result)
+    assert disc.read_file(next(e for e in disc.files() if e.path == "FIELD/3034.MDP")) == b"HOLA!"
+    assert open_psx(cue).read_file(next(e for e in open_psx(cue).files() if e.path == "FIELD/3034.MDP")) == b"hello"

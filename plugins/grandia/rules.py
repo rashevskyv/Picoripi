@@ -11,7 +11,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from core.containers import afs, gdrom_writer
+from core.containers import afs, gdrom_writer, psx_disc
 from core.i18n import tr
 from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
@@ -37,6 +37,7 @@ FIELD_FILES = ("files/BTL/SYS.AFS", "files/BTL/ENEMY.AFS", "files/BTL/MAGIC.AFS"
                "files/BTL/BOSS.AFS", "files/WINDOW/END_DATA.AFS", "files/WINDOW/XLS_DATA.AFS")   # fixed-field text
 REF_NAME = "source_image.ref"
 TARGET_ID = "disc_set"
+PSX_TARGET_ID = "psx_disc_set"
 
 
 class GameRules(BaseGameRules):
@@ -79,10 +80,14 @@ class GameRules(BaseGameRules):
 
     def get_build_targets(self) -> List[Dict[str, Any]]:
         return [{"id": TARGET_ID, "label": tr("Translated disc set (cue and tracks)"),
-                 "platforms": [images.KIND_GDROM], "kind": "patch"}]
+                 "platforms": [images.KIND_GDROM], "kind": "patch"},
+                {"id": PSX_TARGET_ID, "label": tr("Translated disc set (cue and tracks)"),
+                 "platforms": [images.KIND_PSX], "kind": "patch"}]
 
     def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
                      progress, is_cancelled) -> str:
+        if target_id == PSX_TARGET_ID:
+            return self._build_psx(source_dir, translation_dir, output_dir, progress, is_cancelled)
         if target_id != TARGET_ID:
             return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
         ref = Path(source_dir, REF_NAME)
@@ -98,6 +103,40 @@ class GameRules(BaseGameRules):
             return output_dir
         progress(100, "")
         return result
+
+    def _build_psx(self, source_dir: str, translation_dir: str, output_dir: str, progress, is_cancelled) -> str:
+        """Copy the PlayStation disc set and write the edited text files into the copy (same length each)."""
+        ref = Path(source_dir, REF_NAME)
+        if not ref.is_file():
+            raise ValueError(tr("The unpacked folder has no {0}: unpack the disc again.", REF_NAME))
+        cue = json.loads(ref.read_text(encoding="utf-8")).get("cue", "")
+        if not os.path.isfile(cue):
+            raise ValueError(tr("The disc image {0} is not on disk.", cue))
+        replacements = self._psx_replacements(source_dir, translation_dir)
+        progress(0, tr("Writing the disc set..."))
+        result = psx_disc.write_set(cue, output_dir, replacements, progress, is_cancelled)
+        if result is None:
+            return output_dir
+        progress(100, "")
+        return result
+
+    def _psx_replacements(self, source_dir: str, translation_dir: str) -> Dict[str, bytes]:
+        """The disc paths of the PlayStation text files whose translated copy differs from the source."""
+        out: Dict[str, bytes] = {}
+        root = Path(translation_dir)
+        if not root.is_dir():
+            return out
+        for path in sorted(root.rglob("*")):
+            if not path.is_file():
+                continue
+            rel = path.relative_to(root).as_posix()
+            source_path = Path(source_dir, rel)
+            if not _is_psx_text(rel) or not source_path.is_file():
+                continue
+            edited = path.read_bytes()
+            if edited != source_path.read_bytes():
+                out[rel] = edited
+        return out
 
     def _replacements(self, source_dir: str, translation_dir: str) -> Dict[str, bytes]:
         """The disc paths of the files whose translated copy differs from the source (archives, textures)."""
