@@ -131,13 +131,20 @@ class SotnTextPreview(QWidget):
         self._sheet = sheet
         self._render()
 
+    def _place(self) -> text_window.Place:
+        """The selected line's window place (its script's POS command), or the default place. Reads only."""
+        default = text_window.Place(*text_window.DEFAULT_PLACE)
+        rules = self._mw.current_game_rules
+        data = self._mw.data_store
+        found = rules.get_dialogue_place(data.physical_block_idx, data.current_string_idx)
+        return text_window.Place(*found) if found else default
+
     def _render(self) -> None:
         if self._sheet is None:
             self.update()
             return
         pages = TAG_RE.sub("", self._text).split("\n")
-        window = text_window.Place(*text_window.DEFAULT_PLACE)
-        page = text_window.render_page(page_codes(self._text), self._sheet, window)
+        page = text_window.render_page(page_codes(self._text), self._sheet, self._place())
         self._image = _to_qimage(text_window.scale_nearest(page, ZOOM))
         self._note = tr("Only the first page is drawn.") if len(pages) > text_window.LINES else ""
         self.update()

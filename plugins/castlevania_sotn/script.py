@@ -142,6 +142,17 @@ class Line:
     speaker: int = -1        # portrait (actor) shown with the line
 
 
+SET_POS = 7             # CSOP_SET_POS: startX and startY, one byte each (src/st/cen/cutscene.c)
+
+
+def place_before(ops: Sequence[Op], index: int) -> Tuple[int, int]:
+    """The window place (startX, startY) that the last POS command before ``ops[index]`` sets, or ()."""
+    for op in reversed(ops[:index]):
+        if op.code == SET_POS and len(op.raw) >= 3:
+            return (op.raw[1], op.raw[2])
+    return ()
+
+
 def lines_of(ops: Sequence[Op]) -> List[Line]:
     lines: List[Line] = []
     start = last_char = -1

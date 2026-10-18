@@ -77,6 +77,7 @@ class Line:
     speaker: str = ""
     ref: Tuple = ()                  # ("s", string index) / ("c", script index, line) / ("r", region, entry)
     plain: Optional[str] = None      # a script line: its editor text (already decoded)
+    place: Tuple = ()                # a script line: the window place (startX, startY) of its POS command, or ()
 
     def text(self, reverse_map: Optional[Dict[str, str]] = None) -> str:
         if self.plain is not None:
@@ -141,7 +142,8 @@ def parse(data: bytes, reverse_map: Optional[Dict[str, str]] = None) -> Doc:
             speaker = actors[item.speaker] if 0 <= item.speaker < len(actors) else ""
             text = script.line_text(ops, item, reverse_map)
             lines.append(Line(b"", "dialogue", f"{place}: cutscene {region['name']} line {count}", "cs",
-                              speaker=speaker, ref=("c", number, count), plain=text))
+                              speaker=speaker, ref=("c", number, count), plain=text,
+                              place=script.place_before(ops, item.first)))
         doc.names[str(len(doc.blocks))] = f"Cutscene: {region['name']}"
         doc.blocks.append(lines)
     return doc

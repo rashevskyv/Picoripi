@@ -1,7 +1,7 @@
 """The cutscene window of Symphony of the Night: placement, cell drawing and the strip's end (synthetic sheet)."""
 from PIL import Image
 
-from plugins.castlevania_sotn import codec, text_window
+from plugins.castlevania_sotn import codec, script, text_window
 from plugins.castlevania_sotn.text_preview import page_codes
 
 
@@ -44,6 +44,14 @@ def test_zoom_is_whole_number_and_nearest():
     frame = Image.new("RGBA", (4, 2), (1, 2, 3, 255))
     zoomed = text_window.scale_nearest(frame, 3)
     assert zoomed.size == (12, 6) and zoomed.getpixel((11, 5)) == (1, 2, 3, 255)
+
+
+def test_a_line_takes_the_place_of_the_last_pos_command_before_it():
+    ops = [script.Op(0, 7, bytes([7, 52, 44])), script.Op(3, -1, b"A"), script.Op(4, 7, bytes([7, 60, 40])),
+           script.Op(7, -1, b"B")]
+    assert script.place_before(ops, 1) == (52, 44)
+    assert script.place_before(ops, 0) == ()
+    assert script.place_before(ops, 3) == (60, 40)
 
 
 def test_tags_are_not_drawn_and_each_line_is_a_list_of_cells():

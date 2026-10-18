@@ -189,6 +189,11 @@ class GameRules(BaseGameRules):
             return None
         return {"max_width": text_window.TEXT_WIDTH, "warn_width": text_window.TEXT_WIDTH}
 
+    def get_dialogue_place(self, block_idx: int, string_idx: int) -> Optional[Tuple[int, int]]:
+        """The window place (startX, startY) that the cutscene line's POS command sets, or None."""
+        found = self._line(block_idx, string_idx)
+        return tuple(found[1].place) if found is not None and found[1].place else None
+
     def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
         """The cutscene window with the 8x8 font (text_preview.py)."""
         from plugins.castlevania_sotn.text_preview import SotnTextPreview

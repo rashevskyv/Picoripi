@@ -20,7 +20,7 @@ TEXT_WIDTH = 192          # the text strip: u1 = 192 (cutscene_script_box.h), 24
 TEXT_DX = 4               # prim x0 = startX + 4
 TEXT_DY = 20              # first line: nextLineY = startY + 20 (cutscene_script_text.h)
 LINES = 4                 # lines a page shows (config.json lines_per_page)
-DEFAULT_PLACE = (0, 0)    # used when a line has no POS before it in its script
+DEFAULT_PLACE = (60, 28)  # used when a line has no POS before it: the first POS of ST/CEN/CEN.BIN
 
 
 @dataclass(frozen=True)
