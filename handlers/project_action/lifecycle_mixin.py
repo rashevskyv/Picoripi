@@ -32,6 +32,7 @@ class LifecycleMixin:
             is_directory_mode=info['is_directory_mode'],
             auto_create_translations=info['auto_create_translations']
         )
+        self._close_font_editor_of_old_project()
 
         if success:
             project = self.mw.project_manager.project
@@ -105,6 +106,7 @@ class LifecycleMixin:
         self.mw.project_manager = ProjectManager()
 
         success = self.mw.project_manager.load(project_path)
+        self._close_font_editor_of_old_project()
 
         if success:
             project = self.mw.project_manager.project
@@ -198,6 +200,7 @@ class LifecycleMixin:
         self.mw.data_store.edited_json_path = None
         self.mw.last_opened_path = ""
 
+        self._close_font_editor_of_old_project()
         # Reset plugin
         self.mw.active_game_plugin = ""
         self.mw.load_game_plugin()

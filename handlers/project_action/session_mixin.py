@@ -138,6 +138,21 @@ class SessionMixin:
             worker.start()
 
 
+    def _close_font_editor_of_old_project(self) -> None:
+        """A project is replaced or closed: the Font Editor window holds the fonts of the old one, so close it.
+
+        Its own close asks about unsaved glyph edits; when the user cancels there, the window stays open as it was.
+        """
+        editor = getattr(self.mw, '_bfn_editor_window', None)
+        if editor is None:
+            return
+        try:
+            closed = editor.close()
+        except RuntimeError:       # the Qt object is already gone
+            closed = True
+        if closed:
+            self.mw._bfn_editor_window = None
+
     def _populate_blocks_from_project(self, on_completed=None) -> None:
         """Populate block list from current project and load data asynchronously."""
         if not self.mw.project_manager or not self.mw.project_manager.project:

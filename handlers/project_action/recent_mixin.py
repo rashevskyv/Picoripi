@@ -73,6 +73,7 @@ class RecentMixin:
         self.mw.project_manager = ProjectManager()
 
         success = self.mw.project_manager.load(project_path)
+        self._close_font_editor_of_old_project()
 
         if success:
             project = self.mw.project_manager.project
