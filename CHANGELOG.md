@@ -1,6 +1,9 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Project Manager wizard: a game image (ISO, RVZ, WIA, NDS, 3DS, Switch, GD-ROM, PS1 set) that the chosen game cannot unpack is refused with a message naming the platform; nothing is created.
+- Project creation is all or nothing: a create or open that fails removes the files it made, is not registered as the last project, and shows a message; a project with no blocks no longer stops at 95 % at start-up.
+- Start-up: a last project that fails to load, raises, or makes no progress for two minutes is forgotten as the last project, its reason is shown with the path, and the Project Manager opens.
 - 3DS manual preview: a click on a paragraph selects its string in the editor, through the main window's normal selection (history and panels follow); a drag of more than 4 px still scrolls the page.
 - 3DS manual preview: a selector above the preview draws the original beside the translation: the Russian as the console stores it, or the English in the Russian panes; scroll, text size and the selected paragraph are shared, and the original renders after the translation.
 - 3DS manuals: a typed line break is the problem NEWLINE (a space on the console), autofixed to `{br}`; Enter types `{br}`. `{br}` no longer counts as a marker change against the Russian; its fit is judged by LINES and PANES.

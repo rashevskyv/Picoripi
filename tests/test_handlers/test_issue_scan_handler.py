@@ -116,3 +116,13 @@ def test_rescan_all_tags_reports_completion_only_after_last_batch(handler, mock_
     assert scanned == [0, 1, 2]
     assert messages == [(mock_mw, "Scan Complete", "Full issue scan complete.")]
     handler.ui_updater.refresh_block_tree_indicators.assert_called_once()
+
+
+def test_an_empty_project_still_reports_its_scan_finished(handler, mock_mw):
+    """A project with no blocks has nothing to scan, but its load waits for the scan's finish: the callback runs."""
+    mock_mw.data_store.data = []
+    done = []
+
+    handler._perform_initial_silent_scan_all_issues(on_completed=lambda: done.append(True))
+
+    assert done == [True]

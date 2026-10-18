@@ -84,6 +84,36 @@ def run_unpack(rules: Any, sources: Dict[str, str], project_dir: str | os.PathLi
         raise
 
 
+def remove_new_entries(project_dir: str | os.PathLike, before: Optional[List[str]]) -> None:
+    """Remove what a create added to its folder: every entry whose name was not in ``before``.
+
+    ``before`` is the list of names the folder held before the create, or None when the folder did not exist then;
+    that folder is removed whole. Entries from before are never touched.
+    """
+    folder = Path(project_dir)
+    if before is None:
+        _remove_own(folder)
+        return
+    if not folder.is_dir():
+        return
+    kept = set(before)
+    for entry in list(folder.iterdir()):
+        if entry.name in kept:
+            continue
+        if entry.is_dir() and not entry.is_symlink():
+            _remove_own(entry)
+        else:
+            entry.unlink(missing_ok=True)
+
+
+def entries_before(project_dir: str | os.PathLike) -> Optional[List[str]]:
+    """The names in ``project_dir`` now (for ``remove_new_entries``), or None when the folder does not exist."""
+    folder = Path(project_dir)
+    if not folder.is_dir():
+        return None
+    return [entry.name for entry in folder.iterdir()]
+
+
 def _refuse_unread_image(sources: Dict[str, str]) -> None:
     """Refuse a game image that the plugin did not unpack: used as it is, it is not a source the plugin reads.
 

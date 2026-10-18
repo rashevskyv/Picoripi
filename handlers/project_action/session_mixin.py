@@ -14,6 +14,9 @@ from utils.thread_utils import safe_shutdown_thread
 
 
 class SessionMixin:
+    # True when the last populate failed (no project, or its files did not load). Callers read it in on_completed:
+    # the argument alone cannot tell a failure from a restore that finished with state_restored False.
+    _populate_failed: bool = False
     def _session_misses_project_blocks(self) -> bool:
         """The restored session knows fewer project files than the project has now (the folder sync added
         some) and holds no unsaved edits, so loading the files loses nothing."""
@@ -155,7 +158,9 @@ class SessionMixin:
 
     def _populate_blocks_from_project(self, on_completed=None) -> None:
         """Populate block list from current project and load data asynchronously."""
+        self._populate_failed = False
         if not self.mw.project_manager or not self.mw.project_manager.project:
+            self._populate_failed = True
             if on_completed:
                 on_completed(False)
             return
@@ -254,6 +259,7 @@ class SessionMixin:
                 self.mw._project_loading_pending = False
                 if not app_mode.headless and progress_dialog:
                     progress_dialog.close()
+                self._populate_failed = True
                 if worker.error_occurred:
                     QMessageBox.critical(self.mw, tr('Load Error'), f"An error occurred while loading project files:\n{worker.error_occurred}")
                 if on_completed:

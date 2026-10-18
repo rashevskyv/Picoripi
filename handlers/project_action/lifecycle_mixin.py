@@ -2,8 +2,9 @@
 from pathlib import Path
 from typing import Dict
 from PyQt6.QtWidgets import QMessageBox, QFileDialog
+from core.project_library import build
 from core.project_manager import ProjectManager
-from utils.logging_utils import log_info, log_debug, log_error
+from utils.logging_utils import log_info, log_debug, log_error, log_warning
 from core.i18n import tr
 
 
@@ -16,10 +17,11 @@ class LifecycleMixin:
     def finish_new_project(self, info: Dict) -> None:
         """Create the project described by ``info`` and open it. Shared by the old dialog and the Project Manager wizard.
 
-        ``info`` has the keys the Project Manager wizard passes and may add ``platform`` and ``metadata``
-        (stored in the project's metadata and in the Project Manager's row).
+        ``info`` has the keys the Project Manager wizard passes and may add ``platform``, ``metadata`` (stored in the
+        project's metadata and in the Project Manager's row) and ``entries_before`` (the names the project folder held
+        before the create). All or nothing: the project becomes the last opened one only after it has opened. A create
+        or an open that fails removes what the create made.
         """
-        # Create project using ProjectManager
         self.mw.project_manager = ProjectManager()
 
         success = self.mw.project_manager.create_new_project(
@@ -34,14 +36,43 @@ class LifecycleMixin:
         )
         self._close_font_editor_of_old_project()
 
-        if success:
-            project = self.mw.project_manager.project
-            if info.get('metadata'):
-                project.metadata.update(info['metadata'])
-                self.mw.project_manager.save()
-            log_info(f"Project '{project.name}' created successfully at {info['directory']}.")
+        if not success:
+            self._discard_new_project(info)
+            QMessageBox.critical(self.mw, tr('Project Creation Failed'), tr('Failed to create project.'))
+            return
 
-            # Update recent projects
+        project = self.mw.project_manager.project
+        if info.get('metadata'):
+            project.metadata.update(info['metadata'])
+            self.mw.project_manager.save()
+        log_info(f"Project '{project.name}' created at {info['directory']}; opening it.")
+
+        # Switch plugin if needed
+        if info['plugin'] != self.mw.active_game_plugin:
+            log_info(f"Switching plugin to '{info['plugin']}'")
+            self.mw.active_game_plugin = info['plugin']
+            self.mw.load_game_plugin()
+            self.ui_updater.update_plugin_status_label()
+        else:
+            if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
+                self.mw.translation_handler.initialize_glossary_highlighting()
+
+        # Now sync with plugin awareness
+        if self.mw.project_manager:
+            self.mw.project_manager.sync_project_files(plugin=self.mw.current_game_rules)
+
+        # Enable project-specific actions
+        self._set_project_actions_enabled(True)
+        if hasattr(self.mw, 'ui_handler'):
+            self.mw.ui_handler.update_editor_rules_properties()
+
+        # Update UI
+        self.ui_updater.update_title()
+
+        def on_created(_state_restored):
+            if self._populate_failed:
+                self._abandon_new_project(info)
+                return
             project_file = str(Path(info['directory']) / "project.uiproj")
             self.mw.last_opened_path = project_file
             if hasattr(self.mw, 'settings_manager'):
@@ -51,39 +82,31 @@ class LifecycleMixin:
             if info.get('icon_source'):
                 self.copy_project_icon(info['directory'], info['icon_source'])
             self.note_project_opened(project_file, platform=info.get('platform', ''))
+            self.record_project_counts()
+            QMessageBox.information(
+                self.mw,
+                tr('Project Created'),
+                f"Project '{project.name}' has been created successfully."
+            )
+        self._populate_blocks_from_project(on_completed=on_created)
 
-            # Switch plugin if needed
-            if info['plugin'] != self.mw.active_game_plugin:
-                log_info(f"Switching plugin to '{info['plugin']}'")
-                self.mw.active_game_plugin = info['plugin']
-                self.mw.load_game_plugin()
-                self.ui_updater.update_plugin_status_label()
-            else:
-                if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
-                    self.mw.translation_handler.initialize_glossary_highlighting()
+    def _abandon_new_project(self, info: Dict) -> None:
+        """A created project that did not open: close it, remove the files the create made, register nothing."""
+        log_error(f"Project '{info['name']}' did not open after its create; its files are removed.")
+        self.close_project_action()
+        self._discard_new_project(info)
+        QMessageBox.critical(self.mw, tr('Project Creation Failed'),
+                             tr('The project did not open, so it was removed. Its files were deleted.'))
 
-            # Now sync with plugin awareness
-            if self.mw.project_manager:
-                self.mw.project_manager.sync_project_files(plugin=self.mw.current_game_rules)
-
-            # Enable project-specific actions
-            self._set_project_actions_enabled(True)
-            if hasattr(self.mw, 'ui_handler'):
-                self.mw.ui_handler.update_editor_rules_properties()
-
-            # Update UI
-            self.ui_updater.update_title()
-
-            def on_created(state_restored):
-                self.record_project_counts()
-                QMessageBox.information(
-                    self.mw,
-                    tr('Project Created'),
-                    f"Project '{project.name}' has been created successfully."
-                )
-            self._populate_blocks_from_project(on_completed=on_created)
-        else:
-            QMessageBox.critical(self.mw, tr('Project Creation Failed'), tr('Failed to create project.'))
+    def _discard_new_project(self, info: Dict) -> None:
+        """Remove what a create added to its folder. Needs ``entries_before``; without it nothing is removed."""
+        if 'entries_before' not in info:
+            log_warning(f"Project '{info.get('name', '')}' failed; its folder is kept (no record of what was made).")
+            return
+        try:
+            build.remove_new_entries(info['directory'], info['entries_before'])
+        except OSError as exc:
+            log_error(f"Could not remove the files of the failed project in {info['directory']}: {exc}")
 
     def open_project_action(self) -> None:
         """Open project action."""
@@ -108,67 +131,70 @@ class LifecycleMixin:
         success = self.mw.project_manager.load(project_path)
         self._close_font_editor_of_old_project()
 
-        if success:
-            project = self.mw.project_manager.project
-            log_info(f"Project '{project.name}' loaded successfully.")
-
-            # Update recent projects
-            if hasattr(self.mw, 'settings_manager'):
-                self.mw.last_opened_path = project_path
-                self.mw.settings_manager.add_recent_project(project_path)
-                self.mw.settings_manager.save_settings(save_project_settings=False)
-                self._update_recent_projects_menu()
-            self.note_project_opened(project_path)
-
-            # Switch plugin if needed
-            if project.plugin_name and project.plugin_name != self.mw.active_game_plugin:
-                log_info(f"Switching plugin to '{project.plugin_name}'")
-                self.mw.active_game_plugin = project.plugin_name
-                self.mw.load_game_plugin()
-                self.ui_updater.update_plugin_status_label()
-            else:
-                if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
-                    self.mw.translation_handler.initialize_glossary_highlighting()
-
-            # Load project-specific settings
-            if hasattr(self.mw, 'settings_manager'):
-                self.mw.settings_manager.plugin_settings.load(self.mw.settings_manager._settings)
-
-            # Load project-specific settings from metadata
-            if self.mw.project_manager:
-                self.mw.project_manager.load_settings_from_project(self.mw)
-                if hasattr(self.mw, 'ui_handler'):
-                    self.mw.ui_handler.update_editor_rules_properties()
-                if hasattr(self.mw, 'settings_manager'):
-                    self.mw.settings_manager.load_all_font_maps()
-                if hasattr(self.mw, 'string_settings_updater'):
-                    self.mw.string_settings_updater.update_font_combobox()
-                self.mw.project_manager.sync_project_files(plugin=self.mw.current_game_rules)
-
-            # Enable project-specific actions
-            self._set_project_actions_enabled(True)
-
-            # Update UI
-            self.ui_updater.update_title()
-
-            def on_opened(state_restored):
-                self.record_project_counts()
-                if hasattr(self.mw, 'bookmark_handler'):
-                    self.mw.bookmark_handler.update_bookmarks_menu()
-                log_info(f"Project '{project.name}' opened with {len(project.blocks)} blocks.")
-                try:
-                    from core.companion_sync import smart_sync_in_background
-                    smart_sync_in_background(self.mw)
-                except Exception as exc:
-                    log_debug(f"Failed to auto-sync companion on open: {exc}")
-
-            self._populate_blocks_from_project(on_completed=on_opened)
-        else:
+        if not success:
             QMessageBox.critical(
                 self.mw,
                 tr('Project Load Failed'),
                 f"Failed to load project from:\n{project_path}"
             )
+            return
+
+        project = self.mw.project_manager.project
+        log_info(f"Project '{project.name}' loaded; opening it.")
+
+        # Switch plugin if needed
+        if project.plugin_name and project.plugin_name != self.mw.active_game_plugin:
+            log_info(f"Switching plugin to '{project.plugin_name}'")
+            self.mw.active_game_plugin = project.plugin_name
+            self.mw.load_game_plugin()
+            self.ui_updater.update_plugin_status_label()
+        else:
+            if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
+                self.mw.translation_handler.initialize_glossary_highlighting()
+
+        # Load project-specific settings
+        if hasattr(self.mw, 'settings_manager'):
+            self.mw.settings_manager.plugin_settings.load(self.mw.settings_manager._settings)
+
+        # Load project-specific settings from metadata
+        if self.mw.project_manager:
+            self.mw.project_manager.load_settings_from_project(self.mw)
+            if hasattr(self.mw, 'ui_handler'):
+                self.mw.ui_handler.update_editor_rules_properties()
+            if hasattr(self.mw, 'settings_manager'):
+                self.mw.settings_manager.load_all_font_maps()
+            if hasattr(self.mw, 'string_settings_updater'):
+                self.mw.string_settings_updater.update_font_combobox()
+            self.mw.project_manager.sync_project_files(plugin=self.mw.current_game_rules)
+
+        # Enable project-specific actions
+        self._set_project_actions_enabled(True)
+
+        # Update UI
+        self.ui_updater.update_title()
+
+        def on_opened(_state_restored):
+            if self._populate_failed:
+                self._project_open_failed(project_path, tr("The project files could not be read."))
+                return
+            # Registered only now: a project that did not open is never the last one opened.
+            self.mw.last_opened_path = project_path
+            if hasattr(self.mw, 'settings_manager'):
+                self.mw.settings_manager.add_recent_project(project_path)
+                self.mw.settings_manager.save_settings(save_project_settings=False)
+                self._update_recent_projects_menu()
+            self.note_project_opened(project_path)
+            self.record_project_counts()
+            if hasattr(self.mw, 'bookmark_handler'):
+                self.mw.bookmark_handler.update_bookmarks_menu()
+            log_info(f"Project '{project.name}' opened with {len(project.blocks)} blocks.")
+            try:
+                from core.companion_sync import smart_sync_in_background
+                smart_sync_in_background(self.mw)
+            except Exception as exc:
+                log_debug(f"Failed to auto-sync companion on open: {exc}")
+
+        self._populate_blocks_from_project(on_completed=on_opened)
 
     def close_project_action(self) -> None:
         """Close project action."""
