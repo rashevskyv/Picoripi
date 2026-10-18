@@ -192,10 +192,26 @@ def test_every_picture_and_the_font_write_back_unchanged():
         data = (SOURCE / entry["path"]).read_bytes()
         image = texture_formats.read(entry["format"], data, entry["params"])[0].image
         assert texture_formats.write(entry["format"], data, {0: image}, entry["params"]) == data, entry["label"]
-    font = _sources("font_sources.json")[0]
-    data = (SOURCE / font["path"]).read_bytes()
-    metadata, sheets = font_formats.extract(font["format"], data, font["params"])
-    assert font_formats.pack(font["format"], metadata, sheets, data, font["params"]) == data
+    for font in _sources("font_sources.json"):
+        data = (SOURCE / font["path"]).read_bytes()
+        metadata, sheets = font_formats.extract(font["format"], data, font["params"])
+        assert font_formats.pack(font["format"], metadata, sheets, data, font["params"]) == data, font["label"]
+
+
+def test_every_font_source_round_trips_on_a_blank_page():
+    # Synthetic: a blank 0x42000-byte F_GAME-shaped page; no game data.
+    for font in _sources("font_sources.json"):
+        data = bytes(0x42000)
+        metadata, sheets = font_formats.extract(font["format"], data, font["params"])
+        assert font_formats.pack(font["format"], metadata, sheets, data, font["params"]) == data, font["label"]
+
+
+def test_the_damage_font_maps_its_digit_row_and_leaves_the_word_rows_free():
+    damage = next(font for font in _sources("font_sources.json") if "Damage" in font["label"])
+    chars = damage["params"]["chars"]
+    assert len(chars) == damage["params"]["columns"] * len(damage["params"]["rows_at"]) == 96
+    assert chars[:10] == list("1234567890")
+    assert all(char == "" for char in chars[10:])
 
 
 @needs_data

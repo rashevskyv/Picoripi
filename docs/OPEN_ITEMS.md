@@ -1634,3 +1634,25 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - The owner's Wii key path is not stored: the Wii slot in `console_keys.json` is empty (the 3DS and Switch slots are
   set). Without it the Wii disc cannot be read, so `res/Fontus/fontres.arc` of the Wii disc is not compared with the GC
   original. Owner action: set the Wii key file in the console key settings.
+
+## Castlevania SotN PS1 fonts (`plugins/castlevania_sotn`, 2026-10-18)
+
+Facts from the USA decomp (`port/sotn-decomp`) and the disc files in `source/`. Offsets are file offsets. No game text.
+
+| Font | File and offset | Format | CLUT (file offset) | VRAM | Drawn by | Editor status |
+|---|---|---|---|---|---|---|
+| 8x8 menu, names, dialogue | `BIN/F_GAME.BIN` 0x30000 (same bytes in `F_GAME2`, `F_TITLE1`) | CI4 128x128, 16x16 cells | 0x412C0 (index 150) | tpage 0x1E (896,256) | `MenuDrawStr`, cutscene dialogue (`st/cen/cutscene.c`), `BottomCornerText` | registered, round trip exact |
+| Damage numbers and words (red) | `BIN/F_GAME.BIN` 0x10000, cells x 32-127, y 64-127 (same bytes in `F_GAME2`) | CI4 128x128, 8x8 cells, 12 x 8 | 0x41640 (index 178) | tpage 0x1A | damage numbers (`dra/7879C.c`) | registered: digit row mapped, word rows free |
+| HUD digits (HP, hearts) | `BIN/F_GAME.BIN` 0x38000 | CI4, 8x8 cells | per HUD item (index 0x70-0x75, 0x97) | tpage 0x1B | `dra/5F60C.c`: u = digit x 8 + 0x20 | not registered: the v row comes from a HUD table not traced |
+| 12x16 description font (BIOS KROM2) | not on disc: PS1 BIOS ROM at 0xBFC66000 | 1bpp 16x15 source, expanded to 4bpp 12x16 by `func_80106A28` | BIOS data | `LoadTPage` per glyph | item descriptions (`dra/menu.c` `func_800F99B8`), `st/blit_char.h` (pick-up and messages), `st/sel/318CC.c` | not editable; widths need BIOS data |
+| 16x16 name entry and file select | `ST/SEL/F_SEL.BIN.pic` (blocks 0 and 16) | 4bpp VRAM blocks | 0x200 | tpage 12 | `DrawString16x16`, UV table `D_8018046C` (`st/sel/318CC.c`) | Textures window only (a picture, not a font) |
+| Fallback glyphs (1bpp) | `DRA.BIN` 0xC910 (codes) and 0xC914 (pointers) | 1bpp 16x15 | none | none | `func_80106A28` when the BIOS has no glyph | not registered; glyph data not traced |
+| Debug font | `SLUS_000.67` 0x1C218 (128x32 CI4) and `kanjiclut` 0x1C018 | CI4 | 0x1C018 | tpage from `FntLoad(0x380, 0x100)` | `FntPrint` on a CD error only | not in the editor (debug) |
+| `font_eu` | PSP and EU builds only (`dra/692E8.c`, `maria/pl_main.c`, `ric/d_18568.c`) | GFX | none | none | not in the USA build | not in the USA build |
+
+- Cutscene bytes are cell + 0x20 (`CS_OFFSET` in `codec.py`); menu bytes are cell numbers. The 8x8 font's chars list is in cell order.
+- Copies: 0x30000 is byte-identical in `F_GAME`, `F_GAME2` and `F_TITLE1`. The build (`2_build.bat`, owner-owned) copies the 8x8 font to the other two. The damage page (0x10000) is identical in `F_GAME2` but nothing copies it. Owner decision: copy it or not; verify in game.
+- Free room: the 8x8 font has 256 cells, each with a character entry. The 68 `translation_map.json` entries reuse katakana cells (0x66-0x93); those are free only if the US text never draws them (not checked by machine).
+- Width checks: the plugin sets no per-line font (`get_string_layout` is not implemented). Lines with the BIOS font are measured with the global map. A fix needs widths from BIOS data, which is not on disc.
+- Open: map the damage word rows (string tables); trace the HUD digit `v` table; decide the widths for BIOS-font lines.
+- Open: the game-like text-window preview is not built. Needed first: the window frame colours, the menu window table, and a DuckStation comparison.
