@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Start: when Qt (PyQt6) cannot be imported (for example "DLL load failed while importing QtCore: The specified procedure could not be found" on Windows), `main.py` prints the steps to try (Visual C++ runtime, a Qt copy earlier in PATH, reinstall of the packages) before it fails (`utils/qt_import_hint.py`, test `tests/test_qt_import_hint.py`); README has the same note.
 - 3DS manual preview: a click on a paragraph selects its string in the editor, through the main window's normal selection (history and panels follow); a drag of more than 4 px still scrolls the page.
 - 3DS manual preview: a selector above the preview draws the original beside the translation: the Russian as the console stores it, or the English in the Russian panes; scroll, text size and the selected paragraph are shared, and the original renders after the translation.
 - 3DS manuals: a typed line break is the problem NEWLINE (a space on the console), autofixed to `{br}`; Enter types `{br}`. `{br}` no longer counts as a marker change against the Russian; its fit is judged by LINES and PANES.
