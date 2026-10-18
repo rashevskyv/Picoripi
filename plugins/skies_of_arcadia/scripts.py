@@ -14,10 +14,10 @@ from core.containers import skies_script
 from . import text
 
 BIG_ENDIAN = True   # GameCube
-# Scripts that freeze the game when a text grows (see the module docstring). A path matches by its end.
-# "*" = every script. Growth moves labels and branch operands (core.containers.skies_script), but no growing script
-# has been proven in game: a +8 byte growth of field/me201a.sct still freezes the game on Dreamcast (2026-10-18).
-FIXED_SIZE = ("*",)
+# Scripts whose text keeps every segment's length (a path matches by its end). Empty: every script uses the
+# script-level budget. A script that grows in one line must shorten another, so its file size and tail stay
+# unchanged (a growth that moves the tail froze the Dreamcast game, 2026-10-18; see OPEN_ITEMS).
+FIXED_SIZE = ()
 
 
 def is_fixed(rel_path: str, names: Tuple[str, ...] = FIXED_SIZE) -> bool:
@@ -47,6 +47,7 @@ def write_strings(source: bytes, strings: Sequence[str], fixed: bool,
     if len(strings) != len(spans):
         raise ValueError(f"expected {len(spans)} strings, got {len(strings)}")
     replacements = {}
+    changed_index = {}
     refused: List[int] = []
     missing: Set[str] = set()
     for index, ((start, end), new_text) in enumerate(zip(spans, strings)):
@@ -60,6 +61,7 @@ def write_strings(source: bytes, strings: Sequence[str], fixed: bool,
                 continue
             new += bytes([text.SPACE]) * (end - start - len(new))
         replacements[(start, end)] = new
+        changed_index[(start, end)] = index
     if not replacements:
         return source, refused, missing
     if fixed:
@@ -67,5 +69,9 @@ def write_strings(source: bytes, strings: Sequence[str], fixed: bool,
         for (start, end), new in replacements.items():
             out[start:end] = new
         return bytes(out), refused, missing
-    out, _delta = skies_script.grow_regions(source, replacements, big)
+    try:
+        out, _delta = skies_script.grow_regions(source, replacements, big, net_zero=True)
+    except ValueError:
+        # Over the script's budget: the whole script keeps its source text.
+        return source, sorted(changed_index.values()), missing
     return out, refused, missing

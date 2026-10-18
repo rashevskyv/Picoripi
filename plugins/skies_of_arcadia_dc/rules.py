@@ -25,7 +25,7 @@ class GameRules(GameCubeRules):
     """Skies of Arcadia, Dreamcast USA: the field scripts of the disc (both USA discs are accepted)."""
 
     big_endian = False
-    fixed_scripts = ("*",)   # every script keeps its byte budget: no growth is proven in game (OPEN_ITEMS)
+    fixed_scripts = ()   # the script-level budget (net zero) applies to every script (OPEN_ITEMS)
 
     def get_display_name(self) -> str:
         return "Skies of Arcadia (Dreamcast)"

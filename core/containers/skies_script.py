@@ -150,7 +150,8 @@ def _shift_fn(edits: Sequence[Tuple[int, int, bytes, int]]):
     return shift
 
 
-def grow_regions(body: bytes, replacements: Dict[Tuple[int, int], bytes], big: bool) -> Tuple[bytes, int]:
+def grow_regions(body: bytes, replacements: Dict[Tuple[int, int], bytes], big: bool,
+                 net_zero: bool = False) -> Tuple[bytes, int]:
     """Replace byte regions ``[start, end)`` by new bytes. Each region's length changes; the bytes after it move.
 
     The new bytes are padded with spaces (0x7f) so every region's length change is a multiple of 4, so the code stays
@@ -170,6 +171,15 @@ def grow_regions(body: bytes, replacements: Dict[Tuple[int, int], bytes], big: b
     for prev, cur in zip(edits, edits[1:]):
         if cur[0] < prev[1]:
             raise ValueError("replaced regions overlap")
+    if net_zero and edits:
+        # The script keeps its total length: the last edit (before the tail) absorbs the difference in spaces.
+        # Everything after the last edit keeps its offset (the tail).
+        total = sum(delta for *_, delta in edits)
+        if total > 0:
+            raise ValueError("the script's text is longer than its budget")
+        if total < 0:
+            start, end, block, delta = edits[-1]
+            edits[-1] = (start, end, block + b"\x7f" * (-total), delta - total)
     edited = [(start, end) for start, end, _, _ in edits]
 
     def in_edit(at: int) -> bool:

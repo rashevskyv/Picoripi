@@ -64,13 +64,19 @@ def test_fixed_edit_refuses_a_longer_text_and_keeps_the_source():
     assert out == body and refused == [0]
 
 
-def test_growable_edit_writes_the_longer_text_back():
-    body = _script([b"Hi", b"Bye"])
+def test_growable_edit_is_absorbed_by_a_shorter_line_of_the_script():
+    body = _script([b"Hi", b"Bye and more text"])
     out, refused, _ = scripts.write_strings(body, ["Hello there", "Bye"], fixed=False)
     assert refused == []
-    # grow_regions pads the new text with spaces to a multiple of 4 (the code after it stays aligned)
+    # the script keeps its total length: the longer line is paid for by the shorter one (spaces pad to 4)
+    assert len(out) == len(body)
     assert [s.rstrip(" ") for s in scripts.read_strings(out)] == ["Hello there", "Bye"]
-    assert len(out) > len(body)
+
+
+def test_growth_without_a_shorter_line_is_refused_and_the_source_stays():
+    body = _script([b"Hi", b"Bye"])
+    out, refused, _ = scripts.write_strings(body, ["Hello there", "Bye"], fixed=False)
+    assert out == body and refused == [0]
 
 
 @pytest.mark.parametrize("rel, fixed", [
@@ -83,8 +89,8 @@ def test_fixed_size_scripts_match_by_path_end(rel, fixed):
     assert scripts.is_fixed(rel, ("field/me201a.sct",)) is fixed
 
 
-def test_default_fixed_size_covers_every_script():
-    assert scripts.is_fixed("field/me202a.sct") is True
+def test_no_script_is_strict_fixed_size_by_default():
+    assert scripts.is_fixed("field/me202a.sct") is False
 
 
 class _Context:
