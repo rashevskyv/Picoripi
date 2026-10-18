@@ -1,5 +1,5 @@
-"""Skies of Arcadia Legends scripts (plugins/skies_of_arcadia): the byte codec, one string per text segment, and the
-in-place and growing saves. Synthetic scripts built here; no game data."""
+"""Skies of Arcadia Legends scripts (plugins/skies_of_arcadia): the byte codec, one string per text segment, the
+script-level budget and the saves. Synthetic scripts built here; no game data."""
 import struct
 
 import pytest
@@ -47,50 +47,60 @@ def test_one_string_per_segment_and_a_label_splits_a_page():
 
 def test_unchanged_strings_keep_the_body_exactly():
     body = _script([b"Hello", b"Bye"], labels=[(0, 2)])
-    for fixed in (True, False):
-        assert scripts.write_strings(body, scripts.read_strings(body), fixed) == (body, [], set())
+    assert scripts.write_strings(body, scripts.read_strings(body)) == (body, set())
 
 
-def test_fixed_edit_is_in_place_and_padded_to_the_same_length():
-    body = _script([b"Hello there"])
-    out, refused, missing = scripts.write_strings(body, ["Hi"], fixed=True)
-    assert len(out) == len(body) and refused == [] and missing == set()
-    assert scripts.read_strings(out) == ["Hi" + " " * 9]
+def test_budget_is_the_pooled_length_of_the_source_segments():
+    body = _script([b"Hello there", b"Bye and more text"])
+    state = scripts.budget_of(body, scripts.read_strings(body))
+    assert (state.budget, state.used, state.free) == (28, 28, 0)
+    assert state.changed == (False, False)
 
 
-def test_fixed_edit_refuses_a_longer_text_and_keeps_the_source():
+def test_trailing_spaces_are_padding_and_do_not_count():
     body = _script([b"Hi"])
-    out, refused, _ = scripts.write_strings(body, ["Hello there"], fixed=True)
-    assert out == body and refused == [0]
+    state = scripts.budget_of(body, ["Hi   "])
+    assert state.changed == (False,) and state.free == 0
+    assert scripts.write_strings(body, ["Hi   "]) == (body, set())
 
 
-def test_growable_edit_is_absorbed_by_a_shorter_line_of_the_script():
+def test_a_changed_line_is_padded_to_the_source_length_mod_4():
+    body = _script([b"Hi"])
+    state = scripts.budget_of(body, ["Hello there"])   # 11 bytes; the source is 2 (2 - 11 = -9, mod 4 = 3)
+    assert state.used == 14 and state.free == -12 and state.changed == (True,)
+    assert scripts.budget_of(body, ["Hello"]).used == 6   # 5 bytes plus 1 space: (2 - 5) mod 4 = 1
+
+
+def test_a_shorter_line_of_the_script_pays_for_a_longer_one():
     body = _script([b"Hi", b"Bye and more text"])
-    out, refused, _ = scripts.write_strings(body, ["Hello there", "Bye"], fixed=False)
-    assert refused == []
-    # the script keeps its total length: the longer line is paid for by the shorter one (spaces pad to 4)
+    out, missing = scripts.write_strings(body, ["Hello there", "Bye"])
+    assert missing == set()
+    # the script keeps its total length: the longer line is paid for by the shorter one
     assert len(out) == len(body)
     assert [s.rstrip(" ") for s in scripts.read_strings(out)] == ["Hello there", "Bye"]
 
 
-def test_growth_without_a_shorter_line_is_refused_and_the_source_stays():
+def test_over_budget_text_is_written_as_typed_and_the_body_is_longer():
     body = _script([b"Hi", b"Bye"])
-    out, refused, _ = scripts.write_strings(body, ["Hello there", "Bye"], fixed=False)
-    assert out == body and refused == [0]
+    out, missing = scripts.write_strings(body, ["Hello there", "Bye"])
+    assert missing == set() and len(out) > len(body)
+    assert [s.rstrip(" ") for s in scripts.read_strings(out)] == ["Hello there", "Bye"]
+    state = scripts.budget_of(body, scripts.read_strings(out))
+    assert state.free == -12 and state.changed == (True, False)
 
 
-@pytest.mark.parametrize("rel, fixed", [
-    ("field/me201a.sct", True),
-    ("files\\field\\me201a.sct", True),
-    ("field/me202a.sct", False),
-    ("other/me201a.sct", False),
-])
-def test_fixed_size_scripts_match_by_path_end(rel, fixed):
-    assert scripts.is_fixed(rel, ("field/me201a.sct",)) is fixed
+def test_reloaded_budget_matches_the_budget_of_the_typed_text():
+    body = _script([b"Hi", b"Bye and more text"])
+    out, _ = scripts.write_strings(body, ["Hello there", "Bye"])
+    assert scripts.budget_of(body, scripts.read_strings(out)).free == 0
 
 
-def test_no_script_is_strict_fixed_size_by_default():
-    assert scripts.is_fixed("field/me202a.sct") is False
+def test_string_count_mismatch_is_refused():
+    body = _script([b"Hi", b"Bye"])
+    with pytest.raises(ValueError):
+        scripts.budget_of(body, ["Hi"])
+    with pytest.raises(ValueError):
+        scripts.write_strings(body, ["Hi"])
 
 
 class _Context:
@@ -112,7 +122,7 @@ def test_rules_load_and_save_round_trip_unchanged():
     assert rules.save_data_to_json_obj(data, {}) == body
 
 
-def test_rules_save_uses_the_source_version_and_the_fixed_rule():
+def test_rules_save_uses_the_source_version_and_keeps_the_length_within_budget():
     from plugins.skies_of_arcadia.rules import GameRules
 
     source = _script([b"Hello there"])

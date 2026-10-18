@@ -21,7 +21,8 @@ def build_gdrom_set(source_dir: str, translation_dir: str, output_dir: str,
                     progress: Progress, is_cancelled: Cancelled) -> str:
     """Write the translated disc set into ``output_dir`` and return the new cue sheet's path."""
     cue = disc_of_source(source_dir)
-    replacements = {unpack.FILES + rel: data for rel, data in changed_files(source_dir, translation_dir).items()}
+    replacements = {unpack.FILES + rel: data
+                    for rel, data in changed_files(source_dir, translation_dir, big=False).items()}
     progress(0, tr("Writing the disc set..."))
     result = gdrom_writer.write_set(str(cue), output_dir, replacements, progress, is_cancelled)
     if result is None:
