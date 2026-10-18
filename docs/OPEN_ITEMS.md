@@ -17,8 +17,17 @@ the line when it is done or moved into a plan.
   until the owner decides otherwise.
 - Grandia PS1 text: field dialogue (`FIELD/*.MDP`) and battle strings (`BATLE/B*.BBG`, `FIELD/WINDT.BIN`) open as
   editor text (`plugins/grandia/psx_text.py`). The writer is bounded: a text keeps its original byte count, and a longer
-  text is refused. Growing a text needs the command stream's jumps fixed; not done.
-- Grandia PS1 emulator proof: DuckStation has no BIOS on the owner's PC; try PCSX-Redux with its own OpenBIOS.
+  text is refused. Growing a text is not done. Found: the dialogue section (`script_section`, entry 0x60), the RAM copy
+  of each script, and absolute 6-byte records (`psx_text` docstring). Open: the message opcode and reader, the meaning
+  of the absolute addresses, and the rule that moves offsets when a section grows.
+- Grandia PS1 disc writer: `psx_disc.write_file` rewrites one file in place with the same length and regenerates EDC and
+  P/Q parity; the parity code matches the disc's own sectors. Not wired into the plugin build target yet.
+- Grandia PS1 emulator proof (2026-10-18): DuckStation (private portable copy, muted, hidden desktop) loads the owner's
+  save state with a same-length edit in the RAM copy of a script; the edited text shows on screen. A fresh boot of a
+  patched disc copy did not reach the dialogue: key input stopped at the title and the memory card screen.
+- Grandia PS1 font: not located. Checked: the TIM headers of FIELD, BATLE, BIN and the boot executable; two TIM images
+  match VRAM in the save state (a star field and a battle ground, not text). AKLZ: no AKLZ file among the extracted
+  files. `FIELD/FWIN.BIN` is a text table with pointers; `BIN/WIN.BIN` is compressed (format not identified).
 - Grandia HD Remaster (PC, scene release): the game data is inside `skidrow.bin`, an installer payload with no known
   format. Owner question: a copy of the installed game folder.
 - Grandia II HD Remaster (PC, scene release): the image is UDF, not ISO 9660; Picoripi has no UDF reader.
