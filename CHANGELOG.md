@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- PlayStation disc writer: `psx_disc.write_file` changes one plain file's bytes in place with the same length and regenerates each touched sector's EDC and P/Q parity (`fix_sector`, checked byte for byte against the owner's disc sectors). The Grandia PS1 text writer does not use it yet.
 - Grandia (PlayStation): `psx_text.budget` measures a script's editable blocks and bytes (the bounded writer's limit per block); on disc 1 the 186 dialogue scripts have 456,354 blocks and 11.4 MB of block bytes. Tests in `tests/test_plugins/test_grandia_psx_text.py`.
 - First start with no chosen data folder: the application object made for the chooser is kept alive (it was dropped at once, and the chooser failed with "QWidget: Must construct a QApplication before a QWidget", seen on macOS). Regression test with a subprocess probe in `tests/test_dialogs/`.
 - Plugin hook `reference_worker_rules()` is defined on `BaseGameRules` with the default None (the parse stays on the window's thread); `ReferenceManager.has_worker_rules` checks the override on the class, so the caller builds no worker copy. Tests in `tests/test_core/test_reference_background.py`.

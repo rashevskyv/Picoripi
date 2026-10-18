@@ -6,19 +6,25 @@ paths (``FIELD/3034.MDP``). A file whose XA attribute says interleaved (``XA_INT
 file: its sectors mix Form 1 video with Form 2 audio, so it is listed as ``interleaved`` and is not read as data.
 ``identify_psx`` gives the product code from ``SYSTEM.CNF`` (``BOOT = cdrom:\\SCUS_944.57;1``). Facts from the disc
 files of the owner's Grandia discs (2 discs, SCUS-94457 and SCUS-94465).
+
+``write_file`` changes the bytes of one plain file in place, with the length kept. Every sector it touches gets a new
+EDC and new P and Q parity (``fix_sector``, ECMA-130 Mode 2 Form 1). The code reproduces the owner's disc sectors byte
+for byte, so an unchanged sector rebuilds to itself. The image is changed in place: copy it first.
 """
 from __future__ import annotations
 
 import re
 import struct
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
-from core.containers.gdrom import GdRomStream, SECTOR
+from core.containers.gdrom import MODE2_FORM1_OFFSET, RAW_2352, SECTOR, GdRomStream, Segment, parse_layout
 from core.containers.image_files import ImageError, ImageFile, ImageReader, check_name
 from core.i18n import tr
 
 PVD_SECTOR = 16
+EDC_AT = 2072            # EDC after the 2048 user bytes of a Mode 2 Form 1 raw sector (user data at byte 24)
+ECC_AT = 2076            # P parity (172 bytes), then Q parity (104 bytes), ECMA-130 annex
 DIR_FLAG = 0x02
 MULTI_EXTENT_FLAG = 0x80
 XA_INTERLEAVED = 0x2000   # bit 13 of the XA attribute word: the file is interleaved with Form 2 audio
@@ -141,3 +147,132 @@ def identify_psx(cue_path: str) -> Optional[Dict[str, Any]]:
     if boot is None:
         return None
     return {"kind": "psx", "game_id": product_code(boot), "encrypted": False}
+
+
+# -- writing: same-length file changes with EDC and ECC regenerated ------------------------------------------------
+
+def _gf_tables() -> Tuple[List[int], List[int]]:
+    """GF(2^8) tables of the ECC code (polynomial 0x11D): multiply by 2, and the inverse of that map."""
+    times2, div2 = [0] * 256, [0] * 256
+    for value in range(256):
+        doubled = ((value << 1) ^ (0x11D if value & 0x80 else 0)) & 0xFF
+        times2[value] = doubled
+        div2[value ^ doubled] = value
+    return times2, div2
+
+
+def _edc_table() -> List[int]:
+    table = []
+    for value in range(256):
+        crc = value
+        for _ in range(8):
+            crc = (crc >> 1) ^ (0xD8018001 if crc & 1 else 0)
+        table.append(crc)
+    return table
+
+
+_TIMES2, _DIV2 = _gf_tables()
+_EDC_TABLE = _edc_table()
+
+
+def _ecc_plan(major_count: int, minor_count: int, major_mult: int, minor_inc: int) -> List[List[int]]:
+    """Byte indexes (into the 2064-byte ECC span) of every parity codeword, one list per codeword."""
+    size = major_count * minor_count
+    plan = []
+    for major in range(major_count):
+        index = (major >> 1) * major_mult + (major & 1)
+        row = []
+        for _minor in range(minor_count):
+            row.append(index)
+            index += minor_inc
+            if index >= size:
+                index -= size
+        plan.append(row)
+    return plan
+
+
+_P_PLAN = _ecc_plan(86, 24, 2, 86)
+_Q_PLAN = _ecc_plan(52, 43, 86, 88)
+
+
+def _edc(data: bytes) -> int:
+    value = 0
+    for byte in data:
+        value = (value >> 8) ^ _EDC_TABLE[(value ^ byte) & 0xFF]
+    return value
+
+
+def _parity(src: bytes, plan: List[List[int]], out: bytearray, at: int) -> None:
+    """Write the two parity bytes of every codeword in ``plan`` (P or Q) to ``out`` starting at ``at``."""
+    count = len(plan)
+    for major, row in enumerate(plan):
+        acc = folded = 0
+        for index in row:
+            byte = src[index]
+            acc = _TIMES2[acc ^ byte]
+            folded ^= byte
+        acc = _DIV2[_TIMES2[acc] ^ folded]
+        out[at + major] = acc
+        out[at + major + count] = acc ^ folded
+
+
+def fix_sector(sector: bytearray) -> None:
+    """Recompute the EDC, and the P and Q parity, of a raw Mode 2 Form 1 sector in place.
+
+    The sector address (bytes 12-15) is left out of the parity span, as the Mode 2 code does. Form 2 sectors are not
+    rewritten: their EDC is optional and their parity does not apply.
+    """
+    if sector[18] & 0x20:
+        raise ImageError(tr("a Form 2 sector cannot be rewritten"))
+    struct.pack_into("<I", sector, EDC_AT, _edc(bytes(sector[16:EDC_AT])))
+    address = bytes(sector[12:16])
+    sector[12:16] = bytes(4)
+    _parity(bytes(sector[12:]), _P_PLAN, sector, ECC_AT)
+    _parity(bytes(sector[12:]), _Q_PLAN, sector, ECC_AT + 172)
+    sector[12:16] = address
+
+
+def _segment_of(segments: List[Segment], lba: int) -> Segment:
+    for seg in segments:
+        if seg.first <= lba < seg.first + seg.count:
+            return seg
+    raise ImageError(tr("sector {0} is not on the disc", lba))
+
+
+def write_file(cue_path: str, entry: PsxFile, data: bytes) -> int:
+    """Overwrite the bytes of one plain file in its track files; the length must not change.
+
+    Each sector whose user bytes change gets a new EDC and new ECC parity. The disc image is changed in place: copy it
+    first. Returns the number of sectors rewritten.
+    """
+    if entry.interleaved:
+        raise ImageError(tr("{0} is an interleaved stream, not plain data", entry.path))
+    if len(data) != entry.size:
+        raise ImageError(tr("the new data of {0} is {1} bytes; the file is {2} bytes", entry.path, len(data), entry.size))
+    segments = parse_layout(cue_path)
+    # Plan every changed sector before the first write, so a refused sector leaves the image untouched.
+    planned: List[Tuple[str, int, bytes]] = []
+    for index in range((entry.size + SECTOR - 1) // SECTOR):
+        lba = entry.extent + index
+        seg = _segment_of(segments, lba)
+        if seg.data_offset is None or seg.raw != RAW_2352 or seg.data_offset != MODE2_FORM1_OFFSET:
+            raise ImageError(tr("sector {0} is not a PlayStation Mode 2 Form 1 sector", lba))
+        position = seg.file_offset + (lba - seg.first) * seg.raw
+        with open(seg.path, "rb") as handle:
+            handle.seek(position)
+            raw = bytearray(handle.read(RAW_2352))
+        if len(raw) != RAW_2352:
+            raise ImageError(tr("sector {0} is cut short in the track file", lba))
+        chunk = data[index * SECTOR:(index + 1) * SECTOR]
+        old = bytes(raw[MODE2_FORM1_OFFSET:MODE2_FORM1_OFFSET + SECTOR])
+        new = chunk + old[len(chunk):]
+        if new == old:
+            continue
+        raw[MODE2_FORM1_OFFSET:MODE2_FORM1_OFFSET + SECTOR] = new
+        fix_sector(raw)
+        planned.append((seg.path, position, bytes(raw)))
+    for path, position, raw in planned:
+        with open(path, "r+b") as handle:
+            handle.seek(position)
+            handle.write(raw)
+    return len(planned)
