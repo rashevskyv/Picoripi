@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Skyward Sword HD (Switch): build target `skyrecomp` writes a SkyRecomp mod folder (`mods/Picoripi_UA/romfs/`): changed messages repacked into their `.arc` archives, changed fonts copied; refuses an `exefs/main` that is not v1.0.0 (`plugins/zelda_sshd/skyrecomp.py`; tests in `tests/test_plugins/test_zelda_sshd/test_skyrecomp.py`).
 - First start with no chosen data folder: the application object made for the chooser is kept alive (it was dropped at once, and the chooser failed with "QWidget: Must construct a QApplication before a QWidget", seen on macOS). Regression test with a subprocess probe in `tests/test_dialogs/`.
 - Plugin hook `reference_worker_rules()` is defined on `BaseGameRules` with the default None (the parse stays on the window's thread); `ReferenceManager.has_worker_rules` checks the override on the class, so the caller builds no worker copy. Tests in `tests/test_core/test_reference_background.py`.
 - Silent Hill 2 Switch (Ukrainian translation): the capital Ї has a cell now; it takes the spare Ъ cell (byte 0x7A), which the Font Editor labels Ї, so the translator redraws that cell; Ъ is refused (`plugins/silent_hill2_pc/mes.py`, `plugins/silent_hill2_switch/font_sources.json`; tests in `tests/test_plugins/test_silent_hill2_switch/test_uk_codec.py`).
