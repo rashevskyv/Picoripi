@@ -15,10 +15,26 @@ Writing is bounded: a block's new text must encode to at most its original byte 
 spaces to the original length; a longer one is refused and the original bytes stay. Rendering and parsing are exact
 inverses, so an unchanged block writes back byte-exact. Growing a block needs the script stream's references, which
 are not decoded yet. Text must be printable ASCII plus tags; other characters are refused.
+
+Script structure of a field script (measured on the owner's disc 1; "not decoded" marks what is still open):
+
+* Directory (measured): 8-byte entries from offset 0. Each offset word has a flag in its top byte; 0xFFFFFFFF is an
+  empty entry. Entry 0x60 is the dialogue section (flag 0): all speaker sequences of all 186 dialogue scripts lie in
+  it, and the last one is at least 73 bytes before its end. ``script_section`` returns that entry.
+* Messages (observed, not decoded): a run of text sits between control bytes. ``0E 00`` closes a message and is
+  followed by one byte, ``09``, and a 0F-led sequence (speaker or face). ``01`` is a line break and ``02`` ends a box
+  in the tag names of config.json; the names are guesses. The opcode table and the reader are not decoded.
+* Absolute words (measured): the section holds 6-byte records of a 16-bit value and a 32-bit RAM address (0x80xxxxxx,
+  for example 0x801A7000 many times). Their targets are not resolved. Growth must resolve them.
+* Relative jumps (measured): no 16-bit relative jump in the section points at a command boundary (13 hits; a shuffled
+  byte order gives 13 too), so no relative-jump pattern shows up at this test.
+* RAM (measured): the save state holds the whole script file as one byte-for-byte copy (432 KB, no mismatched block).
+  The game reads its text from that copy, so a same-length edit in RAM shows on screen.
 """
 from __future__ import annotations
 
 import re
+import struct
 from typing import List, Optional, Sequence, Tuple
 
 MIN_CHAIN = 12           # records in a battle string chain (a real table has 30 or more)
@@ -118,6 +134,33 @@ def dialogue_blocks(data: bytes) -> List[Tuple[int, bytes]]:
 
 def is_dialogue(data: bytes) -> bool:
     return data.count(SPEAKER) >= MIN_SPEAKERS
+
+
+DIRECTORY_END = 0x200    # the entry table of a field script ends before this offset
+EMPTY_ENTRY = 0xFFFFFFFF
+
+
+def script_section(data: bytes) -> Optional[Tuple[int, int]]:
+    """(offset, size) of the directory entry that holds the most speaker sequences, or None without speakers.
+
+    The table holds 8-byte entries: an offset word (its top byte is a flag, not an address) and a size. An entry of
+    0xFFFFFFFF words is empty. On disc 1 the entry at 0x60 holds every speaker sequence of all 186 dialogue scripts.
+    """
+    speakers = [m.start() for m in re.finditer(re.escape(SPEAKER), data)]
+    best: Optional[Tuple[int, int]] = None
+    best_count = 0
+    for at in range(0, min(DIRECTORY_END, len(data) - 7), 8):
+        off_word, size = struct.unpack_from("<II", data, at)
+        if off_word == EMPTY_ENTRY and size == EMPTY_ENTRY:
+            continue
+        offset = off_word & 0xFFFFFF
+        end = offset + size
+        if end > len(data):
+            continue
+        count = sum(1 for pos in speakers if offset <= pos < end)
+        if count > best_count:
+            best, best_count = (offset, size), count
+    return best
 
 
 def is_ps1_text(data: bytes) -> bool:
