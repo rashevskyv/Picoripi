@@ -24,7 +24,7 @@ PARTITION_HEADER = 0x2C0  # the ticket (0x2A4 bytes) and the offsets that follow
 DATA_PARTITION = 0
 MAX_PARTITIONS = 32  # per group; a real disc has a handful
 KEYS_SIZE = 0x400
-COMMON_KEY_AT = 0x158
+COMMON_KEY_AT = 0x114  # the common key; 0x158 holds the NAND AES key of keys.bin
 CLUSTER = 0x8000
 HASH_BLOCK = 0x400
 CLUSTER_DATA = CLUSTER - HASH_BLOCK  # 0x7C00
@@ -41,7 +41,7 @@ def locate(head: bytes) -> Optional[Dict[str, Any]]:
 
 
 def load_common_key(path: str) -> bytes:
-    """The 16-byte common key of a keys.bin file (exactly 0x400 bytes; the key is at 0x158)."""
+    """The 16-byte common key of a keys.bin file (exactly 0x400 bytes; the key is at 0x114)."""
     try:
         with open(path, "rb") as handle:
             data = handle.read(KEYS_SIZE + 1)
