@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import (
 )
 
 from core.i18n import tr
-from core.project_library import images
+from core.project_library import build, images
 from core.project_library.icons import IMAGE_FILTER, load_image
 from ui.project_manager.jobs import BackgroundJob
 from ui.project_manager.tasks import FactsJob, PluginListJob, UnpackJob
@@ -43,6 +43,7 @@ class ProjectWizard(QDialog):
         self._roles: List[Dict[str, str]] = []
         self._platforms: List[Dict[str, str]] = []
         self._unpack_job: Optional[UnpackJob] = None
+        self._entries_before: Optional[List[str]] = None   # the project folder's names before a create
         self._key_status: Dict[str, Dict[str, Any]] = {}   # per file path: the console its key file is for, and ready
         self._build_ui()
         self._run(PluginListJob(), self._on_plugins)
@@ -377,6 +378,7 @@ class ProjectWizard(QDialog):
         key_paths = self._ask_key_files(choices)
         if key_paths is None:
             return
+        self._entries_before = build.entries_before(folder)
         self._set_busy(True)
         self._progress.setValue(0)
         self._progress_text.setText(tr("Unpacking..."))
@@ -465,10 +467,16 @@ class ProjectWizard(QDialog):
             self._unpack_job.requestInterruption()
 
     def _on_unpack_cancelled(self) -> None:
+        self._remove_made()
         self._progress_text.setText(tr("Unpacking was cancelled. Nothing was created."))
 
     def _on_unpack_failed(self, message: str) -> None:
+        self._remove_made()
         self._progress_text.setText(tr("Unpacking failed: {0}", message))
+
+    def _remove_made(self) -> None:
+        """Remove what this create added to the folder: nothing stays after a failed or cancelled create."""
+        build.remove_new_entries(self._folder.text().strip(), self._entries_before)
 
     def _on_unpacked(self, unpacked: Optional[str], sources: Dict[str, str], choices: Dict[str, Dict[str, str]]) -> None:
         """Unpacking is done (or not needed): the project is created from the folders the user chose."""
@@ -479,6 +487,7 @@ class ProjectWizard(QDialog):
         existing = self._existing_translation()
         if existing and not is_directory:
             # A project of one file has a translation file, not a folder: nothing is created.
+            self._remove_made()
             self._progress_text.setText(tr("This game is one file, so it cannot use an existing translation folder. "
                                            "Uncheck that option and create the project again."))
             return
@@ -494,6 +503,7 @@ class ProjectWizard(QDialog):
             "source_path": source,
             "translation_path": translation,
             "is_directory_mode": is_directory,
+            "entries_before": self._entries_before,
             "auto_create_translations": not existing,
             "platform": platform,
             "icon_source": self._icon_path,
