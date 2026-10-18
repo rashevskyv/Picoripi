@@ -1519,10 +1519,17 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
   as editor text (LE codec), and builds a GD-ROM set through `core/containers/gdrom_writer.py`.
 - Done: text is on the same pages as GameCube. 227 script names exist on both discs; 22,605 of 22,980 pages match the
   GameCube text exactly. The 406 USA scripts (both discs) round trip unchanged.
-- Open: in-game proof. Flycast (private copy kept outside the repository) runs the marked disc: title, New Game
-  (C key), narration and the opening cinematic were reached. No dialogue box was reached yet. The cinematic returns to
-  the title; the first gameplay dialogue is not reached by script. Owner shortcut: `Dreamcast\play_to_first_dialogue.bat`.
-- Open: growth. Only `FIELD/ME201A.SCT` is fixed (as on GameCube, not tested on Dreamcast). Other scripts may grow but
-  no grown script was run in game.
+- Done: in-game marker proof (2026-10-18, private muted Flycast, cold boot, no state). A same-length marker on the
+  first segment of `FIELD/ME201A.SCT` shows in the Alfonso dialogue box (frame c014 of the run; schedule
+  `C:\RomHacking_scratch\skies-dc-b\schedule_runB.txt`). Title, New Game (C), Start (Enter), X held 1000 ms, then
+  cinematics, the Valuan ship and battles follow with no input stall.
+- Done: growth of `FIELD/ME201A.SCT` freezes the game on Dreamcast. A +8 byte segment 0 gives a black screen right after
+  New Game and no further picture in 90 input cycles. The same-length build ran the same schedule. `ME201A` stays
+  fixed-size. Cause not found: `grow_regions` relocates every aligned word that points past the edit by a heuristic
+  (`core/containers/skies_script.py`). Relative branches across the edit point are not mapped, so they are the likely
+  missing reference. Not proven.
+- Done: growth of `FIELD/ME355A.SCT` (+8 bytes, segment 0) ran the same schedule with no freeze. Only a boot and run check:
+  the grown script's own text was not seen on screen.
+- Open: growth of other scripts (in-game text proof), and the relative-branch analysis for ME201A.
 - Open: other text groups (`BATTLE/*.SML`, `FIELD/*.MLD`, `1ST_READ.BIN` with 23 `\h(` pages) are not editor text yet.
 - Open: Disc 2 (USA) is identified and extracts the same way; its build is not proven in game.

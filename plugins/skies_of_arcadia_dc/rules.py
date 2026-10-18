@@ -25,7 +25,7 @@ class GameRules(GameCubeRules):
     """Skies of Arcadia, Dreamcast USA: the field scripts of the disc (both USA discs are accepted)."""
 
     big_endian = False
-    fixed_scripts = ("FIELD/ME201A.SCT",)   # the GameCube me201a freezes when it grows; Dreamcast not tested in game
+    fixed_scripts = ("FIELD/ME201A.SCT",)   # grows = freeze on Dreamcast too (in-game 2026-10-18, OPEN_ITEMS)
 
     def get_display_name(self) -> str:
         return "Skies of Arcadia (Dreamcast)"
