@@ -162,3 +162,14 @@ def write(data: bytes, texts: Sequence[str]) -> Tuple[bytes, List[int]]:
             continue
         out[offset:offset + len(original)] = new + b" " * (len(original) - len(new))
     return bytes(out), sorted(refused)
+
+
+def budget(data: bytes) -> dict:
+    """Measured byte budget of one script: how many editable blocks it has, and the bytes a translation may use.
+
+    ``bytes`` is the sum of the block sizes, ``largest`` the biggest single block. A translated block must fit its
+    own size, so these are the limits the bounded writer enforces.
+    """
+    _kind, found = entries(data)
+    sizes = [len(block) for _, block in found]
+    return {"blocks": len(sizes), "bytes": sum(sizes), "largest": max(sizes) if sizes else 0}

@@ -169,3 +169,12 @@ def test_plugin_loads_and_saves_dialogue_through_the_bounded_writer():
     out = rules.save_data_to_json_obj([["Hi.<02>", "Bye now.<02>"]], names)
     assert out == psx_text.write(data, ["Hi.<02>", "Bye now.<02>"])[0]
     assert len(out) == len(data)
+
+
+def test_budget_counts_blocks_and_bytes():
+    data = dialogue("Hello there.", "Bye.")
+    measured = psx_text.budget(data)
+    assert measured["blocks"] == 2
+    assert measured["bytes"] == len(b"Hello there.\x02") + len(b"Bye.\x02")
+    assert measured["largest"] == len(b"Hello there.\x02")
+    assert psx_text.budget(b"nothing here") == {"blocks": 0, "bytes": 0, "largest": 0}
