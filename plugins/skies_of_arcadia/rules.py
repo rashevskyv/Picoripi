@@ -10,7 +10,7 @@ from core.i18n import tr
 from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
 from plugins.common.block_loader import ReadThrough, rescan_block, source_of
-from utils.logging_utils import log_debug, log_warning
+from utils.logging_utils import log_debug, log_error, log_warning
 
 from . import build, scripts, text, unpack
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
@@ -100,8 +100,12 @@ class GameRules(BaseGameRules):
         strings = [str(t) for t in (data[0] if data else [])]
         out, refused, missing = scripts.write_strings(source, strings, self._save_fixed, self.big_endian)
         if refused:
-            log_warning(f"skies_of_arcadia: {len(refused)} text(s) are longer than their fixed-size page; "
-                        "they keep the original text")
+            # Loud, never silent: the script keeps its source text, so the user must see why (no data is written).
+            used = sum(len(text.encode(s)[0]) for s in strings)
+            budget = sum(end - start for start, end in scripts.segments(source, self.big_endian))
+            log_error(tr("Script budget exceeded: {0} line(s) of this script were not saved and keep the source text. "
+                         "The script's text uses {1} bytes; its budget is {2} bytes ({3} over). Shorten a longer line, "
+                         "or shorten another line of this script.").format(len(refused), used, budget, used - budget))
         if missing:
             log_warning("skies_of_arcadia: the game has no byte for these characters, they were written as '?': "
                         + "".join(sorted(missing)))
