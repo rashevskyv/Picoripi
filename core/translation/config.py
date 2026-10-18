@@ -1,6 +1,7 @@
 """Default AI translation settings and merging them with saved ones."""
 
-from typing import Dict
+from typing import Dict, Tuple
+
 
 def merge_translation_config(base: Dict, custom: Dict) -> Dict:
     """Recursively merge custom config into base, avoiding deep mutation."""
@@ -23,6 +24,21 @@ def merge_translation_config(base: Dict, custom: Dict) -> Dict:
 # measurement, 2026-10-04). Read when the default config is built.
 DEFAULT_REVIEW_ENABLED = True
 
+SERIES_SENTENCE_WORDS = 2
+
+
+def series_reuse_settings(config) -> Tuple[bool, int, bool]:
+    """``(reuse on, words that make a sentence, safe matches start ticked)`` from a translation config (D45).
+
+    A missing or unusable value takes its default: off, 2 words, ticked. The memory reads these; core keeps no config.
+    """
+    values = config if isinstance(config, dict) else {}
+    try:
+        words = max(int(values.get("series_sentence_words", SERIES_SENTENCE_WORDS)), 0)
+    except (TypeError, ValueError):
+        words = SERIES_SENTENCE_WORDS
+    return bool(values.get("series_reuse_sentences", False)), words, bool(values.get("series_safe_ticked", True))
+
 
 def build_default_translation_config() -> dict:
     """Create default translation config."""
@@ -43,6 +59,11 @@ def build_default_translation_config() -> dict:
         # Glossary sections whose entries are fixed outputs: a game string that
         # is exactly such a term takes the glossary translation, without a request.
         "fixed_output_sections": ["UI"],
+        # Sentences of other games of the series (more words than "series_sentence_words") are offered only when
+        # "series_reuse_sentences" is on (off by default). "series_safe_ticked": safe matches start ticked (D45).
+        "series_reuse_sentences": False,
+        "series_safe_ticked": True,
+        "series_sentence_words": 2,
         "providers": {
             "openai": {
                 "api_key": "",

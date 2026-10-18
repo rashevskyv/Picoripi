@@ -15,6 +15,7 @@ from core.translation.series_memory import (
     source_hash,
 )
 from dialogs.cached_translation_dialog import CachedTranslationDialog
+from dialogs.series_sentence_dialog import SeriesSentenceDialog
 from handlers.translation_handler import TranslationHandler
 from test_core.test_translation_memory import _speaker_context, _window
 from ui.components.memory_banner import MemoryBanner
@@ -89,11 +90,27 @@ def window(tmp_path):
     manager = mw.saved_translations_manager
     # Rows carry the speaker and addressee they were saved under; this window resolves no speaker ("NONE").
     manager.series_memory = {source_hash("Yes"): [
-        {"source": "Yes", "translation": "Так (HD)", "project": "TP HD", "speaker": "NONE", "addressee": ""},
-        {"source": "yes", "translation": "атож", "project": "WW", "speaker": "NONE", "addressee": ""},
+        {"source": "Yes", "translation": "Так (HD)", "project": "TP HD", "speaker": "NONE", "addressee": "", "speaker_en": "Ann"},
+        {"source": "yes", "translation": "атож", "project": "WW", "speaker": "NONE", "addressee": "", "speaker_en": "Ann"},
     ]}
     manager.source_positions = index_source_positions(data)
     return mw
+
+
+def enable_sentences(mw, english=None):
+    """Turn the series reuse on for every text (threshold 0 words), set the way the settings set it, with an English speaker context when given."""
+    mw.translation_config = {"series_reuse_sentences": True, "series_sentence_words": 0, "series_safe_ticked": True}
+    manager = mw.saved_translations_manager
+    if english is not None:
+        manager.context_for = _english_context(english)
+
+
+def _english_context(speakers):
+    """A context with the speaker's English name, as the composer gives it: ``{(block, string): English name}``."""
+    def context(block_idx, string_idx, source):
+        name = speakers[(block_idx, string_idx)]
+        return {"speaker": f"UA {name}", "speaker_en": name, "addressee": "", "fold": f"fold-{name}"}
+    return context
 
 
 @pytest.fixture
@@ -120,16 +137,28 @@ class TestLookup:
 
 
 class TestBatchRun:
-    def test_a_text_another_game_translated_is_restored_without_a_request(self, handler, window):
-        with patch.object(CachedTranslationDialog, 'exec', return_value=1), \
-             patch.object(CachedTranslationDialog, '__init__', autospec=True, side_effect=CachedTranslationDialog.__init__) as dialog:
+    def test_a_series_term_is_not_reused_from_other_games(self, handler, window):
+        # "Yes" is one word: a term, which the series glossary decides (D45). Nothing is offered or restored.
+        with patch.object(CachedTranslationDialog, 'exec', side_effect=AssertionError("no offer expected")), \
+             patch.object(SeriesSentenceDialog, 'exec', side_effect=AssertionError("no offer expected")):
             remaining, _ = handler._filter_already_saved_translations(
                 [{"id": 0, "text": "Yes"}, {"id": 1, "text": "x"}], {0: (7, 10), 1: (7, 9)}
             )
 
-        assert dialog.call_args.args[2][0]['text'] == "Так (HD)" and dialog.call_args.args[2][0]['from_memory'] is True
-        assert remaining == [{"id": 1, "text": "x"}]
-        assert window.data_processor.get_current_string_text(7, 10)[0] == "Так (HD)"
+        assert remaining == [{"id": 0, "text": "Yes"}, {"id": 1, "text": "x"}]
+        assert window.data_processor.get_current_string_text(7, 10)[0] == "Yes"
+
+    def test_a_series_sentence_is_offered_unticked_when_the_english_speaker_name_is_missing(self, handler, window):
+        enable_sentences(window)
+        with patch.object(SeriesSentenceDialog, 'exec', return_value=0), \
+             patch.object(SeriesSentenceDialog, '__init__', autospec=True, side_effect=SeriesSentenceDialog.__init__) as dialog:
+            remaining, _ = handler._filter_already_saved_translations([{"id": 0, "text": "Yes"}], {0: (7, 10)})
+
+        row = dialog.call_args.args[2][0]
+        assert row["translation"] == "Так (HD)" and row["tick"] is False
+        assert "speaker name is missing" in row["reason"]
+        assert remaining == [{"id": 0, "text": "Yes"}]
+        assert window.data_processor.get_current_string_text(7, 10)[0] == "Yes"
 
     def test_the_project_s_own_memory_comes_before_the_series(self, handler, window):
         window.saved_translations_manager.save_translation(0, 3, "Так")
@@ -175,6 +204,7 @@ class TestBanner:
 
     def test_it_offers_the_series_translation_and_applies_it_here(self, qtbot, handler, window):
         banner = self._banner(qtbot, window)
+        enable_sentences(window, {(7, 10): "Ann", (0, 3): "Ann", (3, 2): "Ann"})
 
         banner.refresh(7, 10)
 
@@ -226,11 +256,37 @@ class TestBanner:
         assert window.data_processor.get_current_string_text(3, 2)[0] == "Yes"
 
 
-class TestSeriesRowsNeedTheSameSpeaker:
-    def test_a_series_row_said_by_another_speaker_is_not_offered(self, handler, window):
-        window.saved_translations_manager.context_for = _speaker_context({(7, 10): "Bob"})  # the series rows say "NONE"
+class TestSeriesApplyChecks:
+    def test_a_ticked_row_that_fails_the_tag_check_is_not_written_and_goes_on(self, handler, window):
+        enable_sentences(window, {(7, 10): "Ann"})
 
-        with patch.object(CachedTranslationDialog, 'exec', side_effect=AssertionError("no offer expected")):
+        # The user ticked a text whose tags do not match the source: the check refuses it at apply time.
+        with patch.object(SeriesSentenceDialog, 'exec', return_value=1), \
+             patch.object(SeriesSentenceDialog, 'accepted_rows', return_value=[(7, 10, "Так [ko]", "Yes")]):
             remaining, _ = handler._filter_already_saved_translations([{"id": 0, "text": "Yes"}], {0: (7, 10)})
 
         assert remaining == [{"id": 0, "text": "Yes"}]
+        assert window.data_processor.get_current_string_text(7, 10)[0] == "Yes"
+
+
+class TestSeriesRowsNeedTheSameSpeaker:
+    def test_a_series_row_said_by_another_speaker_is_offered_unticked_with_the_reason(self, handler, window):
+        enable_sentences(window, {(7, 10): "Bob"})  # the series rows say "Ann"
+
+        with patch.object(SeriesSentenceDialog, 'exec', return_value=0), \
+             patch.object(SeriesSentenceDialog, '__init__', autospec=True, side_effect=SeriesSentenceDialog.__init__) as dialog:
+            remaining, _ = handler._filter_already_saved_translations([{"id": 0, "text": "Yes"}], {0: (7, 10)})
+
+        row = dialog.call_args.args[2][0]
+        assert row["tick"] is False and "speaker names differ" in row["reason"]
+        assert remaining == [{"id": 0, "text": "Yes"}]
+
+    def test_a_series_row_said_by_the_same_speaker_starts_ticked_when_safe(self, handler, window):
+        enable_sentences(window, {(7, 10): "Ann"})
+
+        with patch.object(SeriesSentenceDialog, 'exec', return_value=0), \
+             patch.object(SeriesSentenceDialog, '__init__', autospec=True, side_effect=SeriesSentenceDialog.__init__) as dialog:
+            handler._filter_already_saved_translations([{"id": 0, "text": "Yes"}], {0: (7, 10)})
+
+        row = dialog.call_args.args[2][0]
+        assert row["tick"] is True and row["reason"] == ""

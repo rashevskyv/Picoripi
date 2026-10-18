@@ -85,7 +85,8 @@ def load_series_memory(chain: Iterable[Path], own_memory_path: Optional[Path]) -
                     if isinstance(row, dict) and isinstance(row.get("source"), str) and isinstance(row.get("translation"), str):
                         entry = {"source": row["source"], "translation": row["translation"], "project": str(project_name)}
                         # speaker and addressee say under whom the row was saved; rows saved before they existed have neither
-                        entry.update({k: str(row[k]) for k in ("speaker", "addressee") if isinstance(row.get(k), str)})
+                        # speaker_en is the speaker's own name: series rows of two games match by it (D45)
+                        entry.update({k: str(row[k]) for k in ("speaker", "addressee", "speaker_en") if isinstance(row.get(k), str)})
                         # the tag kinds the row was saved with (plugins/common/series_tags.py): another game's syntax carries across
                         entry.update({k: row[k] for k in ("syntax", "tags", "neutral") if k in row})
                         bucket.append(entry)

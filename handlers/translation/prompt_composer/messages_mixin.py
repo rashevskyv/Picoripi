@@ -59,6 +59,21 @@ class MessagesMixin:
 
         Returns (resolved_speaker, speaker_candidates).
         """
+        speaker, candidates, _ = self._resolve_prompt_identity(block_idx, string_idx, text, translation_context)
+        return speaker, candidates
+
+    def _resolve_prompt_identity(
+        self,
+        block_idx: Optional[int],
+        string_idx: Optional[int],
+        text: str,
+        translation_context: Dict,
+    ) -> Tuple[Optional[str], set, Optional[str]]:
+        """``(speaker, candidates, identity)``: the speaker as the prompt shows it, and the speaker's own name.
+
+        The identity is the name the source gives (English in an English source); the series memory matches
+        speakers by it (D45). ``None`` when no name was resolved.
+        """
         from utils.utils import remove_all_tags
         from core.speaker_resolution import (
             resolve_speaker_for_string,
@@ -107,7 +122,8 @@ class MessagesMixin:
                 if part.strip():
                     speaker_candidates.add(part.strip())
 
-        return speaker, speaker_candidates
+        identity = raw_identity.strip() if raw_identity and raw_identity not in ("Unknown", "NONE") else None
+        return speaker, speaker_candidates, identity
 
     def compose_variation_request(
         self,

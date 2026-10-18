@@ -70,6 +70,21 @@ class SettingsAiMixin:
         )
         provider_form.addRow(tr('Parallel Requests:'), self.translation_workers_spin)
 
+        # Series sentences (D45): off by default; a sentence of another game is offered only with this on.
+        self.series_reuse_check = QCheckBox(tr('Offer sentences translated in other games of the series'), self)
+        self.series_reuse_check.setToolTip(
+            tr('<b>Series sentences</b><br>Off by default. When on, a sentence that another game of the series translated '
+               'is offered in a checkbox list before the AI pass. Nothing is applied until you click Apply selected. '
+               'Single terms and names come from the series glossary, not from here.')
+        )
+        self.series_safe_ticked_check = QCheckBox(tr('Safe matches start ticked'), self)
+        self.series_safe_ticked_check.setToolTip(
+            tr('<b>Safe matches</b><br>A match with the same English text and speaker, a fitting window and matching tags starts ticked. '
+               'A doubtful match always starts unticked.')
+        )
+        provider_form.addRow(tr(''), self.series_reuse_check)
+        provider_form.addRow(tr(''), self.series_safe_ticked_check)
+
         layout.addLayout(provider_form)
 
         self.ai_provider_pages = QStackedWidget(self)

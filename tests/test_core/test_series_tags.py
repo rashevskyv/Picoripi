@@ -131,13 +131,15 @@ class TestSeriesLookup:
         mw = _window(tmp_path, data)
         mgr: SavedTranslationsManager = mw.saved_translations_manager
         mgr.series_tag_map = GFMSG
-        mgr.context_for = lambda block, string, source: {"speaker": "NONE", "addressee": "", "fold": "f"}
+        mgr.context_for = lambda block, string, source: {"speaker": "NONE", "speaker_en": "Ann", "addressee": "", "fold": "f"}
+        mgr.configure_series_reuse(True, 0, True)  # sentences only are reused (D45); this text is one
         return mgr
 
     def _set_series(self, mgr, rows):
         memory = {}
         for row in rows:
             row.setdefault("speaker", "NONE")
+            row.setdefault("speaker_en", "Ann")
             row.setdefault("addressee", "")
             memory.setdefault(source_hash(row["source"]), []).append(row)
         mgr.series_memory = memory
@@ -154,17 +156,18 @@ class TestSeriesLookup:
     def test_a_row_that_cannot_be_carried_is_offered_nowhere_and_its_reason_is_known(self, manager):
         self._set_series(manager, [_row("Hi {VAR 0101 0000}, {PAGE}!", "Привіт {PAGE}!", GEN5, "BW")])
         _, series = manager.acceptable_rows(0, 0, "Hi {VAR 0100 0000}, {PAGE}!")
-        assert series == []
+        # the blocked row is listed for its reason, but it has no translation to apply
+        assert [row for row in series if row["applicable"]] == []
         project, reason = manager.blocked_series_reason(0, 0, "Hi {VAR 0100 0000}, {PAGE}!")
         assert project == "BW"
         assert "lacks a tag of the current text" in reason
 
-    def test_the_other_speaker_gets_no_series_row(self, manager):
+    def test_the_other_speaker_gets_a_doubtful_series_row_that_is_not_ticked(self, manager):
         row = _row("Hi {VAR 0101 0000}, {PAGE}!", "Привіт, {VAR 0101 0000}! {PAGE}Далі.", GEN5, "BW")
-        row.update({"speaker": "Someone else", "addressee": ""})
+        row.update({"speaker": "Someone else", "speaker_en": "Bob", "addressee": ""})
         self._set_series(manager, [row])
         _, series = manager.acceptable_rows(0, 0, "Hi {VAR 0100 0000}, {PAGE}!")
-        assert series == []
+        assert [(c["safe"], c["reason"]) for c in series] == [(False, "The speaker names differ.")]
 
     def test_a_row_saved_before_the_tag_kinds_is_not_matched_across_syntaxes(self, manager):
         old = {"source": "Hi {VAR 0101 0000}, {PAGE}!", "translation": "Привіт", "project": "BW",

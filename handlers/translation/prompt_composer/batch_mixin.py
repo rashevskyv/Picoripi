@@ -203,28 +203,34 @@ class BatchMixin:
         is equal too: who says it and to whom (gender, politeness), what the
         plugin and the user say about the row, and the window it must fit.
         """
+        return self._duplicate_key_and_identity(item, block_idx, temp_id_map)[0]
+
+    def _duplicate_key_and_identity(self, item: Dict, block_idx: Optional[int], temp_id_map: Optional[Dict]) -> Tuple[Tuple, Optional[str]]:
+        """``(duplicate key, speaker identity)``: the key is the one the fold hashes; the identity is the English name (D45)."""
         _, current_text, _, _ = self._item_text_for_ai(item)
         real_b_idx, real_s_idx = self._real_pair(item, block_idx, temp_id_map)
         translation_context = self._plugin_translation_context(real_b_idx, real_s_idx)
-        speaker, _ = self._resolve_prompt_speaker(real_b_idx, real_s_idx, current_text, translation_context)
+        speaker, _, identity = self._resolve_prompt_identity(real_b_idx, real_s_idx, current_text, translation_context)
         manual = get_story_context_override(self.mw, real_b_idx, real_s_idx)
-        return (
+        key = (
             str(speaker or ""),
             self._plugin_addressee(real_b_idx, real_s_idx, speaker),
             str(resolve_lines_per_window(self.mw, real_b_idx, real_s_idx)),
             json.dumps(translation_context, ensure_ascii=False, sort_keys=True, default=str),
             json.dumps(manual, ensure_ascii=False, sort_keys=True, default=str),
         )
+        return key, identity
 
     def saved_context(self, block_idx: int, string_idx: int, source: str) -> Dict[str, str]:
-        """``{"speaker", "addressee", "fold"}`` of a saved row: the duplicate key, split for the restore.
+        """``{"speaker", "addressee", "fold", "speaker_en"}`` of a saved row: the duplicate key, split for the restore.
 
         ``fold`` is a hash of the whole key (the same test as the duplicate fold); the restore compares
-        ``speaker`` and ``addressee`` alone for a row from another project of the series.
+        ``speaker`` and ``addressee`` alone for a row from another project of the series. ``speaker_en`` is the
+        speaker's own (English) name; the series memory matches speakers by it (D45).
         """
-        key = self.duplicate_context_key({"id": string_idx, "text": source}, block_idx, None)
+        key, identity = self._duplicate_key_and_identity({"id": string_idx, "text": source}, block_idx, None)
         fold = hashlib.sha1(json.dumps(key, ensure_ascii=False, default=str).encode("utf-8")).hexdigest()[:16]
-        return {"speaker": key[0], "addressee": key[1], "fold": fold}
+        return {"speaker": key[0], "addressee": key[1], "fold": fold, "speaker_en": identity or ""}
 
     def _run_memory_rows(self, source_items: List[Any]) -> List[Dict[str, str]]:
         """Earlier translations of this run whose source matches one of ``source_items``, as the model sees text."""

@@ -73,6 +73,9 @@ class SettingsProviderMixin:
 
         if hasattr(self, 'translation_workers_spin'):
             self.translation_workers_spin.setValue(int(self.translation_config_snapshot.get('workers', 6) or 6))
+        if hasattr(self, 'series_reuse_check'):
+            self.series_reuse_check.setChecked(bool(self.translation_config_snapshot.get('series_reuse_sentences', False)))
+            self.series_safe_ticked_check.setChecked(bool(self.translation_config_snapshot.get('series_safe_ticked', True)))
 
         providers_cfg = self.translation_config_snapshot.get('providers', {})
         
@@ -137,6 +140,9 @@ class SettingsProviderMixin:
         config['provider'] = provider_key
         if hasattr(self, 'translation_workers_spin'):
             config['workers'] = self.translation_workers_spin.value()
+        if hasattr(self, 'series_reuse_check'):
+            config['series_reuse_sentences'] = self.series_reuse_check.isChecked()
+            config['series_safe_ticked'] = self.series_safe_ticked_check.isChecked()
         providers_cfg = config.setdefault('providers', {})
         
         openai_cfg = providers_cfg.setdefault('openai', {})
