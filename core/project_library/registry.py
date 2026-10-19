@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from utils.atomic_io import atomic_write_json
-from utils.logging_utils import log_debug, log_warning
+from utils.logging_utils import log_debug, log_error, log_warning
 
 SCHEMA_VERSION = 1
 REGISTRY_FILE_NAME = "project_manager.json"
@@ -147,7 +147,7 @@ class Registry:
         return True
 
     # ----- folders -----
-    def folders(self) -> List[Dict[str, str]]:
+    def folders(self) -> List[Dict[str, Any]]:
         return [dict(folder) for folder in self.document["folders"]]
 
     def _folder(self, folder_id: Optional[str]) -> Optional[Dict[str, Any]]:
@@ -156,9 +156,29 @@ class Registry:
                 return folder
         return None
 
-    def create_folder(self, name: str) -> str:
+    def folder_glossary(self, folder_id: Optional[str]) -> Optional[str]:
+        folder = self._folder(folder_id)
+        if folder is None:
+            return None
+        path = folder.get("glossary_path")
+        return str(path) if path else None
+
+    def set_folder_glossary(self, folder_id: str, glossary_path: Optional[str | os.PathLike]) -> bool:
+        folder = self._folder(folder_id)
+        if folder is None:
+            return False
+        if glossary_path and str(glossary_path).strip():
+            folder["glossary_path"] = os.path.abspath(str(glossary_path).strip())
+        else:
+            folder.pop("glossary_path", None)
+        return True
+
+    def create_folder(self, name: str, glossary_path: Optional[str | os.PathLike] = None) -> str:
         folder_id = uuid.uuid4().hex
-        self.document["folders"].append({"id": folder_id, "name": name.strip()})
+        folder: Dict[str, Any] = {"id": folder_id, "name": name.strip()}
+        if glossary_path and str(glossary_path).strip():
+            folder["glossary_path"] = os.path.abspath(str(glossary_path).strip())
+        self.document["folders"].append(folder)
         return folder_id
 
     def rename_folder(self, folder_id: str, name: str) -> bool:
@@ -225,7 +245,15 @@ def mutate(directory: str | os.PathLike, operation: Callable[[Registry], Any], *
     path = registry_path(directory)
     with _lock:
         registry = Registry(_read_document(path))
-        operation(registry, *args)
-        atomic_write_json(path, registry.document, indent=2, ensure_ascii=False)
+        rollback = operation(registry, *args)
+        try:
+            atomic_write_json(path, registry.document, indent=2, ensure_ascii=False)
+        except Exception:
+            if callable(rollback):
+                try:
+                    rollback()
+                except Exception as rb_exc:
+                    log_error(f"Rollback after registry write failure failed: {rb_exc}")
+            raise
         log_debug(f"Project manager registry saved ({len(registry.document['projects'])} projects).")
         return copy.deepcopy(registry.document)

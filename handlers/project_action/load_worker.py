@@ -3,10 +3,12 @@ from pathlib import Path
 from PyQt6.QtCore import pyqtSignal
 from core import formats
 from core.containers import ContainerManager
-from core.glossary.series import series_chain
+from core.glossary.series import series_chain, set_group_series_link
+from core.project_library import registry
 from core.translation.series_memory import (
     MEMORY_NAME, index_neutral_rows, index_source_positions, load_series_memory, register_project,
 )
+from utils import constants
 from utils.logging_utils import log_error
 from utils.logging_utils import log_debug
 from utils.thread_utils import WorkerThread
@@ -51,6 +53,20 @@ class ProjectLoadWorker(WorkerThread):
         project_dir = getattr(self.project_manager, 'project_dir', None)
         if project is None or not project_dir:
             return {}
+        try:
+            reg_dir = getattr(self.project_manager, "library_dir", None) or constants.SETTINGS_DIR
+            reg_doc = registry.read(reg_dir, set_aside=False)
+            project_file = getattr(self.project_manager, "project_file_path", None)
+            if project_file:
+                key = registry.project_key(project_file)
+                entry = next((p for p in reg_doc.get("projects", []) if registry.project_key(p.get("path", "")) == key), None)
+                if entry:
+                    folder_id = entry.get("folder_id")
+                    folder = next((f for f in reg_doc.get("folders", []) if f.get("id") == folder_id), None) if folder_id else None
+                    glossary_path = folder.get("glossary_path") if folder else None
+                    set_group_series_link(project, glossary_path)
+        except Exception as e:
+            log_debug(f"ProjectLoadWorker: group glossary sync skipped: {e}")
         try:
             chain = series_chain(project, Path(project_dir))
             if not chain:

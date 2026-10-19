@@ -6,6 +6,7 @@ change in place while a scan runs, so the scroll position and the selection stay
 """
 from __future__ import annotations
 
+import os
 import time
 import unicodedata
 from datetime import datetime
@@ -14,14 +15,16 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PyQt6.QtCore import QProcess, QRect, QSize, Qt, QTimer, QUrl
-from PyQt6.QtGui import QColor, QDesktopServices, QIcon, QImage, QKeySequence, QPainter, QPixmap, QShortcut
+from PyQt6.QtGui import QColor, QCursor, QDesktopServices, QIcon, QImage, QKeySequence, QPainter, QPixmap, QShortcut
 from PyQt6.QtWidgets import (
     QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QInputDialog, QLabel, QLineEdit,
     QListWidget, QListWidgetItem, QMenu, QMessageBox, QProgressBar, QPushButton, QScrollArea, QSplitter,
     QStackedWidget, QStyledItemDelegate, QToolButton, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 
+from core.glossary.series import GROUP_METADATA_KEY, series_chain, series_dir
 from core.i18n import tr
+from core.project.persist_mixin import next_project_sequence
 from core.project_library import index, registry, resources, views
 from core.project_library import build
 from core.project_library.build import emulator_argv, emulator_platform, emulator_template_for
@@ -33,10 +36,22 @@ from core.project_library.plugin_facts import PLUGIN_MISSING, default_load_rules
 from core.project_library.registry import EMULATOR_PREFIX
 from core.project_library.scan import ICON_FILE_NAME
 from ui.project_manager.emulator_dialog import EmulatorDialog
+from ui.project_manager.group_glossary import (
+    GroupGlossaryFileJob,
+    InspectGlossaryJob,
+    OpenProjectSyncJob,
+    apply_folder_glossary_mutation,
+    confirm_unlink_shared_glossary,
+    prompt_link_shared_glossary,
+    prompt_new_shared_glossary,
+    read_project_group_glossary,
+    same_project_file,
+    update_project_group_glossary,
+)
 from ui.project_manager.jobs import BackgroundJob
 from ui.project_manager.scan_process import ScanProcess
 from ui.project_manager.tasks import ActionJob, ResourceJob
-from utils.logging_utils import log_debug, log_info, log_warning
+from utils.logging_utils import log_debug, log_error, log_info, log_warning
 from utils.thread_utils import safe_shutdown_thread, single_shot
 
 KEY_ROLE = Qt.ItemDataRole.UserRole
@@ -94,8 +109,31 @@ def _op_set_name(reg: registry.Registry, path: str, name: str) -> None:
     reg.update_fields(path, name=name)
 
 
-def _op_move(reg: registry.Registry, path: str, folder_id: Optional[str]) -> None:
+def _op_move(reg: registry.Registry, path: str, folder_id: Optional[str],
+             open_file: Optional[str] = None) -> Any:
+    target_glossary = reg.folder_glossary(folder_id) if folder_id else None
+    is_open = bool(open_file and same_project_file(path, open_file))
+    prev_glossary = None
+    changed = False
+
+    if not is_open:
+        prev_glossary = read_project_group_glossary(path)
+        try:
+            changed = update_project_group_glossary(path, target_glossary)
+        except Exception as exc:
+            log_error(f"Failed to update group glossary when moving project {path}: {exc}")
+            raise OSError(f"Failed to move project {path}: could not update group glossary ({exc})") from exc
+
     reg.update_fields(path, folder_id=folder_id)
+
+    def rollback() -> None:
+        if not is_open and changed:
+            try:
+                update_project_group_glossary(path, prev_glossary)
+            except Exception as rb_exc:
+                log_error(f"Rollback failed for {path}: {rb_exc}")
+
+    return rollback
 
 
 def _op_set_platform(reg: registry.Registry, path: str, platform: str) -> None:
@@ -110,29 +148,90 @@ def _op_rename_folder(reg: registry.Registry, folder_id: str, name: str) -> None
     reg.rename_folder(folder_id, name)
 
 
-def _op_delete_folder(reg: registry.Registry, folder_id: str) -> None:
+def _op_delete_folder(reg: registry.Registry, folder_id: str,
+                      open_file: Optional[str] = None) -> Any:
+    affected = [entry["path"] for entry in reg.document["projects"] if entry.get("folder_id") == folder_id]
+    modified_history: List[Tuple[str, Optional[str]]] = []
+    try:
+        for p_path in affected:
+            if not open_file or not same_project_file(p_path, open_file):
+                prev = read_project_group_glossary(p_path)
+                changed = update_project_group_glossary(p_path, None)
+                if changed:
+                    modified_history.append((p_path, prev))
+    except Exception as exc:
+        for m_path, m_prev in reversed(modified_history):
+            try:
+                update_project_group_glossary(m_path, m_prev)
+            except Exception as rb_exc:
+                log_error(f"Rollback failed for {m_path}: {rb_exc}")
+        raise OSError(f"Failed to delete folder {folder_id}: could not clear project group glossary ({exc})") from exc
+
     reg.delete_folder(folder_id)
+
+    def rollback() -> None:
+        for m_path, m_prev in reversed(modified_history):
+            try:
+                update_project_group_glossary(m_path, m_prev)
+            except Exception as rb_exc:
+                log_error(f"Rollback failed for {m_path}: {rb_exc}")
+
+    return rollback
+
+
+def _op_set_folder_glossary(reg: registry.Registry, folder_id: str, glossary_path: Optional[str],
+                            open_file: Optional[str] = None) -> Any:
+    return apply_folder_glossary_mutation(reg, folder_id, glossary_path, open_file)
 
 
 def _op_set_view(reg: registry.Registry, **choices: Any) -> None:
     reg.set_view(**choices)
 
 
-def _op_import(reg: registry.Registry, items: List[Dict[str, Any]]) -> None:
+def _op_import(reg: registry.Registry, items: List[Dict[str, Any]],
+               open_file: Optional[str] = None) -> Any:
     """Add the chosen projects. One folder per series name is created when it is missing."""
     folder_ids: Dict[str, str] = {}
     for folder in reg.document["folders"]:
         folder_ids.setdefault(folder["name"].casefold(), folder["id"])
-    for item in items:
-        series = item.get("series") or ""
-        folder_id = None
-        if series:
-            folder_id = folder_ids.get(series.casefold())
-            if folder_id is None:
-                folder_id = reg.create_folder(series)
-                folder_ids[series.casefold()] = folder_id
-        reg.add(item["project_file"], project_id=item.get("project_id", ""), platform=item.get("platform", ""),
-                folder_id=folder_id)
+
+    modified_history: List[Tuple[str, Optional[str]]] = []
+    try:
+        for item in items:
+            series = item.get("series") or ""
+            folder_id = None
+            if series:
+                folder_id = folder_ids.get(series.casefold())
+                if folder_id is None:
+                    folder_id = reg.create_folder(series)
+                    folder_ids[series.casefold()] = folder_id
+            p_path = item["project_file"]
+            added = reg.add(p_path, project_id=item.get("project_id", ""), platform=item.get("platform", ""),
+                            folder_id=folder_id)
+            if added and folder_id:
+                target_glossary = reg.folder_glossary(folder_id)
+                if target_glossary:
+                    if not open_file or not same_project_file(p_path, open_file):
+                        prev = read_project_group_glossary(p_path)
+                        changed = update_project_group_glossary(p_path, target_glossary)
+                        if changed:
+                            modified_history.append((p_path, prev))
+    except Exception as exc:
+        for m_path, m_prev in reversed(modified_history):
+            try:
+                update_project_group_glossary(m_path, m_prev)
+            except Exception as rb_exc:
+                log_error(f"Rollback failed for {m_path}: {rb_exc}")
+        raise OSError(f"Failed to import projects: could not set group glossary ({exc})") from exc
+
+    def rollback() -> None:
+        for m_path, m_prev in reversed(modified_history):
+            try:
+                update_project_group_glossary(m_path, m_prev)
+            except Exception as rb_exc:
+                log_error(f"Rollback failed for {m_path}: {rb_exc}")
+
+    return rollback
 
 
 def _card_facts(project_file: str) -> tuple:
@@ -209,7 +308,7 @@ def series_summary(series: Optional[Dict[str, Any]]) -> str:
         return tr("None")
     names = ", ".join(str(entry.get("name") or "") for entry in files)
     parts = [tr("{0} ({1:,} terms)", names, int((series or {}).get("terms") or 0))]
-    link = {"linked": tr("linked"), "folders": tr("found in the folders above")}.get(str((series or {}).get("link") or ""))
+    link = {"linked": tr("linked"), "group": tr("from group"), "folders": tr("found in the folders above")}.get(str((series or {}).get("link") or ""))
     if link:
         parts.append(link)
     reusable = (series or {}).get("reusable")
@@ -352,6 +451,9 @@ class ProjectManagerDialog(QDialog):
         self._checked = 0
         self._eta_average: Optional[float] = None
         self._last_tick: Optional[float] = None
+        self._open_sync_token = 0
+        self._open_sync_job: Optional[OpenProjectSyncJob] = None
+        self._open_sync_file: Optional[str] = None
         self._build_ui()
         self._run(BackgroundJob(_load_state, library_dir), self._on_state)
         self._status.setText(tr("Loading projects..."))
@@ -381,6 +483,10 @@ class ProjectManagerDialog(QDialog):
         new_folder = QPushButton(tr("New folder..."))
         new_folder.clicked.connect(self._new_folder_clicked)
         bar.addWidget(new_folder)
+        group_glossary = QPushButton(tr("Group glossary..."))
+        group_glossary.setToolTip(tr("Manage shared glossary for the selected folder or group"))
+        group_glossary.clicked.connect(self._group_glossary_clicked)
+        bar.addWidget(group_glossary)
         emulator = QPushButton(tr("Emulator..."))
         emulator.setToolTip(tr("One emulator command per platform. Run in emulator uses the command of its platform."))
         emulator.clicked.connect(self._emulator_clicked)
@@ -506,6 +612,8 @@ class ProjectManagerDialog(QDialog):
         job.done.connect(lambda _result, j=job: self._forget(j))
         job.failed.connect(self._on_failed)
         job.failed.connect(lambda _message, j=job: self._forget(j))
+        if hasattr(job, "cancelled"):
+            job.cancelled.connect(lambda j=job: self._forget(j))
         job.start()
 
     def _forget(self, job: Any) -> None:
@@ -727,9 +835,10 @@ class ProjectManagerDialog(QDialog):
         if self._scan_active and self._frozen is not None and self._frozen[0] == view and self._frozen[1] == keys:
             shape = self._frozen[2]
         self._frozen = (view, keys, shape)
-        if not rows:
+        has_folders = bool(self._document.get("folders")) and view.get("group_by", "folder") == "folder"
+        if not rows and not has_folders:
             self._stack.setCurrentWidget(self._empty)
-        elif not shown:
+        elif not shown and rows:
             self._stack.setCurrentWidget(self._no_match)
         else:
             self._stack.setCurrentWidget(self._grid_page if self._mode == "grid" else self._tree)
@@ -759,10 +868,15 @@ class ProjectManagerDialog(QDialog):
         self._grid_items = {}
         self._status_labels = {}
         self._detail_signature = {}
+        folder_glossaries = {folder["id"]: folder.get("glossary_path") for folder in self._document["folders"]
+                             if folder.get("glossary_path")}
         for kind, value, keys in shape:
-            header = QTreeWidgetItem(self._tree, [self._section_label(kind, value, folder_names, len(keys))])
+            header = QTreeWidgetItem(self._tree, [self._section_label(kind, value, folder_names, len(keys),
+                                                                       folder_glossaries)])
             header.setFirstColumnSpanned(True)
             header.setData(0, KIND_ROLE, (kind, value))
+            if kind == "folder" and folder_glossaries.get(value):
+                header.setToolTip(0, tr("Shared glossary: {path}", path=folder_glossaries[value]))
             header.setExpanded(True)
             font = header.font(0)
             font.setBold(True)
@@ -900,8 +1014,13 @@ class ProjectManagerDialog(QDialog):
         self._descending.blockSignals(False)
 
     @staticmethod
-    def _section_label(kind: str, value: str, folder_names: Dict[str, str], count: int) -> str:
-        return f"{ProjectManagerDialog._section_title(kind, value, folder_names)}  ({count})"
+    def _section_label(kind: str, value: str, folder_names: Dict[str, str], count: int,
+                       folder_glossaries: Optional[Dict[str, str]] = None) -> str:
+        title = ProjectManagerDialog._section_title(kind, value, folder_names)
+        if kind == "folder" and folder_glossaries and folder_glossaries.get(value):
+            glossary_name = Path(folder_glossaries[value]).stem
+            return f"{title} · {tr('Glossary: {name}', name=glossary_name)}  ({count})"
+        return f"{title}  ({count})"
 
     @staticmethod
     def _section_title(kind: str, value: str, folder_names: Dict[str, str]) -> str:
@@ -967,12 +1086,16 @@ class ProjectManagerDialog(QDialog):
                 return row
         return None
 
-    def _folder_of(self, item: Optional[QTreeWidgetItem]) -> Optional[tuple]:
+    def _folder_of(self, item: Optional[QTreeWidgetItem]) -> Optional[str]:
         if item is None:
             return None
         data = item.data(0, KIND_ROLE)
-        if data and data[0] == "folder" and data[1][0] == "folder" and data[1][1]:
-            return data[1][1]
+        if not data or data[0] != "folder":
+            return None
+        if isinstance(data[1], tuple) and len(data[1]) >= 2:
+            return data[1][1] or None
+        if isinstance(data[1], str) and data[1]:
+            return data[1]
         return None
 
     def _on_double_click(self, item: QTreeWidgetItem, _column: int) -> None:
@@ -1329,8 +1452,21 @@ class ProjectManagerDialog(QDialog):
             menu.addSeparator()
             self._menu_item(menu, tr("Remove from manager"), self._remove_clicked, row)
         elif folder:
+            folder_entry = next((f for f in self._document["folders"] if f["id"] == folder), None)
+            current_glossary = folder_entry.get("glossary_path") if folder_entry else None
             self._menu_item(menu, tr("Rename folder..."), self._rename_folder_clicked, folder)
             self._menu_item(menu, tr("Delete folder..."), self._delete_folder_clicked, folder)
+            menu.addSeparator()
+            if current_glossary:
+                glossary_name = Path(current_glossary).stem
+                info_action = menu.addAction(tr("Shared glossary: {name}", name=glossary_name))
+                info_action.setEnabled(False)
+                self._menu_item(menu, tr("Change shared glossary..."), self._link_folder_glossary_clicked, folder)
+                self._menu_item(menu, tr("Unlink shared glossary"), self._unlink_folder_glossary_clicked, folder)
+                self._menu_item(menu, tr("New shared glossary..."), self._new_folder_glossary_clicked, folder)
+            else:
+                self._menu_item(menu, tr("New shared glossary..."), self._new_folder_glossary_clicked, folder)
+                self._menu_item(menu, tr("Link shared glossary..."), self._link_folder_glossary_clicked, folder)
         else:
             return
         menu.exec(view.viewport().mapToGlobal(position))
@@ -1353,7 +1489,8 @@ class ProjectManagerDialog(QDialog):
         choice, ok = QInputDialog.getItem(self, tr("Move to folder"), tr("Folder:"), labels, current, False)
         if ok:
             folder_id = folders[labels.index(choice)][1]
-            self._mutate(partial(_op_move, path=row["path"], folder_id=folder_id or None))
+            open_file = self._open_project_file()
+            self._mutate(partial(_op_move, path=row["path"], folder_id=folder_id or None, open_file=open_file))
 
     def _remove_clicked(self, row: Dict[str, Any]) -> None:
         answer = QMessageBox.question(
@@ -1380,7 +1517,201 @@ class ProjectManagerDialog(QDialog):
             tr("Delete this folder? Its projects move to the top level. No project file is deleted."),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
         if answer == QMessageBox.StandardButton.Yes:
-            self._mutate(partial(_op_delete_folder, folder_id=folder_id))
+            open_file = self._open_project_file()
+            self._mutate(partial(_op_delete_folder, folder_id=folder_id, open_file=open_file))
+
+    def _open_project_file(self) -> Optional[str]:
+        pm = getattr(self.parent(), "project_manager", None)
+        return getattr(pm, "project_file_path", None)
+
+    def _sync_open_project_if_needed(self) -> None:
+        pm = getattr(self.parent(), "project_manager", None)
+        open_file = getattr(pm, "project_file_path", None)
+        project = getattr(pm, "project", None)
+        if not pm or not open_file or not project:
+            return
+        key = registry.project_key(open_file)
+        entry = next((p for p in self._document["projects"] if registry.project_key(p["path"]) == key), None)
+        folder_id = entry.get("folder_id") if entry else None
+        expected_glossary = None
+        if folder_id:
+            folder = next((f for f in self._document["folders"] if f["id"] == folder_id), None)
+            expected_glossary = folder.get("glossary_path") if folder else None
+
+        current = project.metadata.get(GROUP_METADATA_KEY)
+        if expected_glossary == current:
+            return
+
+        if self._open_sync_job is not None:
+            self._open_sync_job.requestInterruption()
+
+        self._open_sync_token += 1
+        current_token = self._open_sync_token
+        target_file = str(Path(open_file).resolve())
+        self._open_sync_file = target_file
+
+        prev_glossary = current
+        if expected_glossary:
+            project.metadata[GROUP_METADATA_KEY] = expected_glossary
+        else:
+            project.metadata.pop(GROUP_METADATA_KEY, None)
+
+        from datetime import datetime
+        project.modified_at = datetime.now().isoformat()
+        chain = series_chain(project, Path(open_file).parent)
+        seq = next_project_sequence(open_file)
+        job = OpenProjectSyncJob(open_file, expected_glossary, chain, request_seq=seq)
+        self._open_sync_job = job
+
+        def is_active() -> bool:
+            if self._open_sync_token != current_token:
+                return False
+            cur_pm = getattr(self.parent(), "project_manager", None)
+            cur_file = getattr(cur_pm, "project_file_path", None)
+            if not cur_file or not same_project_file(cur_file, target_file):
+                return False
+            return True
+
+        def on_done(managers: list, warnings: list) -> None:
+            if not is_active():
+                return
+            glossary_handler = getattr(getattr(self.parent(), "translation_handler", None), "glossary_handler", None)
+            if glossary_handler:
+                glossary_handler.series_glossary_managers[:] = managers
+                if getattr(glossary_handler, "dialog", None):
+                    glossary_handler._attach_series_page()
+            if warnings:
+                msg = tr("Series glossaries loaded with warnings: {0}", "; ".join(warnings))
+                self._status.setText(msg)
+                log_warning(msg)
+
+        def on_failed(err: str) -> None:
+            if not is_active():
+                return
+            if prev_glossary is not None:
+                project.metadata[GROUP_METADATA_KEY] = prev_glossary
+            else:
+                project.metadata.pop(GROUP_METADATA_KEY, None)
+            msg = tr("Failed to save project with updated group glossary: {error}", error=err)
+            self._status.setText(msg)
+            log_error(msg)
+
+        def on_cancelled() -> None:
+            if not is_active():
+                return
+            if prev_glossary is not None:
+                project.metadata[GROUP_METADATA_KEY] = prev_glossary
+            else:
+                project.metadata.pop(GROUP_METADATA_KEY, None)
+
+        self._jobs.append(job)
+        job.done.connect(on_done)
+        job.done.connect(lambda _m, _w, j=job: self._forget(j))
+        job.failed.connect(on_failed)
+        job.failed.connect(lambda _msg, j=job: self._forget(j))
+        job.cancelled.connect(on_cancelled)
+        job.cancelled.connect(lambda j=job: self._forget(j))
+        job.start()
+
+    def _apply_folder_glossary(self, folder_id: str, glossary_path: Optional[str]) -> None:
+        open_file = self._open_project_file()
+        self._mutate(partial(_op_set_folder_glossary, folder_id=folder_id, glossary_path=glossary_path,
+                             open_file=open_file))
+
+    def _new_folder_glossary_clicked(self, folder_id: str) -> None:
+        folder_entry = next((f for f in self._document["folders"] if f["id"] == folder_id), None)
+        name = folder_entry["name"] if folder_entry else "group"
+        target = prompt_new_shared_glossary(self, name)
+        if not target:
+            return
+        job = GroupGlossaryFileJob("create", target)
+        job.done.connect(lambda path: self._apply_folder_glossary(folder_id, path))
+        job.failed.connect(lambda err: QMessageBox.warning(
+            self, tr("Shared Glossary"), tr("Cannot create shared glossary: {error}", error=err)))
+        self._run(job, lambda _p: None)
+
+    def _link_folder_glossary_clicked(self, folder_id: str) -> None:
+        source = prompt_link_shared_glossary(self)
+        if not source:
+            return
+        self._status.setText(tr("Checking glossary format..."))
+        job = InspectGlossaryJob(source)
+        job.done.connect(lambda needs_conv: self._on_glossary_inspected(folder_id, source, needs_conv))
+        job.failed.connect(lambda err: QMessageBox.warning(
+            self, tr("Shared Glossary"), tr("Cannot read this glossary: {error}", error=err)))
+        self._run(job, lambda _res: None)
+
+    def _on_glossary_inspected(self, folder_id: str, source: Path, needs_conv: bool) -> None:
+        self._status.setText("")
+        overwrite = False
+        collision_free = False
+        if needs_conv:
+            target_dir = series_dir()
+            target_file = (target_dir / f"{source.stem}.json").resolve()
+            norm_source = os.path.normcase(str(source.resolve()))
+            norm_target = os.path.normcase(str(target_file))
+            if norm_target == norm_source:
+                collision_free = True
+            elif target_file.exists():
+                answer = QMessageBox.question(
+                    self,
+                    tr("Shared Glossary Exists"),
+                    tr("A converted shared glossary named '{name}' already exists in {dir}.\n\nDo you want to replace it?",
+                       name=target_file.name, dir=str(target_dir)),
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No,
+                )
+                if answer == QMessageBox.StandardButton.Yes:
+                    overwrite = True
+                else:
+                    return
+
+        job = GroupGlossaryFileJob("link", source, overwrite=overwrite, collision_free=collision_free)
+        job.done.connect(lambda path: self._apply_folder_glossary(folder_id, path))
+        job.failed.connect(lambda err: QMessageBox.warning(
+            self, tr("Shared Glossary"), tr("Cannot read this glossary: {error}", error=err)))
+        self._run(job, lambda _p: None)
+
+    def _unlink_folder_glossary_clicked(self, folder_id: str) -> None:
+        folder_entry = next((f for f in self._document["folders"] if f["id"] == folder_id), None)
+        name = folder_entry["name"] if folder_entry else ""
+        if confirm_unlink_shared_glossary(self, name):
+            self._apply_folder_glossary(folder_id, None)
+
+    def _group_glossary_clicked(self) -> None:
+        if not self._document["folders"]:
+            QMessageBox.information(self, tr("Group glossary"), tr("Create a folder first."))
+            return
+        item = self._tree.currentItem()
+        folder_id = self._folder_of(item)
+        if not folder_id:
+            row = self._project_row(item)
+            if row and row.get("folder_id"):
+                folder_id = row["folder_id"]
+        if not folder_id:
+            folders = [(f["name"], f["id"]) for f in self._document["folders"]]
+            names = [name for name, _ in folders]
+            choice, ok = QInputDialog.getItem(self, tr("Group glossary"),
+                                              tr("Choose a folder to manage its shared glossary:"),
+                                              names, 0, False)
+            if not ok or not choice:
+                return
+            folder_id = folders[names.index(choice)][1]
+
+        folder_entry = next((f for f in self._document["folders"] if f["id"] == folder_id), None)
+        current_glossary = folder_entry.get("glossary_path") if folder_entry else None
+        menu = QMenu(self)
+        if current_glossary:
+            glossary_name = Path(current_glossary).stem
+            info = menu.addAction(tr("Shared glossary: {name}", name=glossary_name))
+            info.setEnabled(False)
+            self._menu_item(menu, tr("Change shared glossary..."), self._link_folder_glossary_clicked, folder_id)
+            self._menu_item(menu, tr("Unlink shared glossary"), self._unlink_folder_glossary_clicked, folder_id)
+            self._menu_item(menu, tr("New shared glossary..."), self._new_folder_glossary_clicked, folder_id)
+        else:
+            self._menu_item(menu, tr("New shared glossary..."), self._new_folder_glossary_clicked, folder_id)
+            self._menu_item(menu, tr("Link shared glossary..."), self._link_folder_glossary_clicked, folder_id)
+        menu.exec(QCursor.pos())
 
     def _view_changed(self, *_args: Any) -> None:
         choices = {"group_by": self._group.currentData(), "sort_by": self._sort.currentData(),
@@ -1396,11 +1727,16 @@ class ProjectManagerDialog(QDialog):
 
     def _on_document(self, document: Dict[str, Any]) -> None:
         before = {registry.project_key(p["path"]) for p in self._document["projects"]}
+        before_glossaries = {f["id"]: f.get("glossary_path") for f in self._document.get("folders", [])}
+        before_folders = {registry.project_key(p["path"]): p.get("folder_id") for p in self._document.get("projects", [])}
         self._document = document
+        self._sync_open_project_if_needed()
         self._schedule_render()
         after = {registry.project_key(p["path"]) for p in document["projects"]}
-        if after != before:
-            self._start_scan()  # a new project has no card yet
+        after_glossaries = {f["id"]: f.get("glossary_path") for f in document.get("folders", [])}
+        after_folders = {registry.project_key(p["path"]): p.get("folder_id") for p in document.get("projects", [])}
+        if after != before or before_glossaries != after_glossaries or before_folders != after_folders:
+            self._start_scan()
 
     # ----- adding projects -----
     def _new_project_clicked(self) -> None:
@@ -1441,7 +1777,8 @@ class ProjectManagerDialog(QDialog):
             return
         dialog = ImportDialog(self, candidates)
         if dialog.exec() == QDialog.DialogCode.Accepted and dialog.chosen():
-            self._mutate(partial(_op_import, items=dialog.chosen()))
+            open_file = self._open_project_file()
+            self._mutate(partial(_op_import, items=dialog.chosen(), open_file=open_file))
 
     def closeEvent(self, event) -> None:
         self._scan.shutdown()

@@ -79,6 +79,9 @@ def arrange(rows: List[Dict[str, Any]], view: Dict[str, Any], folder_names: Dict
         sections.append(("last", "", pinned))
 
     groups: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
+    if group_by == "folder":
+        for folder_id in folder_names:
+            groups[("folder", folder_id)] = []
     for row in rest:
         groups.setdefault(_group_of(row, group_by), []).append(row)
 

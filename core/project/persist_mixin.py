@@ -3,12 +3,47 @@ from __future__ import annotations
 from utils.atomic_io import atomic_write_json
 
 import json
+import os
 from pathlib import Path
+import threading
 from typing import Any, Optional, Union
 
 from utils.logging_utils import log_info, log_warning, log_error, log_debug
 
 from core.project_models import Project
+
+_project_locks: dict[str, threading.RLock] = {}
+_project_locks_guard = threading.Lock()
+_project_sequences: dict[str, int] = {}
+_project_sequences_guard = threading.Lock()
+
+
+def project_persistence_lock(project_file: Union[str, Path, os.PathLike]) -> threading.RLock:
+    """Return a reentrant lock associated with the normalized path of a project file."""
+    key = os.path.normcase(os.path.abspath(str(project_file)))
+    with _project_locks_guard:
+        lock = _project_locks.get(key)
+        if lock is None:
+            lock = threading.RLock()
+            _project_locks[key] = lock
+        return lock
+
+
+def next_project_sequence(project_file: Union[str, Path, os.PathLike]) -> int:
+    """Allocate and return the next monotonically increasing request sequence number for a project."""
+    key = os.path.normcase(os.path.abspath(str(project_file)))
+    with _project_sequences_guard:
+        seq = _project_sequences.get(key, 0) + 1
+        _project_sequences[key] = seq
+        return seq
+
+
+def is_latest_project_sequence(project_file: Union[str, Path, os.PathLike], seq: int) -> bool:
+    """Return True if `seq` is at or ahead of the latest allocated sequence number for the project."""
+    key = os.path.normcase(os.path.abspath(str(project_file)))
+    with _project_sequences_guard:
+        current = _project_sequences.get(key, 0)
+        return seq >= current
 
 
 class PersistMixin:
@@ -141,7 +176,8 @@ class PersistMixin:
 
             # Save project file
             p_file = Path(self.project_file_path)
-            atomic_write_json(p_file, self.project.to_dict(), indent=4, ensure_ascii=False)
+            with project_persistence_lock(p_file):
+                atomic_write_json(p_file, self.project.to_dict(), indent=4, ensure_ascii=False)
 
             log_debug(f"Saved project '{self.project.name}' to {self.project_file_path}")
             return True

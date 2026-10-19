@@ -11,6 +11,7 @@ The project glossary wins; a nearer level wins over a farther one.
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 from itertools import combinations
@@ -22,6 +23,7 @@ from core.glossary.models import STATUS_CONFIRMED, STATUS_TRANSLATED, GlossaryEn
 from utils.atomic_io import atomic_write_text
 
 METADATA_KEY = "series_glossary"
+GROUP_METADATA_KEY = "group_series_glossary"
 AUTO_KEY = "series_glossary_auto"
 FOLDER_NAME = "_glossary"
 FOLDER_FILE = "glossary.json"
@@ -61,6 +63,28 @@ def link_series(project: Any, path: Optional[Path]) -> None:
     set_series_links(project, [path] if path is not None else [])
 
 
+def group_series_paths(project: Any) -> List[Path]:
+    """The series glossary file ``project`` derives from its Project Manager group, if any."""
+    metadata = getattr(project, "metadata", None)
+    value = metadata.get(GROUP_METADATA_KEY) if isinstance(metadata, dict) else None
+    if isinstance(value, str):
+        value = [value]
+    if not isinstance(value, list):
+        return []
+    return [Path(item) for item in value if isinstance(item, str) and item.strip()]
+
+
+def set_group_series_link(project: Any, path: Optional[Path | str]) -> None:
+    """Make ``path`` the group-derived series link of ``project`` (None removes the key). The caller saves the project."""
+    metadata = getattr(project, "metadata", None)
+    if not isinstance(metadata, dict):
+        return
+    if path is not None and str(path).strip():
+        metadata[GROUP_METADATA_KEY] = str(path).strip()
+    else:
+        metadata.pop(GROUP_METADATA_KEY, None)
+
+
 def folder_glossaries_enabled(project: Any) -> bool:
     """Whether the ``_glossary`` files above the project folder count (the default)."""
     metadata = getattr(project, "metadata", None)
@@ -80,11 +104,29 @@ def discovered_series_paths(project_dir: Optional[Path]) -> List[Path]:
     return found
 
 
+def _norm_path(path: Path | str) -> str:
+    """The normalized file identity for series chain deduplication."""
+    return os.path.normcase(os.path.abspath(str(path)))
+
+
 def series_chain(project: Any, project_dir: Optional[Path]) -> List[Path]:
-    """Every series glossary file of ``project``, nearest first: explicit links, then folder glossaries."""
-    chain = linked_series_paths(project)
+    """Every series glossary file of ``project``, nearest first: explicit links, group glossary, then folder glossaries."""
+    chain: List[Path] = []
+    seen: set[str] = set()
+
+    def _add(path: Path) -> None:
+        ident = _norm_path(path)
+        if ident not in seen:
+            seen.add(ident)
+            chain.append(path)
+
+    for path in linked_series_paths(project):
+        _add(path)
+    for path in group_series_paths(project):
+        _add(path)
     if folder_glossaries_enabled(project):
-        chain += [path for path in discovered_series_paths(project_dir) if path not in chain]
+        for path in discovered_series_paths(project_dir):
+            _add(path)
     return chain
 
 

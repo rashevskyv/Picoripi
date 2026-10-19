@@ -19,7 +19,8 @@ The current version is in `utils/constants.py`; what changed is in [CHANGELOG.md
 - **AI translation.** Single strings, blocks or the whole project, with glossary terms, neighbouring lines,
   speaker and scene context in the prompt; duplicates are translated once; a translation memory is kept.
 - **Glossary.** Built from the game script and data in one pass, matched in the text with morphology, reviewed
-  in a dialog or from a phone through the Companion server.
+  in a dialog or from a phone through the Companion server. Project Manager groups can share a series glossary;
+  moving a project updates its inherited glossary while preserving its personal links.
 - **Tools.** Search and replace with undo, spellcheck, Script Markup Studio, a BFN font editor, in-memory
   repacking of U8/RARC archives with Yaz0.
 - **Plugins.** Zelda: Twilight Princess, The Wind Waker, Tears of the Kingdom, The Minish Cap, Hyrule Warriors DE, Ocarina of Time and Majora's Mask (N64), Pokémon FireRed, plain text; a new game

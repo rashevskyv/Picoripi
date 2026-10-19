@@ -7,7 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Set
 
-from core.glossary.series import linked_series_paths, series_chain
+from core.glossary.series import group_series_paths, linked_series_paths, series_chain
 from core.project_library import plugin_facts
 from core.translation.run_memory import normalize_source
 from core.translation.series_fill import registered_memories
@@ -112,6 +112,8 @@ def series_facts(project_file: str, cached: Optional[Dict[str, Any]] = None) -> 
         reusable = reusable_texts(project_path, memories, own)
     if linked_series_paths(SimpleNamespace(metadata=metadata)):
         link = "linked"
+    elif group_series_paths(SimpleNamespace(metadata=metadata)):
+        link = "group"
     else:
         link = "folders" if files else "none"
     return {"files": files, "terms": sum(entry["terms"] for entry in files), "link": link,
