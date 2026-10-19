@@ -18,7 +18,7 @@ import struct
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from core.containers.console_crypto import (CbcView, CtrView, PlainView, RangeView, encrypted_error,
+from core.containers.console_crypto import (CbcView, CtrView, KeyFileError, PlainView, RangeView, encrypted_error,
                                             require_pycryptodome, wrong_key_error)
 from core.containers.image_files import ImageError, ImageFile, ImageReader, check_name
 from core.containers.nitro import blz_decompress
@@ -94,7 +94,7 @@ class Keys3ds:
             with open(path, encoding="ascii", errors="ignore") as stream:
                 text = stream.read()
         except OSError:
-            raise ImageError(tr("the 3DS key file cannot be read")) from None   # no chained OSError: it holds the path
+            raise KeyFileError("3ds", tr("the 3DS key file cannot be read")) from None   # no chained OSError: it holds the path
         for line in text.splitlines():
             name, _, value = line.partition("=")
             name = name.strip().lower()
@@ -116,13 +116,13 @@ class Keys3ds:
     def normal(self, slot: int, keyy: bytes) -> bytes:
         """The normal key of ``slot`` for the KeyY ``keyy`` (16 bytes)."""
         if slot not in self._keyx:
-            raise ImageError(tr("the 3DS key file has no KeyX for slot 0x{0:02X}", slot))
+            raise KeyFileError("3ds", tr("the 3DS key file has no KeyX for slot 0x{0:02X}", slot))
         return scramble(self._keyx[slot], keyy)
 
     def cia_title_key(self, common_index: int, title_id: bytes, encrypted: bytes) -> bytes:
         """The title key of a CIA: AES-CBC of the ticket's key under the common key, IV = title ID and zeros."""
         if common_index not in self._common:
-            raise ImageError(tr("the 3DS key file has no common key {0}", common_index))
+            raise KeyFileError("3ds", tr("the 3DS key file has no common key {0}", common_index))
         common_key = self.normal(0x3D, self._common[common_index])
         require_pycryptodome("3ds", tr(LABEL))
         from Crypto.Cipher import AES
@@ -134,9 +134,9 @@ def _boot9_keyx(path: str) -> Dict[int, bytes]:
         with open(path, "rb") as stream:
             data = stream.read(BOOT9_SIZE + 1)
     except OSError:
-        raise ImageError(tr("the boot9 file cannot be read")) from None   # no chained OSError: it holds the path
+        raise KeyFileError("3ds", tr("the boot9 file cannot be read")) from None   # no chained OSError: it holds the path
     if len(data) != BOOT9_SIZE:
-        raise ImageError(tr("the boot9 file must be the full 64 KiB dump"))
+        raise KeyFileError("3ds", tr("the boot9 file must be the full 64 KiB dump"))
     keyx: Dict[int, bytes] = {}
     offset = BOOT9_KEY_AREA
     for first, count in BOOT9_LAYOUT:
@@ -255,7 +255,7 @@ class N3dsImage(ImageReader):
             try:
                 program = _ncch_program(ImageReader(stream), 0)
             except ImageError as exc:
-                raise wrong_key_error(tr(LABEL)) from exc
+                raise wrong_key_error(tr(LABEL), "3ds") from exc
         super().__init__(stream)
         if program["encrypted"] and keys is None:
             keys = _load_keys(keys_path)
@@ -335,7 +335,7 @@ class N3dsImage(ImageReader):
             return self._parse_exefs(prim, sec, size, code_packed)
         except ImageError:
             if self.program["encrypted"]:
-                raise wrong_key_error(tr(LABEL)) from None
+                raise wrong_key_error(tr(LABEL), "3ds") from None
             raise
 
     def _parse_exefs(self, prim: PlainView, sec: PlainView, size: int, code_packed: bool) -> List[ImageFile]:
@@ -374,7 +374,7 @@ class N3dsImage(ImageReader):
             return RomFS(view).entries()
         except ImageError:
             if self.program["encrypted"]:
-                raise wrong_key_error(tr(LABEL)) from None
+                raise wrong_key_error(tr(LABEL), "3ds") from None
             raise
 
 
@@ -404,9 +404,9 @@ def _seeded_key_y(keys: Keys3ds, head: bytes, key_y: bytes) -> bytes:
     program_id = bytes(head[0x118:0x120])
     seed = keys.seeds.get(program_id)
     if seed is None:
-        raise ImageError(tr("the 3DS title uses seed crypto and the key folder has no seed for it (seeds or seeddb.bin)"))
+        raise KeyFileError("3ds", tr("the 3DS title uses seed crypto and the key folder has no seed for it (seeds or seeddb.bin)"))
     if hashlib.sha256(seed + program_id).digest()[:4] != bytes(head[0x114:0x118]):
-        raise ImageError(tr("the 3DS seed does not match the title's seed check"))
+        raise KeyFileError("3ds", tr("the 3DS seed does not match the title's seed check"))
     return hashlib.sha256(key_y + seed).digest()[:16]
 
 

@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-13
 owns: ui/, components/, dialogs/
-tokens: 54.5k
+tokens: 55.1k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -1138,6 +1138,8 @@ when you create, open or import it.
 - **Remove from manager** never deletes project files.
 
 ---
+
+**Already extracted game:** in New Project, step 2, choose **Add extracted game folder...** instead of adding an image. Choose the folder containing the game's expanded text tables (for Yo-kai Watch, the workspace's `source` folder containing `data/.../*.cfg.bin`; a RomFS holding only `.fa` archives is not enough). The wizard validates the folder on a worker, uses it in place, and skips extraction and keys. This source folder is separate from **Use an existing translation folder**. Use one source folder at a time. If the plugin cannot unpack an image, the wizard explains that limitation. For a missing or unsuitable console key, **Add key file...** lets you replace it and retry in the same wizard, preserving the source and location choices. Missing crypto dependencies and malformed images retain their own error messages.
 
 ## 4. Edit menu
 

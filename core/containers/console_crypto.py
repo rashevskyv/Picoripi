@@ -24,6 +24,14 @@ MASK128 = (1 << 128) - 1
 BLOCK = 16
 
 
+class KeyFileError(ImageError):
+    """A recoverable missing or unsuitable key file, with no key material in the error."""
+
+    def __init__(self, console: str, message: str):
+        super().__init__(message)
+        self.console = console
+
+
 @contextmanager
 def key_source(provider: Optional[KeyPaths]) -> Iterator[None]:
     """Make ``provider`` (console id -> key file path, or None) the key lookup of this thread's job."""
@@ -44,12 +52,12 @@ def encrypted_error(console: str, label: str) -> ImageError:
     """The error for encrypted content of ``console`` when its key file is missing or the pycryptodome package is not
     installed; ``label`` is the image's display name (already translated)."""
     if key_path(console) is None:
-        return ImageError(tr("The {0} image is encrypted and needs its key file.", label))
+        return KeyFileError(console, tr("The {0} image is encrypted and needs its key file.", label))
     try:
         from Crypto.Cipher import AES  # noqa: F401  (pycryptodome; imported here so the app starts without it)
     except ImportError:
         return ImageError(tr("The {0} image is encrypted. Picoripi needs the pycryptodome package to read it.", label))
-    return ImageError(tr("The key file does not decrypt the {0} image.", label))
+    return KeyFileError(console, tr("The key file does not decrypt the {0} image.", label))
 
 
 def require_pycryptodome(console: str, label: str) -> None:
@@ -61,9 +69,10 @@ def require_pycryptodome(console: str, label: str) -> None:
         raise encrypted_error(console, label) from None
 
 
-def wrong_key_error(label: str) -> ImageError:
+def wrong_key_error(label: str, console: str = "") -> ImageError:
     """The error when the key file loads but does not decrypt the content (the tables come out as noise)."""
-    return ImageError(tr("The key file does not decrypt the {0} image.", label))
+    message = tr("The key file does not decrypt the {0} image.", label)
+    return KeyFileError(console, message) if console else ImageError(tr("The key file does not decrypt the {0} image.", label))
 
 
 def read_raw(stream: Any, offset: int, size: int) -> bytes:

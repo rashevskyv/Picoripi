@@ -12,6 +12,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from PyQt6.QtCore import pyqtSignal
 
 from core.project_library import build, console_keys, plugin_facts, resources
+from core.project_library.source_folder import validate_source_folder
+from core.containers.console_crypto import KeyFileError
 from utils.constants import plugins_root
 from utils.logging_utils import log_error, log_warning
 from utils.thread_utils import WorkerThread
@@ -89,7 +91,7 @@ class UnpackJob(WorkerThread):
     failed = pyqtSignal(str)
 
     def __init__(self, plugin_name: str, sources: Dict[str, str], project_dir: str, load_rules: LoadRules,
-                 key_paths: Optional[Dict[str, str]] = None, existing_translation: str = ""):
+                 key_paths: Optional[Dict[str, str]] = None, existing_translation: str = "", source_folder: str = ""):
         super().__init__()
         self._plugin = plugin_name
         self._sources = dict(sources)
@@ -97,19 +99,31 @@ class UnpackJob(WorkerThread):
         self._load_rules = load_rules
         self._key_paths = dict(key_paths or {})   # console id -> key file path the user chose in the wizard
         self._existing_translation = existing_translation  # a folder the user chose: no folder is made here
+        self._source_folder = source_folder
+
+    key_failed = pyqtSignal(str, str)
 
     def run(self) -> None:
         try:
             for console, path in self._key_paths.items():
                 console_keys.set_path(console, path)
             rules = self._load_rules(self._plugin)
-            folder = build.run_unpack(rules, self._sources, self._project_dir, self._report,
-                                      self.isInterruptionRequested, key_provider=console_keys.path_for)
+            if self._source_folder:
+                folder = validate_source_folder(rules, self._source_folder, self.isInterruptionRequested)
+            else:
+                folder = build.run_unpack(rules, self._sources, self._project_dir, self._report,
+                                          self.isInterruptionRequested, key_provider=console_keys.path_for)
+            if self.isInterruptionRequested():
+                raise build.Cancel()
             if not self._existing_translation:
                 # Made only when the project keeps its own folder, so a refused create leaves no empty folder.
                 Path(self._project_dir, "translation").mkdir(parents=True, exist_ok=True)
         except build.Cancel:
             self.cancelled.emit()
+            return
+        except KeyFileError as exc:
+            self.key_failed.emit(exc.console, str(exc))
+            self.failed.emit(str(exc))
             return
         except Exception as exc:
             log_error(f"Unpacking {self._project_dir} failed: {exc}", exc_info=True)

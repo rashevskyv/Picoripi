@@ -44,6 +44,8 @@ class ProjectWizard(QDialog):
         self._platforms: List[Dict[str, str]] = []
         self._unpack_job: Optional[UnpackJob] = None
         self._key_status: Dict[str, Dict[str, Any]] = {}   # per file path: the console its key file is for, and ready
+        self._retry_console = ""
+        self._picked_keys: Dict[str, str] = {}
         self._build_ui()
         self._run(PluginListJob(), self._on_plugins)
         self._show_page(0)
@@ -139,6 +141,9 @@ class ProjectWizard(QDialog):
         remove = QPushButton(tr("Remove selected"))
         remove.clicked.connect(self._remove_selected)
         bar.addWidget(add)
+        add_folder = QPushButton(tr("Add extracted game folder..."))
+        add_folder.clicked.connect(self._add_source_folder)
+        bar.addWidget(add_folder)
         bar.addWidget(remove)
         bar.addStretch(1)
         layout.addLayout(bar)
@@ -189,7 +194,12 @@ class ProjectWizard(QDialog):
         self._progress.setVisible(False)
         layout.addWidget(self._progress)
         self._progress_text = QLabel("")
+        self._progress_text.setWordWrap(True)
         layout.addWidget(self._progress_text)
+        self._add_key = QPushButton(tr("Add key file..."))
+        self._add_key.setVisible(False)
+        self._add_key.clicked.connect(self._replace_key_file)
+        layout.addWidget(self._add_key)
         self._cancel_unpack = QPushButton(tr("Cancel unpacking"))
         self._cancel_unpack.setVisible(False)
         self._cancel_unpack.clicked.connect(self._cancel_unpacking)
@@ -227,6 +237,8 @@ class ProjectWizard(QDialog):
             self._files_tree.topLevelItem(position).setData(0, Qt.ItemDataRole.UserRole + 1, False)
         self._roles, self._platforms = [], []
         self._key_status = {}
+        self._picked_keys = {}
+        self._add_key.setVisible(False)
         self._reread_files()
 
     def _reread_files(self) -> None:
@@ -262,7 +274,12 @@ class ProjectWizard(QDialog):
                                                       tr("All files") + " (*)")
         self.add_paths(names)
 
-    def add_paths(self, names: List[str]) -> None:
+    def _add_source_folder(self) -> None:
+        folder = QFileDialog.getExistingDirectory(self, tr("Extracted game folder"), str(Path.home()))
+        if folder:
+            self.add_paths([folder], source_folder=True)
+
+    def add_paths(self, names: List[str], source_folder: bool = False) -> None:
         """Add files to the list; the plugin reads the new ones (and the rest again) on a worker."""
         known = set(self._paths())
         for name in names:
@@ -272,11 +289,19 @@ class ProjectWizard(QDialog):
             item.setToolTip(0, name)
             item.setData(0, Qt.ItemDataRole.UserRole, name)
             item.setData(0, Qt.ItemDataRole.UserRole + 1, False)
+            item.setData(0, Qt.ItemDataRole.UserRole + 2, source_folder)
             self._files_tree.addTopLevelItem(item)
             self._set_combo(item, ROLE_COLUMN, self._roles, self._roles[0]["id"] if self._roles else NOT_SET)
             self._set_combo(item, PLATFORM_COLUMN, self._platforms, NOT_SET)
         if names:
             self._reread_files()
+
+    def _source_folder(self) -> str:
+        for position in range(self._files_tree.topLevelItemCount()):
+            item = self._files_tree.topLevelItem(position)
+            if item.data(0, Qt.ItemDataRole.UserRole + 2):
+                return item.data(0, Qt.ItemDataRole.UserRole)
+        return ""
 
     def _remove_selected(self) -> None:
         for item in self._files_tree.selectedItems():
@@ -360,7 +385,8 @@ class ProjectWizard(QDialog):
             translation = tr("Translation files: {0} (created now)", str(root / TRANSLATION_FOLDER))
         self._summary.setText("\n".join([
             tr("Project file: {0}", str(root / PROJECT_FILE_NAME)),
-            tr("Unpacked files: {0} (only when the game needs unpacking)", str(root / "unpacked")),
+            (tr("Extracted game folder: {0}", self._source_folder()) if self._source_folder() else
+             tr("Unpacked files: {0} (only when the game needs unpacking)", str(root / "unpacked"))),
             translation,
             tr("Originals: not copied; the project refers to them by path."),
         ]))
@@ -378,10 +404,12 @@ class ProjectWizard(QDialog):
         if key_paths is None:
             return
         self._set_busy(True)
+        self._add_key.setVisible(False)
         self._progress.setValue(0)
         self._progress_text.setText(tr("Unpacking..."))
         job = UnpackJob(self._game.currentData(), sources, folder, self._load_rules, key_paths,
-                        existing_translation=self._existing_translation())
+                        existing_translation=self._existing_translation(), source_folder=self._source_folder())
+        job.key_failed.connect(self._on_key_failed)
         job.progress.connect(self._on_progress)
         job.cancelled.connect(self._on_unpack_cancelled)
         job.done.connect(lambda unpacked, s=sources, c=choices: self._on_unpacked(unpacked, s, c))
@@ -398,19 +426,25 @@ class ProjectWizard(QDialog):
         the same way when Picoripi has no path for it. Returns ``{console: path}``, or None when the user cancels a dialog.
         """
         needed: List[str] = []
+        if self._source_folder():
+            return {}
         for path, choice in choices.items():
             status = self._key_status.get(path) or {}
             console = str(status.get("key") or "")
-            if choice["role"] and console and not status.get("key_ready") and console not in needed:
+            if choice["role"] and console and not status.get("key_ready") and console not in needed and console not in self._picked_keys:
                 needed.append(console)
             if choice["role"]:   # readiness of the libraries was read with the file, on the worker
                 ready = set(status.get("libraries_ready") or [])
                 for library in status.get("libraries") or []:
                     if library not in needed and library not in ready:
                         needed.append(library)
-        picked: Dict[str, str] = {}
+        picked: Dict[str, str] = dict(self._picked_keys)
         for console in needed:
             label = tr(images.CONSOLE_LABEL[console])
+            if console != "oodle":
+                self._progress_text.setText(tr("The {0} image is encrypted and needs its key file.", label))
+                self._retry_console = console
+                self._add_key.setVisible(True)
             title = (tr("Choose the Oodle library file (oo2core or oo2ext DLL)") if console == "oodle"
                      else tr("Choose the key file for {0}", label))
             path, _filter = QFileDialog.getOpenFileName(
@@ -420,6 +454,18 @@ class ProjectWizard(QDialog):
                 return None
             picked[console] = path
         return picked
+
+    def _on_key_failed(self, console: str, _message: str) -> None:
+        self._retry_console = console
+        self._add_key.setVisible(True)
+
+    def _replace_key_file(self) -> None:
+        label = tr(images.CONSOLE_LABEL[self._retry_console])
+        path, _filter = QFileDialog.getOpenFileName(
+            self, tr("Choose the key file for {0}", label), str(Path.home()), tr("All files") + " (*)")
+        if path:
+            self._picked_keys[self._retry_console] = path
+            self._create_clicked()
 
     def _problem(self) -> str:
         if not self._name.text().strip():
@@ -437,6 +483,8 @@ class ProjectWizard(QDialog):
         choices = self._file_choices()
         if not choices:
             return tr("Add at least one file.")
+        if self._source_folder() and len(choices) != 1:
+            return tr("Use one extracted game folder, or add game files. Remove the other sources.")
         roles = [choice["role"] for choice in choices.values()]
         if "" in roles:
             return tr("Give every file a role.")
@@ -453,7 +501,7 @@ class ProjectWizard(QDialog):
     def _finish_job(self, job: Any) -> None:
         if self._unpack_job is job:
             self._unpack_job = None
-        self._set_busy(False)
+            self._set_busy(False)
 
     def _on_progress(self, percent: int, text: str) -> None:
         self._progress.setValue(max(0, min(100, percent)))
@@ -500,7 +548,7 @@ class ProjectWizard(QDialog):
             "metadata": {
                 "source_roles": {role: path for role, path in sources.items()},
                 "platform": platform,
-                "unpacked": bool(unpacked),
+                "unpacked": bool(unpacked) and not bool(self._source_folder()),
             },
         }
         log_info(f"Wizard creates project {info['name']} in {folder} from {len(sources)} files.")

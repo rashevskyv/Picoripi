@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: handlers/translation, core/translation
-tokens: 5.8k
+tokens: 5.9k
 purpose: Providers, prompts, chunks, run memory, translation memory
 ---
 # AI Translation

@@ -69,6 +69,9 @@ def run_unpack(rules: Any, sources: Dict[str, str], project_dir: str | os.PathLi
             raise Cancel()
         if result is None:
             _remove_own(temporary)
+            if any(images.identify(path) for path in sources.values()):
+                raise ValueError(tr("This game's plugin cannot unpack this image. Choose an already-extracted "
+                                    "game folder with its text tables unpacked from game archives."))
             return None
         subfolder = rules.get_source_subfolder()
         parts = subfolder.split("/") if subfolder else []

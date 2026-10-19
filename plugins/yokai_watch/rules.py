@@ -117,6 +117,10 @@ class GameRules(BaseGameRules):
         from core.formats import DEFAULT_FORMATS, FileFormat
         return [FileFormat((".bin",), "bytes", "Level-5 text tables (cfg.bin)"), *DEFAULT_FORMATS]
 
+    def includes_source_file(self, rel_path: str) -> bool:
+        """Only expanded text tables become blocks; workspace notes and metadata are not game text."""
+        return super().includes_source_file(rel_path) and rel_path.lower().endswith(".cfg.bin")
+
     # -- load and save ---------------------------------------------------------
 
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Dict[str, str]]:

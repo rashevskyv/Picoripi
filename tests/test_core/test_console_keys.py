@@ -5,6 +5,7 @@ No key bytes appear here: the tests write placeholder files and check which path
 import io
 import json
 import struct
+from pathlib import Path
 
 import pytest
 
@@ -163,7 +164,8 @@ def test_the_unpack_job_sees_the_key_file_of_its_console_only_while_it_runs(tmp_
     class Unpacker:
         def unpack_sources(self, sources, target, progress, is_cancelled):
             seen.append((console_crypto.key_path("3ds"), console_crypto.key_path("switch")))
-            return None
+            Path(target, "text.txt").write_text("Unpacked text", encoding="utf-8")
+            return target
 
         def get_source_subfolder(self):
             return None
@@ -173,7 +175,7 @@ def test_the_unpack_job_sees_the_key_file_of_its_console_only_while_it_runs(tmp_
     result = build.run_unpack(Unpacker(), {"base": str(image)}, folder, lambda p, t: None, lambda: False,
                               key_provider=console_keys.path_for)
 
-    assert result is None
+    assert Path(result, "text.txt").read_text(encoding="utf-8") == "Unpacked text"
     assert seen == [(str(key_file), None)]
     assert console_crypto.key_path("3ds") is None
 
