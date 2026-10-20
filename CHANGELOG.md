@@ -4,9 +4,17 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 - Project Manager virtual groups can own a shared series glossary with create, link, replace, and unlink actions; member projects automatically inherit the glossary across translation and series tabs without duplicate entries, preserving explicit project links and ancestor discovery during moves and unlinks.
 
-- Font Editor keeps nested reads and decodes serial, ignores cancelled or obsolete loads, and prepares formatted font sheets in memory on a worker; loading now has an immediate indicator, cancellation and responsive glyph-table progress, with linear map lookup for large Yo-kai Watch fonts and safe cleanup after closing.
-
-- Yo-kai Watch discovers nonblank reference languages from loose tables and existing ARC0 archives on a cancellable worker; reference tabs show only languages with text for the selected row, preserving the active language and existing fan references; message window preview is restored with game font glyphs, layout styles and tag styling; duplicate context and layout fit hooks protect cross-platform translation reuse between 3DS and Switch.
+- Yo-kai Watch preview: only the hero name tags (`{PNAMEF}`, `{PNAME02}`, `{PNAMEM}`, `{PNAME01}`) show a hero name; another tag that ends in `_F` or `_M` no longer shows Katie or Nate.
+- Preview fonts: one font that cannot be prepared is logged and skipped; the other preview fonts still load.
+- Font Editor keeps nested reads and decodes serial.
+- Font Editor ignores cancelled or obsolete loads.
+- Font Editor prepares formatted font sheets in memory on a worker.
+- Font Editor loading has an immediate indicator, cancellation and responsive glyph-table progress.
+- Font Editor uses linear map lookup for large Yo-kai Watch fonts and cleans up safely after closing.
+- Yo-kai Watch discovers nonblank reference languages from loose tables and existing ARC0 archives on a cancellable worker.
+- Yo-kai Watch reference tabs show only languages with text for the selected row, preserving the active language and existing fan references.
+- Yo-kai Watch message window preview is restored with game font glyphs, layout styles and tag styling.
+- Yo-kai Watch duplicate context and layout fit hooks protect cross-platform translation reuse between 3DS and Switch.
 
 - New Project accepts an existing extracted game folder separately from translations, validates its text tables on a worker, reports unsupported image plugins accurately, and offers same-wizard key-file replacement and retry for missing or unsuitable Nintendo 3DS keys.
 - Reference tab: a plugin that does not support reference patches no longer shows it, and the default label is "Reference" (it was "Reference (RU)" for every game).

@@ -1,6 +1,7 @@
 """Window styles, presets and glyph text preparation for the Yo-kai Watch preview."""
 from typing import Optional, Dict, Any, List, Tuple
 from plugins.yokai_watch import tags
+from utils.logging_utils import log_debug
 
 
 def get_preview_window_style(rules: Any, block_idx: Optional[int] = None, string_idx: Optional[int] = None) -> Optional[Dict[str, Any]]:
@@ -172,8 +173,8 @@ def prepare_preview_glyph_text(rules: Any, text: str) -> Tuple[str, List[Optiona
                     rel_norm = rel.replace("\\", "/").lower()
                     if "_f_" in rel_norm or rel_norm.endswith(("_f.cfg.bin", "_f.bin")):
                         hero_name = "Katie"
-    except (AttributeError, TypeError, ValueError):
-        pass
+    except (AttributeError, TypeError, ValueError) as exc:
+        log_debug(f"Yo-kai Watch preview: no row context for the hero name: {exc!r}")
 
     out: List[str] = []
     color_of: List[Optional[str]] = []
@@ -211,9 +212,9 @@ def prepare_preview_glyph_text(rules: Any, text: str) -> Tuple[str, List[Optiona
             elif tag_content.startswith('C"') and tag_content.endswith('"'):
                 hex_code = tag_content[2:-1]
                 color = f"#{hex_code}" if len(hex_code) in (3, 6, 8) else None
-            elif tag_content in ("PNAMEF", "PNAME02") or tag_content.endswith("_F"):
+            elif tag_content in ("PNAMEF", "PNAME02"):
                 put("Katie")
-            elif tag_content in ("PNAMEM", "PNAME01") or tag_content.endswith("_M"):
+            elif tag_content in ("PNAMEM", "PNAME01"):
                 put("Nate")
             elif tag_content.startswith("PNAME"):
                 put(hero_name)

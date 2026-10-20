@@ -2973,5 +2973,6 @@
   "A converted shared glossary named '{name}' already exists in {dir}.\n\nDo you want to replace it?": "Перетворений спільний глосарій із назвою «{name}» вже існує в {dir}.\n\nБажаєте замінити його?",
   "Failed to save project with updated group glossary: {error}": "Не вдалося зберегти проєкт з оновленим глосарієм групи: {error}",
   "Checking glossary format...": "Перевірка формату глосарію...",
-  "Series glossaries loaded with warnings: {0}": "Глосарії серії завантажено з попередженнями: {0}"
+  "Series glossaries loaded with warnings: {0}": "Глосарії серії завантажено з попередженнями: {0}",
+  "Preparing font glyphs: {0}/{1}": "Підготовка гліфів шрифту: {0}/{1}"
 }

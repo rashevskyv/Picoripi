@@ -175,9 +175,6 @@ def place_fit_problems(rules: Any, block_idx: Any, string_idx: Any, text: str) -
         return ["check failed"]
 
 
-_place_fit_problems = place_fit_problems
-
-
 def text_fits_place(mw, source: Any, text: Any, block_idx: Any, string_idx: Any) -> bool:
     """Whether ``text`` is a valid translation of ``source`` in the window of one place (its lines per window).
 
