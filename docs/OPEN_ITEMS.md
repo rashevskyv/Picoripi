@@ -23,6 +23,7 @@ the line when it is done or moved into a plan.
 - Open: no Ukrainian glyphs. The font is a fixed 95-record table at ROM 0x40F10 with 13 bytes of slack; the glyph map sits in the RZIP game data. New glyphs need a relocated font and a patched address in code.
 - Open: a longer voice stream needs a bank 0x16 repack (the index holds start and length per entry).
 - Open: the port (CBFD-Recompiled) plays speech through the game's MP3 player and extracts its assets at build time from the ROM. No runtime audio override exists in its `host/src`: a new voice needs a patched ROM and a port rebuild (not yet built).
+- Open: the Spanish fan reference (beta, `_reference\ES\conker_esp_v1.1beta.z64` in the workspace) is a patched ROM. Its tables `bank_1C/sub_0002` (110 US strings, 94 in the fan) and `bank_1C/sub_0003` (196 vs 200) are skipped; no content-based alignment yet. Patch files (xdelta, BPS) are not applied: give the patched ROM.
 - Open: the voice re-encode and cue re-splice are proven on a file (`voice.splice_cues`, 40 of 40 cues); the stream has not played in the game or in the port.
 
 ## Same text in manuals (`plugins/manual_3ds`, D46, 2026-10-18, branch `feat/manual-same-text`)

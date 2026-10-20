@@ -699,7 +699,9 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `source\voice\streams\NNNN.mp3` with the index `source\voice\streams.json`. Build targets: `rom` writes a
      patched ROM; `bps` writes a BPS patch from the US ROM. The text can grow: when a table gets longer, banks 0x1A to
      0x1D move to the free end of the ROM, and the ROM keeps its size. The text box does not grow yet, and the in-game
-     preview is not verified yet.
+     preview is not verified yet. **Reference:** pick a finished translation ROM (`.z64`) as the reference; it shows
+     as the "Spanish (ES, fan)" column. Patch files (xdelta, BPS) are not applied: give the patched ROM. A table is
+     matched by position only when its string count equals the US count; other tables are skipped.
    - `paper_mario_ok` — Paper Mario: The Origami King (Switch, 2020), the same formats. **Source:** the
      workspace's `source` (`1_unpack.bat`: base + update): `msg\EU_English\*.msbt` (59 files, 9,708 messages),
      `font\*.bffnt` (12 fonts) and `ui\...\*.bntx`; a picture the game keeps once per language opens as its
