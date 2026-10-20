@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Castlevania DS: a translation string bank can name a font layout (`"layout"`; data in `plugins/castlevania_ds/layouts/`, here the Ukrainian BlackDragon font of the three USA games); the codec decodes and encodes through it, and `csv_text` turns a project's CSV text (tags such as `{NAME 0x01}` and `{BUTTON Y}`) into the game's bytes.
 - Conker's Bad Fur Day (N64, USA) plugin (`plugins/conker_bfd`, in progress): identifies the pinned US ROM; reads its asset banks and RZIP entries; opens the text tables of banks 0x1A and 0x1C (menu, chapters, credits) with a byte-exact round trip and `[@hh]` tags for inline codes; writes the 95-glyph font as PGM sources and the 453 voice streams as MP3 files with their L: cue index; gives the width of a text line from the decompiled glyph metrics (not yet checked in an emulator frame); the ROM build is not implemented.
 - Start: when Qt (PyQt6) cannot be imported (for example "DLL load failed while importing QtCore: The specified procedure could not be found" on Windows), `main.py` prints the steps to try (Visual C++ runtime, a Qt copy earlier in PATH, reinstall of the packages) before it fails (`utils/qt_import_hint.py`, test `tests/test_qt_import_hint.py`); README has the same note.
 - Project Manager wizard: a game image (ISO, RVZ, WIA, NDS, 3DS, Switch, GD-ROM, PS1 set) that the chosen game cannot unpack is refused with a message naming the platform; nothing is created.

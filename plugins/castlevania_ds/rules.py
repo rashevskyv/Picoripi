@@ -88,13 +88,18 @@ class GameRules(BaseGameRules):
     def _blocks(self) -> List[Tuple[int, int, str]]:
         return codec.split_regions((self._bank or {}).get("regions") or [])
 
+    def _layout(self) -> Optional[str]:
+        """The font layout of the file (``"layout"``: a name in ``codec.LAYOUT_DIR``); None is the game's own."""
+        return (self._bank or {}).get("layout") or None
+
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Dict[str, str]]:
         if not (isinstance(json_obj, dict) and json_obj.get("format") == TEXT_FORMAT):
             self._bank = None
             return self._load_plain(json_obj)
         self._bank = json_obj
         strings = [bytes.fromhex(str(h)) for h in json_obj.get("strings") or []]
-        blocks = [[codec.decode(s) for s in strings[first:last + 1]] for first, last, _name in self._blocks()]
+        layout = self._layout()
+        blocks = [[codec.decode(s, layout) for s in strings[first:last + 1]] for first, last, _name in self._blocks()]
         names = {str(n): f"{name} ({first:X}-{last:X})" for n, (first, last, name) in enumerate(self._blocks())}
         return blocks, names
 
@@ -114,19 +119,20 @@ class GameRules(BaseGameRules):
         if self._bank is None:
             return data
         strings = list(self._bank.get("strings") or [])
+        layout = self._layout()
         for (first, _last, _name), block in zip(self._blocks(), data or []):
             for k, text in enumerate(block or []):
                 index = first + k
                 if text is None or index >= len(strings):
                     continue
-                if text == codec.decode(bytes.fromhex(strings[index])):
+                if text == codec.decode(bytes.fromhex(strings[index]), layout):
                     continue                              # an untouched text keeps its exact bytes
-                unknown = codec.unknown_chars(text)
+                unknown = codec.unknown_chars(text, layout)
                 if unknown:
                     log_warning(f"Castlevania DS: string {index:X}: no letter in the font for {' '.join(unknown)}; "
                                 f"saved as '?'")
                 try:
-                    strings[index] = codec.encode(text, strict=False).hex()
+                    strings[index] = codec.encode(text, strict=False, layout_name=layout).hex()
                 except codec.EncodeError as error:
                     log_warning(f"Castlevania DS: string {index:X} not saved: {error}")
         return {**self._bank, "strings": strings}
