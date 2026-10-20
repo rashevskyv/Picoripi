@@ -20,7 +20,7 @@ def test_source_parse_uses_ascii_and_translation_parse_uses_ukrainian():
     translation = _file(bytes([0x6D, 0xCC]))
     rules = GameRules()
     rules.set_load_role("source")
-    assert rules.load_data_from_json_obj(source)[0] == [["AB"]]
+    assert rules.load_data_from_json_obj(source)[0] == [["ab"]]     # 0x41 shows as the PC font's 'a' (byte + 0x20)
     rules.set_load_role("translation")
     assert rules.load_data_from_json_obj(translation)[0] == [["Ні"]]
     rules.set_load_role("source")

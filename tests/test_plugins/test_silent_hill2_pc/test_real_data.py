@@ -7,7 +7,7 @@ import romhacking_root
 
 import pytest
 
-from plugins.silent_hill2_pc import mes
+from plugins.silent_hill2_pc import mes, mes_legacy
 
 EN_MESSAGES = romhacking_root.under("Silent Hill\\Silent Hill 2\\PC\\ISO\\data\\etc\\message")
 UA_MESSAGES = romhacking_root.under("Silent Hill\\Silent Hill 2\\Switch\\translation\\data\\etc\\message")
@@ -34,3 +34,22 @@ def test_english_message_files_round_trip_byte_exact():
 @needs_ua
 def test_ukrainian_message_files_round_trip_byte_exact():
     _check_folder(UA_MESSAGES)
+
+
+def _check_legacy_migration(folder, encode, decode):
+    for path in sorted(folder.glob("*.mes")):
+        raw = path.read_bytes()
+        old_rows = [decode(row) for row in mes_legacy.legacy_split(raw)]
+        migrated, _notes = mes_legacy.migrate_rows(old_rows, encode)
+        assert migrated == mes.split(raw), path.name
+        assert mes.build(migrated) == raw, path.name
+
+
+@needs_en
+def test_legacy_rows_migrate_to_the_current_messages_english():
+    _check_legacy_migration(EN_MESSAGES, mes_legacy.legacy_encode, mes_legacy.legacy_decode)
+
+
+@needs_ua
+def test_legacy_rows_migrate_to_the_current_messages_ukrainian():
+    _check_legacy_migration(UA_MESSAGES, mes.encode_uk, mes.decode_uk)

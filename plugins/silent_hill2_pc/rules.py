@@ -1,7 +1,8 @@
 """Silent Hill 2 (PC; the same data files serve the Switch homebrew port) plugin: the game's message files.
 
 Each ``data\\etc\\message\\*.mes`` file is one project block; its messages are the block's lines. A line is the
-message as text: letters as they are, 0x00 as a space, 0x07 as an apostrophe, every other byte as a tag ``{XX}``
+message as text in the PC font charset (byte b shows the character b + 0x20 in Windows-1252): 0x00 is a space, 0x07 an
+apostrophe, the bytes the font has no character for are tags ``{XX}``
 (kept as it is). Saving rebuilds the file: the messages are encoded again and the table is rewritten, so a
 longer message is allowed. A line that cannot be encoded keeps its original bytes (a warning is logged).
 """

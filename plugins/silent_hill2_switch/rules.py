@@ -1,6 +1,6 @@
 """Silent Hill 2 (Switch port data): the PC message files, with the Ukrainian glyph table for the translation.
 
-The source file (English) keeps the PC codec: byte 0x21..0x7E is the ASCII character. The translation file uses the
+The source file (English) keeps the PC charset (byte b shows b + 0x20, Windows-1252). The translation file uses the
 glyph table of the Switch font atlas: byte = atlas cell, so Cyrillic is 0x80..0x9F and so on (``mes.decode_uk``).
 Saving writes the translation, so it always uses the Ukrainian table.
 """

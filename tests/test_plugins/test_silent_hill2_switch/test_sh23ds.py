@@ -165,7 +165,8 @@ def test_stage_message_names_map_to_the_packer_file_names():
     assert jobs["s49.msg"] == "stage_end_maria_msg_e.mes"
     assert jobs["s58.msg"] == "stage_x_apart_msg_e.mes"
     assert jobs["memo.msg"] == "memo_x_msg_e.mes"
-    assert "s00.msg" not in jobs and "s01.msg" not in jobs
+    assert jobs["s01.msg"] == "stage_tgs_trial_msg_e.mes"
+    assert "s00.msg" not in jobs              # stage 0 is Stg_null: no stage, no file
 
 
 def test_sh23ds_is_a_files_target_for_3ds():

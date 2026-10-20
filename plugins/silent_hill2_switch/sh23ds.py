@@ -13,6 +13,7 @@ import numpy as np
 from PIL import Image
 
 from core.i18n import tr
+from plugins.silent_hill2_pc import mes
 
 FONT_SOURCE = os.path.join("EE", "sh2e", "font")
 TGA_NAME = "font000.tga"           # the Switch UA atlas: 44x64 cells, 100 per row, cell index = byte
@@ -38,9 +39,11 @@ SINGLE_MESSAGES = {
     "option.msg": "option_msg_e.mes",
 }
 
-# Stage number -> name in stage_<name>_msg_e.mes. From the port's stage comments (port/source/prog_*.c), port/PROGRAMS.md
-# and DC_STAGE_MSG in events_pack.py. Stages 0 and 1 are left out: their names are not in any file of the project.
+# Stage number -> name in stage_<name>_msg_e.mes. From the packer's stage table (sh2-3ds-port-kit/data/dc/stage_table.json,
+# the PS2 enum names; stages 1..58, checked 2026-10-20), and DC_STAGE_MSG in events_pack.py for 53..58. Stage 0 is
+# Stg_null (no stage): the stage_sample_msg_e.mes file has no stage and is not written.
 STAGE_NAMES = {
+    1: "tgs_trial",
     2: "toilet", 3: "observation", 4: "forest", 5: "town_east", 6: "apart_e1f", 7: "apart_e2f",
     8: "apart_e3fw", 9: "apart_e3fe", 10: "apart_w1f", 11: "apart_w2f", 12: "apart_stair", 13: "apart_out",
     14: "town_west", 15: "bowling", 16: "to_heaven", 17: "heaven_night", 18: "hospital_1f_f",
@@ -99,25 +102,9 @@ def _message_text(d: bytes, start: int, end: int) -> str:
     return "\f".join(x for x in pages if x)
 
 
-def _message_starts(data: bytes) -> List[int]:
-    """Start of every message: the file holds a count word, then one offset word per message (in 16-bit words from
-    the file start). Read as sh2mes does; silent_hill2_pc/mes.py counts the count word as an entry (a shift by one)."""
-    if len(data) < 2:
-        raise ValueError("not a message file: too short")
-    count = struct.unpack_from("<H", data, 0)[0]
-    if count == 0:
-        return []
-    if 2 + 2 * count > len(data):
-        raise ValueError("not a message file: table does not fit")
-    starts = [w * 2 for w in struct.unpack_from(f"<{count}H", data, 2)]
-    if any(starts[i] > starts[i + 1] for i in range(count - 1)) or starts[-1] >= len(data):
-        raise ValueError("not a message file: offsets are not in order")
-    return starts
-
-
 def load_texts(data: bytes) -> List[str]:
     """The messages of a message file, as the packer's sh2mes reads them, with the Ukrainian cell bytes kept."""
-    starts = _message_starts(data)
+    starts = mes.table_starts(data)
     out = []
     for index, start in enumerate(starts):
         end = starts[index + 1] if index + 1 < len(starts) else len(data)

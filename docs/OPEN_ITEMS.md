@@ -10,18 +10,35 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
-## Silent Hill 2 sh23ds 3DS (`plugins/silent_hill2_switch`, 2026-10-20, branch `feat/port-sh2-3ds`)
+## Silent Hill 2 sh23ds 3DS and the message table (`plugins/silent_hill2_switch`, `plugins/silent_hill2_pc`, 2026-10-20, branch `feat/port-sh2-3ds`)
 
-- Blocked: the packer needs the Director's Cut `sh2pc.exe`, MD5 `f3f5360298b6d0f6f2e09cf24a0925d1`, and refuses every other build. The disk has `ISO\sh2pc.exe` (MD5 `c16ed843`) and `ISO\EE\sh2pc.exe` (MD5 `b2d4a1f0`). Needed file: the Director's Cut `sh2pc.exe`. Without it no pack is made and the emulator proof is not run.
-- Open: stage 0 and stage 1 message files (`stage_sample`, `stage_tgs_trial`) get no `s00.msg` and `s01.msg`. The stage names for 0 and 1 are not in the repo; the stage table of the exe gives them.
-- Open: full-width codes (0xE0 and up: the results-screen star and the Latin letters) have no glyph in the Ukrainian font, so they are not drawn.
-- Open: the 3DS font comes from the Switch Ukrainian atlas only (the PC exe is not used). Its glyph shapes are the Switch font's, scaled to the 3DS size. The width of font 1 is scaled from font 0.
-- Open: the capital Ї is cell 122 of the atlas (the spare Ъ cell). The translator draws it in the Font Editor.
-- Open: 8 translated files are not packed by the sh23ds packer (`config_pc_msg_e`, `item_msg_e`, `letter_msg_e`, `letter_w0..w2`, `m_card_msg_e`, `memo_msg_e`). They are not written to `3ds/sh23ds`.
-- Open decision: `plugins/silent_hill2_pc/mes.py` reads the table from word 0, but the packer reads the offsets from word 1 (`sh2mes`). Every row is shifted by one message: row 0 is the offset word of the last message, and the last row joins two messages. The bytes round trip, so the files stay valid; the rows show the wrong text. A fix changes the rows of existing projects, so it needs an owner decision.
-- Open decision: `mes.decode` shows a byte as the ASCII character with the same code. The packer shows `byte + 0x20`, so the English source row reads "9ES." where the game says "Yes.". The Ukrainian codec (`decode_uk`) follows the packer. Fix with the same owner decision as the row shift.
-- Open: the output is copied over the packer's `3ds` folder. The packer needs no change for the messages or the font.
-- Open: the build exe in `SILENT_HILL_2_SWITCH.json` is `3201a5e1`, but `Switchuild\sh2-nx\sh2pc.exe` has MD5 `b2d4a1f0` (the same as `ISO\EE\sh2pc.exe`).
+- Blocked for the pack gate: the packer (`pack.py`) requires the Director's Cut `sh2pc.exe`, MD5 `f3f5360298b6d0f6f2e09cf24a0925d1`. Checked 2026-10-20, no copy of that exe exists on disk: the EE installer, the EE folder and the sh2-nx package keep no original exe (no embedded PE with that hash).
+- Found 2026-10-20: `D:\Downloads\pc\silent_hill_2_dc_ukr_patch.exe` (Inno Setup, extracted with innoextract to `C:\RomHacking_scratch\sh23ds\dc_patch\out`) holds `app\sh2pc.exe` (6,238,208 B, MD5 `b5c07aa4`). It is not the gate exe, but it has the DC layout: all 174 stage-table pointers of the packer (58 stages, addr/ev_list/ev_pos) are in it, the font table sits at the packer's address `0x806480`, and `events.py` on it gives 58 stages and 2,078 events (the documented DC count). The EE exe gives unmapped addresses in the same run.
+- Open: the packer's MD5 gate still refuses this exe. A scratch copy with the gate removed is the next test, but a full pack also needs tex3ds (devkitPro), ffmpeg (Bink movies) and texture encoding in WSL. None is installed on Windows; WSL has gcc.
+- Reference: the patch's Ukrainian data files are byte-identical to our Switch translation (109 files). Its font differs in one glyph (cell 122, the Ї cell) and two width entries (cells 61 and 173). Treat the patch as a reference for the Ї glyph; the translator decides.
+- Done 2026-10-20: stage 1 is `Stg_tgs_trial` (`s01.msg` from `stage_tgs_trial_msg_e.mes`). The Switch translation has no file for it, so nothing is written until the file is translated.
+- Open: the stage 0 message file (`stage_sample_msg_e.mes`) has no stage. The packer's stage table (`sh2-3ds-port-kit/data/dc/stage_table.json`, ids 1..58) has no stage 0 (`Stg_null`). No exe on disk holds the stage names (only the PS2 debug enum in the packer's table).
+- Open: full-width codes (0xE0 and up: the results-screen star and the Latin letters) have no glyph in the Ukrainian font, so they are not drawn. The port cuts each line at 128 characters.
+- Open: the 3DS font comes only from the Switch Ukrainian atlas, scaled. The capital Ї is the spare cell 122 (Ъ shape) until the translator draws it.
+- Open: the sh23ds packer writes 7 kinds of `.msg`. The 8 translated files it does not read (`config_pc`, `item_msg_e`, `letter_*`, `m_card_msg_e`, `memo_msg_e`) are not in `3ds/sh23ds`.
+- Open: session migration is written but not wired. `migrate_rows` (`silent_hill2_pc/mes_legacy.py`) maps old-layout rows to the new messages by their bytes, and it was checked on all 507 real files. Saved translation files need no change (their bytes never changed). The session file (`.picoripi_session`) stores edits by block and row index and has no layout version, so restore cannot tell an old row list from a new one. Add a layout version to the session and call `migrate_rows` on restore.
+- Open: the Switch source role and the PC plugin now show the PC font charset (byte + 0x20, Windows-1252). Existing unsaved session text shows the old reading until the migration above is wired.
+- Open: the sh23ds packer does not need a patch for the messages or the font. Copy the output over the packer's `3ds` folder.
+
+## Wario Land: Shake It! (Wii, USA, `RWLE01`; workspace `E:\Emulators\RomHacking\Wario Land\Shake It\Wii\`, 2026-10-20)
+
+- Done: the RVZ is copied from `_new\Wario Land - Shake It (USA) (EnFrEs).zip` to `Wii\source\` (the zip stays). The RVZ is read with `core/containers/wia.py` (no key). Partition 1 is the game (`RWLE01`); partition 0 is `RELSAB`. The FST offsets and sizes are shifted by 2 (Wii).
+- Open: no plugin yet. Needed: `wario_land_shake_it` with unpack (RVZ, partition 1), text, fonts (`.breft`/`.breff`), textures, and a Dolphin/Riivolution mod build. The visible-edit proof in a private muted Dolphin copy is not done.
+- Done 2026-10-20: the game partition is extracted to `Wii\ISO\files` (2,341 files, 3.5 GB) and `Wii\ISO\sys` (boot.bin, bi2.bin, fst.bin); the listing is `Wii\ISO\_listing.txt`. Formats by magic: `GFAC` packs (`.gfa`, 2,225 files; the packs hold `BRRES` graphics, `TPL` textures and the messages), `RSTM` (`.brstm`), `THP` (movies), `RSAR` (`wario.brsar`), `REFT`/`REFF` (effects), `U\xaa8-` (`.arc` sound archives), a UTF-16BE `home.csv`.
+- Open: the text is `message_english_USA_*.bmg` (BMG, `MESGbmg1` with INF1 and DAT1) inside `env\Message\<language>\__PACK__.gfa`. The BMG magic is in clear, but the section bytes after it are not a plain BMG. The GFAC/GFCP payload is compressed or encrypted: not decoded yet. Next: find the GFCP entry table and test the Nintendo LZ and the other codecs in `core/containers`.
+- Open: `plugins/zelda_bmg/bmg_tool.py` cannot read these BMG bytes yet (encoding ID error), so the reader needs the decoded payload first.
+- Open: no UA translation exists. This is a new translation project.
+- Open: the Switch recomp of this game has no public repo. A search on GitHub (`gh search repos`) found none; the Reddit post was not reachable.
+
+## Black & White (openblack, Switch) and Black & White PC
+
+- Handed to another agent (2026-10-20). Not worked on in this branch.
+- Open: openblack has no string-table or font loader, and `LOAD_LANGUAGE` throws. A local text path in openblack may come later (licence ignored for internal use; code never committed).
 
 ## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-bfd`)
 
