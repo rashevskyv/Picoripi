@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-18
+updated: 2026-10-20
 owns: unfinished work
 tokens: 47.4k
 purpose: Everything left open, one line each, by work package
@@ -1665,3 +1665,13 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - Open: 16 other plugins with an owner game image have the same gap (3DS, Wii, PS1 games); each needs its own
   unpacker for the owner's converted source. The baseline in `tests/test_architecture/test_wizard_hooks_declared.py`
   lists them with a reason; a plugin leaves it when it gets a hook.
+
+## Lunar SSSC voice clips and opening subtitles (`plugins/lunar_sssc/voice.py`, `xa.py`, 2026-10-20, branch `feat/lunar-audio`)
+
+- Done: the opening monologue is XA audio on disc 1 (`_AUDIO.XA` file 1, channel 8, track sectors 18116 to 22516, 276 slots, 29.44 s budget). The game starts it at New Game (`Setmode 0xC8`, `Setfilter File=1 Channel=8`, `ReadS 04:03:33`). No text on screen during the cliff scene (private DuckStation run).
+- Done: codec (`xa.py`, filter 0 only, mono 37.8 kHz), slot fit (shorter padded, longer refused with the seconds over), in-place sector write (only slot sectors change), round trip on a disc copy with a synthetic tone.
+- Open: the script op or handler that starts the monologue is not identified. `TEXT000.DAT` (boot script, not unpacked) is the first candidate; the interpreter opcodes need a disassembly of the handler at SLUS_006.28.
+- Open: subtitles. No subtitle op exists yet. Plan: a message op with `{end}` (no wait) placed at the trigger, one message per clip, or a timed text box if the interpreter has a wait op. Blocked on the trigger op above.
+- Open: the generic voice resource mechanism (BaseGameRules hook, UI list, WAV import in Picoripi, build step in `zt/lunar.py`) is not built. The clip list is a Python tuple in `voice.py` for now.
+- Open: quality. Filter 0 gives about 1 024 units of error on a 6 000 peak. Release voices need psxavenc (external, official source) or filters 1 to 4.
+- Open: Eternal Blue (`V.XA`) and Silver Star Harmony (loose AT3) are not mapped.
