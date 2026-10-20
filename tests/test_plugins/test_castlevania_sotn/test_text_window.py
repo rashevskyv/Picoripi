@@ -12,32 +12,32 @@ def _sheet() -> Image.Image:
     return sheet
 
 
-def test_the_first_line_starts_at_start_x_plus_4_and_start_y_plus_20():
-    assert text_window.Place(52, 44).line_origin(0) == (56, 64)
+def test_the_first_line_starts_at_the_fitted_offset_from_the_place():
+    assert text_window.Place(52, 44).line_origin(0) == (64, 49)
 
 
 def test_each_line_is_12_pixels_below_the_one_before():
     place = text_window.Place(0, 0)
-    assert [place.line_origin(row)[1] for row in range(4)] == [20, 32, 44, 56]
+    assert [place.line_origin(row)[1] for row in range(4)] == [5, 17, 29, 41]
 
 
 def test_a_cell_is_drawn_where_the_line_origin_says_and_nothing_else_is():
     frame = text_window.render_page([[1, 1]], _sheet(), text_window.Place(10, 20))
     assert frame.size == text_window.CANVAS
     inked = [(x, y) for x in range(320) for y in range(240) if frame.getpixel((x, y))[3]]
-    assert inked and min(inked) == (14, 40) and max(inked) == (29, 47)
+    assert inked and min(inked) == (22, 25) and max(inked) == (37, 32)
     assert len(inked) == 2 * 8 * 8
 
 
 def test_the_strip_ends_after_24_cells():
     frame = text_window.render_page([[1] * 30], _sheet(), text_window.Place(0, 0))
-    assert frame.getpixel((4 + 23 * 8, 20))[3] == 255
-    assert frame.getpixel((4 + 24 * 8, 20))[3] == 0
+    assert frame.getpixel((12 + 23 * 8, 5))[3] == 255
+    assert frame.getpixel((12 + 24 * 8, 5))[3] == 0
 
 
 def test_only_four_lines_are_drawn():
     frame = text_window.render_page([[1]] * 6, _sheet(), text_window.Place(0, 0))
-    assert frame.getpixel((4, 20 + 4 * 12))[3] == 0
+    assert frame.getpixel((12, 5 + 4 * 12))[3] == 0
 
 
 def test_zoom_is_whole_number_and_nearest():

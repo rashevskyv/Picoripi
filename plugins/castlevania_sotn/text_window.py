@@ -1,10 +1,11 @@
 """The cutscene dialogue window of Symphony of the Night, drawn with the game's layout (headless, PIL only).
 
-Layout, from the USA decomp (``src/st/cutscene_script_box.h``, ``src/st/cutscene_script_text.h``, ``src/st/cen/cutscene.c``):
-the window's place is set by the script's ``POS x y`` command (``startX``, ``startY``); the text of a line
-starts at x = startX + 4 and y = startY + 20 for the first line, then one line every 12 px. A cell is 8 px
-wide in the 8x8 font (two halfwords of 4bpp VRAM), so the strip of 192 px holds 24 cells. The screen is
-320 x 240 (the PS1 NTSC frame). Glyph cells come from the 8x8 font sheet on the disc.
+The window's place is set by the script's ``POS x y`` command (``startX``, ``startY``, ``src/st/cen/cutscene.c``).
+A cell is 8 px wide in the 8x8 font (two halfwords of 4bpp VRAM), so the strip of 192 px holds 24 cells; one
+line is 12 px high (``src/st/cutscene_script_box.h``). The text origin is fitted to a DuckStation frame, not
+taken from the decomp's ``startX + 4`` and ``startY + 20`` rule: the owner's ``owner_02_dracula_dialog.png``
+(ST0 line, POS 60, 36) puts the first body line at (72, 41). The screen is 256 x 240 in that frame; the
+canvas here stays 320 x 240. Glyph cells come from the 8x8 font sheet on the disc.
 """
 from __future__ import annotations
 
@@ -17,10 +18,10 @@ CANVAS = (320, 240)
 CELL = 8                  # cell width and height of the 8x8 font, in pixels
 PITCH = 12                # one text line every 12 px (CutsceneUnk3 / rect.y = nextCharY * 12)
 TEXT_WIDTH = 192          # the text strip: u1 = 192 (cutscene_script_box.h), 24 cells
-TEXT_DX = 4               # prim x0 = startX + 4
-TEXT_DY = 20              # first line: nextLineY = startY + 20 (cutscene_script_text.h)
+TEXT_DX = 12              # fitted: first body line x = startX + 12 (owner_02, ST0 line, POS 60, 36)
+TEXT_DY = 5               # fitted: first body line y = startY + 5 (same frame)
 LINES = 4                 # lines a page shows (config.json lines_per_page)
-DEFAULT_PLACE = (60, 28)  # used when a line has no POS before it: the first POS of ST/CEN/CEN.BIN
+DEFAULT_PLACE = (60, 36)  # used when a line has no POS before it: the POS of the owner's ST0 frame
 
 
 @dataclass(frozen=True)
