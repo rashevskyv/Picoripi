@@ -704,11 +704,14 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 - Text in textures (HUD sheet in `SYSTEM.DAT`, title menu, GIM cards, DIS screens, help pictures) is not
   edited by the plugin: catalogued in `ZELDA\_textures\drafts\vagrant_story.json`.
 - No speaker data: a balloon points at a character on screen; scene context gives area and room only.
-- Preview: the BFN preview does not draw Vagrant Story balloons or menus. The limits are real for dialogue
-  (decomp `BATTLE/BATTLE.PRG/5BF94.c`: width = chars x 12 + 10, height = lines x 13 + 4, text at +5,+3, line step
-  13, explicit line breaks, no automatic wrap); a game-like preview widget is not built.
-- Menus, item and monster text, help pages and room names: the limit is the widest English line of the table
-  (regular font), not the window's size. The menu windows of `MENU\*.PRG` are not read yet.
+- Preview: `preview_panel.py` draws the page of the selected string with VSFONT glyphs and the game's window
+  places (`windows.py`, decomp `BATTLE/BATTLE.PRG/5BF94.c`). Checked against a real in-game balloon: the same
+  line breaks (`MAP213.MPD`, "We need no pretext!" block). The window frame art is not drawn (the game's texture
+  files); the text places are.
+- Menu windows (decomp): the information box is 24 characters a line (298 px), text at +16, 4 lines by default;
+  a menu item row is one line of regular text at +6 (+22 with an icon), no wrap in code; its width `w` is the
+  row's own. The editor shows MENU strings as rows; it cannot tell an information-box message from a row, and
+  help pages and room names have no window of their own in the preview. In-game check of a row or box: not done.
 - Fit checks in the editor: `VGS_LINES_EXCEEDED` (dialogue page above its balloon, `{page}` resets) and
   `VGS_BYTES_EXCEEDED` (in-place name or staff-roll line above its place); refused in repeated and memory
   translations. Table text has no byte budget check here.
@@ -718,6 +721,12 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   (for example Ї, ї) or move the staff roll font. The credits font shows ASCII labels in the Font Editor: draw the
   glyph in the cell named by `credits_map.json`.
 - Staff roll look-alikes (А В Е І К М Н О Р С Т Х, a e i o p c y x) keep their Latin cells and read back as Latin.
+- Staff roll digits: the English credits print only 0 and 2. The reserved digits 1 and 3-8 collide with nothing
+  in English; a translator cannot type them in credits (`VGS_CREDITS_RESERVED` flags them with the reason).
+- In-game proof (DuckStation, private copy `D:\RomHacking_tmp\vs_tr\duckstation`, test disc built from a private
+  workspace; owner files untouched): the test disc builds with `{page}` edits to `EVENT/0004.EVT` and
+  `EVENT/0005.EVT` and an item name edit. The game boots and shows real balloons. The test text was not reached
+  in the session (the scene order was not known); the menu edit was not reached either. Still open.
 ## Metal Gear Solid, PlayStation (2026-10-07)
 
 - The font `font.res` has only the 96 ASCII glyphs (no free cell): no Ukrainian letter yet. The game draws codes

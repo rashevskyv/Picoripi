@@ -10,8 +10,17 @@ DEFAULT_LINES_PER_PAGE = 4
 # or staff-roll line has a fixed place in its file.
 PROBLEM_LINES = "VGS_LINES_EXCEEDED"
 PROBLEM_BYTES = "VGS_BYTES_EXCEEDED"
+PROBLEM_CREDITS = "VGS_CREDITS_RESERVED"
 
 custom_problems = {
+    PROBLEM_CREDITS: {
+        "name": "Typed Staff-Roll Letter Byte",
+        "color": QColor(255, 80, 80, 140),
+        "priority": 1,
+        "description": "A staff-roll line types an ASCII character whose byte the Ukrainian letters use "
+                       "(credits_map.json). The game would draw the Ukrainian letter for it. Type the letter "
+                       "itself, or write a {xNN} tag for the byte.",
+    },
     PROBLEM_LINES: {
         "name": "More Lines Than The Balloon",
         "color": QColor(255, 80, 80, 140),

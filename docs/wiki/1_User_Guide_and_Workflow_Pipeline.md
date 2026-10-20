@@ -860,7 +860,11 @@ omase.nds`, made by the unpack) with the edited banks and files put in; no `zt`
      new page) and a name or staff-roll line longer than its place (`VGS_BYTES_EXCEEDED`). The staff roll
      takes Ukrainian letters on the bytes listed in `credits_map.json` (46 letters on the 46 cells the English
      credits never draw; a byte that is one of them cannot be typed as its ASCII character); the owner draws
-     their glyphs in the staff-roll font.
+     their glyphs in the staff-roll font. The preview column draws the page of the selected line with the game's
+     12 x 12 font (regular for menus, italic for balloons) and the balloon's size (chars per line × 12 + 10 px,
+     lines × 13 + 4 px, read from the script); Previous/Next page follow `{page}`. The balloon frame art is not drawn.
+     A staff-roll line that types an ASCII character the Ukrainian letters use is flagged with the reason
+     (`VGS_CREDITS_RESERVED`).
      Scene context names the area and room of a room file (`vs_index.json`); the game data names no
      speakers. `2_build.bat` writes the changed files over their own sectors of the disc image (EDC/ECC
      recomputed) and splits the font back into `SYSTEM.DAT` and `BATTLE.PRG`.

@@ -9,12 +9,14 @@ from plugins.base_game_rules import BaseGameRules
 from plugins.common.problem_analyzer import GenericProblemAnalyzer
 from plugins.common.problem_rules import ProblemRule
 from plugins.common.problem_rules.models import FixResult, ProblemMatch
+from core.i18n import tr
 from utils.logging_utils import log_debug, log_warning
 from utils.utils import clean_spaces
 
-from . import codec, formats, russian
+from . import codec, formats, russian, windows
 from . import doc as docs
-from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_BYTES, PROBLEM_DEFINITIONS, PROBLEM_LINES
+from .config import (DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_BYTES, PROBLEM_CREDITS, PROBLEM_DEFINITIONS,
+                     PROBLEM_LINES)
 from .tag_manager import TagManager
 
 _PLUGIN_DIR = Path(__file__).resolve().parent
@@ -78,6 +80,10 @@ class _FitRule(ProblemRule):
         if self._id == "LINES_EXCEEDED":
             return [ProblemMatch(problem_id=self.id, line_index=i)
                     for i in game.overflow_lines(context.block_idx, context.string_idx, context.text)]
+        if self._id == "CREDITS_RESERVED":
+            if game.credits_reserved_chars(context.block_idx, context.string_idx, context.text):
+                return [ProblemMatch(problem_id=self.id, line_index=0)]
+            return []
         sublines = context.text.split("\n")
         if game.bytes_over(context.block_idx, context.string_idx, context.text):
             return [ProblemMatch(problem_id=self.id, line_index=len(sublines) - 1)]
@@ -92,7 +98,7 @@ class _VsProblemAnalyzer(GenericProblemAnalyzer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for logical in ("LINES_EXCEEDED", "BYTES_EXCEEDED"):
+        for logical in ("LINES_EXCEEDED", "BYTES_EXCEEDED", "CREDITS_RESERVED"):
             rule = _FitRule(self, logical)
             self.registry.rules.append(rule)
             self.registry._rules_by_id[logical] = rule
@@ -433,29 +439,57 @@ class GameRules(BaseGameRules):
 
     # -- editor ----------------------------------------------------------------
 
+    def _font_bytes(self) -> Optional[bytes]:
+        """The project's VSFONT file (the translation copy first), or None."""
+        pm, _project = self._project()
+        root = self._source_root()
+        candidates = []
+        try:
+            candidates.append(Path(pm.get_absolute_path(FONT_FILE, is_translation=True)))
+        except (AttributeError, TypeError, ValueError):
+            pass
+        if root is not None:
+            candidates.append(root / FONT_FILE)
+        for path in candidates:
+            try:
+                data = path.read_bytes()
+            except OSError:
+                continue
+            if data[:4] == b"VSFN":
+                return data
+        return None
+
     def _font_widths(self) -> List[int]:
         """Advances of the 378 glyphs, from the project's font file (the translation copy first)."""
         if self._widths is None:
             self._widths = list(DEFAULT_WIDTHS)
-            pm, _project = self._project()
-            root = self._source_root()
-            candidates = []
-            try:
-                candidates.append(Path(pm.get_absolute_path(FONT_FILE, is_translation=True)))
-            except (AttributeError, TypeError, ValueError):
-                pass
-            if root is not None:
-                candidates.append(root / FONT_FILE)
-            for path in candidates:
-                try:
-                    data = path.read_bytes()
-                except OSError:
-                    continue
-                if data[:4] == b"VSFN":
-                    from core.font_formats.vagrant import HEADER, TEXTURE, WIDTHS
-                    self._widths = list(data[HEADER + TEXTURE:HEADER + TEXTURE + WIDTHS])
-                    break
+            data = self._font_bytes()
+            if data is not None:
+                from core.font_formats.vagrant import HEADER, TEXTURE, WIDTHS
+                self._widths = list(data[HEADER + TEXTURE:HEADER + TEXTURE + WIDTHS])
         return self._widths
+
+    # -- the game's own message window (preview_panel.py) ------------------------------------------
+
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        from .preview_panel import MessageWindowPreview
+        return MessageWindowPreview(main_window)
+
+    def preview_font(self) -> Optional[bytes]:
+        return self._font_bytes()
+
+    def preview_geometry(self, block_idx: int, string_idx: int) -> Dict[str, Any]:
+        """The window a string is shown in (windows.py): a dialogue balloon, the information box of a menu
+        message, a menu row, or plain text. A string of an unknown place gets plain text."""
+        found = self._line(block_idx, string_idx)
+        if not found:
+            return windows.plain()
+        line = found[3]
+        if line.box is not None:
+            return windows.balloon(line.box.chars_per_line, max(1, line.box.line_count))
+        if line.kind == docs.MENU:
+            return windows.menu_row()
+        return windows.plain(italic=False)
 
     def _width(self, text: str, italic: bool) -> int:
         widths = self._font_widths()
@@ -546,12 +580,30 @@ class GameRules(BaseGameRules):
             return False
         return need > line.room
 
+    def credits_reserved_chars(self, block_idx: int, string_idx: int, text: str) -> List[str]:
+        """The ASCII characters a staff-roll line types that the Ukrainian letters take the byte of."""
+        found = self._line(block_idx, string_idx)
+        if not found or found[3].kind != docs.CREDITS:
+            return []
+        plain = codec.TAG_RE.sub("", text)
+        return [char for char in plain if char.isascii() and ord(char) in codec.CREDITS_NAMES]
+
+    def get_problem_detail(self, block_idx: int, string_idx: int, problem_id: str) -> str:
+        if problem_id != PROBLEM_CREDITS:
+            return super().get_problem_detail(block_idx, string_idx, problem_id)
+        pairs = ", ".join(f"{chr(code)!r} = {letter}" for code, letter in sorted(codec.CREDITS_NAMES.items())
+                          if code < 0x80)
+        return tr("The staff roll draws these ASCII bytes as Ukrainian letters, so do not type them: {0}. "
+                  "Type the letter itself.").format(pairs)
+
     def get_text_fit_problems_for_string(self, block_idx: int, string_idx: int, text: str) -> List[str]:
         problems = []
         if self.overflow_lines(block_idx, string_idx, text):
             problems.append(PROBLEM_LINES)
         if self.bytes_over(block_idx, string_idx, text):
             problems.append(PROBLEM_BYTES)
+        if self.credits_reserved_chars(block_idx, string_idx, text):
+            problems.append(PROBLEM_CREDITS)
         return problems
 
 

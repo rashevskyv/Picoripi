@@ -2949,5 +2949,11 @@
     "Original: Russian (ru)": "Оригінал: російська (ru)",
     "Original: English (en)": "Оригінал: англійська (en)",
     "No English text on this page: it does not line up with the Russian.": "На цій сторінці немає англійського тексту: він не збігається з російським.",
-    "No original text on this page.": "На цій сторінці немає оригінального тексту."
+    "No original text on this page.": "На цій сторінці немає оригінального тексту.",
+    "No Vagrant Story project is open.": "Проєкт Vagrant Story не відкрито.",
+    "Select a line to see its message window.": "Оберіть рядок, щоб побачити його вікно повідомлення.",
+    "The font file FONT/VSFONT.FNT is not in the project.": "Файлу шрифту FONT/VSFONT.FNT немає в проєкті.",
+    "This page has {0} lines; the window shows {1}.": "На цій сторінці {0} рядків; вікно показує {1}.",
+    "Row text: {0} px wide (the row starts at +{1}).": "Текст рядка: {0} px завширшки (рядок починається з +{1}).",
+    "The staff roll draws these ASCII bytes as Ukrainian letters, so do not type them: {0}. Type the letter itself.": "Титри малюють ці байти ASCII як українські літери, тож не вводьте їх: {0}. Вводьте саму літеру."
 }
