@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Castlevania SotN (PS1): the cutscene window draws the speaker name in the 8x8 font (x 56, fitted y), above the text.
 - Castlevania SotN (PS1): the cutscene window text origin is fitted to a DuckStation frame (startX + 12, startY + 5); each dialogue line takes the window place of its script's POS command.
 - Castlevania SotN (PS1): the cutscene dialogue window preview draws the first page in the 8x8 font (192 px text strip, 12 px lines, whole-number zoom), not yet checked against the game screen. Cutscene dialogue lines have a 192 px width limit; a font descriptor's `copies` writes the same block into other game files (SotN: F_GAME2, F_TITLE1).
 - Castlevania SotN (PS1): the Font Editor lists the damage-number font (red 8x8 in `F_GAME.BIN` 0x10000; digit row mapped, word rows free). Both fonts round-trip byte-exact on the real file. Font inventory in `docs/OPEN_ITEMS.md`.
