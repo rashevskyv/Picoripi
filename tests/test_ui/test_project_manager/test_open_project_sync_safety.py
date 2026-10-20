@@ -12,7 +12,7 @@ import pytest
 from PyQt6.QtCore import QThread
 from PyQt6.QtWidgets import QApplication, QWidget
 
-from core.glossary.series import GROUP_METADATA_KEY
+from core.glossary.series import GROUP_METADATA_KEY, METADATA_KEY
 from core.project_manager import ProjectManager
 from core.project_models import Block, Project
 from ui.project_manager.group_glossary import (
@@ -51,7 +51,7 @@ def test_intervening_save_is_not_overwritten_by_sync_job(tmp_path: Path) -> None
     p_file = _make_project(tmp_path, "Game", blocks=[{"id": "b1", "text": "initial"}])
     glossary = _make_glossary(tmp_path / "glossary.json")
 
-    job = OpenProjectSyncJob(p_file, str(glossary), [glossary])
+    job = OpenProjectSyncJob(p_file, str(glossary), {GROUP_METADATA_KEY: str(glossary)})
 
     # An intervening save writes newer blocks and settings before job.run() executes
     intervening_data = {
@@ -175,7 +175,7 @@ def test_sync_job_cancellation_before_commit_reverts_memory(tmp_path: Path, monk
     glossary = _make_glossary(tmp_path / "gloss.json")
     p_file = _make_project(tmp_path, "Game", metadata={GROUP_METADATA_KEY: "prior.json"})
 
-    job = OpenProjectSyncJob(p_file, str(glossary), [glossary])
+    job = OpenProjectSyncJob(p_file, str(glossary), {GROUP_METADATA_KEY: str(glossary)})
     monkeypatch.setattr(job, "isInterruptionRequested", lambda: True)
 
     cancelled = []
@@ -193,7 +193,7 @@ def test_sync_job_cancellation_after_commit_reconciles_success(tmp_path: Path, m
     glossary = _make_glossary(tmp_path / "gloss.json")
     p_file = _make_project(tmp_path, "Game")
 
-    job = OpenProjectSyncJob(p_file, str(glossary), [glossary])
+    job = OpenProjectSyncJob(p_file, str(glossary), {GROUP_METADATA_KEY: str(glossary)})
 
     interrupted = False
     monkeypatch.setattr(job, "isInterruptionRequested", lambda: interrupted)
@@ -234,7 +234,7 @@ def test_sync_job_missing_and_unreadable_glossaries_reported_in_warnings(tmp_pat
     invalid_gloss = tmp_path / "broken.json"
     invalid_gloss.write_text("NOT_JSON", encoding="utf-8")
 
-    job = OpenProjectSyncJob(p_file, None, [missing_gloss, invalid_gloss])
+    job = OpenProjectSyncJob(p_file, None, {METADATA_KEY: [str(missing_gloss), str(invalid_gloss)]})
 
     results = []
     job.done.connect(lambda managers, warnings: results.append((managers, warnings)))
@@ -338,7 +338,7 @@ def test_barrier_intervening_save_preserves_newer_fields(qtbot, tmp_path: Path, 
 
     monkeypatch.setattr(gg_mod, "project_persistence_lock", barrier_lock)
 
-    job = OpenProjectSyncJob(p_file, str(glossary), [glossary], request_seq=1)
+    job = OpenProjectSyncJob(p_file, str(glossary), {GROUP_METADATA_KEY: str(glossary)}, request_seq=1)
     results = []
     job.done.connect(lambda managers, warnings: results.append((managers, warnings)))
 
@@ -578,7 +578,7 @@ def test_sync_job_invalid_project_fails_safely(tmp_path: Path) -> None:
     p_file = tmp_path / "broken.uiproj"
     p_file.write_text("INVALID_JSON", encoding="utf-8")
 
-    job = OpenProjectSyncJob(p_file, "glossary.json", [])
+    job = OpenProjectSyncJob(p_file, "glossary.json", {})
     failed_reasons = []
     job.failed.connect(failed_reasons.append)
     job.run()
