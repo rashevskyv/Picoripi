@@ -2949,5 +2949,8 @@
     "Original: Russian (ru)": "Оригінал: російська (ru)",
     "Original: English (en)": "Оригінал: англійська (en)",
     "No English text on this page: it does not line up with the Russian.": "На цій сторінці немає англійського тексту: він не збігається з російським.",
-    "No original text on this page.": "На цій сторінці немає оригінального тексту."
+    "No original text on this page.": "На цій сторінці немає оригінального тексту.",
+  "sh23ds 3DS port: Ukrainian messages and font": "Порт sh23ds (3DS): українські повідомлення та шрифт",
+  "The Ukrainian font (EE/sh2e/font) is missing from the translation folder.": "Українського шрифту (EE/sh2e/font) немає в папці перекладу.",
+  "The translation has no message files for sh23ds.": "У перекладі немає файлів повідомлень для sh23ds."
 }

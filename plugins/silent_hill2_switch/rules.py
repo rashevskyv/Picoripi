@@ -4,11 +4,14 @@ The source file (English) keeps the PC codec: byte 0x21..0x7E is the ASCII chara
 glyph table of the Switch font atlas: byte = atlas cell, so Cyrillic is 0x80..0x9F and so on (``mes.decode_uk``).
 Saving writes the translation, so it always uses the Ukrainian table.
 """
-from typing import Any, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from core.i18n import tr
 from plugins.silent_hill2_pc import mes
 from plugins.silent_hill2_pc.rules import GameRules as PcGameRules
 from utils.logging_utils import log_debug, log_warning
+
+SH23DS_TARGET = "sh23ds"
 
 
 HEADER = b"\x00\x80"  # every message starts with it; it is not text
@@ -37,6 +40,17 @@ class GameRules(PcGameRules):
 
     def get_display_name(self) -> str:
         return "Silent Hill 2 (Switch, Ukrainian)"
+
+    def get_build_targets(self) -> List[Dict[str, Any]]:
+        return [{"id": SH23DS_TARGET, "label": tr("sh23ds 3DS port: Ukrainian messages and font"),
+                 "platforms": ["3ds"], "kind": "files"}]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> str:
+        if target_id != SH23DS_TARGET:
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        from . import sh23ds
+        return sh23ds.build(translation_dir, output_dir, progress, is_cancelled)
 
     def set_load_role(self, role: str) -> None:
         self._role = role

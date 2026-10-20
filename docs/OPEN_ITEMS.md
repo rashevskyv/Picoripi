@@ -10,6 +10,19 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Silent Hill 2 sh23ds 3DS (`plugins/silent_hill2_switch`, 2026-10-20, branch `feat/port-sh2-3ds`)
+
+- Blocked: the packer needs the Director's Cut `sh2pc.exe`, MD5 `f3f5360298b6d0f6f2e09cf24a0925d1`, and refuses every other build. The disk has `ISO\sh2pc.exe` (MD5 `c16ed843`) and `ISO\EE\sh2pc.exe` (MD5 `b2d4a1f0`). Needed file: the Director's Cut `sh2pc.exe`. Without it no pack is made and the emulator proof is not run.
+- Open: stage 0 and stage 1 message files (`stage_sample`, `stage_tgs_trial`) get no `s00.msg` and `s01.msg`. The stage names for 0 and 1 are not in the repo; the stage table of the exe gives them.
+- Open: full-width codes (0xE0 and up: the results-screen star and the Latin letters) have no glyph in the Ukrainian font, so they are not drawn.
+- Open: the 3DS font comes from the Switch Ukrainian atlas only (the PC exe is not used). Its glyph shapes are the Switch font's, scaled to the 3DS size. The width of font 1 is scaled from font 0.
+- Open: the capital Ї is cell 122 of the atlas (the spare Ъ cell). The translator draws it in the Font Editor.
+- Open: 8 translated files are not packed by the sh23ds packer (`config_pc_msg_e`, `item_msg_e`, `letter_msg_e`, `letter_w0..w2`, `m_card_msg_e`, `memo_msg_e`). They are not written to `3ds/sh23ds`.
+- Open decision: `plugins/silent_hill2_pc/mes.py` reads the table from word 0, but the packer reads the offsets from word 1 (`sh2mes`). Every row is shifted by one message: row 0 is the offset word of the last message, and the last row joins two messages. The bytes round trip, so the files stay valid; the rows show the wrong text. A fix changes the rows of existing projects, so it needs an owner decision.
+- Open decision: `mes.decode` shows a byte as the ASCII character with the same code. The packer shows `byte + 0x20`, so the English source row reads "9ES." where the game says "Yes.". The Ukrainian codec (`decode_uk`) follows the packer. Fix with the same owner decision as the row shift.
+- Open: the output is copied over the packer's `3ds` folder. The packer needs no change for the messages or the font.
+- Open: the build exe in `SILENT_HILL_2_SWITCH.json` is `3201a5e1`, but `Switchuild\sh2-nx\sh2pc.exe` has MD5 `b2d4a1f0` (the same as `ISO\EE\sh2pc.exe`).
+
 ## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-bfd`)
 
 - Open: no speech subtitle table found. Text tables found: bank 0x1A (entries 0-4, catapult book) and bank 0x1C sub-tables 0-3 (menu options, pause menu, chapter names, credits). The compressed game data section (task names) is not opened yet.
