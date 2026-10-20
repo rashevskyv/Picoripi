@@ -2957,5 +2957,7 @@
   "Reading the edited text tables": "Читання відредагованих таблиць тексту",
   "Rebuilding the text banks": "Перебудова банків тексту",
   "Writing the result": "Запис результату",
-  "{0} uses the old text format: unpack the disc again.": "{0} має старий формат тексту: розпакуйте ROM знову."
+  "{0} uses the old text format: unpack the disc again.": "{0} має старий формат тексту: розпакуйте ROM знову.",
+  "Spanish (ES, fan)": "Іспанська (ES, фан-переклад)",
+  "Give the patched ROM (.z64). Patch files are not applied yet: {0}": "Вкажіть пропатчений ROM (.z64). Файли патчів поки не застосовуються: {0}"
 }

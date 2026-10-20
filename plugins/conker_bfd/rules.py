@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from core.formats import FileFormat
 from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
+from utils.logging_utils import log_warning
 
 from . import book_text, bps, font, n64_archive, preview, rom_layout, text_blocks, voice
 from .config import PROBLEM_CHARACTER, PROBLEM_DEFINITIONS, PROBLEM_LENGTH
@@ -34,6 +35,11 @@ LEGACY_FORMAT_ID = "conker-bfd-text/2"
 REF_NAME = "rom_source.json"
 TARGET_ROM = "rom"
 TARGET_BPS = "bps"
+# Strings per text table in the pinned US ROM (book_text.extract). A reference table with another count is not
+# aligned by position.
+US_STRING_COUNTS = {"bank_1A/entry_0000": 6, "bank_1A/entry_0001": 3, "bank_1A/entry_0002": 3,
+                    "bank_1A/entry_0003": 3, "bank_1A/entry_0004": 3, "bank_1C/sub_0000": 316,
+                    "bank_1C/sub_0001": 36, "bank_1C/sub_0002": 110, "bank_1C/sub_0003": 196}
 OUTPUT_ROM = "Conker's Bad Fur Day (USA) (translation).z64"
 OUTPUT_BPS = "Conker's Bad Fur Day (USA) (translation).bps"
 
@@ -256,6 +262,75 @@ class GameRules(BaseGameRules):
         except ValueError:
             return None
         return preview.measure_px(raw, self._metrics, self._glyph_map)
+
+    # -- reference column: a finished translation ROM read as a second language --------------------------
+
+    def supports_reference_patch(self) -> bool:
+        return True
+
+    def get_reference_language_label(self) -> str:
+        return tr("Spanish (ES, fan)")
+
+    def reference_worker_rules(self):
+        """A fresh rules object for the reference parse on a worker thread. The parse reads only the ROM file."""
+        return GameRules(), None
+
+    def unpack_reference(self, path: str, project_dir: str, progress, is_cancelled) -> Optional[str]:
+        """A ROM file is read as it is. Patch files are not applied yet (the owner's fan patches are xdelta)."""
+        suffix = Path(path).suffix.lower()
+        if suffix in (".z64", ".n64", ".v64") or Path(path).is_dir():
+            return None
+        raise ValueError(tr("Give the patched ROM (.z64). Patch files are not applied yet: {0}", Path(path).name))
+
+    def load_multi_reference(self, patch_path: str, block_names=None) -> Dict[str, Dict[Tuple[int, int], str]]:
+        """Every text table of a reference ROM, matched to the project blocks by table name.
+
+        ``patch_path`` is a ROM file or a folder with one ROM file. Strings are matched by their position in the
+        table, the same order the project uses. A reference table with another count is cut to the shorter one.
+        """
+        rom_file = self._reference_rom_file(patch_path)
+        if rom_file is None:
+            return {}
+        try:
+            rom = _rom_bytes(rom_file)
+            tables = {table.name: table for table in book_text.extract(rom)}
+        except (OSError, n64_archive.RomError, ValueError) as error:
+            log_warning(f"conker_bfd: reference ROM not read from {rom_file}: {error}")
+            return {}
+        result: Dict[Tuple[int, int], str] = {}
+        for block, name in self._block_pairs(block_names):
+            table = tables.get(name)
+            if table is None:
+                continue
+            items = book_text.text_items(table)
+            if US_STRING_COUNTS.get(name) != len(items):
+                # Another count means the translation merged or split lines: a position match would shift rows.
+                log_warning(f"conker_bfd: reference table {name} has {len(items)} strings, the US table "
+                            f"{US_STRING_COUNTS.get(name)}; not aligned")
+                continue
+            for index, item in enumerate(items):
+                result[(block, index)] = text_blocks.bytes_to_string(item.text)
+        return {self.get_reference_language_label(): result} if result else {}
+
+    def load_reference_patch(self, patch_path: str, block_names=None) -> Dict[Tuple[int, int], str]:
+        found = self.load_multi_reference(patch_path, block_names)
+        return next(iter(found.values()), {})
+
+    @staticmethod
+    def _reference_rom_file(patch_path: str) -> Optional[str]:
+        path = Path(patch_path or "")
+        if path.is_dir():
+            roms = sorted(p for p in path.iterdir() if p.suffix.lower() in (".z64", ".n64", ".v64"))
+            return str(roms[0]) if roms else None
+        return str(path) if path.is_file() and path.suffix.lower() in (".z64", ".n64", ".v64") else None
+
+    @staticmethod
+    def _block_pairs(block_names) -> List[Tuple[int, str]]:
+        if isinstance(block_names, dict):
+            return [(int(key), str(value)) for key, value in block_names.items()]
+        if isinstance(block_names, (list, tuple)):
+            return [(index, str(value)) for index, value in enumerate(block_names)]
+        return []
 
     def reset_runtime_state(self) -> None:
         self._table = None

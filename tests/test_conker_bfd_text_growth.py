@@ -50,7 +50,8 @@ def ct_align(value):
 
 
 def synthetic_rom(extra_pages=None):
-    book = [_entry([_page(b"Alpha beta gamma.\x00\x00"), None, _page(b"Delta.\x00")]),
+    book = [_entry([_page(b"Alpha beta gamma.\x00\x00"), None, _page(b"Delta.\x00"), _page(b"E.\x00"),
+                    _page(b"F.\x00"), _page(b"G.\x00"), _page(b"H.\x00")]),
             _entry([_page(b"One.\x00")])]
     holder = _holder([[b"CONTINUE", b"", b"RESTART GAME"], [b"ON", b"OFF"], [b"Solo"], [b"A", b"B", b"C"]])
     banks = {0x1A: ct.build_container([ct.raw_slot(book[0], 0), ct.raw_slot(book[1], 0)]),
@@ -175,3 +176,31 @@ def test_legacy_text_files_still_open_and_do_not_build():
     blocks, names = rules.load_data_from_json_obj(legacy)
     assert blocks == [["Alpha beta."]] and names == {"0": "bank_1A/entry_0000"}
     assert rules.save_data_to_json_obj(blocks, names)["format"] == LEGACY_FORMAT_ID
+
+
+def test_reference_rom_strings_map_to_project_blocks_by_position(tmp_path):
+    rom = synthetic_rom()
+    tables = book_text.extract(rom)
+    edited = next(t for t in tables if t.name == "bank_1A/entry_0000")
+    first_page = next(i for i in edited.items if i.kind == book_text.KIND_PAGE)
+    first_page.text = b"Reference text, made up, longer than the original page."
+    ref = rom_layout.relayout_banks(rom, book_text.rebuild(rom, [edited]))
+    ref_file = tmp_path / "reference.z64"
+    ref_file.write_bytes(b"\x80\x37\x12\x40" + ref[4:])  # z64 byte order, as a real cartridge image has
+    rules = GameRules()
+    found = rules.load_multi_reference(str(ref_file), {"0": "bank_1A/entry_0000"})
+    (column,) = found.values()
+    assert column[(0, 0)] == "Reference text, made up, longer than the original page."
+    assert len(column) == len(book_text.text_items(edited))
+    assert rules.load_multi_reference(str(ref_file), {"0": "bank_1C/sub_0009"}) == {}  # no such table
+    assert rules.load_multi_reference(str(ref_file), {"0": "bank_1C/sub_0000"}) == {}  # count differs from US
+
+
+def test_reference_accepts_a_rom_and_refuses_patch_files(tmp_path):
+    rules = GameRules()
+    rom_file = tmp_path / "patched.z64"
+    rom_file.write_bytes(b"x")
+    assert rules.unpack_reference(str(rom_file), str(tmp_path), None, lambda: False) is None
+    with pytest.raises(ValueError):
+        rules.unpack_reference(str(tmp_path / "fan.xdelta"), str(tmp_path), None, lambda: False)
+    assert rules.reference_worker_rules()[1] is None
