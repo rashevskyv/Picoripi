@@ -12,14 +12,16 @@ from __future__ import annotations
 from utils.atomic_io import atomic_write_json
 
 import json
+import weakref
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from PyQt6.QtCore import pyqtSignal
+from PyQt6 import sip
+from PyQt6.QtCore import QObject, pyqtSignal
 
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_error, log_info, log_warning
-from utils.thread_utils import WorkerThread
+from utils.thread_utils import WorkerThread, safe_shutdown_thread
 
 # Reference languages the prompt trusts least: they go last, after every other one. Russian wording leaks into
 # Ukrainian translations as calques (live run 2026-10-03: «Уговори Линка» taken from the Russian line).
@@ -78,7 +80,8 @@ class ReferenceLoadWorker(WorkerThread):
     def run(self) -> None:
         languages = ReferenceManager.load_multi_reference(self._path, block_names=self._block_names,
                                                           game_rules=self._rules)
-        self.loaded.emit(languages)
+        if not self.isInterruptionRequested():
+            self.loaded.emit(languages)
 
 
 class ReferenceManager:
@@ -112,12 +115,27 @@ class ReferenceManager:
             return False
         worker_rules, worker_window = made
         worker = ReferenceLoadWorker(str(patch_path), block_names, worker_rules)
+        owner = weakref.ref(window) if isinstance(window, QObject) else lambda: window
+
+        def owner_destroyed() -> None:
+            safe_shutdown_thread(worker, timeout_ms=0)
+
+        def release_owner() -> None:
+            current = owner()
+            if isinstance(current, QObject) and not sip.isdeleted(current):
+                current.destroyed.disconnect(owner_destroyed)
 
         def finished(languages) -> None:
-            cls.adopt_aliases(window, worker_window)
+            current = owner()
+            if current is None or (isinstance(current, QObject) and sip.isdeleted(current)):
+                return
+            cls.adopt_aliases(current, worker_window)
             on_done(languages)
 
         worker.loaded.connect(finished)
+        if isinstance(window, QObject):
+            window.destroyed.connect(owner_destroyed)
+            worker.finished.connect(release_owner)
         worker.start()
         return True
 
@@ -166,14 +184,14 @@ class ReferenceManager:
     def get_reference_language_label(cls, game_rules: Optional[Any] = None) -> str:
         """Return the UI display label for the reference translation tab from the plugin.
 
-        Defaults to 'Reference (RU)' if not specified by the active plugin.
+        Defaults to 'Reference' if not specified by the active plugin.
         """
         if game_rules and hasattr(game_rules, "get_reference_language_label"):
             try:
                 return game_rules.get_reference_language_label()
             except Exception as e:
                 log_warning(f"ReferenceManager: failed to get language label from plugin: {e}")
-        return "Reference (RU)"
+        return "Reference"
 
     @classmethod
     def load_multi_reference(

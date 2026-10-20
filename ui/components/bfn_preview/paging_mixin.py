@@ -8,8 +8,11 @@ class BfnPreviewPagingMixin:
         ds = getattr(self.mw, "data_store", None)
         if ds is None:
             return None
+        b_idx = getattr(ds, "physical_block_idx", None)
+        if b_idx is None:
+            b_idx = getattr(ds, "current_block_idx", None)
         return (
-            getattr(ds, "physical_block_idx", None),
+            b_idx,
             getattr(ds, "current_string_idx", None),
         )
 

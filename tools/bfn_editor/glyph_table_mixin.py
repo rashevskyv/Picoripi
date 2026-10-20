@@ -3,12 +3,37 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 from core.i18n import tr
 from utils.logging_utils import log_debug
+from utils import app_mode
+from utils.thread_utils import single_shot
+from core.font_formats import code_char
+import time
 
 _GLYPH_PREVIEW_PX = 28
 _GLYPH_PREVIEW_BG = QtGui.QColor("#000000")
 
 
 class GlyphTableMixin:
+    @staticmethod
+    def _characters_by_glyph(maps):
+        """Index MAP1 once; looking up each glyph by scanning all entries was quadratic."""
+        result = {}
+        for block in maps:
+            kind, first = block.get("mapping_type", 0), block.get("first_char", 0)
+            entries = block.get("entries", [])
+            if kind == 0:
+                pairs = ((code, code) for code in range(first, block.get("last_char", first) + 1))
+            elif kind == 2:
+                pairs = ((first + offset, glyph) for offset, glyph in enumerate(entries))
+            elif kind == 3:
+                half = len(entries) // 2
+                pairs = zip(entries[:half], entries[half:])
+            else:
+                continue
+            for code, glyph in pairs:
+                if glyph != 0xFFFF:
+                    result.setdefault(glyph, code_char(code))
+        return result
+
     def _resolve_char_from_maps(self, idx: int, maps: list) -> str:
         for m in maps:
             m_type = m.get("mapping_type", 0)
@@ -150,9 +175,10 @@ class GlyphTableMixin:
         return maps, packets
 
     def _build_glyph_to_char_mapping(self, maps: list) -> dict[int, tuple[str, str]]:
+        raw = self._characters_by_glyph(maps)
         glyph_to_char = {}
         for idx in range(self.start_glyph, self.end_glyph + 1):
-            raw_char = self._resolve_char_from_maps(idx, maps)
+            raw_char = raw.get(idx, "")
             char_val, font_char_val = self._get_glyph_translation_mapping(idx, raw_char)
             glyph_to_char[idx] = (char_val, font_char_val)
         return glyph_to_char
@@ -161,8 +187,9 @@ class GlyphTableMixin:
         orig_glyph_to_char = {}
         if self.original_font_metadata:
             orig_maps = self.original_font_metadata.get("MAP1", [])
+            raw = self._characters_by_glyph(orig_maps)
             for idx in range(self.start_glyph, self.end_glyph + 1):
-                orig_char = self._resolve_char_from_maps(idx, orig_maps)
+                orig_char = raw.get(idx, "")
                 orig_glyph_to_char[idx] = orig_char
         return orig_glyph_to_char
 
@@ -239,9 +266,43 @@ class GlyphTableMixin:
         )
 
     def _fill_glyph_table(self, rows_data: list[tuple]) -> None:
+        self._glyph_table_generation = getattr(self, "_glyph_table_generation", 0) + 1
+        generation = self._glyph_table_generation
         self.table_glyphs.setRowCount(len(rows_data))
-        for r_idx, data in enumerate(rows_data):
-            self._populate_single_glyph_row(r_idx, data)
+        if app_mode.headless:
+            for r_idx, data in enumerate(rows_data):
+                self._populate_single_glyph_row(r_idx, data)
+            if getattr(self, "_font_loading", False):
+                self._set_font_loading(False)
+            return
+        self._set_font_loading(True)
+        self._glyph_table_populating = True
+        position = 0
+
+        def fill():
+            nonlocal position
+            if generation != self._glyph_table_generation or getattr(self, "_font_closed", False):
+                return
+            started = time.monotonic()
+            self.table_glyphs.blockSignals(True)
+            try:
+                while position < len(rows_data):
+                    self._populate_single_glyph_row(position, rows_data[position])
+                    position += 1
+                    if time.monotonic() - started >= 0.008:
+                        break
+            finally:
+                self.table_glyphs.blockSignals(False)
+            if position < len(rows_data):
+                self.status.showMessage(tr("Preparing font glyphs: {0}/{1}", position, len(rows_data)))
+                single_shot(0, self, fill)
+            else:
+                self._glyph_table_populating = False
+                self._restore_glyph_table_column_widths()
+                self._set_font_loading(False)
+                self.status.showMessage(tr("Font ready."))
+
+        single_shot(0, self, fill)
 
     def _restore_glyph_table_column_widths(self) -> None:
         if not getattr(self, "_table_headers_resized", False):
@@ -256,7 +317,10 @@ class GlyphTableMixin:
                     restored = True
             
             if not restored:
-                if hasattr(self, "on_header_handle_double_clicked"):
+                if not app_mode.headless:
+                    self.table_glyphs.horizontalHeader().setResizeContentsPrecision(200)
+                    self.table_glyphs.resizeColumnsToContents()
+                elif hasattr(self, "on_header_handle_double_clicked"):
                     for col in range(self.table_glyphs.columnCount()):
                         self.on_header_handle_double_clicked(col)
                 else:
@@ -282,7 +346,8 @@ class GlyphTableMixin:
                 glyph_to_char, orig_glyph_to_char, packets, search_query
             )
             self._fill_glyph_table(rows_data)
-            self._restore_glyph_table_column_widths()
+            if app_mode.headless:
+                self._restore_glyph_table_column_widths()
         finally:
             table.blockSignals(False)
             table.setUpdatesEnabled(True)
@@ -332,3 +397,37 @@ class GlyphTableMixin:
         )
 
         self.table_glyphs.blockSignals(False)
+
+    def on_header_handle_double_clicked(self, logical_index):
+        # Fit the column to the wider of cell contents and the (possibly wrapped) header.
+        col = logical_index
+
+        # Start with a minimum base width for cell margins
+        max_w = 35
+        item = self.table_glyphs.horizontalHeaderItem(col)
+        if item and item.text():
+            max_w = max(
+                max_w,
+                self._header_caption_width(self.table_glyphs.horizontalHeader(), item.text()),
+            )
+
+        # Iterate over all rows to find the max width of cell contents
+        row_count = self.table_glyphs.rowCount()
+        table_font = self.table_glyphs.font()
+
+        for row in range(row_count):
+            item = self.table_glyphs.item(row, col)
+            if item is None:
+                continue
+            if not item.icon().isNull():
+                max_w = max(max_w, 28 + 16)
+            if item.text():
+                item_font = item.font() if item.font().family() else table_font
+                item_fm = QtGui.QFontMetrics(item_font)
+                max_w = max(max_w, item_fm.horizontalAdvance(item.text()) + 24)
+
+        # Apply limits (between 35 and 600)
+        max_w = max(35, min(max_w, 600))
+
+        # Set the column width
+        self.table_glyphs.setColumnWidth(col, max_w)

@@ -394,9 +394,9 @@ class BaseGameRules:
     def get_reference_language_label(self) -> str:
         """Return the UI display label for the reference translation tab.
 
-        Examples: 'Russian (RU)', 'German (DE)', 'Japanese (JA)'. Default: 'Reference (RU)'.
+        Examples: 'Russian (RU)', 'German (DE)', 'Japanese (JA)'. Default: 'Reference'.
         """
-        return "Reference (RU)"
+        return "Reference"
 
     def load_reference_patch(
         self, patch_path: str, block_names: Optional[List[str]] = None
@@ -430,6 +430,14 @@ class BaseGameRules:
             label = self.get_reference_language_label()
             return {label: ref_dict}
         return {}
+
+    def default_reference_path(self) -> Optional[str]:
+        """Optional reference source when no path was configured; return metadata only, without disk access.
+
+        The host calls this after project metadata is available. Parsing and discovery use the normal reference
+        worker. Returning None preserves explicit-reference-only behaviour.
+        """
+        return None
 
     def unpack_reference(self, path: str, project_dir: str, progress, is_cancelled) -> Optional[str]:
         """Unpack a reference file the user picked (a game image) into a folder of the project; return that folder.

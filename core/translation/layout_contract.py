@@ -160,11 +160,30 @@ def check_translated(source_text: Any, translation: Any, *, item_id: Any = None)
             f"{label} is not translated: {left} of {len(source_words)} source words are still in it")
 
 
+_NON_BLOCKING_PROBLEMS = frozenset({"UNVERIFIED_LAYOUT"})
+
+
+def place_fit_problems(rules: Any, block_idx: Any, string_idx: Any, text: str) -> list:
+    """The plugin's layout problems of ``text`` at one place; a check that raises counts as a problem."""
+    check = getattr(rules, "get_text_fit_problems_for_string", None)
+    if not callable(check):
+        return []
+    try:
+        return list(check(block_idx, string_idx, text) or [])
+    except Exception as exc:
+        log_warning(f"Layout check failed for ({block_idx}, {string_idx}), the text is refused: {exc!r}")
+        return ["check failed"]
+
+
+_place_fit_problems = place_fit_problems
+
+
 def text_fits_place(mw, source: Any, text: Any, block_idx: Any, string_idx: Any) -> bool:
     """Whether ``text`` is a valid translation of ``source`` in the window of one place (its lines per window).
 
-    The plugin's own layout problems of the place are checked too (``get_text_fit_problems_for_string``,
-    D46): a place where the plugin reports a problem does not take the text. A failing check refuses the text.
+    A place where the plugin reports an actual demonstrated blocking problem (LINES, WIDTH, WRAP, etc.)
+    refuses the text. Missing measurements (UNVERIFIED_LAYOUT) are separated from blocking violations so
+    that explicit confirmation and follower application can proceed.
     """
     rules = getattr(mw, "current_game_rules", None)
     shown = editor_text_for_layout(text, rules)
@@ -177,16 +196,6 @@ def text_fits_place(mw, source: Any, text: Any, block_idx: Any, string_idx: Any)
         )
     except ValueError:
         return False
-    return not _place_fit_problems(rules, block_idx, string_idx, shown)
-
-
-def _place_fit_problems(rules: Any, block_idx: Any, string_idx: Any, text: str) -> list:
-    """The plugin's layout problems of ``text`` at one place; a check that raises counts as a problem."""
-    check = getattr(rules, "get_text_fit_problems_for_string", None)
-    if not callable(check):
-        return []
-    try:
-        return list(check(block_idx, string_idx, text) or [])
-    except Exception as exc:
-        log_warning(f"Layout check failed for ({block_idx}, {string_idx}), the text is refused: {exc!r}")
-        return ["check failed"]
+    problems = place_fit_problems(rules, block_idx, string_idx, shown)
+    blocking = [p for p in problems if p not in _NON_BLOCKING_PROBLEMS]
+    return not blocking

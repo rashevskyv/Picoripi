@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: plugins/
-tokens: 13.8k
+tokens: 13.9k
 purpose: The one plugin guide: files, hooks, capabilities, tests
 ---
 # Plugin Developer Guide
@@ -113,6 +113,8 @@ With these the base class builds the tag manager, the problem analyzer and the t
 `unpack_reference(path, project_dir, progress, is_cancelled)` reads a reference the user picked as a file (a game image of another region). The host calls it on a worker thread. The plugin writes what `load_multi_reference` needs into a folder of the project and returns that folder; the host stores the folder as the reference path. Return `None` to use the path as it is (the default). Write into a temporary sibling and rename it into place, so a cancel leaves the older folder. `load_multi_reference` then reads only that folder: it runs on the UI thread and must stay fast. Example: `plugins/super_mario_sunshine/reference.py` writes only the BMG files of the European disc.
 
 `reference_worker_rules()` (optional) lets the host run `load_multi_reference` on a worker thread. It returns `(rules, window)`, built on the window's thread: `rules` is an object of the same game that holds the state the parse reads (a copy, taken now); `window` is a copy with its own tag mapping that the parse fills (the host copies its new aliases into the editor's mapping on the window's thread), or `None`. Default `None` (or no method): the parse runs on the window's thread. The text views refresh when a parse ends. Twilight Princess gives a copy with its own tag mapping. `system_3ds` and `manual_3ds` give an object with the project's files or manuals taken at that moment. A session without plugin state reads its files again and then parses the reference again (`manual_3ds`: the English follows the manuals read).
+
+`default_reference_path()` optionally supplies a reference source when the user has not configured one. Return metadata only, without filesystem access. Pair automatic discovery with `reference_worker_rules()` so archive indexing and table parsing stay off the UI thread. The default `None` keeps explicit reference selection. The automatic path is not saved as a user preference. Yo-kai Watch uses a private snapshot of project source paths to read loose tables and existing ARC0 languages; empty or unmatched rows produce no tab.
 
 Inside the application the text is `List[List[str]]` — blocks of strings — plus block names. `load_data_from_json_obj` returns `(blocks, block_names)`; `save_data_to_json_obj(blocks, block_names)` returns what goes back to the file. Unknown fields of the format must survive the round trip.
 

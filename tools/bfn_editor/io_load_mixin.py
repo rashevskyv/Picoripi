@@ -118,10 +118,13 @@ class IoLoadMixin:
             QtWidgets.QMessageBox.critical(self, tr('Error'), tr('Failed to load folder: {0}', e))
             self.status.showMessage(tr("Failed to load folder."))
 
-    def load_from_extracted_dir(self, dir_path):
-        json_path = os.path.join(dir_path, 'data.json')
-        with open(json_path, 'r') as f:
-            self.metadata = json.load(f)
+    def load_from_extracted_dir(self, dir_path, prepared=None):
+        if prepared is None:
+            json_path = os.path.join(dir_path, 'data.json')
+            with open(json_path, 'r') as f:
+                self.metadata = json.load(f)
+        else:
+            self.metadata = prepared[0]
             
         maps = self.metadata.get("MAP1", [])
         for m in maps:
@@ -169,6 +172,9 @@ class IoLoadMixin:
         
         sheet_count = (self.end_glyph - self.start_glyph) // (self.rows * self.cols) + 1
         for s in range(sheet_count):
+            if prepared is not None:
+                self.sheet_images.append(prepared[1][s])
+                continue
             png_name = f"sheet_{s}.png"
             png_path = os.path.join(dir_path, png_name)
             if not os.path.exists(png_path):
@@ -269,6 +275,9 @@ class IoLoadMixin:
         else:
             self.clear_temp()
             event.accept()
+
+        if event.isAccepted():
+            self.finish_font_jobs_on_close()
 
         if event.isAccepted() and getattr(self, "changes_saved_during_session", False):
             parent_mw = None

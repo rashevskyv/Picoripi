@@ -4,7 +4,12 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 - Project Manager virtual groups can own a shared series glossary with create, link, replace, and unlink actions; member projects automatically inherit the glossary across translation and series tabs without duplicate entries, preserving explicit project links and ancestor discovery during moves and unlinks.
 
+- Font Editor keeps nested reads and decodes serial, ignores cancelled or obsolete loads, and prepares formatted font sheets in memory on a worker; loading now has an immediate indicator, cancellation and responsive glyph-table progress, with linear map lookup for large Yo-kai Watch fonts and safe cleanup after closing.
+
+- Yo-kai Watch discovers nonblank reference languages from loose tables and existing ARC0 archives on a cancellable worker; reference tabs show only languages with text for the selected row, preserving the active language and existing fan references; message window preview is restored with game font glyphs, layout styles and tag styling; duplicate context and layout fit hooks protect cross-platform translation reuse between 3DS and Switch.
+
 - New Project accepts an existing extracted game folder separately from translations, validates its text tables on a worker, reports unsupported image plugins accurately, and offers same-wizard key-file replacement and retry for missing or unsuitable Nintendo 3DS keys.
+- Reference tab: a plugin that does not support reference patches no longer shows it, and the default label is "Reference" (it was "Reference (RU)" for every game).
 - 3DS manual preview: the page is drawn at a whole-number zoom of the console pixels (no smoothing when it is enlarged, smoothing only when it must shrink), so it no longer looks smeared when the panel is resized.
 - 3DS manuals: the same paragraph text in two manuals shares one translation (D46): the plugin's `get_duplicate_context_for_string` replaces the window and the translation context in the duplicate key, and `get_text_fit_problems_for_string` refuses a place whose layout the text does not fit (repeated translations, memory rows, series rows, glossary fill and batch followers; a refused follower stays untranslated and the status bar says so).
 - Wii discs: the common key is read at 0x114 of `keys.bin` (it was 0x158, the NAND AES key), so a real Wii disc decrypts; `test_wii_image.py` checks the 0x114 offset.

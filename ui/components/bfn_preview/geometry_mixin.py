@@ -95,6 +95,7 @@ class BfnPreviewGeometryMixin:
             self._preview_page = 0
             self._page_origin = "editor"
             self._last_editor_line = None
+            self._glyph_layout_cache = None
         self._edited_preview_text = text or ""
         if original is not None:
             self._original_preview_text = original or ""

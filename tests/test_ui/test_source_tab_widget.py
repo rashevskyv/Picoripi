@@ -139,3 +139,40 @@ def test_editor_headers_and_height_alignment(mock_window):
     # Left header height + tab bar height should match right header height
     expected_left_h = max(26, 80 - tab_bar_h)
     assert mock_window.left_header_container.height() == expected_left_h
+
+
+def test_reference_tabs_follow_nonblank_text_in_the_current_row(mock_window):
+    from ui.updaters.text_views_mixin import TextViewsMixin
+
+    updater = TextViewsMixin()
+    updater.mw = mock_window
+    updater.data_processor = mock_window.data_processor
+    LayoutBuilder(mock_window)._build_original_panel()
+    mock_window.edited_text_edit = LineNumberedTextEdit(mock_window)
+    mock_window.current_game_rules = None
+    mock_window.data_processor._get_string_from_source.return_value = "Source"
+    mock_window.data_processor.get_current_string_text.return_value = ("Source", False)
+    store = mock_window.data_store
+    store.physical_block_idx = 0
+    store.current_string_idx = 0
+    store.reference_languages_data = {
+        "Russian (RU)": {(0, 0): "  ", (0, 1): "Reference"},
+        "German (DE)": {(0, 0): "Eins", (0, 1): "Zwei"},
+        "French (FR)": {(0, 1): "Deux"},
+    }
+    updater._do_update_text_views(False, heavy=False)
+    tabs = mock_window.source_tab_widget
+    assert [tabs.tabText(i) for i in range(tabs.count())] == ["Original (EN)", "German (DE)"]
+    tabs.setCurrentIndex(1)
+    store.current_string_idx = 1
+    updater._do_update_text_views(False, heavy=False)
+    assert [tabs.tabText(i) for i in range(tabs.count())] == [
+        "Original (EN)", "Russian (RU)", "German (DE)", "French (FR)"]
+    assert tabs.tabText(tabs.currentIndex()) == "German (DE)"
+    store.current_string_idx = 2
+    updater._do_update_text_views(False, heavy=False)
+    assert tabs.count() == 1
+    store.reference_languages_data = {}
+    store.reference_data = {}
+    updater._do_update_text_views(False, heavy=False)
+    assert all(not tabs.isTabVisible(i) for i in range(1, tabs.count()))

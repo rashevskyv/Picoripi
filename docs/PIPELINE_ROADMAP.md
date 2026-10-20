@@ -120,6 +120,9 @@ def unpack_reference(self, path: str, project_dir: str, progress, is_cancelled) 
 
 def reference_worker_rules(self) -> Optional[Tuple[Any, Any]]:
     """(rules, window) для розбору довідки у фоновому потоці, створюються в потоці вікна: rules — копія стану гри, яку читає розбір; window — копія з власним відображенням тегів (або None). Дефолт: None, розбір іде в потоці вікна."""
+
+def default_reference_path(self) -> Optional[str]:
+    """Джерело довідки за відсутності явного шляху. Лише метадані, без дискового доступу; пошук виконує reference_worker_rules. Дефолт: None."""
 ```
 
 **Реалізація в TP (приклад, не частина рушія):**

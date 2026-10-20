@@ -20,7 +20,7 @@ def test_plugin_loads_and_validates():
     rules = check_loads("yokai_watch")
     assert rules.get_display_name() == "Yo-kai Watch"
     assert ".bin" in {e for f in rules.get_file_formats() for e in f.extensions}
-    assert rules.get_capabilities() == {"speaker_attribution", "glossary_seed"}
+    assert rules.get_capabilities() == {"speaker_attribution", "glossary_seed", "message_window_preview"}
     check_validator("yokai_watch")
 
 
@@ -283,3 +283,60 @@ def test_switch_sequel_files_round_trip_byte_for_byte_and_an_edit_keeps_the_othe
     texts[0] = UKRAINIAN
     again = TextFile(text_file.build(texts), path.name)
     assert again.texts() == texts
+
+
+def test_font_sources_has_preview_flag():
+    rules = load_rules("yokai_watch")
+    sources = rules.get_font_sources()
+    main_font = next((s for s in sources if "ft_nrm" in s.get("label", "")), None)
+    assert main_font is not None
+    assert main_font.get("preview") is True
+
+
+def test_preview_window_style_and_presets():
+    rules = load_rules("yokai_watch")
+    assert "message_window_preview" in rules.get_capabilities()
+
+    style = rules.get_preview_window_style()
+    assert isinstance(style, dict)
+    assert style.get("kind") == "dialogue"
+    assert style.get("lines_per_page") == 2
+    assert "geometry" in style
+    geom = style["geometry"]
+    assert geom.get("screen") == [400, 240]
+    assert geom.get("box") == [16, 140, 368, 86]
+    assert geom.get("text") == [28, 152, 344, 62]
+
+    presets = rules.get_window_presets()
+    assert None in presets
+    assert "dialogue" in presets
+    assert rules.get_window_preset_label(None, auto_style=style) == "Auto: Dialogue"
+    assert rules.get_window_preset_label("dialogue") == "Dialogue"
+
+    preset_style = rules.get_window_style_for_preset("dialogue")
+    assert preset_style.get("lines_per_page") == 2
+
+
+def test_prepare_preview_glyph_text():
+    rules = load_rules("yokai_watch")
+    text = "Hello, {PNAME01}! Look at the {CR}red fire{/C} and {CG}green leaf{/C}.{PAGE}Second page!"
+    clean, colors, scales, _ = rules.prepare_preview_glyph_text(text)
+
+    assert clean == "Hello, Nate! Look at the red fire and green leaf.\n\nSecond page!"
+
+    idx_red = clean.index("red fire")
+    assert colors[idx_red] == "#ff4444"
+    assert colors[idx_red + len("red fire") - 1] == "#ff4444"
+
+    idx_green = clean.index("green leaf")
+    assert colors[idx_green] == "#44cc44"
+
+    idx_after = clean.index("and")
+    assert colors[idx_after] is None
+
+
+def test_duplicate_context_and_text_fit():
+    rules = load_rules("yokai_watch")
+    # Without loaded project, get_duplicate_context_for_string returns None gracefully
+    assert rules.get_duplicate_context_for_string(0, 0) is None
+    assert rules.get_text_fit_problems_for_string(0, 0, "Test text") == []

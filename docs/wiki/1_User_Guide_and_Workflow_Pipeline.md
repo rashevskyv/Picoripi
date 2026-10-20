@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-13
 owns: ui/, components/, dialogs/
-tokens: 55.1k
+tokens: 55.4k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -1189,6 +1189,9 @@ This is the localization pipeline plus utilities. Prefer **Localization Pipeline
 | Export Current BMG to JSON… | | Selected BMG only. Disabled until a BMG block is selected |
 | Import Current BMG from JSON… | | Into the selected block |
 
+**Loading fonts:** the Font Editor shows an indicator immediately while reading and decoding a project font. **Cancel loading** stops adopting that request. During glyph-table preparation, the status shows the completed and total glyph counts; the window stays responsive. Selecting another font keeps only the latest load result. Cancelling before the new model arrives preserves the previous font. Cancelling a partially filled table clears that table and disables it until another font is loaded. Closing the window discards late load callbacks; queued writes still finish in order.
+
+
 ---
 
 ## 7. Navigation menu
@@ -1339,6 +1342,13 @@ Several filters can combine. **Do not** leave **Show Unsaved Only** on and assum
 ---
 
 ## 13. Original, Reference Tabs, and Editable
+
+Reference tabs appear only when that language has nonblank text for the selected row. A language missing from that row stays hidden.
+Yo-kai Watch discovers existing language tables in the source/reference folders and workspace `romfs/*.fa` archives automatically.
+Discovery runs in the background and reads game files without changing them. An explicit reference path takes priority.
+Languages may cover only part of the game. A fan reference appears only where it contains matching text.
+Yo-kai Watch in-game message window preview renders dialogue and system windows using Level-5 XF font glyphs, layout metrics, control tags ({CR}, {CG}, {CY}, {PAGE}), and route-aware hero substitutions ({PNAME} -> Nate / Katie).
+Cross-platform translation reuse between 3DS and Switch shares accepted memory entries through the series registry; missing Switch layout measurements are treated as unverified candidates for manual confirmation and do not block permitted duplicate followers in batch runs.
 
 **Source Panel (Left)**
 

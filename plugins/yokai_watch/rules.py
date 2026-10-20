@@ -109,6 +109,8 @@ class GameRules(BaseGameRules):
         self._speakers: Optional[Speakers] = None
         self._layout: Optional[Dict[str, Dict[str, int]]] = None
         self._japanese_for: Optional[Tuple[Optional[Path], bool]] = None
+        self._reference_source_root = None
+        self._reference_sources = {}
 
     def get_display_name(self) -> str:
         return "Yo-kai Watch"
@@ -249,32 +251,126 @@ class GameRules(BaseGameRules):
         return True
 
     def get_reference_language_label(self) -> str:
-        return "Russian (RU)"
+        return "Reference"
+
+    def default_reference_path(self) -> Optional[str]:
+        """Return metadata only; reference discovery belongs to the worker."""
+        _pm, project = self._project()
+        return (getattr(project, "metadata", None) or {}).get("source_path") if project else None
+
+    def _reference_snapshot(self):
+        pm, project = self._project()
+        if project is None:
+            return None, {}
+        source_root = (getattr(project, "metadata", None) or {}).get("source_path")
+        block_map = getattr(self.mw, "block_to_project_file_map", None) or {}
+        sources = {}
+        for index, project_index in (block_map or dict(enumerate(range(len(project.blocks))))).items():
+            block = project.blocks[project_index]
+            rel = str(block.source_file).replace("\\", "/")
+            sources[index] = (rel, Path(pm.get_absolute_path(block.source_file)))
+        return Path(source_root) if source_root else None, sources
+
+    def reference_worker_rules(self):
+        """Copy source metadata without reading disk or retaining widgets."""
+        rules = GameRules()
+        rules._reference_source_root, rules._reference_sources = self._reference_snapshot()
+        return rules, None
+
+    def load_multi_reference(self, patch_path: str, block_names=None):
+        from .reference import load_references
+        if self.mw is None:
+            root, sources = self._reference_source_root, self._reference_sources
+        else:
+            root, sources = self._reference_snapshot()
+        return load_references(patch_path, root, sources, block_names) if root else {}
 
     def load_reference_patch(self, patch_path: str, block_names=None) -> Dict[Tuple[int, int], str]:
         """A translation built into the game (Yo-kai Watch 2: the Russian fan text, ``reference`` in the workspace):
         the same table with ``ru`` for the source language in its path, matched by entry, text id and page."""
-        out: Dict[Tuple[int, int], str] = {}
-        code = GAMES[self._game()]["lang"].strip("_")
-        for key in block_names or {}:
-            located = self._locate(int(key))
-            if not located:
-                continue
-            rel, text_file, _root = located
-            path = Path(patch_path) / rel.replace(f"/{code}/", "/ru/").replace(f"_{code}.cfg.bin", "_ru.cfg.bin")
-            try:
-                reference = TextFile(path.read_bytes(), path.name)
-            except (OSError, FormatError, UnicodeDecodeError, ValueError):
-                continue
-            texts = {(r.kind, r.text_id, r.number, r.param): r.text for r in reference.rows}
-            for string_idx, row in enumerate(text_file.rows):
-                text = texts.get((row.kind, row.text_id, row.number, row.param))
-                if text:
-                    out[(int(key), string_idx)] = tags.to_editor(text)
-        return out
+        languages = self.load_multi_reference(patch_path, block_names)
+        return languages.get("Russian (RU)") or next(iter(languages.values()), {})
 
     def get_capabilities(self) -> Set[str]:
-        return {"speaker_attribution", "glossary_seed"}
+        caps = {"speaker_attribution", "glossary_seed"}
+        if self._game() not in ("yw4", "yay"):
+            caps.add("message_window_preview")
+        return caps
+
+    def get_preview_window_style(self, block_idx: Optional[int] = None, string_idx: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        from . import preview
+        return preview.get_preview_window_style(self, block_idx, string_idx)
+
+    def get_window_presets(self) -> list:
+        from . import preview
+        return preview.get_window_presets(self)
+
+    def get_window_preset_label(self, preset, auto_style=None) -> str:
+        from . import preview
+        return preview.get_window_preset_label(self, preset, auto_style)
+
+    def get_window_style_for_preset(self, preset) -> Optional[Dict[str, Any]]:
+        from . import preview
+        return preview.get_window_style_for_preset(self, preset)
+
+    def prepare_preview_glyph_text(self, text: str):
+        from . import preview
+        return preview.prepare_preview_glyph_text(self, text)
+
+    def get_duplicate_context_for_string(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
+        found = self._row(block_idx, string_idx)
+        if not found:
+            return None
+        rel, row, root = found
+        cat = category(rel, row.kind, row.param)
+        speaker = self.get_speaker_for_string(block_idx, string_idx)
+        game = self._game(root)
+        measured = self._layouts(game).get(layout_key(rel, row.kind, row.param)) or {}
+        lines = measured.get("lines", 2 if cat == "dialogue" else 1)
+        return {
+            "category": cat,
+            "speaker": speaker or "",
+            "kind": row.kind,
+            "lines": lines,
+        }
+
+    def get_text_fit_problems_for_string(self, block_idx: int, string_idx: int, text: str) -> List[str]:
+        found = self._row(block_idx, string_idx)
+        if not found or not text:
+            return []
+        rel, row, root = found
+        cat = category(rel, row.kind, row.param)
+        game = self._game(root)
+        measured = self._layouts(game).get(layout_key(rel, row.kind, row.param))
+        problems = []
+
+        # Check line limits (dialogue defaults to 2 lines per page even if unmeasured)
+        max_lines = measured.get("lines") if measured else (2 if cat == "dialogue" else None)
+        if max_lines:
+            if cat == "dialogue":
+                pages = text.split("{PAGE}")
+                for page in pages:
+                    if page.count("\n") + 1 > max_lines:
+                        problems.append("LINES")
+                        break
+            else:
+                if text.count("\n") + 1 > max_lines:
+                    problems.append("LINES")
+
+        if measured and measured.get("max"):
+            max_width = measured["max"]
+            font_map = getattr(self.mw, "font_map", None) or {}
+            for subline in text.replace("{PAGE}", "\n").split("\n"):
+                if self._width(subline, font_map) > max_width:
+                    problems.append("WIDTH")
+                    break
+        elif not measured:
+            # Layout measurements are absent for this game/kind (e.g. Switch ywnx).
+            # We cannot verify pixel width fit, so return UNVERIFIED_LAYOUT to represent
+            # missing measurements honestly and prevent silent unsafe auto-reuse.
+            problems.append("UNVERIFIED_LAYOUT")
+
+        return problems
 
     def get_glossary_seed_entries(self) -> List[Dict[str, Any]]:
         """Names from the game's own tables: Yo-kai and people (``chara_text``), items, skills, abilities,

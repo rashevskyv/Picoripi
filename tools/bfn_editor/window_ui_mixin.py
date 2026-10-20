@@ -396,9 +396,7 @@ class WindowUiMixin:
         self._fit_texture_action_buttons()
         main_layout.addWidget(right_widget)
 
-        # Status Bar
-        self.status = self.statusBar()
-        self.status.showMessage(tr('Ready. Open a BFN file or extracted folder.'))
+        self._setup_font_status()
 
         # Shortcuts
         self.setup_shortcuts()
@@ -567,37 +565,3 @@ class WindowUiMixin:
                 table.setColumnWidth(col, need)
             header_h = max(header_h, (wrapped.count("\n") + 1) * fm.height() + 10)
         header.setMinimumHeight(header_h)
-
-    def on_header_handle_double_clicked(self, logical_index):
-        # Fit the column to the wider of cell contents and the (possibly wrapped) header.
-        col = logical_index
-        
-        # Start with a minimum base width for cell margins
-        max_w = 35
-        item = self.table_glyphs.horizontalHeaderItem(col)
-        if item and item.text():
-            max_w = max(
-                max_w,
-                self._header_caption_width(self.table_glyphs.horizontalHeader(), item.text()),
-            )
-        
-        # Iterate over all rows to find the max width of cell contents
-        row_count = self.table_glyphs.rowCount()
-        table_font = self.table_glyphs.font()
-        
-        for row in range(row_count):
-            item = self.table_glyphs.item(row, col)
-            if item is None:
-                continue
-            if not item.icon().isNull():
-                max_w = max(max_w, 28 + 16)
-            if item.text():
-                item_font = item.font() if item.font().family() else table_font
-                item_fm = QtGui.QFontMetrics(item_font)
-                max_w = max(max_w, item_fm.horizontalAdvance(item.text()) + 24)
-                    
-        # Apply limits (between 35 and 600)
-        max_w = max(35, min(max_w, 600))
-        
-        # Set the column width
-        self.table_glyphs.setColumnWidth(col, max_w)

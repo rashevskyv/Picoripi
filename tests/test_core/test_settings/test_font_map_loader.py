@@ -223,9 +223,11 @@ def test_the_plugin_font_scan_reads_the_archives_off_the_ui_thread(qtbot, tmp_pa
 def test_a_descriptor_result_of_an_older_load_is_dropped(monkeypatch):
     applied = []
     loader = FontMapLoader(SimpleNamespace(all_font_maps={}, all_bfn_fonts={}))
-    monkeypatch.setattr(loader, "_apply_preview_fonts", lambda descriptors, metadata: applied.append(descriptors))
+    monkeypatch.setattr(loader, "_apply_preview_fonts", lambda prepared: applied.append(prepared))
     loader._preview_generation = 2
-    loader._preview_scan_done([{"preview": True, "label": "old"}], "", 1)
+    prepared_old = [("old.json", {}, None)]
+    prepared_cur = [("current.json", {}, None)]
+    loader._preview_scan_done(prepared_old, "", 1)
     assert applied == []
-    loader._preview_scan_done([{"preview": True, "label": "current"}], "", 2)
-    assert applied == [[{"preview": True, "label": "current"}]]
+    loader._preview_scan_done(prepared_cur, "", 2)
+    assert applied == [prepared_cur]

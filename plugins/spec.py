@@ -194,6 +194,8 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
         Hook("get_reference_language_label", "Label of the reference tab.", call=(), returns=str),
         Hook("load_reference_patch", "Read a reference translation: (block, string) -> text."),
         Hook("load_multi_reference", "Read reference translations in several languages."),
+        Hook("default_reference_path", "Optional automatic reference source when no path was configured. Return "
+             "metadata only without disk access; discovery uses the reference worker.", call=(), returns=str, optional=True),
         Hook("reference_worker_rules", "Returns (rules, window) for a reference parse on a worker thread, built on "
              "the window's thread. rules answers the parse and must not read the window's widgets or state that changes: "
              "a copy with the window state it needs, taken now. window is a copy with its own tag mapping that the parse "

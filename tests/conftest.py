@@ -46,6 +46,8 @@ class MockMainWindow(MagicMock):
         # busy loading or setting text programmatically.
         self.is_loading_data = False
         self.is_programmatically_changing_text = False
+        # No reference tabs have been synchronized when a window is created.
+        self._last_synced_ref_langs = None
 
     @property
     def editor_bound_row(self):

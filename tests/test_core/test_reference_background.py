@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 import romhacking_root
 from core.reference_manager import ReferenceManager
+from core.reference_manager import ReferenceLoadWorker
 from core.settings.plugin_settings import PluginSettings
 from plugins.base_game_rules import BaseGameRules
 from plugins.zelda_bmg.rules import GameRules as TwilightPrincessRules
@@ -185,3 +186,97 @@ def test_a_base_rules_subclass_that_overrides_the_hook_has_worker_rules():
             return self, None
 
     assert ReferenceManager.has_worker_rules(_OverridingRules()) is True
+
+
+def test_switching_to_no_reference_discards_an_inflight_result(qtbot, tmp_path):
+    entered, release = threading.Event(), threading.Event()
+
+    class WaitingRules(_WorkerRules):
+        def load_multi_reference(self, patch_path, block_names=None):
+            entered.set()
+            assert release.wait(5)
+            return {"German (DE)": {(0, 0): "Old project"}}
+
+        def reference_worker_rules(self):
+            return WaitingRules(_Window()), None
+
+    window = _Window()
+    window.reference_patch_path = str(tmp_path)
+    window.current_game_rules = WaitingRules(window)
+    settings = PluginSettings(window)
+    try:
+        settings.load_reference()
+        qtbot.waitUntil(entered.is_set)
+        window.reference_patch_path = None
+        window.current_game_rules = BaseGameRules()
+        settings.load_reference()
+        release.set()
+        qtbot.waitUntil(lambda: not settings._reference_busy)
+        assert window.data_store.reference_languages_data == {}
+        assert window.data_store.reference_data == {}
+        assert window.refreshed == 0
+    finally:
+        release.set()
+
+
+def test_cancelled_reference_worker_does_not_emit_a_result(qtbot, tmp_path):
+    entered, release = threading.Event(), threading.Event()
+
+    class WaitingRules(_SyncRules):
+        def load_multi_reference(self, patch_path, block_names=None):
+            entered.set()
+            assert release.wait(5)
+            return {"German (DE)": {(0, 0): "Cancelled"}}
+
+    worker = ReferenceLoadWorker(str(tmp_path), None, WaitingRules())
+    results = []
+    worker.loaded.connect(results.append)
+    worker.start()
+    try:
+        qtbot.waitUntil(entered.is_set)
+        worker.requestInterruption()
+        with qtbot.waitSignal(worker.finished):
+            release.set()
+        assert results == []
+    finally:
+        release.set()
+        assert worker.wait(5000)
+
+
+def test_destroyed_owner_cancels_reference_without_callback(qtbot, tmp_path, monkeypatch):
+    from PyQt6 import sip
+    from PyQt6.QtCore import QObject
+    import core.reference_manager as reference_module
+
+    entered, release = threading.Event(), threading.Event()
+    workers = []
+
+    class WaitingRules(_SyncRules):
+        def load_multi_reference(self, patch_path, block_names=None):
+            entered.set()
+            assert release.wait(5)
+            return {"German (DE)": {(0, 0): "Closed"}}
+
+        def reference_worker_rules(self):
+            return WaitingRules(), None
+
+    def make_worker(*args):
+        worker = ReferenceLoadWorker(*args)
+        workers.append(worker)
+        return worker
+
+    monkeypatch.setattr(reference_module, "ReferenceLoadWorker", make_worker)
+    owner = QObject()
+    results = []
+    assert ReferenceManager.load_in_background(tmp_path, None, WaitingRules(), owner, results.append)
+    try:
+        qtbot.waitUntil(entered.is_set)
+        owner.deleteLater()
+        qtbot.waitUntil(lambda: sip.isdeleted(owner))
+        with qtbot.waitSignal(workers[0].finished):
+            release.set()
+        assert results == []
+    finally:
+        release.set()
+        if not sip.isdeleted(workers[0]):
+            assert workers[0].wait(5000)

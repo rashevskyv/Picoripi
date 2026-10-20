@@ -6,7 +6,8 @@
       "fnt/ft_nrm.xf",
       "../romfs/fnt/ft_nrm.xf"
     ],
-    "font_map": "ft_nrm.json"
+    "font_map": "ft_nrm.json",
+    "preview": true
   },
   {
     "label": "Small text font (ft_sml)",

@@ -10,10 +10,10 @@ whose widths are the game executable's table also writes them as an exefs patch 
 import copy
 import json
 import os
-import shutil
 import tempfile
 import time
 import weakref
+from threading import Event
 
 from PIL import Image
 from PyQt6 import QtCore, QtGui, QtWidgets
@@ -31,9 +31,7 @@ from utils.thread_utils import WorkerThread
 class FontJob(WorkerThread):
     """Runs one font job off the UI thread and reports ``(result, error)``.
 
-    ponytail: not cancellable -- a job takes seconds at most (an N64 save re-compresses ``code``) and a
-    save should finish; WorkerThread keeps it alive past the window. Add interruption checks if a
-    format ever needs minutes.
+    Read jobs check their request's cancellation event between decoding phases. Saves finish in order.
     """
 
     done = QtCore.pyqtSignal(object, str)
@@ -41,6 +39,7 @@ class FontJob(WorkerThread):
     def __init__(self, work):
         super().__init__()
         self._work = work
+        self.completed = Event()
 
     def run(self):
         try:
@@ -48,7 +47,26 @@ class FontJob(WorkerThread):
         except Exception as exc:  # reported to the user by the window
             log_error(f"Font editor job failed: {exc}", exc_info=True)
             result, error = None, str(exc)
+        self.completed.set()
         self.done.emit(result, error)
+
+
+class ClosingFontJobs(WorkerThread):
+    """Finish queued writes in order after the window closes, without calling any UI callbacks."""
+
+    def __init__(self, previous, works):
+        super().__init__()
+        self._previous = previous
+        self._works = works
+
+    def run(self):
+        if self._previous is not None:
+            self._previous.wait()
+        for work in self._works:
+            try:
+                work()
+            except Exception as exc:
+                log_error(f"Font editor job failed after closing: {exc}", exc_info=True)
 
 
 def qimage_to_pil(image: QtGui.QImage) -> Image.Image:
@@ -120,8 +138,23 @@ class IoFormatMixin:
 
     # -- jobs ------------------------------------------------------------------
 
+    def _setup_font_status(self):
+        self.status = self.statusBar()
+        self._font_progress = QtWidgets.QProgressBar(self)
+        self._font_progress.setRange(0, 0)
+        self._font_progress.setMaximumWidth(160)
+        self._font_progress.hide()
+        self.status.addPermanentWidget(self._font_progress)
+        self._font_cancel_button = QtWidgets.QPushButton(tr("Cancel loading"), self)
+        self._font_cancel_button.clicked.connect(self.cancel_font_load)
+        self._font_cancel_button.hide()
+        self.status.addPermanentWidget(self._font_cancel_button)
+        self.status.showMessage(tr('Ready. Open a BFN file or extracted folder.'))
+
     def run_font_job(self, work, on_done):
         """Run ``work()`` off the UI thread, then ``on_done(result, error)`` on it; jobs queue up."""
+        if getattr(self, "_font_closed", False):
+            return
         if app_mode.headless:
             try:
                 result, error = work(), ""
@@ -144,11 +177,57 @@ class IoFormatMixin:
         self._font_job.start()
 
     def _on_font_job_done(self, result, error):
-        callback, self._font_job = self._font_job_done, None
+        callback = self._font_job_done
         try:
             callback(result, error)
         finally:
+            self._font_job = None
             self._start_next_font_job()
+
+    def _begin_font_load(self, name):
+        previous = getattr(self, "_font_load_cancel", None)
+        if previous is not None:
+            previous.set()
+        cancel = Event()
+        self._font_load_cancel = cancel
+        self._glyph_table_generation = getattr(self, "_glyph_table_generation", 0) + 1
+        self._font_closed = False
+        self._set_font_loading(True)
+        self.status.showMessage(tr("Loading font: {0}...", name))
+        return cancel
+
+    def _set_font_loading(self, loading):
+        self._font_loading = loading
+        self._font_progress.setVisible(loading)
+        self._font_cancel_button.setVisible(loading)
+        self.table_glyphs.setEnabled(not loading)
+        self.table_search.setEnabled(not loading)
+
+    def cancel_font_load(self):
+        cancel = getattr(self, "_font_load_cancel", None)
+        if cancel is not None:
+            cancel.set()
+        self._glyph_table_generation = getattr(self, "_glyph_table_generation", 0) + 1
+        self._set_font_loading(False)
+        if getattr(self, "_glyph_table_populating", False):
+            self._glyph_table_populating = False
+            self.table_glyphs.clearContents()
+            self.table_glyphs.setRowCount(0)
+            self.table_glyphs.setEnabled(False)
+            self.table_search.setEnabled(False)
+        self.status.showMessage(tr("Font loading cancelled."))
+
+    def finish_font_jobs_on_close(self):
+        from utils.thread_utils import safe_shutdown_thread
+        self._font_closed = True
+        self.cancel_font_load()
+        queued = [work for work, _callback in self._font_job_queue]
+        self._font_job_queue.clear()
+        current = self._font_job
+        if queued:
+            ClosingFontJobs(current.completed if current is not None else None, queued).start()
+        safe_shutdown_thread(current, None, 0)
+        self._font_job = None
 
     # -- the plugin's font sources -----------------------------------------------
 
@@ -194,12 +273,19 @@ class IoFormatMixin:
 
     def load_font_source(self, source):
         """Open a font a plugin described: read the current and the original version in a job."""
-        self.status.showMessage(tr("Loading font: {0}...", source.label))
+        cancel = self._begin_font_load(source.label)
 
         state_path = self._sync_state_path()
 
         def work():
-            current, original = source.read_current(), source.read_original()
+            if cancel.is_set():
+                return None
+            current = source.read_current()
+            if cancel.is_set():
+                return None
+            original = source.read_original()
+            if cancel.is_set():
+                return None
             candidate, loaded = None, None
             if source.format == "bfn" and state_path and os.path.isfile(state_path):
                 state = glyph_sync.load_state(state_path)
@@ -220,9 +306,12 @@ class IoFormatMixin:
             return current, original, candidate, loaded
 
         def done(result, error):
+            if cancel.is_set() or getattr(self, "_font_closed", False):
+                return
             if error:
                 QtWidgets.QMessageBox.critical(self, tr('Error'), tr('Failed to open font: {0}', error))
                 self.status.showMessage(tr("Failed to load font."))
+                self._set_font_loading(False)
                 return
             current, original, candidate, loaded = result
             self._sync_loaded = loaded
@@ -240,7 +329,8 @@ class IoFormatMixin:
                 self.load_bfn_bytes(current, source.name)
                 self.font_source = source       # load_bfn_bytes starts a new font
                 return
-            self.load_formatted_bytes(current, source.name, source.format, source.params, original=original)
+            self.load_formatted_bytes(current, source.name, source.format, source.params, original=original,
+                                      cancel=cancel)
 
         self.run_font_job(work, done)
 
@@ -343,15 +433,18 @@ class IoFormatMixin:
 
     # -- loading and saving other formats ------------------------------------------
 
-    def load_formatted_bytes(self, data, name, fmt, params, original=None, write_path=""):
+    def load_formatted_bytes(self, data, name, fmt, params, original=None, write_path="", cancel=None):
         """Open a font of another format than BFN from its bytes."""
-        self.status.showMessage(tr("Loading font: {0}...", name))
-        temp_dir = tempfile.mkdtemp(prefix="bfn_viewer_")
+        cancel = cancel or self._begin_font_load(name)
         saved_map_path = self.project_font_map_path() if fmt == "g1t" else None
         source = self.font_source
 
         def work():
+            if cancel.is_set():
+                return None
             metadata, sheets = font_formats.extract(fmt, data, params)
+            if cancel.is_set():
+                return None
             patch = b""
             if source is not None and source.widths_patches:        # the widths are the executable's table
                 for path, address in source.widths_patches.items():  # one patch per game build, all alike
@@ -362,27 +455,36 @@ class IoFormatMixin:
             elif saved_map_path and os.path.isfile(saved_map_path):
                 with open(saved_map_path, encoding="utf-8") as stream:
                     apply_saved_widths(metadata, json.load(stream))
-            font_formats.write_folder(temp_dir, metadata, sheets)
+            prepared = metadata, [pil_to_qimage(sheet) for sheet in sheets]
+            original_model = None
             if original is not None and (original != data or patch):
-                return font_formats.extract(fmt, original, params)
-            return None
+                original_metadata, original_sheets = font_formats.extract(fmt, original, params)
+                original_model = original_metadata, [pil_to_qimage(sheet) for sheet in original_sheets]
+            if cancel.is_set():
+                return None
+            return prepared, original_model
 
-        def done(original_model, error):
+        def done(result, error):
+            if cancel.is_set() or getattr(self, "_font_closed", False):
+                return
             if error:
-                shutil.rmtree(temp_dir, ignore_errors=True)
                 QtWidgets.QMessageBox.critical(self, tr('Error'), tr('Failed to open font: {0}', error))
                 self.status.showMessage(tr("Failed to load font."))
+                self._set_font_loading(False)
                 return
+            prepared, original_model = result
             self.clear_temp()
-            self.temp_dir = temp_dir
+            self.temp_dir = tempfile.mkdtemp(prefix="bfn_viewer_")
             self.font_format, self.font_params, self.font_original = fmt, dict(params or {}), bytes(data)
             self.font_source, self.font_write_path = source, write_path
-            self.bfn_path = os.path.join(temp_dir, os.path.basename(name) or "font")
+            self.bfn_path = os.path.join(self.temp_dir, os.path.basename(name) or "font")
             self.folder_path = ''
             if original_model is not None:
                 self.original_font_metadata = original_model[0]
-                self.original_sheet_images = [pil_to_qimage(sheet) for sheet in original_model[1]]
-            self.load_from_extracted_dir(temp_dir)
+                self.original_sheet_images = original_model[1]
+            else:
+                self.original_font_metadata, self.original_sheet_images = None, []
+            self.load_from_extracted_dir(self.temp_dir, prepared=prepared)
             if not self.metadata.get("header", {}).get("textures_editable", True):
                 self.status.showMessage(tr("Loaded {0}: this texture format is shown empty; widths can be edited.", name))
             else:

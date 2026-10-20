@@ -341,6 +341,7 @@ class LayoutBuilder:
         ref_label = ReferenceManager.get_reference_language_label(getattr(self.mw, 'current_game_rules', None))
         self.mw.source_tab_widget.addTab(self.mw.original_text_edit, tr('Original (EN)'))
         self.mw.source_tab_widget.addTab(self.mw.reference_text_edit, tr(ref_label))
+        self.mw.source_tab_widget.setTabVisible(1, False)
 
         bottom_left_layout.addWidget(self.mw.source_tab_widget)
         self.mw.bottom_right_splitter.addWidget(bottom_left_panel)

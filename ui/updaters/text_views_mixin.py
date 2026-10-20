@@ -156,9 +156,12 @@ class TextViewsMixin:
                     primary_name = "Russian (RU)" if "Russian (RU)" in ref_langs else (next(iter(ref_langs.keys())) if ref_langs else "Russian (RU)")
                     self.mw.reference_text_edits[primary_name] = self.mw.reference_text_edit
 
-            current_keys = list(ref_langs.keys())
+            b_idx = self.mw.data_store.physical_block_idx
+            s_idx = self.mw.data_store.current_string_idx
+            current_keys = [name for name, rows in ref_langs.items()
+                            if str(rows.get((b_idx, s_idx), "") or "").strip()]
             if getattr(self.mw, '_last_synced_ref_langs', None) != current_keys:
-                saved_idx = source_tabs.currentIndex()
+                selected = source_tabs.tabText(source_tabs.currentIndex())
                 while source_tabs.count() > 1:
                     source_tabs.removeTab(1)
                 for lang_name in current_keys:
@@ -170,13 +173,16 @@ class TextViewsMixin:
                         widget.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard)
                         self.mw.reference_text_edits[lang_name] = widget
                     source_tabs.addTab(widget, tr(lang_name))
+                    source_tabs.setTabVisible(source_tabs.count() - 1, True)
                 if "Russian (RU)" in self.mw.reference_text_edits:
                     self.mw.reference_text_edit = self.mw.reference_text_edits["Russian (RU)"]
                 elif current_keys:
                     self.mw.reference_text_edit = self.mw.reference_text_edits[current_keys[0]]
                 self.mw._last_synced_ref_langs = current_keys
-                if saved_idx >= 0 and saved_idx < source_tabs.count():
-                    source_tabs.setCurrentIndex(saved_idx)
+                for index in range(source_tabs.count()):
+                    if source_tabs.tabText(index) == selected:
+                        source_tabs.setCurrentIndex(index)
+                        break
 
             b_idx = self.mw.data_store.physical_block_idx
             s_idx = self.mw.data_store.current_string_idx
@@ -197,6 +203,11 @@ class TextViewsMixin:
                         c.setPosition(min(c_pos, len(t_disp)))
                     widget.setTextCursor(c)
         else:
+            if source_tabs and getattr(self.mw, '_last_synced_ref_langs', None) is not None:
+                while source_tabs.count() > 1:
+                    source_tabs.removeTab(1)
+                self.mw._last_synced_ref_langs = None
+                source_tabs.addTab(self.mw.reference_text_edit, tr("Reference"))
             ref_edit = getattr(self.mw, 'reference_text_edit', None)
             if ref_edit:
                 ref_text_raw = ""
@@ -227,6 +238,8 @@ class TextViewsMixin:
                         expected_tab_text = tr(ref_label)
                         if source_tabs.tabText(1) != expected_tab_text:
                             source_tabs.setTabText(1, expected_tab_text)
+                        source_tabs.setTabVisible(
+                            1, bool(str(ref_text_raw or "").strip()))
 
         edited_widget = self.mw.edited_text_edit
         if edited_widget:

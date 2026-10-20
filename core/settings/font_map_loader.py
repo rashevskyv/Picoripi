@@ -13,19 +13,52 @@ def _scan_preview_fonts(getter) -> list:
     return [d for d in getter() or [] if isinstance(d, dict) and d.get("preview")]
 
 
+def _prepare_preview_fonts(descriptors: list, project_metadata: Dict[str, Any]) -> list:
+    """Read preview fonts off the UI thread: extract metadata, build font maps, and cache QImages."""
+    from core import font_formats
+    from core.bfn_core import BfnCore
+    from core.font_formats.sources import resolve
+    from PyQt6.QtGui import QImage
+
+    def pil_to_qimage(image):
+        rgba = image.convert("RGBA")
+        return QImage(rgba.tobytes(), rgba.width, rgba.height, rgba.width * 4, QImage.Format.Format_RGBA8888).copy()
+
+    prepared = []
+    for source in resolve(descriptors, project_metadata):
+        try:
+            raw_bytes = source.read_current()
+            metadata, sheets = font_formats.extract(source.format, raw_bytes, source.params)
+        except (OSError, ValueError, KeyError, IndexError) as exc:
+            log_warning(f"Preview font {source.label}: {exc}")
+            continue
+        name = source.font_map or f"{Path(source.name).stem}.json"
+        font_map = font_formats.font_map(metadata)
+        font = BfnCore()
+        font.metadata = metadata
+        font.gly1, font.map1 = metadata.get("GLY1", []), metadata.get("MAP1", [])
+        font.wid1, font.inf1 = metadata.get("WID1", []), metadata.get("INF1", [])
+        font._qimages_cache = [pil_to_qimage(sheet) for sheet in sheets]
+        prepared.append((name, font_map, font))
+    return prepared
+
+
 class _PreviewScan(WorkerThread):
-    """Asks the plugin for its font descriptors off the UI thread (a Gen V scan reads the game's archives)."""
+    """Scans and prepares preview fonts off the UI thread (archive reading, decoding and QImage construction)."""
 
-    done = QtCore.pyqtSignal(object, str, int)  # descriptors, error, generation
+    done = QtCore.pyqtSignal(object, str, int)  # prepared_fonts, error, generation
 
-    def __init__(self, getter, generation: int):
+    def __init__(self, getter, project_metadata: Dict[str, Any], generation: int):
         super().__init__()
         self._getter = getter
+        self._project_metadata = dict(project_metadata or {})
         self._generation = generation
 
     def run(self):
         try:
-            self.done.emit(_scan_preview_fonts(self._getter), "", self._generation)
+            descriptors = _scan_preview_fonts(self._getter)
+            prepared = _prepare_preview_fonts(descriptors, self._project_metadata)
+            self.done.emit(prepared, "", self._generation)
         except Exception as exc:
             self.done.emit([], str(exc), self._generation)
 
@@ -296,68 +329,75 @@ class FontMapLoader:
         project = getattr(pm, 'project', None) if pm else None
         if not callable(getter) or project is None:
             return
-        # The plugin's descriptors come from a worker: a scan reads the game's archives, which is slow on the UI thread.
+        # Background worker prepares the preview fonts off the UI thread to keep the interface responsive.
         self._preview_generation += 1
         self._preview_metadata = dict(getattr(project, 'metadata', {}) or {})
         if app_mode.headless:
             # No event loop here: the scan runs in place, and load_all_font_maps refreshes the rest afterwards.
             try:
                 descriptors = _scan_preview_fonts(getter)
+                prepared = _prepare_preview_fonts(descriptors, self._preview_metadata)
             except Exception as exc:
                 log_warning(f"Font sources of the plugin: {exc}")
                 return
-            if descriptors:
-                self._apply_preview_fonts(descriptors, self._preview_metadata)
+            if prepared:
+                self._apply_preview_fonts(prepared)
             return
         if self._receiver is None:
             self._receiver = _PreviewReceiver(self)
-        job = _PreviewScan(getter, self._preview_generation)
+        status_bar = getattr(self.mw, 'statusBar', None)
+        if callable(status_bar):
+            sb = status_bar()
+            if sb and hasattr(sb, 'showMessage'):
+                from core.i18n import tr
+                sb.showMessage(tr("Loading preview fonts..."))
+        job = _PreviewScan(getter, self._preview_metadata, self._preview_generation)
         job.done.connect(self._receiver.on_done)
         self._preview_job = job
         job.start()
 
-    def _preview_scan_done(self, descriptors: list, error: str, generation: int) -> None:
-        """The plugin's descriptors arrived (on the UI thread). A result of an older load is dropped."""
+    def _preview_scan_done(self, prepared: list, error: str, generation: int) -> None:
+        """The prepared preview fonts arrived (on the UI thread). A result of an older load or closed project is dropped."""
         if generation != self._preview_generation:
             return
         self._preview_job = None
+        status_bar = getattr(self.mw, 'statusBar', None)
+        if callable(status_bar):
+            sb = status_bar()
+            if sb and hasattr(sb, 'clearMessage'):
+                sb.clearMessage()
         if error:
             log_warning(f"Font sources of the plugin: {error}")
+            if callable(status_bar):
+                sb = status_bar()
+                if sb and hasattr(sb, 'showMessage'):
+                    from core.i18n import tr
+                    sb.showMessage(tr("Failed to load preview fonts: {error}").replace("{error}", str(error)), 5000)
             return
-        if not descriptors:
+        # If the project was closed while the worker was running, ignore the results.
+        pm = getattr(self.mw, 'project_manager', None)
+        if pm is not None and getattr(pm, 'project', None) is None:
             return
-        self._apply_preview_fonts(descriptors, self._preview_metadata)
+        if not prepared:
+            return
+        self._apply_preview_fonts(prepared)
         # Same tail as load_all_font_maps: the preview fonts can change the icon cache and the preview.
         self.update_icon_sequences_cache()
         self.refresh_icon_highlighting()
         if hasattr(self.mw, 'ui_updater') and hasattr(self.mw.ui_updater, 'update_preview_visibility'):
             self.mw.ui_updater.update_preview_visibility()
 
-    def _apply_preview_fonts(self, descriptors: list, project_metadata: Dict[str, Any]) -> None:
-        """Read the preview fonts the descriptors name and put their width maps and glyphs into the maps."""
-        from core import font_formats
-        from core.bfn_core import BfnCore
-        from core.font_formats.sources import resolve
-        from PyQt6.QtGui import QImage
+    def _apply_preview_fonts(self, prepared: list) -> None:
+        """Apply prepared preview fonts into all_font_maps and all_bfn_fonts."""
+        for item in prepared or []:
+            if isinstance(item, tuple) and len(item) == 3:
+                name, font_map, font = item
+                self.mw.all_font_maps.setdefault(name, font_map)
+                self.mw.all_bfn_fonts[name] = font
 
-        def pil_to_qimage(image):
-            rgba = image.convert("RGBA")
-            return QImage(rgba.tobytes(), rgba.width, rgba.height, rgba.width * 4, QImage.Format.Format_RGBA8888).copy()
-
-        for source in resolve(descriptors, project_metadata):
-            try:
-                metadata, sheets = font_formats.extract(source.format, source.read_current(), source.params)
-            except (OSError, ValueError, KeyError, IndexError) as exc:
-                log_warning(f"Preview font {source.label}: {exc}")
-                continue
-            name = source.font_map or f"{Path(source.name).stem}.json"
-            self.mw.all_font_maps.setdefault(name, font_formats.font_map(metadata))
-            font = BfnCore()
-            font.metadata = metadata
-            font.gly1, font.map1 = metadata.get("GLY1", []), metadata.get("MAP1", [])
-            font.wid1, font.inf1 = metadata.get("WID1", []), metadata.get("INF1", [])
-            font._qimages_cache = [pil_to_qimage(sheet) for sheet in sheets]
-            self.mw.all_bfn_fonts[name] = font
+        if not getattr(self.mw, "font_map", None) and self.mw.all_font_maps:
+            first_font = next(iter(self.mw.all_font_maps))
+            self.mw.font_map = self.mw.all_font_maps[first_font]
 
     def _parse_new_font_format(self, font_data: Dict[str, Any]) -> Dict[str, Dict[str, int]]:
         """Parses the new font format and returns a font_map."""

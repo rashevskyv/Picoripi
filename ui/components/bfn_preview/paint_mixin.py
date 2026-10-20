@@ -496,8 +496,10 @@ class BfnPreviewPaintMixin:
                 layout_line_spacing = game_line_space * cell_h / game_font_y - leading
                 layout_char_spacing = game_char_space * cell_h / game_font_y
 
+        row_token = self._current_string_token() if hasattr(self, "_current_string_token") else None
         layout_key = (
             self.text,
+            row_token,
             self._preview_page,
             id(bfn),
             id(self.translation_map) if self.translation_map else 0,

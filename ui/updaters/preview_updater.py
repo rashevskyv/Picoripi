@@ -2,6 +2,7 @@
 from typing import Optional, Any
 from collections import OrderedDict
 from PyQt6.QtCore import QTimer
+from core.i18n import tr
 from ui.components.custom_preview import custom_preview_of
 from core.glossary_manager import GlossaryOccurrence
 from .base_ui_updater import BaseUIUpdater
@@ -580,10 +581,16 @@ class PreviewUpdater(TextViewsMixin, BaseUIUpdater):
             if toggle_action:
                 toggle_action.setEnabled(False)
                 toggle_action.setChecked(False)
+                toggle_action.setToolTip(
+                    tr("Text preview is unavailable: game fonts could not be loaded for the active project.")
+                )
         else:
             if toggle_action:
                 toggle_action.setEnabled(True)
                 toggle_action.setChecked(True)
+                toggle_action.setToolTip(
+                    tr('<b>Preview</b><br>Click — show or hide the visual in-game text preview under the editor (Ctrl+Shift+P). Checked means visible.')
+                )
             activate_preview = getattr(preview_widget, 'activate_preview', None)
             if callable(activate_preview):
                 activate_preview()

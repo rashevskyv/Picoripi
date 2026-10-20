@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: feature inventory
-tokens: 14.7k
+tokens: 14.8k
 purpose: Every feature in detail; the wiki wins on a conflict
 ---
 # Picoripi features
@@ -46,7 +46,8 @@ page and a wiki page disagree, the wiki page is right and this page needs the fi
   - **Single Patch, Unpacked ROM & ISO Image Support**: Supports loading an external reference translation patch, an unpacked multi-language ROM directory, or a GameCube/Wii `.iso` disc image directly (`Settings -> Project -> File Paths -> Reference Translation / ROM Path`). If an `.iso` file is selected, Picoripi automatically locates `wit.exe` and extracts the message files into an extracted folder.
   - **Deep Recursive Directory Scanning**: Searches recursively for language directories (`**/Msg*` and `**/msg*`), discovering nested PAL localization folders without requiring users to navigate into internal game directory structures.
   - **Intelligent Region & Language Mapping**: In European PAL dumps (e.g. Twilight Princess), game dialogue resides in language-specific directories (`Msguk`/`Msgen`/`Msgus`/`Msge`, `Msgde`, `Msgfr`, `Msgit`, `Msgsp`). When a community Russian patch was applied, Russian replaced English in the UK English folder (`Msguk`) and is decoded with single-byte `cp1251` under the label **`Russian (RU)`**. Native Nintendo European localizations are concurrently loaded with `cp1252` as **`German (DE)`**, **`French (FR)`**, **`Italian (IT)`**, and **`Spanish (ES)`**.
-  - **Dynamic Multi-Language Source Tabs**: Replaces the fixed source panel with dynamically generated read-only editor tabs (`Original (EN)`, `Russian (RU)`, `German (DE)`, `French (FR)`, `Italian (IT)`, `Spanish (ES)`). All tabs share synchronized line navigation and cursor tracking while preserving active tab choice across block changes.
+  - **Dynamic Multi-Language Source Tabs**: Read-only reference tabs appear only for languages with nonblank text in the selected row. The selected language stays active when available. Yo-kai Watch automatically reads matching languages from existing loose tables or workspace `romfs/*.fa` ARC0 archives on a worker; partial localizations and existing fan references are supported without modifying game files.
+  - **Yo-kai Watch Message Window Preview & Cross-Platform Reuse**: Renders in-game message windows using extracted Level-5 XF font glyphs, layout metrics, control-code colors (`{CR}`, `{CG}`, `{CY}`, `{CN}`) and `{PAGE}` breaks; cross-platform translation reuse between 3DS and Switch preserves context, speaker identity, and window layout bounds.
   - **Context-Aware Text Copying**: Clicking the revert arrow (`→`) while the first reference tab is active copies that reference text into the target translation editor; on any other tab it reverts the string to the original.
   - **Multi-Language Context for AI Translations**: Reference translations from all loaded languages are automatically structured and injected into AI translation prompts (`handlers/translation/prompt_composer/`), giving LLMs explicit guidance on grammatical gender, formal/informal address forms (e.g., German *du/Sie*, French *tu/vous*), and character tone across European releases. The translator always translates from the original source text and treats reference translations strictly as contextual evidence, with an explicit rule against translating from or copying a reference language as the target result.
   - **Glossary Variants Extraction**: Multi-pass reference variant extraction (`tools/extract_ru_glossary_variants.py`) matches reference dialogue strings with glossary terms (exact standalone, tagged/colored spans, character frequencies, and multi-word phrases) and enriches `glossary.json` `translation_variants` with `rationale="RU патч v2.0"`.
@@ -221,6 +222,7 @@ page and a wiki page disagree, the wiki page is right and this page needs the fi
 
 
 ## Nintendo Binary Font (BFN) Editor
+- **Responsive font loading**: Project font reads and formatted decodes run in a serial worker queue. A loading indicator appears immediately, with cancellation and glyph-table progress. Large tables fill in bounded UI batches, and character maps are indexed once. Switching fonts discards obsolete load results; closing suppresses callbacks while queued writes finish.
 - **Integrated Visual Suite**: Opens, edits, and recompiles `.bfn` fonts embedded within U8/RARC archives.
 - **Every game's font**: The same editor opens the N64 Zelda message font inside the ROM, Hyrule Warriors G1T atlases and Switch BFFNT fonts (`core/font_formats/`). The fonts a plugin names (`get_font_sources`) are listed in the tree for the open project; saving writes the translation copy and `<project>/font_maps/` for the width checks.
 - **Texture Sheet Operations**: Exports/imports sheet PNGs with alpha transparency.

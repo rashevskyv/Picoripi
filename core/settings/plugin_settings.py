@@ -4,6 +4,7 @@ import ast
 import json
 import os
 from pathlib import Path
+from plugins.base_game_rules import BaseGameRules
 from typing import Dict, Optional, Any
 from utils.logging_utils import log_debug, log_info, log_error, log_warning
 from utils.constants import (
@@ -215,11 +216,19 @@ class PluginSettings:
         ``force`` reads again even when the request is the last one: the plugin's state changed since (a 3DS manual
         reference is read from the manuals the plugin holds)."""
         ref_path = getattr(self.mw, "reference_patch_path", None)
-        if not ref_path or not hasattr(self.mw, "data_store"):
+        if not hasattr(self.mw, "data_store"):
             return
         try:
             from core.reference_manager import ReferenceManager
             game_rules = getattr(self.mw, "current_game_rules", None)
+            if not ref_path and isinstance(game_rules, BaseGameRules):
+                ref_path = game_rules.default_reference_path()
+            if not ref_path:
+                self._reference_latest = None
+                self._reference_wanted = None
+                self._reference_request, self._reference_result = None, None
+                self._apply_reference({})
+                return
             # Opening a project reads the settings more than once; parsing the reference
             # archives takes seconds, so the same request reuses the last result.
             request = (ref_path, game_rules, repr(self.mw.data_store.block_names))

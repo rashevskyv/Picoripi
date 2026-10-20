@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional, Dict, List, Any, Tuple, Callable
 
 from core.i18n import tr
-from core.translation.layout_contract import text_fits_place
+from core.translation.layout_contract import text_fits_place, place_fit_problems
 from core.translation.memory_context import same_context
 from core.translation.run_memory import normalize_source
 from core.translation.series_memory import source_hash as _source_hash
@@ -239,6 +239,8 @@ class SavedTranslationsManager:
                 reasons.append(tr("The text is too long for this window."))
             elif compare_tags(translation, source)[0] != TAG_STATUS_OK:
                 reasons.append(tr("The tags do not match this text."))
+            elif "UNVERIFIED_LAYOUT" in place_fit_problems(getattr(self.mw, "current_game_rules", None), block_idx, string_idx, translation):
+                reasons.append(tr("The window layout is unverified for this game."))
             found.append({
                 "translation": translation,
                 "project": str(row.get("project") or ""),

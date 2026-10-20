@@ -132,7 +132,7 @@ def test_yokai_watch_2_hero_by_file_and_the_russian_reference(tmp_path):
     pm = SimpleNamespace(project=SimpleNamespace(blocks=[block], metadata={"source_path": str(source)}),
                          get_absolute_path=lambda rel_path: str(source / rel_path))
     rules = load_rules("yokai_watch", SimpleNamespace(project_manager=pm, block_to_project_file_map={0: 0}))
-    assert rules.supports_reference_patch() and rules.get_reference_language_label() == "Russian (RU)"
+    assert rules.supports_reference_patch() and rules.get_reference_language_label() == "Reference"
     assert rules.load_multi_reference(str(reference), {"0": "ev01_0010_f_engb.cfg"}) == {"Russian (RU)": {(0, 1): "Пока."}}
     assert rules.get_texture_sources()[0]["path"] == "data/menu/title_*_engb.xa"
     assert rules.get_font_sources()[0]["font_map"] == "yw2_ft_nrm.json"
