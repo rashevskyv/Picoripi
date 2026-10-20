@@ -1124,7 +1124,9 @@ class BaseGameRules:
 
         ``sources`` maps a role id to a file path; a role may be missing. Call ``progress(percent, text)``
         while working. When ``is_cancelled()`` is true, stop and return None. Return None without writing
-        anything when the files need no unpacking: the host then uses them as they are. Default: None.
+        anything when the files need no unpacking: the host then uses them as they are. A game image (a disc or
+        cartridge image the host recognises) is used as it is only when ``get_file_formats`` claims its extension;
+        otherwise the host refuses it and asks for an extracted folder. Default: None.
         """
         return None
 
