@@ -437,6 +437,7 @@ def test_move_and_delete_folder_skip_a_missing_project_file(tmp_path: Path) -> N
     assert GROUP_METADATA_KEY not in json.loads(present.read_text(encoding="utf-8"))["metadata"]
 
     reg.remove(str(missing))
+    reg.create_folder("Imported", glossary_path=str(glossary))
     _op_import(reg, [{"project_file": str(missing), "series": "Imported"}])
     assert any(p["path"] == str(missing) for p in reg.document["projects"])
 
