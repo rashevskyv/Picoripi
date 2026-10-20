@@ -704,6 +704,20 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 - Text in textures (HUD sheet in `SYSTEM.DAT`, title menu, GIM cards, DIS screens, help pictures) is not
   edited by the plugin: catalogued in `ZELDA\_textures\drafts\vagrant_story.json`.
 - No speaker data: a balloon points at a character on screen; scene context gives area and room only.
+- Preview: the BFN preview does not draw Vagrant Story balloons or menus. The limits are real for dialogue
+  (decomp `BATTLE/BATTLE.PRG/5BF94.c`: width = chars x 12 + 10, height = lines x 13 + 4, text at +5,+3, line step
+  13, explicit line breaks, no automatic wrap); a game-like preview widget is not built.
+- Menus, item and monster text, help pages and room names: the limit is the widest English line of the table
+  (regular font), not the window's size. The menu windows of `MENU\*.PRG` are not read yet.
+- Fit checks in the editor: `VGS_LINES_EXCEEDED` (dialogue page above its balloon, `{page}` resets) and
+  `VGS_BYTES_EXCEEDED` (in-place name or staff-roll line above its place); refused in repeated and memory
+  translations. Table text has no byte budget check here.
+- Staff roll: the English credits draw 65 byte values. 48 cells in 0x20-0x8F are never drawn (not "no free cell").
+  46 letters need cells (Ukrainian without a Latin look-alike, both cases, Ї and ї, У): `credits_map.json` gives
+  39 non-digit bytes and 7 digit bytes (1, 3-8); spare 9 and q. Owner decision: keep the digits, or drop letters
+  (for example Ї, ї) or move the staff roll font. The credits font shows ASCII labels in the Font Editor: draw the
+  glyph in the cell named by `credits_map.json`.
+- Staff roll look-alikes (А В Е І К М Н О Р С Т Х, a e i o p c y x) keep their Latin cells and read back as Latin.
 ## Metal Gear Solid, PlayStation (2026-10-07)
 
 - The font `font.res` has only the 96 ASCII glyphs (no free cell): no Ukrainian letter yet. The game draws codes

@@ -6,12 +6,15 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from plugins.base_game_rules import BaseGameRules
+from plugins.common.problem_analyzer import GenericProblemAnalyzer
+from plugins.common.problem_rules import ProblemRule
+from plugins.common.problem_rules.models import FixResult, ProblemMatch
 from utils.logging_utils import log_debug, log_warning
 from utils.utils import clean_spaces
 
 from . import codec, formats, russian
 from . import doc as docs
-from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
+from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_BYTES, PROBLEM_DEFINITIONS, PROBLEM_LINES
 from .tag_manager import TagManager
 
 _PLUGIN_DIR = Path(__file__).resolve().parent
@@ -42,6 +45,59 @@ _ROLES = {
 }
 
 
+def page_overflow(text: str, lines_per_page: int) -> List[int]:
+    """Sub-line indices of an editor text that do not fit a balloon's page. The game starts a new
+    page only at ``{page}`` (byte 0xE5, BATTLE.PRG 5BF94.c case 0); a line after a page start counts
+    from 1. ``{wait}`` (0xE6) keeps the text in the same box, so it does not start a page."""
+    over, count = [], 0
+    for index, line in enumerate(text.split("\n")):
+        if "{page}" in line:
+            count = 0
+        count += 1
+        if count > lines_per_page:
+            over.append(index)
+    return over
+
+
+class _FitRule(ProblemRule):
+    """A layout problem the plugin's fit test (``GameRules.overflow_lines`` / ``bytes_over``) reports
+    in the editor. The analyzer's game rules come from ``analyzer.game_rules``."""
+
+    def __init__(self, analyzer: Any, logical_id: str):
+        self._analyzer = analyzer
+        self._id = logical_id
+
+    @property
+    def id(self) -> str:
+        return self._id
+
+    def detect(self, context) -> List[ProblemMatch]:
+        game = getattr(self._analyzer, "game_rules", None)
+        if game is None or context.block_idx is None or context.string_idx is None:
+            return []
+        if self._id == "LINES_EXCEEDED":
+            return [ProblemMatch(problem_id=self.id, line_index=i)
+                    for i in game.overflow_lines(context.block_idx, context.string_idx, context.text)]
+        sublines = context.text.split("\n")
+        if game.bytes_over(context.block_idx, context.string_idx, context.text):
+            return [ProblemMatch(problem_id=self.id, line_index=len(sublines) - 1)]
+        return []
+
+    def fix(self, context, matches: List[ProblemMatch]) -> FixResult:
+        return FixResult(text=context.text, changed=False, fixed_problem_ids=set())
+
+
+class _VsProblemAnalyzer(GenericProblemAnalyzer):
+    """The standard analyzer plus the two Vagrant Story fit rules (balloon lines, bytes of the place)."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for logical in ("LINES_EXCEEDED", "BYTES_EXCEEDED"):
+            rule = _FitRule(self, logical)
+            self.registry.rules.append(rule)
+            self.registry._rules_by_id[logical] = rule
+
+
 class GameRules(BaseGameRules):
     """Vagrant Story (PlayStation, USA, SLUS-01040).
 
@@ -54,12 +110,14 @@ class GameRules(BaseGameRules):
 
     problem_prefix = PLUGIN_PREFIX
     problem_definitions = PROBLEM_DEFINITIONS
+    problem_analyzer_class = _VsProblemAnalyzer
     tag_manager_class = TagManager
     tag_style = "curly"
     show_spaces_as_dots_default = True
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
+        self.lookalikes: Dict[str, str] = {}      # Ukrainian letter -> Latin letter it reads as (staff roll)
         self._known: Dict[str, List[Tuple[int, int, int]]] = {}
         self._save_source: Optional[bytes] = None
         self._save_name = ""
@@ -117,6 +175,7 @@ class GameRules(BaseGameRules):
             else:
                 self.reverse_codes.setdefault(code, letter)
         self.reader = codec.Reader(self.reverse_codes, lookalike)
+        self.lookalikes = {k: v for k, v in self.translation_map.items() if v.isascii()}
 
     # -- load and save ---------------------------------------------------------
 
@@ -149,7 +208,8 @@ class GameRules(BaseGameRules):
         missing: Set[str] = set()
         parsed = docs.parse(source, known=self._known)
         name = self._save_name.replace("\\", "/") or "file"
-        out = docs.build(source, parsed, data or [], self.char_codes, missing, stem=name, reader=self.reader)
+        out = docs.build(source, parsed, data or [], self.char_codes, missing, stem=name, reader=self.reader,
+                         lookalikes=self.lookalikes)
         if missing:
             log_warning(f"vagrant_story: characters the font has no glyph for were written as '?': "
                         f"{''.join(sorted(missing))}")
@@ -458,6 +518,41 @@ class GameRules(BaseGameRules):
 
     def get_editor_page_size(self) -> int:
         return DEFAULT_LINES_PER_PAGE
+
+    # -- fit checks: the editor's problem rules, and the refusal of a text a place cannot take ----
+
+    def overflow_lines(self, block_idx: int, string_idx: int, text: str) -> List[int]:
+        """Sub-lines of ``text`` that do not fit the balloon of the place (dialogue only)."""
+        limit = (self.get_string_layout(block_idx, string_idx) or {}).get("lines_per_page")
+        return page_overflow(text, limit) if limit else []
+
+    def bytes_over(self, block_idx: int, string_idx: int, text: str) -> bool:
+        """Whether ``text`` needs more bytes than the place of an in-place string has (its end byte
+        included; a staff-roll line has no end byte). A character the font cannot draw is not counted
+        here: the save reports it."""
+        found = self._line(block_idx, string_idx)
+        if not found or not found[3].room:
+            return False
+        line = found[3]
+        self.load_translation_map()
+        try:
+            if line.kind == docs.CREDITS:
+                need = len(docs.credits_bytes(text, self.lookalikes))
+            elif line.kind == docs.HUD:
+                need = len(text.encode("ascii")) + 1
+            else:
+                need = len(codec.encode(text, self.char_codes)) + 1
+        except (ValueError, UnicodeEncodeError):
+            return False
+        return need > line.room
+
+    def get_text_fit_problems_for_string(self, block_idx: int, string_idx: int, text: str) -> List[str]:
+        problems = []
+        if self.overflow_lines(block_idx, string_idx, text):
+            problems.append(PROBLEM_LINES)
+        if self.bytes_over(block_idx, string_idx, text):
+            problems.append(PROBLEM_BYTES)
+        return problems
 
 
 def _reference_strings(ru: bytes, parsed: docs.Doc, sub: int) -> List[Optional[bytes]]:

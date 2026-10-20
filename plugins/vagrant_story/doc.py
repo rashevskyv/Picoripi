@@ -74,21 +74,22 @@ def text_of(line: Line, reader: Optional[codec.Reader] = None) -> str:
     if line.kind == HUD:
         return line.raw.decode("ascii")
     if line.kind == CREDITS:
-        return "".join(chr(c) if 0x20 <= c < 0x7F else f"{{x{c:02X}}}" for c in line.raw)
+        return codec.credits_decode(line.raw)
     return (reader or codec.decode)(line.raw)
 
 
-def credits_bytes(text: str) -> bytes:
-    """A staff-roll line from its editor text: ASCII, any other byte as ``{xNN}``."""
+def credits_bytes(text: str, lookalikes: Optional[Dict[str, str]] = None) -> bytes:
+    """A staff-roll line from its editor text: the credits map's letters and ASCII (codec.credits_encode);
+    any other byte as ``{xNN}``. Raises ValueError for a character the staff roll cannot draw."""
     out, at = bytearray(), 0
     for match in codec.TAG_RE.finditer(text):
-        out += text[at:match.start()].encode("ascii")
+        out += codec.credits_encode(text[at:match.start()], lookalikes)
         tag = match.group(0)
         if not (len(tag) == 5 and tag[1] == "x"):
             raise ValueError(f"unknown tag {tag}")
         out.append(int(tag[2:4], 16))
         at = match.end()
-    out += text[at:].encode("ascii")
+    out += codec.credits_encode(text[at:], lookalikes)
     return bytes(out)
 
 
@@ -255,7 +256,8 @@ def remember(data: bytes, doc: Doc, known: Dict[str, List[Tuple[int, int, int]]]
 # -- saving ----------------------------------------------------------------------------------
 
 def build(source: bytes, doc: Doc, data: List[List[Optional[str]]], char_codes: Optional[Dict[str, int]] = None,
-          missing: Optional[Set[str]] = None, stem: str = "file", reader: Optional[codec.Reader] = None) -> bytes:
+          missing: Optional[Set[str]] = None, stem: str = "file", reader: Optional[codec.Reader] = None,
+          lookalikes: Optional[Dict[str, str]] = None) -> bytes:
     """The file with the editor's texts, built from the source file and its parsed ``doc``. A line
     whose text is what the source string reads as keeps its bytes."""
     out = bytearray(source)
@@ -274,10 +276,9 @@ def build(source: bytes, doc: Doc, data: List[List[Optional[str]]], char_codes: 
                 new = str(text).encode("ascii")
             elif line.kind == CREDITS:
                 try:
-                    new = credits_bytes(str(text))
+                    new = credits_bytes(str(text), lookalikes)
                 except ValueError as error:
-                    raise formats.FormatError(f"{stem}: {group.name}: line {index + 1}: the staff roll is ASCII "
-                                              f"only ({error})") from None
+                    raise formats.FormatError(f"{stem}: {group.name}: line {index + 1}: {error}") from None
             else:
                 new = codec.encode(str(text), char_codes, missing)
             if new != line.raw:

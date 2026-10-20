@@ -1,8 +1,6 @@
 """Vagrant Story plugin hooks: load/save, the translation copy, layout, context, reference; the real files when present."""
 import romhacking_root
 import json
-from types import SimpleNamespace
-
 import pytest
 
 from core.formats import SaveContext
@@ -10,7 +8,7 @@ from plugins.testing import check_loads, check_round_trip, check_validator, load
 from plugins.vagrant_story import codec, formats, russian
 from plugins.vagrant_story import doc as docs
 
-from .samples import area_file, event_file, item_names, program_file, room_file
+from .samples import event_file, item_names, program_file
 
 WS = romhacking_root.under('Vagrant Story')
 SOURCE, REFERENCE = WS / "source", WS / "reference" / "RU"
@@ -69,32 +67,6 @@ def test_too_long_text_is_refused_with_the_file_and_group():
     rules.prepare_save_context(SaveContext(relative_path="MENU/ITEMNAME.BIN", existing_versions=lambda: iter([source])))
     with pytest.raises(formats.FormatError, match="MENU/ITEMNAME.BIN: Item names"):
         rules.save_data_to_json_obj(blocks, names)
-
-
-@pytest.fixture
-def project(tmp_path):
-    files = {"EVENT/0004.EVT": event_file(["Don't move, Sydney!", "Bind your legs\nwith that rope."],
-                                          boxes=((13, 3), (14, 4))),
-             "MAP/MAP001.MPD": room_file(["Have you found Sydney?"]),
-             "MENU/ITEMNAME.BIN": item_names(["Battle Knife", "Dirk"]),
-             "SMALL/SCEN001.ARM": area_file([(9, 1, "Entrance to Darkness")]),
-             "SLUS_010.40": program_file(["Fireball", "Heal Panel"], ["Check the container?", "Yes", "No"])}
-    for rel, data in files.items():
-        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
-        (tmp_path / rel).write_bytes(data)
-    (tmp_path / "vs_index.json").write_text(json.dumps(
-        {"rooms": {"MAP/MAP001.MPD": {"zone": 9, "room_number": 1, "area": "Wine Cellar", "room": "The Gallows"}}}),
-        encoding="utf-8")
-    rel_paths = list(files)
-    block_map = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 4}
-    manager = SimpleNamespace(project=SimpleNamespace(blocks=[SimpleNamespace(source_file=f) for f in rel_paths]),
-                              project_dir=None,
-                              get_absolute_path=lambda rel, is_translation=False: str(tmp_path / rel))
-    mw = SimpleNamespace(project_manager=manager, block_to_project_file_map=block_map, font_map={})
-    rules = load_rules("vagrant_story", mw)
-    for rel in rel_paths:
-        rules.load_data_from_json_obj(files[rel])
-    return rules
 
 
 def test_dialog_layout_is_the_balloon_and_widths_use_the_italic_font(project):
