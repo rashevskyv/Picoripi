@@ -46,6 +46,10 @@ import re
 import struct
 from typing import Dict, List, Optional, Sequence, Tuple
 
+# Pooled growth (a longer line paid by a shorter later line of the same script) moves the bytes between the two
+# lines. Until the script's references are relocated and checked in a DuckStation frame, it is off: every longer
+# line is over budget. Set to True only in tests of the pool itself.
+POOLED_GROWTH = False
 MIN_CHAIN = 12           # records in a battle string chain (a real table has 30 or more)
 MAX_RECORD = 80          # longest battle string record in bytes
 MIN_RUN = 4              # shortest dialogue run in bytes
@@ -206,22 +210,50 @@ def write(data: bytes, texts: Sequence[str]) -> Tuple[bytes, List[int]]:
     Relocation of references inside the script is not checked: one growing pair is proven in a frame, see the
     Grandia notes in docs/OPEN_ITEMS.md.
     """
+    out, unparsed, over = write_report(data, texts)
+    return out, sorted(unparsed + over)
+
+
+def over_budget(data: bytes, texts: Sequence[str]) -> List[int]:
+    """The block indices whose growth no later block of the script can pay (the blocks ``write`` refuses for budget)."""
+    return write_report(data, texts)[2]
+
+
+def write_report(data: bytes, texts: Sequence[str], keep_over_budget: bool = False) -> Tuple[bytes, List[int], List[int]]:
+    """Like ``write``, reporting the two kinds of refusal apart: (new bytes, unparsed indices, over-budget indices).
+
+    ``unparsed``: a text with a character the game cannot show; the block keeps its original bytes.
+    ``over``: growth no later block pays. Without ``keep_over_budget`` the block keeps its original bytes and the file
+    keeps its length. With it the block takes its typed text, so the file grows by the unpaid bytes; the build then
+    refuses the file (its length changed), and the editor flags the line.
+    """
     _kind, found = entries(data)
     want: Dict[int, bytes] = {}
-    refused: List[int] = []
+    unparsed: List[int] = []
     for index in range(min(len(found), len(texts))):
         new = parse(texts[index])
         if new is None:
-            refused.append(index)
+            unparsed.append(index)
         else:
             want[index] = new
+    typed = dict(want)
+    over: List[int] = []
+    if not POOLED_GROWTH:   # no relocation proven: a longer line shifts code, so it is over budget
+        for index, (_offset, original) in enumerate(found):
+            if index in want and len(want[index]) > len(original):
+                del want[index]
+                over.append(index)
     while True:
         sizes, finals, unpaid = _plan(found, want)
         if not unpaid:
             break
         for index in unpaid:
             del want[index]
-            refused.append(index)
+            over.append(index)
+    if keep_over_budget:
+        for index in over:
+            finals[index] = typed[index]
+            sizes[index] = len(typed[index])
     out = bytearray()
     at = 0
     for index, (offset, original) in enumerate(found):
@@ -230,8 +262,9 @@ def write(data: bytes, texts: Sequence[str]) -> Tuple[bytes, List[int]]:
         out += b" " * (sizes[index] - len(finals.get(index, original)))
         at = offset + len(original)
     out += data[at:]
-    assert len(out) == len(data), "pooled write must keep the script length"
-    return bytes(out), sorted(refused)
+    if not keep_over_budget:
+        assert len(out) == len(data), "pooled write must keep the script length"
+    return bytes(out), sorted(unparsed), sorted(over)
 
 
 def _plan(found: List[Tuple[int, bytes]], want: Dict[int, bytes]) -> Tuple[Dict[int, int], Dict[int, bytes], List[int]]:

@@ -15,10 +15,12 @@ from core.containers import afs, gdrom_writer, psx_disc
 from core.i18n import tr
 from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
+from plugins.common.block_loader import ReadThrough, rescan_block, source_of
 from utils.logging_utils import log_debug, log_warning
 
 from . import archive, fields, psx_text
-from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
+from .config import PLUGIN_PREFIX, PROBLEM_BYTE_BUDGET, PROBLEM_DEFINITIONS
+from .problem_analyzer import ProblemAnalyzer
 
 GAME_ID = "T17716N"
 PS1_GAME_IDS = ("SCUS-94457", "SCUS-94465")   # Grandia PlayStation, disc 1 and disc 2 (English release)
@@ -40,17 +42,30 @@ TARGET_ID = "disc_set"
 PSX_TARGET_ID = "psx_disc_set"
 
 
+def _read_body(path: Path) -> Optional[bytes]:
+    """The source body of a PlayStation script (None when it cannot be read)."""
+    try:
+        return Path(path).read_bytes()
+    except OSError:
+        return None
+
+
 class GameRules(BaseGameRules):
     """Grandia II (Dreamcast, USA): the message archives of the MAP folder."""
 
     problem_prefix = PLUGIN_PREFIX
     problem_definitions = PROBLEM_DEFINITIONS
+    problem_analyzer_class = ProblemAnalyzer
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
         self._save_source: Optional[bytes] = None
         self._last_loaded: Optional[bytes] = None
         self._psx_source: Optional[bytes] = None
+        # PlayStation script bodies, read off the UI thread (see plugins/skies_of_arcadia/rules.py for the pattern).
+        self._sources = ReadThrough("grandia sources", lambda block_idx: rescan_block(self.mw, block_idx))
+        self._details: Dict[Tuple[int, int], str] = {}   # (block, string) -> the budget text of a flagged line
+        self._over_cache: Dict[int, Tuple[Tuple[str, ...], frozenset]] = {}   # block -> (texts, over-budget indices)
 
     def get_display_name(self) -> str:
         return "Grandia II (Dreamcast)"
@@ -135,9 +150,9 @@ class GameRules(BaseGameRules):
                 continue
             edited = path.read_bytes()
             original = source_path.read_bytes()
-            if len(edited) != len(original):   # loud refusal: a pooled script keeps its length (psx_text.write)
-                raise ValueError(tr("{0} changed length ({1} bytes, was {2}); the script budget is not kept.",
-                                    rel, len(edited), len(original)))
+            if len(edited) != len(original):   # loud refusal: an over-budget script is longer (psx_text.write_report)
+                raise ValueError(tr("{0} is over its script budget by {1} bytes; the build refuses it. Shorten its text.",
+                                    rel, len(edited) - len(original)))
             if edited != original:
                 out[rel] = edited
         return out
@@ -190,10 +205,15 @@ class GameRules(BaseGameRules):
         self._save_source = versions[-1] if versions else None
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
-        if self._psx_source is not None:   # PlayStation text: bounded writer, each text fits its original bytes
-            out, refused = psx_text.write(self._psx_source, [str(t) for t in (data[0] if data else [])])
-            if refused:
-                log_warning(f"grandia: {len(refused)} PlayStation text(s) are longer than the original or not Latin-1; "
+        if self._psx_source is not None:   # PlayStation text: pooled budget per script, base = the disc's source file
+            base = self._save_source if self._save_source is not None else self._psx_source
+            out, unparsed, over = psx_text.write_report(base, [str(t) for t in (data[0] if data else [])],
+                                                       keep_over_budget=True)
+            if over:
+                log_warning(tr("Script over its budget: {0} line(s) are longer than the script allows. The text is "
+                               "saved as typed; the build refuses this script until its text is shorter.").format(len(over)))
+            if unparsed:
+                log_warning(f"grandia: {len(unparsed)} PlayStation text(s) hold a character the game cannot show; "
                             "they keep the original text")
             return out
         source = self._save_source if self._save_source is not None else self._last_loaded
@@ -212,12 +232,56 @@ class GameRules(BaseGameRules):
                         "they keep the original text")
         return out
 
+    def exceeds_byte_budget(self, block_idx: int, string_idx: int, text_value: str) -> bool:
+        """True when this line's growth is not paid by its script (a PlayStation script only). The flag's detail says so."""
+        key = (block_idx, string_idx)
+        over = self._over_budget_at(block_idx, string_idx, text_value)
+        if over is None or string_idx not in over:
+            self._details.pop(key, None)
+            return False
+        self._details[key] = tr("Script budget: this line is longer than the script allows. The other lines of this "
+                                "script give no more bytes. Shorten this line or another line of the script.")
+        return True
+
+    def get_problem_detail(self, block_idx: int, string_idx: int, problem_id: str) -> str:
+        return self._details.get((block_idx, string_idx), "") if problem_id == PROBLEM_BYTE_BUDGET else ""
+
+    def _over_budget_at(self, block_idx: int, string_idx: int, text_value: str) -> Optional[frozenset]:
+        """Indices of the over-budget lines of the script that holds the string, with ``text_value`` in its place.
+
+        None when the block is not a PlayStation text file or its body is not read yet. The result is cached per block.
+        """
+        source = source_of(self.mw, block_idx)
+        processor = getattr(self.mw, "data_processor", None)
+        if source is None or processor is None or not _is_psx_text(source[0]):
+            return None
+        body = self._sources.get(block_idx, lambda: _read_body(source[1]))
+        strings = [str(t) for t in processor.get_block_texts(block_idx)]
+        if body is None or not 0 <= string_idx < len(strings):
+            return None
+        strings[string_idx] = text_value
+        texts = tuple(strings)
+        cached = self._over_cache.get(block_idx)
+        if cached is not None and cached[0] == texts:
+            return cached[1]
+        try:
+            over = frozenset(psx_text.over_budget(body, strings))
+        except (ValueError, IndexError) as error:
+            log_debug(f"grandia: budget of block {block_idx} not checked ({error})")
+            return None
+        if len(self._over_cache) >= 8:
+            self._over_cache.clear()
+        self._over_cache[block_idx] = (texts, over)
+        return over
+
     def classify_resource(self, path: str) -> Optional[str]:
         """Title and UI textures are textures, not text: the Textures tool opens them."""
         return "texture" if os.path.basename(path).upper() in ("TITLE_DATA.AFS", "0GDTEX.PVR") else None
 
     def reset_runtime_state(self) -> None:
         self._save_source = self._last_loaded = self._psx_source = None
+        self._details.clear()
+        self._over_cache.clear()
 
     def get_capabilities(self) -> Set[str]:
         return set()

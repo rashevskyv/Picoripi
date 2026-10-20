@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Grandia PlayStation budget: a longer line is over budget until its script's references are relocated (`psx_text.POOLED_GROWTH = False`); it is flagged (`GR2_BYTE_BUDGET`, `plugins/grandia/problem_analyzer.py`), saved as typed, and the build refuses that script with the bytes over budget (`psx_text.write_report`); the save base is the source file.
 - Grandia PlayStation: build target `psx_disc_set` copies the disc set and writes the edited text files into the copy (`psx_disc.write_set`, same length, EDC and ECC rebuilt); the source set is not changed.
 - Grandia PlayStation dialogue: a longer text is allowed when the shorter blocks of the same script give up the bytes (pooled net-zero budget, `psx_text.write`); a growth nothing pays for is refused, and the build refuses a translated script whose length changed.
 - Conker's Bad Fur Day (N64, USA) plugin (`plugins/conker_bfd`, in progress): identifies the pinned US ROM; reads its asset banks and RZIP entries; opens the text tables of banks 0x1A and 0x1C (menu, chapters, credits) with a byte-exact round trip and `[@hh]` tags for inline codes; writes the 95-glyph font as PGM sources and the 453 voice streams as MP3 files with their L: cue index; gives the width of a text line from the decompiled glyph metrics (not yet checked in an emulator frame); the ROM build is not implemented.

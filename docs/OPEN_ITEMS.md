@@ -40,6 +40,15 @@ the line when it is done or moved into a plan.
   build refuses a translated script whose length changed. Proven in a frame: one pair of messages in FIELD/2000.MDP
   (one extra "!" in one message, one fewer in the next). Not proven: references into a moved region. The section's
   6-byte RAM address records and the message opcode are not decoded (`psx_text` docstring).
+- Grandia PS1 budget rule (`GR2_BYTE_BUDGET`, `psx_text.write_report`): until relocation is proven, every longer line is
+  over budget (`psx_text.POOLED_GROWTH = False`): a longer line shifts the bytes after it. The pooled net-zero pair
+  (FIELD/2000.MDP, one frame) stays behind the switch. An over-budget line is flagged in the editor and saved as typed;
+  the build refuses the script with "over its script budget by N bytes" (no partial write). The save base is the source
+  file, not the last translation (`prepare_save_context`).
+- Grandia PS1 reference scan (2026-10-20, FIELD_2000.MDP, not conclusive): 343 words in 0x80000000..0x801FFFFF, 167
+  distinct. The best RAM base for the file (0x80000000) puts 83 of 167 values inside the file; a random base gives about
+  a third. No base maps the section to its own offsets, so no absolute-pointer table is shown. Relative operands: no
+  branch rule found (earlier 13-of-13 check). Opcode decoding is still open; growth stays unproven for other scripts.
 - Grandia PS1 disc writer: `psx_disc.write_file` rewrites one file in place with the same length and regenerates EDC and
   P/Q parity. The plugin target `psx_disc_set` copies the cue set (`psx_disc.write_set`) and writes the edited files into
   the copy. Run on a copy of the owner's disc 1 (original read only): the two edited files change, the rest is equal, and
