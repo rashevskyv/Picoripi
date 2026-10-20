@@ -18,7 +18,8 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from plugins.base_game_rules import BaseGameRules
-from plugins.common import gamefaqs_script, name_seeds
+from core.i18n import tr
+from plugins.common import gamefaqs_script, name_seeds, pokemon_recomp
 from plugins.common.block_loader import ReadThrough, rescan_block, source_of
 from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
@@ -365,10 +366,17 @@ class GameRules(BaseGameRules):
         return rom_project.unpack(rom, target_dir, progress, is_cancelled, ROM_FACTS_DIR)
 
     def get_build_targets(self) -> List[Dict[str, Any]]:
-        return [{"id": "rom", "label": "Patched ROM", "platforms": ["gbc"], "kind": "patch"}]
+        return [{"id": "rom", "label": "Patched ROM", "platforms": ["gbc"], "kind": "patch"},
+                {"id": pokemon_recomp.TARGET_ID, "label": tr("Recomp package (Gen2Recomp: Gold, Silver, Crystal)"),
+                 "platforms": ["gbc"], "kind": "files"}]
 
     def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
                      progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> str:
-        if target_id != "rom":
-            raise ValueError(f"Unknown build target: {target_id}")
-        return rom_project.build(source_dir, translation_dir, output_dir, progress, is_cancelled, ROM_FACTS_DIR)
+        if target_id == "rom":
+            return rom_project.build(source_dir, translation_dir, output_dir, progress, is_cancelled, ROM_FACTS_DIR)
+        if target_id == pokemon_recomp.TARGET_ID:
+            return pokemon_recomp.build_package(
+                source_dir, translation_dir, output_dir,
+                lambda s, t, o: rom_project.build(s, t, o, progress, is_cancelled, ROM_FACTS_DIR),
+                progress, is_cancelled)
+        raise ValueError(f"Unknown build target: {target_id}")

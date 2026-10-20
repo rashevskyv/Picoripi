@@ -10,6 +10,15 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Pokémon recomp packages (`plugins/common/pokemon_recomp.py`, 2026-10-20, branch `feat/port-pokemon-recomps`)
+
+- Open: Gen 3 text is tested on two messages of Emerald USA only (release v0.1.2: one same-length, one longer that the writer moves). A string that code reads through a literal pointer may keep its old text. Build the whole translation once and check the screens before a release.
+- Open: a translation that changes the code layout (the whole ROM, not the text) is not re-recompiled with `gba_recompile`. The route is a pret build of the translated source, its symbols, then the recompiler and a build of the port. The repro build of the unmodified decomp (`C:\RomHacking_scratch\pokemon_recomps\build_emerald_repro.log`) is not finished; its result is not in this package.
+- Open: FireRed and LeafGreen show no visible-edit proof. A headless run of FireRedRecomp v0.0.4 stays on its CONTROLS overlay, and the demo input does not pass it. The same gbarecomp runtime runs Emerald.
+- Open: Gen 2 visible edit is proven for Gold only (LÖVE 11.5 from source, Goldenrod banner). Silver, Crystal and a moved message are not run. The fused `Gen2Recomped.exe` cannot take the gate line, so the package needs the source route.
+- Open: the Gen 2 importer keys its cache on the canonical SHA-1 (`RomImporter.lua`, the marker for the version), so a translated import in the default save folder can replace an official import. Portable mode (`portable.txt`) keeps them apart; the package README names it.
+- Owner decision: the package ships no GBA BIOS and no LÖVE runtime. Both come from the owner's own copies.
+
 ## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-bfd`)
 
 - Open: no speech subtitle table found. Text tables found: bank 0x1A (entries 0-4, catapult book) and bank 0x1C sub-tables 0-3 (menu options, pause menu, chapter names, credits). The compressed game data section (task names) is not opened yet.
