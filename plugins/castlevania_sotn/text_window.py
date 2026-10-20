@@ -22,6 +22,8 @@ TEXT_DX = 12              # fitted: first body line x = startX + 12 (owner_02, S
 TEXT_DY = 5               # fitted: first body line y = startY + 5 (same frame)
 LINES = 4                 # lines a page shows (config.json lines_per_page)
 DEFAULT_PLACE = (60, 36)  # used when a line has no POS before it: the POS of the owner's ST0 frame
+SPEAKER_X = 56            # the name's x is fixed: 0x38 (src/st/cutscene_actor_name.h); fitted to owner_02
+SPEAKER_DY = -12          # fitted: the name row is startY - 12 in the owner's frame (decomp: startY + 6)
 
 
 @dataclass(frozen=True)
@@ -33,6 +35,19 @@ class Place:
 
     def line_origin(self, row: int) -> Tuple[int, int]:
         return self.x + TEXT_DX, self.y + TEXT_DY + row * PITCH
+
+
+def render_dialogue(speaker: Sequence[int], lines: Sequence[Sequence[int]], sheet: Image.Image, place: Place,
+                    background: Optional[Tuple[int, int, int, int]] = None) -> Image.Image:
+    """The speaker name above the page's lines, in the same 8x8 font (speaker cells are passed as codes)."""
+    frame = render_page(lines, sheet, place, background)
+    if speaker:
+        name_x, name_y = SPEAKER_X, place.y + SPEAKER_DY
+        for index, code in enumerate(speaker):
+            px = name_x + index * CELL
+            if 0 <= px and 0 <= name_y and px + CELL <= CANVAS[0] and name_y + CELL <= CANVAS[1]:
+                frame.alpha_composite(cell_sheet_crop(sheet, code), (px, name_y))
+    return frame
 
 
 def cell_sheet_crop(sheet: Image.Image, code: int, columns: int = 16) -> Image.Image:

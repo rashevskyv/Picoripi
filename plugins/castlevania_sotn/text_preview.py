@@ -131,6 +131,13 @@ class SotnTextPreview(QWidget):
         self._sheet = sheet
         self._render()
 
+    def _speaker_cells(self) -> List[int]:
+        """The speaker name of the selected line as cell codes (empty when it has none). Reads only."""
+        rules = self._mw.current_game_rules
+        data = self._mw.data_store
+        name = rules.get_speaker_for_string(data.physical_block_idx, data.current_string_idx)
+        return list(codec.encode_cells(name)) if name else []
+
     def _place(self) -> text_window.Place:
         """The selected line's window place (its script's POS command), or the default place. Reads only."""
         default = text_window.Place(*text_window.DEFAULT_PLACE)
@@ -144,7 +151,7 @@ class SotnTextPreview(QWidget):
             self.update()
             return
         pages = TAG_RE.sub("", self._text).split("\n")
-        page = text_window.render_page(page_codes(self._text), self._sheet, self._place())
+        page = text_window.render_dialogue(self._speaker_cells(), page_codes(self._text), self._sheet, self._place())
         self._image = _to_qimage(text_window.scale_nearest(page, ZOOM))
         self._note = tr("Only the first page is drawn.") if len(pages) > text_window.LINES else ""
         self.update()

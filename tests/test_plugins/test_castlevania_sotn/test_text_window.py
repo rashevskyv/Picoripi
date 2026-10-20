@@ -57,3 +57,9 @@ def test_a_line_takes_the_place_of_the_last_pos_command_before_it():
 def test_tags_are_not_drawn_and_each_line_is_a_list_of_cells():
     codes = page_codes("{WAIT 30}AB\nC")
     assert codes == [list(codec.encode_cells("AB")), list(codec.encode_cells("C"))]
+
+
+def test_the_speaker_name_is_drawn_at_x_56_and_12_px_above_the_place():
+    frame = text_window.render_dialogue([1], [], _sheet(), text_window.Place(10, 20))
+    inked = [(x, y) for x in range(320) for y in range(240) if frame.getpixel((x, y))[3]]
+    assert min(inked) == (56, 8)
