@@ -38,6 +38,7 @@ OCC_BOX_MIN_H = 40.0
 FRAME_MARGIN = 12.0
 
 MARKER_RE = re.compile(r"\{i(\d+)\}|\{s(\d+)\|([^}]*)\}|(\{br\})")
+HARD_BREAK = "{br}"
 SPACE_RE = re.compile(r"([ \t\n]+)")
 HYPHEN_RE = re.compile(r"(?<=-)(?=.)")
 CLOSING = set(".,;:!?)»…")
@@ -471,8 +472,10 @@ def layout(text: str, geo: Geometry, widths: Widths, pane: bool) -> List[List[Pi
             x += piece_width
         if pane and x - tail_overhang(word, geo, widths) > margin_of(len(lines) - 1) + cap_of(len(lines) - 1) + 0.01:
             shown = "".join(p.text for p in word if p.icon is None)
-            raise LayoutError(f"{shown!r} does not fit its pane box ({x - margin_of(len(lines) - 1):.1f}px "
-                              f"in {cap_of(len(lines) - 1):.1f}px)")
+            word_px = sum(piece.width for piece in word if piece.icon is None)
+            box = geo.lines[min(len(lines) - 1, len(geo.lines) - 1)].box
+            raise LayoutError(f"{shown!r} is {word_px:.0f} px wide; its line takes {cap_of(len(lines) - 1):.0f} px "
+                              f"(pane box {box:.0f} px)")
 
     if pane and len(lines) > len(geo.lines):
         raise LayoutError(f"needs {len(lines)} lines, the paragraph has {len(geo.lines)}")
@@ -660,6 +663,36 @@ def console_problems(lines: List[List[Piece]], geo: Geometry, widths: Widths, pa
     return out
 
 
+def _without_breaks(marks: List[str]) -> List[str]:
+    """The markers that must match the Russian: a hard break {br} is judged by the fit (LINES, PANES), not here."""
+    return [mark for mark in marks if mark != HARD_BREAK]
+
+
+def fit_hint(text: str, geo: Geometry, widths: Widths) -> str:
+    """The numbers a translator needs for one paragraph: its panes, the pane width, the lines the text needs with
+    their widths, and the longest word. "" for a paragraph with no text."""
+    rendered = widths.apply_homoglyphs(text)
+    if not rendered.strip():
+        return ""
+    lines, mode, _ = layout_for(rendered, geo, widths)
+    line_px = []
+    for line in lines:
+        stored, icons = _stored_line(line)
+        line_px.append(console_width(stored, geo, widths, geo.lines[0].char_space) + icons)
+    boxes = sorted({round(pane.box) for pane in geo.lines})
+    box_text = f"{boxes[0]}" if len(boxes) == 1 else f"{boxes[0]} to {boxes[-1]}"
+    bare = MARKER_RE.sub(lambda match: match.group(3) or "", rendered)
+    words = [word for word in re.split(SPACE_RE, bare) if word and not SPACE_RE.fullmatch(word)]
+    longest = max(words, key=lambda word: measure(word, geo, widths), default="")
+    hint = (f"Panes: {len(geo.lines)} line(s), pane width {box_text} px. The text needs {len(lines)} line(s), "
+            f"{', '.join(f'{px:.0f}' for px in line_px)} px.")
+    if longest:
+        hint += f" Longest word: {longest!r}, {measure(longest, geo, widths):.0f} px."
+    if mode == "column-fallback":
+        hint += " Shown on the column: the panes do not take it."
+    return hint
+
+
 def check_entry(ua: str, ru: str, entry: dict, geo: Optional[Geometry], widths: Widths) -> List[Tuple[str, str]]:
     """Problems of one translated paragraph -> [(problem key, message)]. Empty ua is not checked.
 
@@ -667,9 +700,11 @@ def check_entry(ua: str, ru: str, entry: dict, geo: Optional[Geometry], widths: 
     decides what is wrong with them, so the problems agree with the simulator's render."""
     if not ua:
         return []
-    if markers(ua) != markers(ru):
+    if _without_breaks(markers(ua)) != _without_breaks(markers(ru)):
         return [("MARKUP", f"markers {markers(ua)} differ from the Russian {markers(ru)}")]
     problems: List[Tuple[str, str]] = []
+    if "\n" in ua:
+        problems.append(("NEWLINE", "a typed line break is a space on the console; use {br} for a hard break"))
     if geo is not None:
         geo = geo.marks_out(ua)
     icons = icon_problems(ua, ru or entry.get("en", ""), geo.kept_marks if geo is not None else "")

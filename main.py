@@ -5,8 +5,13 @@ import json
 import importlib
 from pathlib import Path
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox, QLabel, QComboBox, QSpinBox, QPushButton
-from PyQt6.QtCore import Qt, QRect, qInstallMessageHandler
+try:
+    from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox, QLabel, QComboBox, QSpinBox, QPushButton
+    from PyQt6.QtCore import Qt, QRect, qInstallMessageHandler
+except ImportError as qt_error:    # a broken Qt install: say what to try, then fail as before
+    from utils.qt_import_hint import hint_for
+    sys.stderr.write(hint_for(qt_error))
+    raise
 # Monkeypatch Qt item roles for backwards compatibility
 Qt.EditRole = Qt.ItemDataRole.EditRole
 Qt.DisplayRole = Qt.ItemDataRole.DisplayRole
