@@ -32,7 +32,7 @@ def _project(tmp_path, *, directory_mode=True):
         "id": "old-id", "name": "Game", "plugin_name": "fake", "blocks": [],
         "metadata": {"source_path": str(source_path), "translation_path": str(translation),
                      "is_directory_mode": directory_mode, "series_glossary": str(glossary),
-                     "source_roles": {"base": "D:\\Downloads\\game.iso"}},
+                     "source_roles": {"base": str(tmp_path / "Downloads" / "game.iso")}},
     }), encoding="utf-8")
     (project_dir / "project_settings.json").write_text(json.dumps({
         "original_file_path": str(source / "romfs" / "a.msbt"),
