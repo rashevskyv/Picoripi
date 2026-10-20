@@ -11,6 +11,10 @@ from typing import Any, Optional
 from core import formats
 from utils.logging_utils import log_debug, log_info, log_warning, log_error
 
+# Layout of the message rows a session holds. 2: SH2 message rows read from the table's word 1 (the fix). A session
+# without the key was written before it: the plugin's migrate_session_snapshot maps its rows, or the session is not restored.
+SESSION_DATA_LAYOUT = 2
+
 class SessionManager:
     """Manages session serialization, autosaving, durable JSON checkpoints, and fallbacks."""
     def __init__(self, data_processor: Any):
@@ -75,6 +79,7 @@ class SessionManager:
             return False
 
     def _attach_runtime_session_state(self, snapshot: dict) -> dict:
+        snapshot["data_layout"] = SESSION_DATA_LAYOUT
         """Add runtime-only state that lives outside AppDataStore."""
         ui_updater = getattr(self.mw, "ui_updater", None)
         get_tree_state = getattr(ui_updater, "get_tree_state", None)
@@ -237,6 +242,7 @@ class SessionManager:
 
         json_snapshot = {
             "version": 1,
+            "data_layout": snapshot.get("data_layout"),
             "saved_at": snapshot.get("saved_at", 0.0),
             "checkpoint_id": snapshot.get("checkpoint_id"),
             "json_path": snapshot.get("json_path"),
@@ -314,6 +320,7 @@ class SessionManager:
 
         snapshot = {
             "version": 1,
+            "data_layout": json_data.get("data_layout"),
             "saved_at": json_data.get("saved_at", 0.0),
             "checkpoint_id": json_data.get("checkpoint_id"),
             "json_path": json_data.get("json_path"),
@@ -446,6 +453,24 @@ class SessionManager:
                 except Exception as exc:
                     log_debug(f"session_manager.SessionManager._save_durable_session_json: ignored {exc!r}")
             return False
+
+    def _upgrade_session_layout(self, snapshot: dict) -> Optional[dict]:
+        """A session written before SESSION_DATA_LAYOUT goes through the plugin's migrate_session_snapshot. The
+        plugin returns it with the current marker, or leaves it without one: then it is not restored (None), and the
+        project opens from its files, which were never changed by the fix."""
+        if snapshot.get("data_layout") == SESSION_DATA_LAYOUT:
+            return snapshot
+        rules = getattr(self.mw, "current_game_rules", None)
+        hook = getattr(rules, "migrate_session_snapshot", None)
+        if not callable(hook):
+            return snapshot
+        migrated = hook(snapshot)
+        if isinstance(migrated, dict) and migrated.get("data_layout") == SESSION_DATA_LAYOUT:
+            log_info("DSP: the session's message rows were migrated to the current table layout")
+            return migrated
+        log_warning("DSP: the session holds rows of the old message layout and cannot be migrated; it is not "
+                    "restored. The project opens from its files, which are unchanged.")
+        return None
 
     def load_session_file(self) -> bool:
         """Load entire project state from a JSON file (preferred) or a pickle file (fallback)."""
@@ -610,6 +635,8 @@ class SessionManager:
             needs_durable_sync = True
             log_info(f"DSP: Loaded session from Pickle fallback {session_path}")
 
+        if snapshot:
+            snapshot = self._upgrade_session_layout(snapshot)
         if not snapshot:
             return False
 

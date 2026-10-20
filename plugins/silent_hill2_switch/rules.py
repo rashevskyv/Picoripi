@@ -55,6 +55,12 @@ class GameRules(PcGameRules):
     def set_load_role(self, role: str) -> None:
         self._role = role
 
+    def migrate_session_snapshot(self, snapshot: dict) -> dict:
+        """Not migrated: the Switch rows are the message bodies (the head and tail bytes are not shown), so an old
+        row cannot be mapped back to its bytes from the session alone. Returned without the layout marker, so the
+        session is not restored and the project opens from its files (the bytes there are unchanged)."""
+        return snapshot
+
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[list, dict]:
         if not isinstance(json_obj, (bytes, bytearray)):
             return super().load_data_from_json_obj(json_obj)

@@ -5,7 +5,7 @@ last offset word (2 bytes), and the last row held two messages. The bytes of the
 migrate_rows() maps old rows to the messages of the current reading by their bytes and returns one note per change.
 """
 import struct
-from typing import Callable, List, Tuple
+from typing import Callable, Dict, List, Tuple
 
 from plugins.silent_hill2_pc import mes
 
@@ -89,3 +89,26 @@ def migrate_rows(old_rows: List[str], encode: Callable[[str], bytes]) -> Tuple[L
     notes = [f"row 0 (offset word {last_offset}) dropped",
              f"last row cut at byte {cut} into two messages"]
     return messages, notes
+
+
+def row_map(count: int) -> Dict[int, List[int]]:
+    """Old row index -> the current message indexes it becomes. Row 0 (the offset word) becomes nothing."""
+    if count == 0:
+        return {}
+    if count == 1:
+        return {0: [0]}
+    mapping: Dict[int, List[int]] = {0: []}
+    for j in range(1, count - 1):
+        mapping[j] = [j - 1]
+    mapping[count - 1] = [count - 2, count - 1]
+    return mapping
+
+
+def migrate_block(old_rows: List[str], encode: Callable[[str], bytes], decode: Callable[[bytes], str]):
+    """One message file's rows, migrated: (new row texts, row map, notes, cut or None).
+
+    ``cut`` is the byte count of the first of the two messages in the merged last row (None when there is no merge).
+    """
+    messages, notes = migrate_rows(old_rows, encode)
+    cut = len(messages[len(old_rows) - 2]) if len(old_rows) >= 2 else None
+    return [decode(m) for m in messages], row_map(len(old_rows)), notes, cut
