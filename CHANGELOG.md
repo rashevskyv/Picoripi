@@ -2,6 +2,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- New Project wizard keeps game images that a plugin reads as they are, skips a malformed table while it checks an extracted folder, and says when that folder path is a file.
+
 - Project Manager virtual groups can own a shared series glossary with create, link, replace, and unlink actions; member projects automatically inherit the glossary across translation and series tabs without duplicate entries, preserving explicit project links and ancestor discovery during moves and unlinks.
 
 - Font Editor keeps nested reads and decodes serial, ignores cancelled or obsolete loads, and prepares formatted font sheets in memory on a worker; loading now has an immediate indicator, cancellation and responsive glyph-table progress, with linear map lookup for large Yo-kai Watch fonts and safe cleanup after closing.

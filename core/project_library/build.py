@@ -12,6 +12,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
+from core import formats
 from core.containers import console_crypto
 from core.i18n import tr
 from core.project_library import images
@@ -55,8 +56,9 @@ def run_unpack(rules: Any, sources: Dict[str, str], project_dir: str | os.PathLi
     Returns the project's source folder, or None when the plugin needs no unpacking. That is the unpacked folder,
     or its subfolder from ``get_source_subfolder``. Raises ``Cancel`` when the user cancelled; the temporary folder
     is then removed and nothing else is touched. Raises ``ValueError`` before writing when the drive has too little
-    room for a game image, or when the unpacked tree lacks the source subfolder. ``key_provider`` maps a console id to
-    its key file path for this job only (see ``console_crypto.key_source``).
+    room for a game image, when the plugin unpacks nothing and has no file format for a chosen game image, or when the
+    unpacked tree lacks the source subfolder. ``key_provider`` maps a console id to its key file path for this job
+    only (see ``console_crypto.key_source``).
     """
     project = Path(project_dir)
     _check_free_space(project, sources)
@@ -69,7 +71,8 @@ def run_unpack(rules: Any, sources: Dict[str, str], project_dir: str | os.PathLi
             raise Cancel()
         if result is None:
             _remove_own(temporary)
-            if any(images.identify(path) for path in sources.values()):
+            # A game image is used as it is only when the plugin has a file format for it.
+            if any(images.identify(path) and formats.resolve(rules, path) is None for path in sources.values()):
                 raise ValueError(tr("This game's plugin cannot unpack this image. Choose an already-extracted "
                                     "game folder with its text tables unpacked from game archives."))
             return None

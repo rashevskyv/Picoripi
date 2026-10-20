@@ -4,11 +4,14 @@ from pathlib import Path
 from core import formats
 from core.i18n import tr
 from core.project_library import build
+from utils.logging_utils import log_warning
 
 
 def validate_source_folder(rules, folder, is_cancelled):
     """Resolve the plugin subfolder and require at least one readable, nonempty text table."""
     root = Path(folder)
+    if root.is_file():
+        raise ValueError(tr("The extracted game folder is a file. Choose a folder."))
     if not root.is_dir():
         raise ValueError(tr("The extracted game folder does not exist."))
     subfolder = rules.get_source_subfolder()
@@ -26,7 +29,8 @@ def validate_source_folder(rules, folder, is_cancelled):
             continue
         try:
             blocks, _names = rules.load_data_from_json_obj(content)
-        except (ValueError, TypeError, UnicodeError):
+        except Exception as exc:   # a plugin parser can fail any way on one malformed file: skip it, scan the rest
+            log_warning(f"Skipped {path} while checking the extracted folder: {exc!r}")
             continue
         if any(block for block in blocks or []):
             return str(root)

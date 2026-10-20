@@ -124,6 +124,44 @@ def test_yokai_image_failure_is_unsupported_plugin_not_missing_keys(tmp_path):
     assert list((tmp_path / "project").iterdir()) == []
 
 
+def test_image_the_plugin_reads_as_it_is_needs_no_unpacking(tmp_path):
+    from core.formats import DEFAULT_FORMATS, FileFormat
+
+    class Rules(BaseGameRules):
+        def get_file_formats(self):
+            return [FileFormat((".3ds",), "bytes", "3DS image"), *DEFAULT_FORMATS]
+
+    image = tmp_path / "game.3ds"
+    image.write_bytes(build_cci(build_ncch(encrypted=False)))
+    assert build.run_unpack(Rules(), {"base": str(image)}, tmp_path / "project", lambda *_: None,
+                            lambda: False) is None
+    assert list((tmp_path / "project").iterdir()) == []
+
+
+def test_folder_scan_skips_a_malformed_table(tmp_path):
+    seen = []
+
+    class Rules(BaseGameRules):
+        def load_data_from_json_obj(self, json_obj):
+            seen.append(json_obj)
+            if json_obj == "broken":
+                raise KeyError("missing section")
+            return super().load_data_from_json_obj(json_obj)
+
+    (tmp_path / "broken.txt").write_text("broken", encoding="utf-8")
+    (tmp_path / "text").mkdir()
+    (tmp_path / "text" / "dialogue.txt").write_text("Hello", encoding="utf-8")
+    assert validate_source_folder(Rules(), tmp_path, lambda: False) == str(tmp_path)
+    assert seen == ["broken", "Hello"]
+
+
+def test_folder_path_that_is_a_file_has_its_own_message(tmp_path):
+    path = tmp_path / "game.txt"
+    path.write_text("Hello", encoding="utf-8")
+    with pytest.raises(ValueError, match="^The extracted game folder is a file. Choose a folder.$"):
+        validate_source_folder(BaseGameRules(), path, lambda: False)
+
+
 def test_wrong_key_can_be_replaced_in_same_wizard(qtbot, tmp_path, monkeypatch):
     class Rules(BaseGameRules):
         def unpack_sources(self, sources, target_dir, progress, is_cancelled):
