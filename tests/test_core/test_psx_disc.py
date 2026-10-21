@@ -204,3 +204,39 @@ def test_real_disc_sectors_rebuild_their_edc_and_ecc_byte_for_byte():
             if raw[18] & 0x20:
                 continue
             assert _sector_is_consistent(raw), lba
+
+
+def test_write_set_copies_the_set_and_patches_only_the_copy(tmp_path):
+    from core.containers.psx_disc import write_set
+
+    src = tmp_path / "src"
+    src.mkdir()
+    cue = make_disc(src)
+    original = (src / "disc.bin").read_bytes()
+    out = tmp_path / "out"
+    result = write_set(cue, str(out), {"FIELD/3034.MDP": b"HOLA!"}, lambda p, n: None, lambda: False)
+    assert result == str(out / "disc.cue")
+    assert (out / "disc.cue").is_file()
+    assert (src / "disc.bin").read_bytes() == original           # the source set is untouched
+    disc = open_psx(result)
+    assert disc.read_file(next(e for e in disc.files() if e.path == "FIELD/3034.MDP")) == b"HOLA!"
+    assert _sector_is_consistent((out / "disc.bin").read_bytes()[21 * RAW:22 * RAW])
+
+
+def test_write_set_refuses_an_unknown_path_and_a_cancel_returns_none(tmp_path):
+    from core.containers.psx_disc import write_set
+
+    src = tmp_path / "src"
+    src.mkdir()
+    cue = make_disc(src)
+    with pytest.raises(ImageError):
+        write_set(cue, str(tmp_path / "out"), {"NOPE.MDP": b"x"}, lambda p, n: None, lambda: False)
+    assert write_set(cue, str(tmp_path / "out2"), {}, lambda p, n: None, lambda: True) is None
+
+
+def test_write_set_refuses_the_folder_of_the_source_set(tmp_path):
+    from core.containers.psx_disc import write_set
+
+    cue = make_disc(tmp_path)
+    with pytest.raises(ImageError):
+        write_set(cue, str(tmp_path), {}, lambda p, n: None, lambda: False)
