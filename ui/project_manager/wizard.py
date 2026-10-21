@@ -333,7 +333,7 @@ class ProjectWizard(QDialog):
     def _set_combo(self, item: QTreeWidgetItem, column: int, choices: List[Dict[str, str]], value: str) -> None:
         combo = QComboBox()
         if column == PLATFORM_COLUMN:
-            combo.addItem(tr("Not set"), NOT_SET)
+            combo.addItem(tr("Not detected"), NOT_SET)
         for choice in choices:
             combo.addItem(choice["label"], choice["id"])
         index = combo.findData(value)

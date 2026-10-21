@@ -105,6 +105,51 @@ def test_a_game_image_without_an_unpack_is_unreadable_and_a_folder_is_fine(tmp_p
     assert by_path[str(folder)]["status"] == plugin_facts.STATUS_FOLDER
 
 
+class UpdateLabelRules(BaseGameRules):
+    def get_source_roles(self):
+        return [{"id": "base", "label": "Основна гра"}, {"id": "update", "label": "Оновити"}]
+
+
+def test_generic_role_names_stay_english_whatever_the_plugin_label():
+    assert [role["label"] for role in plugin_facts.roles_of(UpdateLabelRules())] == ["Base game", "Update", "DLC"]
+
+
+def _mark(folder, relative, data=b"x"):
+    path = folder / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+    return folder
+
+
+def test_an_unpacked_folder_tells_its_platform(tmp_path):
+    assert plugin_facts.folder_platform(str(_mark(tmp_path / "wiiu", "meta/meta.xml"))) == "wiiu"
+    assert plugin_facts.folder_platform(str(_mark(tmp_path / "ctr", "exefs/code.bin"))) == "3ds"
+    assert plugin_facts.folder_platform(str(_mark(tmp_path / "nx", "game/exefs/main.npdm"))) == "switch"
+    gc = _mark(_mark(tmp_path / "gc", "sys/main.dol"), "sys/boot.bin", b"GZ2E01")
+    wii = _mark(_mark(tmp_path / "wii", "sys/main.dol"), "sys/boot.bin", b"RZDE01")
+    assert (plugin_facts.folder_platform(str(gc)), plugin_facts.folder_platform(str(wii))) == ("gc", "wii")
+    (tmp_path / "plain").mkdir()
+    assert plugin_facts.folder_platform(str(tmp_path / "plain")) == ""
+
+
+class OnePlatformRules(BaseGameRules):
+    def get_platforms(self):
+        return [{"id": "3ds", "label": "Nintendo 3DS"}]
+
+
+def test_a_folder_of_a_one_platform_game_gets_that_platform(tmp_path):
+    [item] = plugin_facts.identify_sources(OnePlatformRules(), [str(tmp_path)])
+    assert (item["platform"], item["status"]) == ("3ds", plugin_facts.STATUS_FOLDER)
+    [unknown] = plugin_facts.identify_sources(NoUnpackRules(), [str(tmp_path)])
+    assert unknown["platform"] == ""
+
+
+def test_a_game_without_platforms_offers_every_known_platform():
+    assert plugin_facts.offered_platforms(OnePlatformRules()) == [{"id": "3ds", "label": "Nintendo 3DS"}]
+    offered = [platform["id"] for platform in plugin_facts.offered_platforms(NoUnpackRules())]
+    assert offered == list(plugin_facts.KNOWN_PLATFORMS) and "wiiu" in offered
+
+
 def test_a_wii_u_disc_image_is_named_but_not_read(tmp_path):
     wux = tmp_path / "game.wux"
     wux.write_bytes(plugin_facts.WUX_MAGIC + b"\0" * 60)
@@ -118,8 +163,9 @@ def test_identification_drops_undeclared_roles_and_survives_a_failing_plugin(tmp
 
     result = plugin_facts.identify_sources(FakeRules(), paths)
 
+    # The fake game ships on one platform, so a file it does not recognise is still on that platform.
     assert [(item["role"], item["platform"]) for item in result] == [
-        ("update", "3ds"), ("", ""), ("", ""), ("", "")]
+        ("update", "3ds"), ("", "3ds"), ("", "3ds"), ("", "3ds")]
 
 
 def test_identification_stops_when_cancelled(tmp_path):

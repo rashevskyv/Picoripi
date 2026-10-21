@@ -74,7 +74,7 @@ class FactsJob(WorkerThread):
             rules = self._load_rules(self._plugin)
             result = {
                 "roles": plugin_facts.roles_of(rules),
-                "platforms": plugin_facts.platforms_of(rules),
+                "platforms": plugin_facts.offered_platforms(rules),
                 "identities": plugin_facts.identify_sources(rules, self._paths, self.isInterruptionRequested),
             }
         except Exception as exc:  # a plugin's failure is shown in the wizard; the user can still pick by hand

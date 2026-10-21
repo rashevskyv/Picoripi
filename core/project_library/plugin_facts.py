@@ -53,7 +53,7 @@ def roles_of(rules: Any) -> List[Dict[str, Any]]:
     """The source roles of a plugin, ``[{"id", "label", "multiple"}]``.
 
     The plugin's own roles come first. Base game, Update and DLC are always offered, so a user can add every file of
-    a game at once. ``multiple`` is True for a role that many files may share (DLC).
+    a game at once; their names are not translated. ``multiple`` is True for a role that many files may share (DLC).
     """
     roles: List[Dict[str, Any]] = []
     for role in rules.get_source_roles() or []:
@@ -62,7 +62,10 @@ def roles_of(rules: Any) -> List[Dict[str, Any]]:
             roles.append({"id": role_id, "label": str(role.get("label") or role_id)})
     for role_id, label in GENERIC_ROLES:
         if role_id not in {r["id"] for r in roles}:
-            roles.append({"id": role_id, "label": tr(label)})
+            roles.append({"id": role_id, "label": label})
+    generic_labels = dict(GENERIC_ROLES)   # these names stay English in every interface language
+    for role in roles:
+        role["label"] = generic_labels.get(role["id"], role["label"])
     for role in roles:
         role["multiple"] = role["id"] in MULTIPLE_ROLES
     return roles
@@ -117,6 +120,40 @@ def platform_label(platform_id: str) -> str:
         return tr("Wii U")
     return tr(images.KIND_LABEL.get(platform_id, platform_id))
 
+
+KNOWN_PLATFORMS = tuple(images.KIND_LABEL) + (KIND_WIIU,)
+# A file inside a folder that marks the platform of an unpacked game; sys/main.dol is GameCube or Wii (sys/boot.bin).
+FOLDER_MARKERS = (("meta/meta.xml", KIND_WIIU), ("code/app.xml", KIND_WIIU), ("exheader.bin", images.KIND_3DS),
+                  ("exefs/code.bin", images.KIND_3DS), ("exefs/main.npdm", images.KIND_SWITCH),
+                  ("exefs/main", images.KIND_SWITCH), ("arm9.bin", images.KIND_NDS), ("sys/main.dol", ""))
+
+
+def folder_platform(folder: str) -> str:
+    """The platform of an unpacked game folder from the files it holds (the folder or one level below), or ""."""
+    root = Path(folder)
+    try:
+        candidates = [root] + sorted(child for child in root.iterdir() if child.is_dir())
+    except OSError:
+        return ""
+    for candidate in candidates:
+        for marker, platform in FOLDER_MARKERS:
+            if not (candidate / marker).is_file():
+                continue
+            if platform:
+                return platform
+            try:   # a Dolphin-style tree: the game id in sys/boot.bin starts with G or D on GameCube, R or S on Wii
+                first = (candidate / "sys" / "boot.bin").read_bytes()[:1]
+            except OSError:
+                return ""
+            return images.KIND_WII if first in (b"R", b"S") else images.KIND_GC
+    return ""
+
+
+def offered_platforms(rules: Any) -> List[Dict[str, str]]:
+    """The platforms the wizard offers: the plugin's own, or every platform Picoripi knows when it declares none."""
+    return platforms_of(rules) or [{"id": kind, "label": platform_label(kind)} for kind in KNOWN_PLATFORMS]
+
+
 def platforms_of(rules: Any) -> List[Dict[str, str]]:
     """The platforms of a plugin, ``[{"id", "label"}]``."""
     platforms = []
@@ -155,6 +192,7 @@ def identify_sources(rules: Any, paths: Sequence[str], is_cancelled: Cancelled =
     plugin lists in ``unpack_key_consoles``.
     """
     known = {role["id"] for role in roles_of(rules)}
+    declared = [platform["id"] for platform in platforms_of(rules)]
     allowed = _unpack_consoles(rules)
     unpacks = _has_unpack(rules) or bool(allowed)    # a game that reads console keys unpacks images
     result: List[Dict[str, Any]] = []
@@ -178,6 +216,10 @@ def identify_sources(rules: Any, paths: Sequence[str], is_cancelled: Cancelled =
             role = generic["role"] if generic["role"] in known else ""
             platform = generic["platform"]
             status = _status_of(found, is_folder, unpacks)
+        if not platform and is_folder:
+            platform = folder_platform(path)
+        if not platform and len(declared) == 1:
+            platform = declared[0]          # a game on one platform: every file of it is on that platform
         console = _key_console(found, allowed) if status in (STATUS_OK, STATUS_UNRECOGNISED) else ""
         result.append({"path": path, "role": role, "platform": platform, "status": status,
                        "title_id": str((found or {}).get("title_id") or (found or {}).get("game_id") or ""),

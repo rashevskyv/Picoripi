@@ -447,6 +447,9 @@ def ensure_data_location_chosen() -> bool:
     current = location.path if location.problem else None
     notice = tr("The saved data folder is missing or read-only. Choose a folder.") if location.problem else ""
     dialog = DataLocationDialog(app_root(), current=current, legacy=legacy_dir(), first_start=True, notice=notice)
+    dialog.show()
+    dialog.raise_()            # the first window of a start from a console: bring it to the front
+    dialog.activateWindow()
     return dialog.exec() == QDialog.DialogCode.Accepted.value
 
 
