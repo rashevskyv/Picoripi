@@ -128,6 +128,18 @@ the line when it is done or moved into a plan.
 - Open: the translation is empty: 0 of 6,974 lines are translated.
 - Owner: the reference files of the Russian overlay (`reference\ru_mod\`) are for format study only. Its text and voice are not used.
 
+## Conker: Live & Reloaded (Xbox, USA) (`plugins/conker_lr`, 2026-10-21, branch `feat/conker-lr`)
+
+- Open: growth. The LSBL block's (id, offset) table is not decoded; a text must fit its slot (the original length). A longer Ukrainian line is refused at build time.
+- Open: `UIFrontend/default.bin` (key and position table, 219 entries) does not match the block count; the plugin leaves it out.
+- Open: `chapters_text` has a second text blob after its LSBL block (`Options`, `Chapters`, `Game 1`...); the plugin reads only the LSBL strings. Labels like `Game 1` on the title screen are pictures, not text.
+- Open: other languages (Japanese, French, German, Spanish, Italian) use the same container; the scanner reads Latin-1 text only, so Japanese needs a wider scan. Only the English slot is in scope.
+- Open: fonts (`dvddata/aid/font/ConkerFont`, `FrontendTitle`) and `media/ArialUni.Ttf` are not analysed; width checks are off until a font map exists.
+- Open: no XISO rebuild. The build writes the changed `default.bin` files into a folder; a playable image needs a rebuild step (extract-xiso `-c` or a Python writer).
+- Open: no Picoripi project file in the workspace yet (the wizard step is not run in the GUI) and no `zt_game.txt`.
+- Open: Eden proof: the game boots from a private copy and draws the Frontend subtitles from `Frontend/default.bin`. A changed subtitle was not captured yet (the scene order differs between runs; a fixed pad script is needed).
+- Open: the N64 Conker script is a different file set (ASCII tables in the ROM, not CAFF UTF-16); it is not a line-for-line reference.
+
 ## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-bfd`)
 ## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-grow`)
 

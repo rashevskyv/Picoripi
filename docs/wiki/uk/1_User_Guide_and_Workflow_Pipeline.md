@@ -705,6 +705,7 @@ tokens: 77.2k
      `source\font\charset_standard.bin` (сітка 166 глифів 16x16 CI4) і логотипи `source\texture\LOGO_*.bin` (RGBA16).
      `2_build.bat` пише змінені повідомлення, глифи й логотипи в мод порту `build\mods\zz_Picoripi_UA.o2r`; ROM не змінюється.
      У наборі символів українських літер ще немає.
+   - `conker_lr` — Conker: Live & Reloaded (Xbox, USA), плагін у роботі. **Source:** тека `source\text\` (по одному JSON на англійський `default.bin`, репліки звичайним текстом з тегами як `{PMARKER}`) і `source\original\` (власні файли диска, з яких збирає збірка). Ціль збірки `translated_files` записує кожен змінений `default.bin`; рядок має вміщатися в свою вихідну довжину. Ще немає: довших рядків, таблиці інтерфейсу і шрифтів.
    - `conker_bfd` — Conker's Bad Fur Day (N64, USA 1.0), плагін у роботі. **Source:** тека `source\text\bank_1A\`
      (книжка катапульти) і `source\text\bank_1C\` (меню, пауза, назви глав, титри): по одному JSON на таблицю,
      текст звичайними символами, внутрішні коди як теги `[@hh]`; шрифт `source\font\glyph_00.pgm` до
