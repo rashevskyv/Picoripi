@@ -52,7 +52,8 @@ def test_build_package_writes_rom_manifest_and_run_script(tmp_path, monkeypatch)
     base, payload = b"base", b"translated rom bytes"
     monkeypatch.setattr(pr, "PORTS_BY_BASE_SHA1", {_sha(base): {
         "id": "emerald", "kind": "gba", "folder": "EmeraldRecomp", "exe": "EmeraldRecomp.exe",
-        "game": "Pokemon Emerald (USA)", "release": "https://example.invalid/EmeraldRecomp/v0.1.2"}})
+        "game": "Pokemon Emerald (USA)", "zip": "EmeraldRecomp-windows-x64-v0.1.2.zip",
+        "release": "https://example.invalid/EmeraldRecomp/v0.1.2"}})
     source = _project(tmp_path / "project", base)
     out = tmp_path / "out"
     folder = Path(pr.build_package(str(source), "", str(out), _fake_rom(payload), lambda p, m: None, lambda: False))
@@ -82,6 +83,56 @@ def test_gen2_package_names_the_gate_line_and_has_no_run_script(tmp_path, monkey
     readme = (folder / "README_UA.txt").read_text(encoding="utf-8")
     assert f'sha1Alt = {{ "{_sha(payload)}" }},' in readme
     assert "POKEPORT_IMPORT_ROM" in readme
+
+
+def _pret_workspace(root: Path, dump: bytes) -> Path:
+    """A pret workspace: source/ beside ISO/ (the dump) and build/ (2_build.bat's ROM). Returns source/."""
+    (root / "source").mkdir(parents=True)
+    (root / "ISO").mkdir()
+    (root / "ISO" / "Pokemon - Emerald Version (USA, Europe).gba").write_bytes(dump)
+    return root / "source"
+
+
+def test_pret_workspace_packages_an_unchanged_build_and_never_calls_the_writer(tmp_path, monkeypatch):
+    dump = built = b"emerald dump"
+    monkeypatch.setattr(pr, "PORTS_BY_BASE_SHA1", {_sha(dump): {
+        "id": "emerald", "kind": "gba", "folder": "EmeraldRecomp", "exe": "EmeraldRecomp.exe",
+        "game": "Pokemon Emerald (USA)", "built": "pokeemerald.gba", "zip": "z.zip", "version": "0.1.2",
+        "release": "https://example.invalid/v0.1.2"}})
+    source = _pret_workspace(tmp_path / "ws", dump)
+    (tmp_path / "ws" / "build").mkdir()
+    (tmp_path / "ws" / "build" / "pokeemerald.gba").write_bytes(built)
+
+    def writer_must_not_run(*_):
+        raise AssertionError("a pret workspace has no ROM writer")
+
+    out = tmp_path / "out"
+    folder = Path(pr.build_package(str(source), "", str(out), writer_must_not_run, lambda p, m: None, lambda: False))
+    assert (folder / "pokeemerald.gba").read_bytes() == built
+    assert json.loads((folder / "recomp.json").read_text(encoding="utf-8"))["rom_sha1"] == _sha(built)
+
+
+def test_pret_workspace_refuses_a_changed_build(tmp_path, monkeypatch):
+    dump, built = b"emerald dump", b"built with a longer text"
+    monkeypatch.setattr(pr, "PORTS_BY_BASE_SHA1", {_sha(dump): {
+        "id": "emerald", "kind": "gba", "folder": "EmeraldRecomp", "exe": "EmeraldRecomp.exe",
+        "game": "Pokemon Emerald (USA)", "built": "pokeemerald.gba", "zip": "z.zip", "release": "x"}})
+    source = _pret_workspace(tmp_path / "ws", dump)
+    (tmp_path / "ws" / "build").mkdir()
+    (tmp_path / "ws" / "build" / "pokeemerald.gba").write_bytes(built)
+    with pytest.raises(ValueError, match="blank screen"):
+        pr.build_package(str(source), "", str(tmp_path / "out"), lambda *_: "", lambda p, m: None, lambda: False)
+
+
+def test_pret_workspace_without_a_build_names_2_build_bat(tmp_path, monkeypatch):
+    dump = b"emerald dump"
+    monkeypatch.setattr(pr, "PORTS_BY_BASE_SHA1", {_sha(dump): {
+        "id": "emerald", "kind": "gba", "folder": "EmeraldRecomp", "exe": "EmeraldRecomp.exe",
+        "game": "Pokemon Emerald (USA)", "built": "pokeemerald.gba", "zip": "z.zip", "version": "0.1.2",
+        "release": "x"}})
+    source = _pret_workspace(tmp_path / "ws", dump)
+    with pytest.raises(ValueError, match="2_build.bat"):
+        pr.build_package(str(source), "", str(tmp_path / "out"), lambda *_: "", lambda p, m: None, lambda: False)
 
 
 def test_cancelled_build_writes_nothing_into_the_port_folder(tmp_path, monkeypatch):

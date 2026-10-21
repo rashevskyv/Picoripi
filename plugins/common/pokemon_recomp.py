@@ -4,6 +4,9 @@ The ports read the cartridge at run time. EmeraldRecomp and FireRedLeafGreenReco
 command line. Gen2Recomp imports the ROM once into its own cache, and its gate lists the accepted dumps. This module
 writes files only: it copies no port code and patches no runtime. A Gen 2 package names the one line the owner adds
 to the port's own checkout.
+
+Two kinds of project: a ROM-mode project (``rom\\base.*`` beside the source; the ROM is written by Picoripi) and a
+pret workspace (``ISO\\`` holds the dump; the ROM is the one ``2_build.bat`` wrote into ``build\\``).
 """
 from __future__ import annotations
 
@@ -12,7 +15,7 @@ import json
 import os
 import shutil
 from pathlib import Path
-from typing import Callable, Dict
+from typing import Callable, Dict, List
 
 from core.i18n import tr
 
@@ -20,29 +23,39 @@ TARGET_ID = "recomp"
 Progress = Callable[[int, str], None]
 Cancelled = Callable[[], bool]
 MakeRom = Callable[[str, str, str], str]          # (source_dir, translation_dir, output_dir) -> ROM path
+ROM_SUFFIXES = (".gba", ".gbc")
 
 GBA_RELEASE = "https://github.com/mstan/{repo}/releases/tag/v{version}"
 # Base ROM SHA-1 -> the port that runs a translated copy of it. Only the dumps each port accepts.
+# "built" is the ROM the pret workspace's 2_build.bat writes into build\; "zip" is the official release asset.
 PORTS_BY_BASE_SHA1: Dict[str, Dict[str, str]] = {
     "f3ae088181bf583e55daf962a92bb46f4f1d07b7": {
         "id": "emerald", "kind": "gba", "folder": "EmeraldRecomp", "exe": "EmeraldRecomp.exe",
-        "game": "Pokemon Emerald (USA)", "release": GBA_RELEASE.format(repo="EmeraldRecomp", version="0.1.2")},
+        "game": "Pokemon Emerald (USA)", "built": "pokeemerald.gba",
+        "zip": "EmeraldRecomp-windows-x64-v0.1.2.zip", "version": "0.1.2",
+        "release": GBA_RELEASE.format(repo="EmeraldRecomp", version="0.1.2")},
     "41cb23d8dccc8ebd7c649cd8fbb58eeace6e2fdc": {
         "id": "firered", "kind": "gba", "folder": "FireRedLeafGreenRecomp", "exe": "FireRedRecomp.exe",
-        "game": "Pokemon FireRed v1.0 (USA)",
+        "game": "Pokemon FireRed v1.0 (USA)", "built": "pokefirered.gba",
+        "zip": "FireRedRecomp-windows-x64-v0.0.4.zip", "version": "0.0.4",
         "release": GBA_RELEASE.format(repo="FireRedLeafGreenRecomp", version="0.0.4")},
     "574fa542ffebb14be69902d1d36f1ec0a4afd71e": {
         "id": "leafgreen", "kind": "gba", "folder": "FireRedLeafGreenRecomp", "exe": "LeafGreenRecomp.exe",
-        "game": "Pokemon LeafGreen (USA)",
+        "game": "Pokemon LeafGreen (USA)", "built": "pokeleafgreen.gba",
+        "zip": "LeafGreenRecomp-windows-x64-v0.0.4.zip", "version": "0.0.4",
         "release": GBA_RELEASE.format(repo="FireRedLeafGreenRecomp", version="0.0.4")},
     "d8b8a3600a465308c9953dfa04f0081c05bdcb94": {
-        "id": "gold", "kind": "gen2", "folder": "Gen2Recomped", "game": "Pokemon Gold (USA)"},
+        "id": "gold", "kind": "gen2", "folder": "Gen2Recomped", "game": "Pokemon Gold (USA)",
+        "built": "pokegold.gbc"},
     "49b163f7e57702bc939d642a18f591de55d92dae": {
-        "id": "silver", "kind": "gen2", "folder": "Gen2Recomped", "game": "Pokemon Silver (USA)"},
+        "id": "silver", "kind": "gen2", "folder": "Gen2Recomped", "game": "Pokemon Silver (USA)",
+        "built": "pokesilver.gbc"},
     "f2f52230b536214ef7c9924f483392993e226cfb": {
-        "id": "crystal", "kind": "gen2", "folder": "Gen2Recomped", "game": "Pokemon Crystal (USA, Rev 1)"},
+        "id": "crystal", "kind": "gen2", "folder": "Gen2Recomped", "game": "Pokemon Crystal (USA, Rev 1)",
+        "built": "pokecrystal11.gbc"},
     "f4cd194bdee0d04ca4eac29e09b8e4e9d818c133": {
-        "id": "crystal", "kind": "gen2", "folder": "Gen2Recomped", "game": "Pokemon Crystal (USA, Rev 0)"},
+        "id": "crystal", "kind": "gen2", "folder": "Gen2Recomped", "game": "Pokemon Crystal (USA, Rev 0)",
+        "built": "pokecrystal.gbc"},
 }
 
 RUN_BAT = """@echo off
@@ -61,8 +74,7 @@ GBA_README = """{game}: українська збірка для {folder}
   run_UA.bat    запускає {exe} з цим ROM
 
 Кроки
-  1. Завантажте {folder} v{version} для Windows x64 з офіційного релізу:
-     {release}
+  1. Завантажте {zip} з офіційного релізу {release}.
      Розпакуйте архів у цю папку.
   2. Покладіть свій дамп GBA BIOS у цю папку під назвою gba_bios.bin
      (SHA-1 300c20df6731a33952ded8c436f7f186d25d3492).
@@ -116,16 +128,37 @@ def _atomic_write(path: Path, data: bytes) -> None:
     os.replace(tmp, path)
 
 
+def _is_rom_mode(ws: Path) -> bool:
+    return (ws / "rom").is_dir()
+
+
+def _base_roms(ws: Path) -> List[Path]:
+    """The dump the project came from: ``rom\\base.*`` in ROM mode, else the ROM files in the workspace ``ISO\\``."""
+    if _is_rom_mode(ws):
+        return sorted((ws / "rom").glob("base.*"))
+    iso = ws / "ISO"
+    return sorted(p for p in iso.iterdir() if p.suffix.lower() in ROM_SUFFIXES) if iso.is_dir() else []
+
+
 def port_for_source(source_dir: str) -> Dict[str, str]:
-    """The port that runs the base ROM of this project (its ``rom/`` folder beside the source root)."""
-    bases = sorted((Path(source_dir).parent / "rom").glob("base.*"))
+    """The port that runs the base dump of this project (the source folder's parent is the project folder)."""
+    ws = Path(source_dir).parent
+    bases = _base_roms(ws)
     if not bases:
         raise ValueError(tr("This project was not unpacked from a ROM."))
-    sha = _sha1(bases[0])
-    port = PORTS_BY_BASE_SHA1.get(sha)
-    if port is None:
-        raise ValueError(tr("No recomp port runs this ROM: {0}", sha))
-    return port
+    for base in bases:
+        sha = _sha1(base)
+        if sha in PORTS_BY_BASE_SHA1:
+            return dict(PORTS_BY_BASE_SHA1[sha], base_sha1=sha)
+    raise ValueError(tr("No recomp port runs this ROM: {0}", _sha1(bases[0])))
+
+
+def _built_rom(ws: Path, port: Dict[str, str]) -> Path:
+    path = ws / "build" / port["built"]
+    if not path.is_file():
+        raise ValueError(tr("The ROM is not built yet: run 2_build.bat in the project first ({0} is missing).",
+                            str(path)))
+    return path
 
 
 def _write_files(folder: Path, port: Dict[str, str], rom: str, rom_sha1: str) -> None:
@@ -137,16 +170,28 @@ def _write_files(folder: Path, port: Dict[str, str], rom: str, rom_sha1: str) ->
     exe = port["exe"]
     _atomic_write(folder / "run_UA.bat", RUN_BAT.format(exe=exe, rom=rom, rom_sha1=rom_sha1).encode("ascii"))
     _atomic_write(folder / "README_UA.txt", GBA_README.format(
-        exe=exe, release=port["release"], version=port["release"].rsplit("v", 1)[1], **fields).encode("utf-8"))
+        exe=exe, zip=port["zip"], release=port["release"], **fields).encode("utf-8"))
 
 
 def build_package(source_dir: str, translation_dir: str, output_dir: str, make_rom: MakeRom,
                   progress: Progress, is_cancelled: Cancelled) -> str:
-    """Write the port's folder into ``output_dir`` and return its path (empty when cancelled)."""
+    """Write the port's folder into ``output_dir`` and return its path (empty when cancelled).
+
+    A ROM-mode project gets its ROM from ``make_rom``. A pret workspace gets the ROM ``2_build.bat`` built.
+    """
+    ws = Path(source_dir).parent
     port = port_for_source(source_dir)
-    progress(10, tr("Building the translated ROM"))
     work = Path(output_dir) / "_rom"
-    rom = Path(make_rom(source_dir, translation_dir, str(work)))
+    if _is_rom_mode(ws):
+        progress(10, tr("Building the translated ROM"))
+        rom = Path(make_rom(source_dir, translation_dir, str(work)))
+    else:
+        rom = _built_rom(ws, port)
+        if _sha1(rom) != port["base_sha1"]:
+            # A pret build with a longer or shorter text moves the code; the port keeps the original code
+            # addresses and shows a blank screen (tested on Emerald). A ROM project keeps them.
+            raise ValueError(tr("The pret build changed the ROM, and the port would show a blank screen. "
+                                "Package a ROM project (rom\\base.*) instead."))
     if is_cancelled():
         return ""
     folder = Path(output_dir) / port["folder"]
@@ -160,4 +205,3 @@ def build_package(source_dir: str, translation_dir: str, output_dir: str, make_r
     _write_files(folder, port, rom.name, rom_sha1)
     progress(100, tr("Done"))
     return str(folder)
-
