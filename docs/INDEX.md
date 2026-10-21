@@ -18,20 +18,34 @@ Read the row, then open only the document you need.
 | `docs/ROADMAP.md` | Master plan: the work packages of Picoripi, their state and the order | 1.6k | current | work packages, order of work |
 | `docs/TESTING_STRATEGY_AND_AUDIT.md` | Shape of the test suite, lanes, known risks | 2.3k | current | tests/ |
 | `docs/TRANSLATION_PROMPTING_STRATEGY.md` | Target design of translation context and prompts (Ukrainian) | 6.2k | design | handlers/translation/prompt_composer |
-| `docs/wiki/0_Getting_Started.md` (+uk) | First start to a built mod: install, data folder, Project Manager, wizard, editor, widths, tags, saving, AI, glossary, settings map, build | 8.3k | current | ui/project_manager/wizard.py |
+| `docs/wiki/0_Getting_Started.md` (+uk) | First start to the first saved line: install, first start, new project, first translation, where to read next | 1.4k | current | ui/project_manager/wizard.py |
 | `docs/wiki/11_AI_Translation.md` (+uk) | Providers, prompts, chunks, run memory, translation memory | 6.0k | current | handlers/translation, core/translation |
 | `docs/wiki/12_Picoripi_Companion.md` (+uk) | Companion server and glossary sync | 1.9k | current | core/companion_sync.py, companion/ |
 | `docs/wiki/13_Working_Together.md` (+uk) | Rooms, roles, claims, comments | 2.9k | current | core/collab |
-| `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (+uk) | Main window, menus, filters, settings tabs, shortcuts | 59.5k | current | ui/, components/, dialogs/ |
+| `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (+uk) | Main window, menus, filters, settings tabs, shortcuts | 59.6k | current | ui/, components/, dialogs/ |
 | `docs/wiki/2_API_Reference.md` (+uk) | Which Python file implements which control | 0.8k | current | module map |
 | `docs/wiki/3_Plugin_Developer_Guide.md` (+uk) | The one plugin guide: files, hooks, capabilities, tests | 14.6k | current | plugins/ |
-| `docs/wiki/4_Configuration_Guide.md` (+uk) | Settings files, project files, where data is stored | 2.4k | current | core/settings |
+| `docs/wiki/4_Configuration_Guide.md` (+uk) | Map of every Settings tab and control, defaults, restart needs, and where each value is stored | 4.0k | current | ui/settings |
 | `docs/wiki/5_Gemini_Web2API.md` (+uk) | The local Gemini proxy: start, settings, errors | 2.2k | current | core/translation/providers.py |
 | `docs/wiki/6_Virtual_Navigation_and_Preview.md` (+uk) | Virtual folders, story and speaker views, preview | 1.4k | current | ui/updaters/block_list |
-| `docs/wiki/7_Maintaining_This_Wiki.md` (+uk) | Which page owns which fact; how to update EN and UK | 0.8k | current | docs/wiki |
+| `docs/wiki/7_Maintaining_This_Wiki.md` (+uk) | Which page owns which fact; how to update EN and UK | 1.0k | current | docs/wiki |
 | `docs/wiki/8_Localization_Pipeline.md` (+uk) | Pipeline wizard: script, glossary build, reconcile | 4.7k | current | core/glossary_build, core/glossary |
 | `docs/wiki/9_Script_Markup.md` (+uk) | Script Markup Studio | 1.9k | current | core/script_markup, ui/script_markup |
-| `docs/wiki/README.md` (+uk) | Wiki index and reading order | 0.7k | current | docs/wiki |
+| `docs/wiki/Build_and_Test.md` (+uk) | Build a mod from saved files, export it, run it in an emulator, and test it per platform | 2.1k | current | core/project_library/build.py |
+| `docs/wiki/Editor_Basics.md` (+uk) | Main window map, Blocks tree, Strings list, editors, status bar, and how to translate one line | 2.5k | current | ui/builders/ |
+| `docs/wiki/Fonts_and_Textures.md` (+uk) | Edit game fonts and textures, add Ukrainian letters, and set the fonts folders and default font of a project | 1.8k | current | tools/bfn_editor/ and ui/texture_window.py |
+| `docs/wiki/Game_Notes.md` (+uk) | Per-game technical notes: source folders, file formats, tags, previews, build steps | 47.4k | current | plugins |
+| `docs/wiki/Hotkeys.md` (+uk) | Every keyboard shortcut and modifier click of the main window and its separate windows, grouped by task, with menu paths | 2.2k | current | ui/builders/menu_builder.py |
+| `docs/wiki/New_Project_Scenarios.md` (+uk) | The three-step new-project wizard and each kind of game source it accepts | 1.8k | current | ui/project_manager/wizard.py, core/project_library/ |
+| `docs/wiki/Project_Manager.md` (+uk) | The Project Manager window: list, folders, flags, import, share, storage and reopen at start | 2.1k | current | ui/project_manager/window.py, core/project_library/ |
+| `docs/wiki/README.md` (+uk) | Wiki index and reading order | 1.1k | current | docs/wiki |
+| `docs/wiki/Recipes.md` (+uk) | Short task recipes: what to press, in order, for each common goal, with a link to the full page | 3.0k | current | docs/wiki |
+| `docs/wiki/Saving_and_Recovery.md` (+uk) | Saving, undo, backups, session recovery, revert and moving a project. | 2.2k | current | core/data_processor/save_mixin.py, core/data_processor/session_manager.py, core/data_processor/revert_manager.py, core/saved_translations_manager.py, core/undo_manager.py |
+| `docs/wiki/Search_Bookmarks.md` (+uk) | Quick find, Advanced Search & Replace, search history and bookmarks. | 1.9k | current | components/search_panel.py, handlers/search_handler.py, dialogs/search_review/, handlers/bookmark_handler.py |
+| `docs/wiki/Supported_Games.md` (+uk) | Table of every game plugin with platforms, wizard needs and build targets. | 6.6k | current | plugins/ |
+| `docs/wiki/Troubleshooting.md` (+uk) | Symptom, cause and fix tables for the problems a new user meets, plus how to read the log and report a bug. | 2.6k | current | handlers/ and ui/ (messages and dialogs) |
+| `docs/wiki/Warnings_and_Autofix.md` (+uk) | Problem lines, warning colours, navigation, Detection and Auto-fix settings, Fix All Strings, rescans and the spell checker. | 2.0k | current | handlers/issue_scan_handler.py |
+| `docs/wiki/Width_Fonts_Tags.md` (+uk) | Line width in game pixels, per-string and project limits, the Font Map, default font and tags. | 2.0k | current | utils/width.py |
 | `AGENTS.md` | Agent entry: hard rules, commands, checklist |  | current | everything |
 | `README.md` | Pitch, install, run, tests, doc map |  | current | repository |
 | `CHANGELOG.md` | One line per change; grep below [Unreleased] |  | current | releases |

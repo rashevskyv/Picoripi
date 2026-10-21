@@ -113,4 +113,4 @@ The companion backend runs on Python 3.10+ (FastAPI + Uvicorn) and stores projec
 <!-- wiki-nav -->
 ---
 
-**Previous:** [Working Together and Progress](13_Working_Together.md) · [Back to the wiki index](README.md) · **Next:** [Configuration](4_Configuration_Guide.md)
+**Previous:** [Working Together and Progress](13_Working_Together.md) · [Back to the wiki index](README.md) · **Next:** [Recipes: I want to ...](Recipes.md)

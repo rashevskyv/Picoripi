@@ -228,4 +228,4 @@ block with AI** запускає довгий повний обхід і все 
 <!-- wiki-nav -->
 ---
 
-**Назад:** [Посібник: інтерфейс](1_User_Guide_and_Workflow_Pipeline.md) · [До змісту вікі](README.md) · **Далі:** [AI-переклад](11_AI_Translation.md)
+**Назад:** [Збереження, скасування, резервні копії та відновлення](Saving_and_Recovery.md) · [До змісту вікі](README.md) · **Далі:** [AI-переклад](11_AI_Translation.md)

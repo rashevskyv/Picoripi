@@ -145,4 +145,4 @@ tokens: 2.5k
 <!-- wiki-nav -->
 ---
 
-**Назад:** [Віртуальна навігація і прев’ю](6_Virtual_Navigation_and_Preview.md) · [До змісту вікі](README.md) · **Далі:** [Спільна робота і прогрес](13_Working_Together.md)
+**Назад:** [Віртуальна навігація і прев’ю](6_Virtual_Navigation_and_Preview.md) · [До змісту вікі](README.md) · **Далі:** [Усунення несправностей](Troubleshooting.md)

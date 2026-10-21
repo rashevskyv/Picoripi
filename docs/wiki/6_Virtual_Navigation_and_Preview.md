@@ -92,4 +92,4 @@ Above Editable: **Window:**, **Chapter:**, **Speaker:**, Font / Max-width. Same 
 <!-- wiki-nav -->
 ---
 
-**Previous:** [Gemini Web2API (WebTOP)](5_Gemini_Web2API.md) · [Back to the wiki index](README.md) · **Next:** [Script Markup Studio](9_Script_Markup.md)
+**Previous:** [Game notes](Game_Notes.md) · [Back to the wiki index](README.md) · **Next:** [Script Markup Studio](9_Script_Markup.md)

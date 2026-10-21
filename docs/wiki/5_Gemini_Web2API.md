@@ -159,4 +159,4 @@ and that a firewall does not block the port.
 <!-- wiki-nav -->
 ---
 
-**Previous:** [AI Translation](11_AI_Translation.md) · [Back to the wiki index](README.md) · **Next:** [Virtual Navigation and Preview](6_Virtual_Navigation_and_Preview.md)
+**Previous:** [AI Translation](11_AI_Translation.md) · [Back to the wiki index](README.md) · **Next:** [Fonts and textures](Fonts_and_Textures.md)
