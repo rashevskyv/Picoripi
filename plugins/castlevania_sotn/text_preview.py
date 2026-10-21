@@ -17,7 +17,8 @@ from PyQt6.QtWidgets import QWidget
 
 from core import font_formats
 from core.i18n import tr
-from plugins.castlevania_sotn import codec, hud, text_window
+from core.project_library import console_keys
+from plugins.castlevania_sotn import codec, hud, menu_text, text_window
 from plugins.castlevania_sotn.script import TAG_RE
 from plugins.common.switch_message_preview import source_folder
 from utils.logging_utils import log_debug
@@ -26,6 +27,8 @@ from utils.thread_utils import WorkerThread, safe_shutdown_thread
 WORKER_STOP_MS = 2000
 ZOOM = 2
 _MARGIN = 8
+_MENU_BG = (24, 26, 72, 255)       # the menu panel blue (approximate; the menu draws a gradient)
+_MENU_INK = (240, 240, 240, 255)
 _FONT = json.loads((Path(__file__).with_name("font_sources.json")).read_text(encoding="utf-8"))[0]
 
 
@@ -52,8 +55,27 @@ def read_font_sheet(project_dir: str) -> Optional[Image.Image]:
     return sheets[0].convert("RGBA")
 
 
+def read_bios() -> Optional[bytes]:
+    """The PlayStation BIOS bytes of the console key ``psx_bios``, or None while it is not set."""
+    path = console_keys.path_for("psx_bios")
+    return Path(path).read_bytes() if path else None
+
+
+def menu_line_image(bios: bytes, text: bytes) -> Tuple[Image.Image, int]:
+    """The first line as the game draws it in its 12 x 16 font, and the count of characters outside the table."""
+    strip, used, missing = menu_text.draw_line(text, lambda code: menu_text.glyph_at(bios, code))
+    rows = menu_text.ink_rows(strip, used)
+    image = Image.new("RGBA", (max(1, len(rows[0])), menu_text.ROWS), _MENU_BG)
+    pixels = image.load()
+    for y, row in enumerate(rows):
+        for x, on in enumerate(row):
+            if on:
+                pixels[x, y] = _MENU_INK
+    return image, missing
+
+
 class FontLoader(WorkerThread):
-    """Reads the font sheet in a worker. ``loaded`` carries ``(project folder, sheet or None)``."""
+    """Reads the font sheet and the BIOS file in a worker. ``loaded`` carries ``(project folder, sheet, BIOS)``."""
 
     loaded = pyqtSignal(object)
 
@@ -71,8 +93,13 @@ class FontLoader(WorkerThread):
         except (OSError, ValueError, KeyError, IndexError) as error:
             log_debug(f"castlevania_sotn preview: no font sheet in {self._project_dir}: {error}")
             sheet = None
+        try:
+            bios = read_bios()
+        except OSError as error:
+            log_debug(f"castlevania_sotn preview: the BIOS file cannot be read: {error}")
+            bios = None
         if not self._stop.is_set():
-            self.loaded.emit((self._project_dir, sheet))
+            self.loaded.emit((self._project_dir, sheet, bios))
 
 
 def read_hud_sheet(project_dir: str) -> Optional[Image.Image]:
@@ -126,6 +153,7 @@ class SotnTextPreview(QWidget):
         self._image: Optional[QImage] = None
         self._hud: Optional[Image.Image] = None
         self._hud_loader: Optional[HudLoader] = None
+        self._bios: Optional[bytes] = None
         self.setMinimumHeight(text_window.CANVAS[1] * ZOOM + 2 * _MARGIN)
         self._start_load()
 
@@ -162,13 +190,13 @@ class SotnTextPreview(QWidget):
         self._note = tr("Reading the game font...")
 
     def _on_loaded(self, payload: object) -> None:
-        project_dir, sheet = payload
+        project_dir, sheet, bios = payload
         if project_dir != self._source:
             return
+        self._bios = bios
+        self._sheet = sheet
         if sheet is None:
             self._note = tr("The dialogue font is not in this project's unpacked game.")
-            return
-        self._sheet = sheet
         self._render()
 
     def _on_hud_loaded(self, payload: object) -> None:
@@ -205,7 +233,35 @@ class SotnTextPreview(QWidget):
         found = rules.get_dialogue_place(data.physical_block_idx, data.current_string_idx)
         return text_window.Place(*found) if found else default
 
+    def _is_menu_line(self) -> bool:
+        """True when the selected line uses the console's 12 x 16 font (Shift-JIS lines). Reads only."""
+        rules = self._mw.current_game_rules
+        data = self._mw.data_store
+        attributes = rules.get_message_attributes(data.physical_block_idx, data.current_string_idx)
+        return bool(attributes) and attributes.get("font") == "bios"
+
+    def _render_menu_line(self) -> None:
+        """The first line in the menu font, as the menus draw it (menu_text.py). The BIOS file is needed."""
+        if self._bios is None:
+            self._image = None
+            self._note = tr("Set the PlayStation BIOS file in the Settings, Console keys tab to draw this line.")
+            self.update()
+            return
+        first, _sep, rest = self._text.partition("\n")
+        page, missing = menu_line_image(self._bios, codec.encode_sj(first))
+        self._image = _to_qimage(text_window.scale_nearest(page, ZOOM))
+        notes = []
+        if rest.strip():
+            notes.append(tr("Only the first line is drawn."))
+        if missing:
+            notes.append(tr("Some characters are outside the drawn range; they are blank."))
+        self._note = " ".join(notes)
+        self.update()
+
     def _render(self) -> None:
+        if self._is_menu_line():
+            self._render_menu_line()
+            return
         if self._sheet is None:
             self.update()
             return

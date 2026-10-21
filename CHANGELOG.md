@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Castlevania SotN (PS1): the preview of a Shift-JIS line (item description, message) draws its first line in the console's 12x16 font as the game lays it out (ink advance, 2-px byte grid); the BIOS file is read from the new Console keys slot "PlayStation BIOS" (no BIOS data shipped). On owner frames the description line fits at 2x (Dice 0.77) and the help line at 2x (Dice 0.76); the other menu screens are not drawn yet.
 - Castlevania SotN (PS1): the dialogue preview draws the two hearts digits of the Richter HUD on the prologue stage (ST0), from `richter_hud` in `ST0.BIN` with CLUT 0x103 of `F_GAME2.BIN`; fitted to `owner_02`, 7 of 240 cells differ; preview only.
 - Castlevania SotN (PS1): the cutscene window draws the speaker name in the 8x8 font (x 56, fitted y), above the text.
 - Castlevania SotN (PS1): the cutscene window text origin is fitted to a DuckStation frame (startX + 12, startY + 5); each dialogue line takes the window place of its script's POS command.

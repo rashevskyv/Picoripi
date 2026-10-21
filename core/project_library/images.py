@@ -39,7 +39,8 @@ KIND_WII = "wii"
 KIND_GDROM = "gdrom"
 KIND_PSX = "psx"
 CONSOLE_OF_KIND = {KIND_3DS: "3ds", KIND_SWITCH: "switch", KIND_WII: "wii"}
-CONSOLE_LABEL = {"3ds": "Nintendo 3DS", "switch": "Nintendo Switch", "wii": "Wii", "oodle": "Oodle library"}
+CONSOLE_LABEL = {"3ds": "Nintendo 3DS", "switch": "Nintendo Switch", "wii": "Wii", "oodle": "Oodle library",
+                 "psx_bios": "PlayStation BIOS"}
 UNPACK_KINDS = frozenset((KIND_GC, KIND_NDS, KIND_3DS, KIND_SWITCH, KIND_WII, KIND_GDROM, KIND_PSX))   # the kinds an unpack step can read
 SEGA_MAGIC = b"SEGA SEGAKATANA "   # the first bytes of a Dreamcast IP.BIN; the product number follows at 0x40
 WII_MAGIC_AT = wii_disc.WII_MAGIC_AT
