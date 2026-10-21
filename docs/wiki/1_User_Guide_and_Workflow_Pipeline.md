@@ -932,12 +932,15 @@ omase.nds`, made by the unpack) with the edited banks and files put in; no `zt`
      Ґ Є І Ї. The Font Editor opens all 14 FONT fonts (format `fragile_dreams`; Japanese glyphs are kept as
      they are); **Tools → Textures…** lists about 2,800 TPL pictures (title logo, tutorials, menus, maps,
      health and safety screens, HOME Menu, disc banner). `2_build.bat` compresses the changed files again.
-   - `no_more_heroes` — No More Heroes (Wii, Europe). **Source:** the workspace's `source` folder
-     (`1_unpack.bat` reads the disc's RMHG resource files, unpacking the game's LZ): `text\<disc file>.nmt` — the
+   - `no_more_heroes` — No More Heroes (Wii, Europe). **Wizard:** choose the disc image (ISO or RVZ); the wizard
+     unpacks it into the project's `source` folder. An encrypted ISO needs the Wii key file in console keys.
+     **Build:** "Wii disc image (ISO, English)" writes a plain ISO. An RVZ or WIA source is first written as a plain ISO
+     (every partition is hashed and encrypted again; this takes several minutes); the build needs the Wii key file.
+     **Source:** the unpacked `source` folder (the game's RMHG resource files, unpacking the game's LZ): `text\<disc file>.nmt` — the
      English lines of every text box of one game file (cut-scenes, stages and the city, side jobs, items, menus;
      about 12,000 lines in 1,064 files), `text\main.dol.nmt` (menu words kept in the program: title copyright,
      save screen, map and shop key guides, job board; written in place) and `hbm\home.csv` (HOME Menu). The game
-     draws no text from a font: each box carries a picture of its own glyphs, which `2_build.bat` draws anew from
+     draws no text from a font: each box carries a picture of its own glyphs, which the build draws anew from
      the old picture and the fonts. The Font Editor opens 15 fonts as glyph grids (format `texture_grid`, I4;
      each has empty cells for the 66 Ukrainian letters, written as Shift-JIS Cyrillic codes) and the HOME Menu
      font; **Tools → Textures…** lists about 1,080 pictures (boot logos, menus, loading and safety screens, item
@@ -949,7 +952,11 @@ omase.nds`, made by the unpack) with the edited banks and files put in; no `zt`
      `<8002>` and `<#0003>` are the game's codes and stay as they are. The Font Editor opens the subtitle and the
      heading font (`texture_grid`, IA8; empty cells for the Ukrainian letters), the ASCII system font and the
      HOME Menu font; **Tools → Textures…** lists about 500 pictures with text (the MADWORLD logo, menus, HUD,
-     tutorials, safety screen). `2_build.bat` draws each changed table's glyph picture anew.
+     tutorials, safety screen; the English health-and-safety pictures `strap\strap_*_us.tpl` are in it too). The wizard
+     unpacks the disc (`.iso` or `.rvz`; an encrypted `.iso` needs the Wii key file). The build target **Wii disc
+     image (ISO)** writes a plain ISO and draws each changed table's glyph picture anew. An `.rvz` source is written
+     as an ISO first (several minutes). It also needs the Wii key file. A letter with no picture in the font is
+     left out of the game; the build status line names it and `BUILD_WARNINGS.txt` beside the ISO lists it.
    - `xenoblade_wii` — Xenoblade Chronicles (Wii, USA) and Xenoblade Chronicles 3D (New 3DS, EUR): one plugin,
      one translation. **Source:** the workspace's `source` folder (`1_unpack.bat`), at the same paths on both
      platforms: the English BDAT table files `bdat\bdat_common.bin` (120 tables: menus, items, arts, skills,
