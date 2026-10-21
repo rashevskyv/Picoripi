@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/settings
-tokens: 2.2k
+tokens: 2.3k
 purpose: Settings files, project files, where data is stored
 ---
 # Configuration

@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Docs: new wiki page `14_Getting_Started.md` (EN and UK) walks a newcomer from the GitHub download to a game open in the editor, with screenshots in `docs/wiki/img/getting_started/`; written from newcomer tests of five games (Yo-kai Watch Switch and 3DS, Twilight Princess GameCube, Wii and Wii U HD).
 - Project Manager wizard: the location step suggests `Documents\Picoripi\<project name>` when the folder is empty; the Twilight Princess plugin is named "Zelda: Twilight Princess" (without "BMG").
 - First start: the data folder dialog stays on top of other windows (a start from run.bat opened it behind them), and "Copy existing data" is no longer ticked by default (an old profile is imported only when the user ticks it). Project Manager: the add button reads "+ Add project" and the empty list says where it is.
 

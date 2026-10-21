@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: docs/wiki
-tokens: 0.7k
+tokens: 0.8k
 purpose: Which page owns which fact; how to update EN and UK
 ---
 # Maintaining this wiki
@@ -27,6 +27,7 @@ English files in `docs/wiki/` are the source of truth. `docs/wiki/uk/` is the Uk
 | AI Translate / Variation / Chat / providers | `11_AI_Translation.md` |
 | Picoripi Companion (mobile PWA and sync server) | `12_Picoripi_Companion.md` |
 | Rooms (working together), progress page, team board | `13_Working_Together.md` |
+| First start: install, data folder, the new-project wizard, with screenshots (`img/getting_started/`) | `14_Getting_Started.md` |
 | Short pitch + setup + doc map | repo `README.md` |
 | Every feature in one list | `docs/FEATURES.md` |
 | Dated list of shipped **code** changes | `CHANGELOG.md` |

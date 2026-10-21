@@ -9,10 +9,10 @@ Read the row, then open only the document you need.
 | `docs/ARCHITECTURE.md` | Layers, data flow, facades, and where to change what | 2.2k | current | layering, data flow |
 | `docs/DECISIONS.md` | Why the code is the way it is: one short record per decision | 28.4k | current | decisions and their reasons |
 | `docs/ENGINEERING.md` | Habits behind the rules: threads, performance, persistence, tests | 2.0k | current | engineering practice |
-| `docs/FEATURES.md` | Every feature in detail; the wiki wins on a conflict | 14.8k | current | feature inventory |
+| `docs/FEATURES.md` | Every feature in detail; the wiki wins on a conflict | 14.9k | current | feature inventory |
 | `docs/MEMPALACE_CONTEXT_MANIFESTO.md` | MemPalace contract: principles, data flow, stage status | 2.3k | design | core/mempalace, ui/mempalace |
-| `docs/OPEN_ITEMS.md` | Everything left open, one line each, by work package | 48.3k | current | unfinished work |
-| `docs/PIPELINE_ROADMAP.md` | Pipeline design of record (Ukrainian); shipped vs planned on top | 12.3k | current | core/glossary_build, ui/pipeline_wizard_dialog.py |
+| `docs/OPEN_ITEMS.md` | Everything left open, one line each, by work package | 49.6k | current | unfinished work |
+| `docs/PIPELINE_ROADMAP.md` | Pipeline design of record (Ukrainian); shipped vs planned on top | 12.4k | current | core/glossary_build, ui/pipeline_wizard_dialog.py |
 | `docs/PROJECT_MANAGER_PHASE2.md` | Project Manager phase 2 | 0.7k | current | project manager |
 | `docs/REVIEW_QUEUE.md` | What is left for the owner after the audit: decisions with evidence, live runs, environment | 2.5k | current | owner decisions and live checks |
 | `docs/ROADMAP.md` | Master plan: the work packages of Picoripi, their state and the order | 1.6k | current | work packages, order of work |
@@ -21,16 +21,17 @@ Read the row, then open only the document you need.
 | `docs/wiki/11_AI_Translation.md` (+uk) | Providers, prompts, chunks, run memory, translation memory | 5.9k | current | handlers/translation, core/translation |
 | `docs/wiki/12_Picoripi_Companion.md` (+uk) | Companion server and glossary sync | 1.8k | current | core/companion_sync.py, companion/ |
 | `docs/wiki/13_Working_Together.md` (+uk) | Rooms, roles, claims, comments | 2.9k | current | core/collab |
-| `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (+uk) | Main window, menus, filters, settings tabs, shortcuts | 55.4k | current | ui/, components/, dialogs/ |
+| `docs/wiki/14_Getting_Started.md` (+uk) | First start, step by step: install, data folder, adding games | 1.4k | current | ui/project_manager/wizard.py |
+| `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (+uk) | Main window, menus, filters, settings tabs, shortcuts | 57.1k | current | ui/, components/, dialogs/ |
 | `docs/wiki/2_API_Reference.md` (+uk) | Which Python file implements which control | 0.8k | current | module map |
-| `docs/wiki/3_Plugin_Developer_Guide.md` (+uk) | The one plugin guide: files, hooks, capabilities, tests | 13.9k | current | plugins/ |
-| `docs/wiki/4_Configuration_Guide.md` (+uk) | Settings files, project files, where data is stored | 2.2k | current | core/settings |
+| `docs/wiki/3_Plugin_Developer_Guide.md` (+uk) | The one plugin guide: files, hooks, capabilities, tests | 14.2k | current | plugins/ |
+| `docs/wiki/4_Configuration_Guide.md` (+uk) | Settings files, project files, where data is stored | 2.3k | current | core/settings |
 | `docs/wiki/5_Gemini_Web2API.md` (+uk) | The local Gemini proxy: start, settings, errors | 2.1k | current | core/translation/providers.py |
 | `docs/wiki/6_Virtual_Navigation_and_Preview.md` (+uk) | Virtual folders, story and speaker views, preview | 1.4k | current | ui/updaters/block_list |
-| `docs/wiki/7_Maintaining_This_Wiki.md` (+uk) | Which page owns which fact; how to update EN and UK | 0.7k | current | docs/wiki |
+| `docs/wiki/7_Maintaining_This_Wiki.md` (+uk) | Which page owns which fact; how to update EN and UK | 0.8k | current | docs/wiki |
 | `docs/wiki/8_Localization_Pipeline.md` (+uk) | Pipeline wizard: script, glossary build, reconcile | 4.7k | current | core/glossary_build, core/glossary |
 | `docs/wiki/9_Script_Markup.md` (+uk) | Script Markup Studio | 1.8k | current | core/script_markup, ui/script_markup |
-| `docs/wiki/README.md` (+uk) | Wiki index and reading order | 0.6k | current | docs/wiki |
+| `docs/wiki/README.md` (+uk) | Wiki index and reading order | 0.7k | current | docs/wiki |
 | `AGENTS.md` | Agent entry: hard rules, commands, checklist |  | current | everything |
 | `README.md` | Pitch, install, run, tests, doc map |  | current | repository |
 | `CHANGELOG.md` | One line per change; grep below [Unreleased] |  | current | releases |
