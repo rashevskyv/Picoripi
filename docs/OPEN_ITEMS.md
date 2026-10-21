@@ -1677,3 +1677,11 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - Open: `docs/PIPELINE_ROADMAP.md` and the AI plugin prompt Q8 do not mention the voice hooks yet (checklist item 4).
 - Open: quality. Filter 0 gives about 1 024 units of error on a 6 000 peak. Release voices need psxavenc (external, official source) or filters 1 to 4.
 - Open: Eternal Blue (`V.XA`) and Silver Star Harmony (loose AT3) are not mapped.
+
+## Lunar audio, next steps (2026-10-21, branch `feat/lunar-audio`)
+
+- Open: the start op of the monologue (file 1, channel 8) is not found. PCSX-Redux (official dev build from distrib.app, sha1 checked) does not start in this environment: the process runs, opens no window, runs no Lua and writes no log. Needs another way: a fixed build or machine, or a static MIPS trace of `SLUS_006.28` (CD command write to 0x1F801801, then the callers that reach the script interpreter).
+- Open: per-line subtitles depend on that start op. Not built.
+- Open: Eternal Blue `V.XA` channel map (which op or table selects channel and offset) not found. The clip model already carries a rate (18900 Hz for `V.XA`).
+- Open: Silver Star Harmony AT3 voices: decode only. FFmpeg's ATRAC3plus decoder can read the 401 files (RIFF, format tag 0xFFFE, ATRAC3plus GUID). No open ATRAC3plus encoder is confirmed; the atracdenc sources disagree, so it is not relied on. Leaked Sony tools are not used.
+- Known failing test, not from this branch: `tests/test_ui/test_project_manager/test_dialog.py::test_registry_projects_appear_with_last_opened_first` fails on base commit fb1ed707 too.
