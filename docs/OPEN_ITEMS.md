@@ -10,6 +10,16 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Okami HD Switch (`plugins/okami_hd`, 2026-10-21, branch `feat/okami`)
+- Two MSD records are not yet known: a 0x0002-0x0004 code after a word (punctuation) and the 0xA0xx / 0x80xx / 0xD0xx control codes. Shown as tags until checked on the screen.
+- Edits keep every record's byte length (the file has a RUNOFS64 table of absolute offsets). A longer Ukrainian text needs the relocation of those offsets or a fixed slot budget: a design decision.
+- Eleven small MSD sections (`00 01` / `00 02` headers, files `r011`, `r030`, `r031`-`r034`, `rd02`-`rd06`) are not read yet.
+- Ukrainian glyphs: the atlas has no Cyrillic; the free cells must be found and drawn in the Font Editor. The atlas is `etc/core_30.bin`, texture at 0x93C0 (1200 x 1200, BC7).
+- Textures with text: the help screens (`illust/help_*`, DXT3) and the control pictures (`illust/control_*`, BC7) carry localized text in the image.
+- Emulator proof: none yet. The LayeredFS mod is written but not booted.
+- PC version (Okami HD, PC): the owner asked for a clean installed copy; the SKIDROW ISO is at 95.3 % and the Catalyst repack at 1.2 %.
+- PS2 and Wii (AFS engine, `_DATA0.AFS` / `_DATA1.AFS`): a second plugin, not started.
+
 ## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-bfd`)
 
 - Open: no speech subtitle table found. Text tables found: bank 0x1A (entries 0-4, catapult book) and bank 0x1C sub-tables 0-3 (menu options, pause menu, chapter names, credits). The compressed game data section (task names) is not opened yet.
