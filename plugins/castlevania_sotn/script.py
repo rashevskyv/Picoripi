@@ -226,6 +226,19 @@ class Spare:
                 return at
         return None
 
+    def reserve(self, at: int, size: int) -> None:
+        """Take ``[at, at + size)`` out of the free ranges (code that must not move)."""
+        out = []
+        for a, b in self.free:
+            if at + size <= a or at >= b:
+                out.append([a, b])
+                continue
+            if a < at:
+                out.append([a, at])
+            if at + size < b:
+                out.append([at + size, b])
+        self.free = out
+
     @property
     def room(self) -> int:
         return sum(b - a for a, b in self.free)

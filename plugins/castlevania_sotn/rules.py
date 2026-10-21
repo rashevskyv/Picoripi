@@ -9,6 +9,7 @@ from utils.logging_utils import log_debug, log_warning
 
 from . import codec
 from . import doc as docs
+from . import scroll
 from . import text_window
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TAG_PATTERN, TagManager
@@ -31,6 +32,9 @@ _ROLES = {
                                       "line and 4 lines a page; tags such as {WAIT 30} or {SPEED 02} time the "
                                       "text and must stay."),
     "credits": ("Staff roll", "One staff roll line; the leading tag ({ENTRY 10}) holds its kind and position."),
+    "caption": ("Prologue caption", "One line of the prologue scroll in the console's 12 x 16 font: a fixed 12 px "
+                                    "a letter, about 40 letters a line. {PAGE} at the end of a line ends the page; "
+                                    "keep it. Letters the BIOS font lacks (Ї Є Ґ) are written as '?'."),
 }
 
 
@@ -184,7 +188,7 @@ class GameRules(BaseGameRules):
             return None
         _doc, line = found
         attributes: Dict[str, Any] = {"kind": line.kind, "where": line.where,
-                                      "font": "bios" if line.enc == "sj" else "8x8"}
+                                      "font": "bios" if line.enc in ("sj", "sc") else "8x8"}
         if line.room:
             attributes["bytes_available"] = line.room - (2 if line.enc == "s8" else 1)
         if line.speaker:
@@ -203,6 +207,25 @@ class GameRules(BaseGameRules):
         """The window place (startX, startY) that the cutscene line's POS command sets, or None."""
         found = self._line(block_idx, string_idx)
         return tuple(found[1].place) if found is not None and found[1].place else None
+
+    def get_caption_page(self, block_idx: int, string_idx: int) -> Optional[Tuple[List[Tuple[int, bytes]], int]]:
+        """The page of the prologue caption that holds the line: ((x, text bytes) per line, the line's index in
+        the page), or None for any other line. Reads only; the preview draws the page on the caption panel."""
+        found = self._line(block_idx, string_idx)
+        if found is None or found[1].enc != "sc":
+            return None
+        parsed, line = found
+        block = next((b for b in parsed.blocks if any(item is line for item in b)), None)
+        if block is None:
+            return None
+        index = next(i for i, item in enumerate(block) if item is line)
+        first = index
+        while first > 0 and not block[first - 1].plain.endswith(scroll.PAGE_TAG):
+            first -= 1
+        last = index
+        while last + 1 < len(block) and not block[last].plain.endswith(scroll.PAGE_TAG):
+            last += 1
+        return [(item.x, item.raw) for item in block[first:last + 1]], index - first
 
     def get_stage_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
         """The stage code of the line's script file (``ST0`` for the prologue), or None."""
@@ -236,7 +259,11 @@ class GameRules(BaseGameRules):
 
     def get_ai_flow_group_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
         found = self._line(block_idx, string_idx)
-        if found is None or found[1].enc != "cs":
+        if found is None:
+            return None
+        if found[1].enc == "sc":
+            return f"{found[0].path}#caption"
+        if found[1].enc != "cs":
             return None
         return f"{found[0].path}#cutscene{found[1].ref[1]}"
 

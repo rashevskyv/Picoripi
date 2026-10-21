@@ -855,7 +855,9 @@ omase.nds`, made by the unpack) with the edited banks and files put in; no `zt`
      SymphonyRecomp. **Source:** the workspace's `source` (`1_unpack.bat`): the program files under their disc
      paths — `DRA.BIN` (item, relic, spell and enemy names and descriptions, menus, memory card messages),
      `ST\SEL\SEL.BIN` (title and file select, endings, staff roll) and the stage and boss overlays
-     `ST\*\*.BIN`, `BOSS\*\*.BIN` (cutscenes, the librarian's shop and bestiary, pick-up messages) — and the
+     `ST\*\*.BIN`, `BOSS\*\*.BIN` (cutscenes, the librarian's shop and bestiary, pick-up messages, and the
+     prologue caption in `ST\ST0\ST0.BIN`: one editor line per script line, `{PAGE}` at a line's end ends a
+     page; the caption is drawn in the console font, so Cyrillic needs the reader that the build installs) — and the
      picture files `BIN\F_*.BIN.pic`, `ST\SEL\F_SEL.BIN.pic` (the disc files with `.pic` added, so they are not
      listed as text); **Translation:** `translation`. Where each string is comes from the decompilation
      (`layout_us.json`, made by the workspace's `tools\sotn_layout.py`), so no text is guessed. Two fonts: the

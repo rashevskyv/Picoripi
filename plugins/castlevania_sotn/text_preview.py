@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import QWidget
 from core import font_formats
 from core.i18n import tr
 from core.project_library import console_keys
-from plugins.castlevania_sotn import codec, hud, menu_screens, menu_strings, menu_text, text_window
+from plugins.castlevania_sotn import codec, hud, menu_screens, menu_strings, menu_text, scroll, text_window
 from plugins.castlevania_sotn.script import TAG_RE
 from plugins.common.switch_message_preview import source_folder
 from utils.logging_utils import log_debug
@@ -251,6 +251,41 @@ class SotnTextPreview(QWidget):
         attributes = rules.get_message_attributes(data.physical_block_idx, data.current_string_idx)
         return bool(attributes) and attributes.get("font") == "bios"
 
+    def _is_caption_line(self) -> bool:
+        """True when the selected line is a line of the prologue caption. Reads only."""
+        rules = self._mw.current_game_rules
+        data = self._mw.data_store
+        attributes = rules.get_message_attributes(data.physical_block_idx, data.current_string_idx)
+        return bool(attributes) and attributes.get("kind") == "caption"
+
+    def _render_caption(self) -> None:
+        """The prologue caption page on the 512-wide panel, the selected line as typed (scroll.py). Needs the BIOS."""
+        if self._bios is None:
+            self._image = None
+            self._note = tr("Set the PlayStation BIOS file in the Settings, Console keys tab to draw this caption.")
+            self.update()
+            return
+        rules = self._mw.current_game_rules
+        data = self._mw.data_store
+        found = rules.get_caption_page(data.physical_block_idx, data.current_string_idx)
+        if found is None:
+            self._image = None
+            self._note = ""
+            self.update()
+            return
+        page, index = found
+        try:
+            raw, _brk = scroll.from_editor(self._text, last=False)
+        except scroll.ScrollError as error:
+            self._image = None
+            self._note = str(error)
+            self.update()
+            return
+        page = [(x, raw if row == index else text) for row, (x, text) in enumerate(page)]
+        self._image = _to_qimage(scroll.render_page(self._bios, page))
+        self._note = ""
+        self.update()
+
     def _render_menu_line(self) -> None:
         """The first line in the menu font, as the menus draw it (menu_text.py). The BIOS file is needed."""
         if self._bios is None:
@@ -308,6 +343,9 @@ class SotnTextPreview(QWidget):
         slot = self._menu_slot()
         if slot is not None:
             self._render_menu_word(slot)
+            return
+        if self._is_caption_line():
+            self._render_caption()
             return
         if self._is_menu_line():
             self._render_menu_line()

@@ -13,7 +13,7 @@ from PIL import Image
 
 from core import font_formats, texture_formats
 from core.texture_formats import sotn as sotn_pictures
-from plugins.castlevania_sotn import codec, doc, script
+from plugins.castlevania_sotn import codec, doc, scroll, script
 from plugins.castlevania_sotn.rules import GameRules
 from plugins.testing import check_loads, check_validator
 
@@ -153,6 +153,18 @@ def test_every_program_file_reads_and_saves_back_byte_for_byte():
     for path in doc.layout()["files"]:
         data = (SOURCE / path).read_bytes()
         assert doc.build(data, doc.parse(data).texts()) == data, path
+
+
+@needs_data
+def test_a_longer_caption_line_moves_the_script_and_reads_back():
+    data = (SOURCE / "ST" / "ST0" / "ST0.BIN").read_bytes()
+    texts = doc.parse(data).texts()
+    texts[-1][0] = "Граф Дракула повернувся, з допомогою темного жерця Шафта, щоб знову загрожувати людству."
+    out = doc.build(data, texts)
+    assert len(out) == len(data)
+    assert scroll.script_start(out) != scroll.script_start(data)          # the pointer moved into a spare range
+    assert doc.parse(out).texts()[-1][0] == texts[-1][0]
+    assert doc.parse(out).texts()[-1][1:] == doc.parse(data).texts()[-1][1:]   # the other lines are unchanged
 
 
 @needs_data

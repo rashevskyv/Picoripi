@@ -2491,6 +2491,7 @@
   "Writing {0} files": "Записую файлів: {0}",
   "Oodle library": "Бібліотека Oodle",
   "PlayStation BIOS": "BIOS PlayStation",
+  "Set the PlayStation BIOS file in the Settings, Console keys tab to draw this caption.": "Щоб показати цей текст пролога, вкажіть файл BIOS PlayStation на вкладці «Ключі консолей» у налаштуваннях.",
   "Set the PlayStation BIOS file in the Settings, Console keys tab to draw this line.": "Щоб показати цей рядок, вкажіть файл BIOS PlayStation на вкладці «Ключі консолей» у налаштуваннях.",
   "Only the first line is drawn.": "Показано лише перший рядок.",
   "Some characters are outside the drawn range; they are blank.": "Деякі символи поза таблицею шрифту; вони порожні.",
