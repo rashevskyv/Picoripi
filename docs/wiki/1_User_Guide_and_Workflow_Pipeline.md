@@ -433,7 +433,11 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `_m` (Nate) and `_f` (Katie). Japanese leftovers and passwords are not shown; an unedited file stays byte for
      byte. Speakers come from the game's speaker tables in the workspace's `meta` folder. The Font Editor opens
      `ft_nrm` and `ft_sml` (format `xf`, real Ukrainian letters); the Textures window lists 594 English textures
-     (`imgc`). The workspace's `2_build.bat` rebuilds `yw1_a.fa` into the LayeredFS mod. Yo-kai Watch 3 (EUR, workspace
+     (`imgc`). The workspace's `2_build.bat` rebuilds `yw1_a.fa` into the LayeredFS mod. The New Project wizard makes
+     a Yo-kai Watch 1 project straight from the game too: the 3DS image (USA) or, for Switch, the base game and its
+     update (`.nsp` or `.nsz`; the wizard asks for the Switch key file). It writes `unpacked\source` and
+     `unpacked\meta` the way `1_unpack.bat` does; a Switch project made this way has the game's Japanese text (the
+     English fan mod is not added). Yo-kai Watch 3 (EUR, workspace
      `YOKAI_WATCH_3`) opens with the same plugin: its English text is in `data/txt/ev/en` and the archive
      `yw_lg_en.fa`; the hero of a line comes from its voice clip (`{PV#pv_c001000_23}`: Nate). Its Textures window lists all 5,817
      English textures (title logo, menus, telops, help, captions, signs; loading them takes several minutes).

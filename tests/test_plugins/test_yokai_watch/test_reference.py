@@ -5,33 +5,11 @@ from types import SimpleNamespace
 import pytest
 import romhacking_root
 
-from core.containers.level5 import compress, STORED
 from core.reference_manager import ReferenceManager
 from core.settings.plugin_settings import PluginSettings
 from plugins.yokai_watch.arc0 import Arc0
 from plugins.yokai_watch.rules import GameRules
-from .samples import cfg_file, text_info
-
-
-def _arc0(members):
-    names = bytearray(b"\0")
-    entries, payload = bytearray(), bytearray()
-    for name, raw in members.items():
-        struct_entry = struct.pack("<4I", 0, len(names), len(payload), len(raw))
-        entries.extend(struct_entry)
-        names.extend(name.encode("shift-jis") + b"\0")
-        payload.extend(raw)
-    dirs = struct.pack("<IHhHhii", 0, 0, 0, 0, len(members), 0, 0)
-    tables = [compress(data, STORED) for data in (dirs, b"", bytes(entries), bytes(names))]
-    offsets, cursor = [], 0x48
-    for table in tables:
-        offsets.append(cursor)
-        cursor += len(table)
-    head = bytearray(0x48)
-    head[:4] = b"ARC0"
-    struct.pack_into("<5I", head, 4, *offsets, cursor)
-    struct.pack_into("<HHi", head, 0x18, 1, 0, len(members))
-    return bytes(head) + b"".join(tables) + payload
+from .samples import arc0_file, cfg_file, text_info
 
 
 def _write(path, raw):
@@ -56,7 +34,7 @@ def test_archive_languages_align_ids_and_skip_blank_rows(tmp_path):
         rel.replace("_en.", "_fr."): cfg_file([text_info(4, 0, "Un"), text_info(99, 0, "Unrelated")]),
         rel.replace("_en.", "_ru."): cfg_file([text_info(4, 0, "  ")]),
     }
-    _write(tmp_path / "romfs/yw1_a.fa", _arc0(members))
+    _write(tmp_path / "romfs/yw1_a.fa", arc0_file(members))
     rules, _window = _rules(tmp_path, [rel])
     worker_rules, worker_window = rules.reference_worker_rules()
     assert worker_rules.mw is None and worker_window is None
@@ -94,13 +72,13 @@ def test_automatic_reference_load_uses_worker_without_persisting_a_path(qtbot, t
 @pytest.mark.parametrize("member", ["../unsafe.cfg.bin", "/absolute.cfg.bin", "C:/unsafe.cfg.bin"])
 def test_archive_rejects_unsafe_member_paths(tmp_path, member):
     path = tmp_path / "bad.fa"
-    path.write_bytes(_arc0({member: b"table"}))
+    path.write_bytes(arc0_file({member: b"table"}))
     with pytest.raises(ValueError, match="Invalid ARC0 member path"):
         Arc0(path)
 
 
 def test_archive_rejects_out_of_bounds_payload(tmp_path):
-    raw = bytearray(_arc0({"table.cfg.bin": b"table"}))
+    raw = bytearray(arc0_file({"table.cfg.bin": b"table"}))
     files = struct.unpack_from("<I", raw, 0x0C)[0]
     struct.pack_into("<I", raw, files + 4 + 8, 0xFFFFFFFF)
     path = tmp_path / "bad.fa"

@@ -1,4 +1,5 @@
-"""Bounded, read-only ARC0 index access for Yo-kai Watch reference text."""
+"""Bounded, read-only ARC0 index access: Yo-kai Watch reference text and the wizard unpack."""
+from contextlib import nullcontext
 from pathlib import Path, PurePosixPath
 import struct
 import zlib
@@ -31,10 +32,11 @@ def _table(raw: bytes) -> bytes:
 class Arc0:
     """Index the archive without loading its payload; read only requested members."""
 
-    def __init__(self, path: Path, is_cancelled=lambda: False):
-        self.path = Path(path)
+    def __init__(self, source, is_cancelled=lambda: False):
+        """``source`` is the archive's path, or a seekable binary stream that starts at the archive."""
+        self.source = source if hasattr(source, "read") else Path(source)
         self.files = {}
-        with self.path.open("rb") as stream:
+        with self._open() as stream:
             stream.seek(0, 2)
             total = stream.tell()
             stream.seek(0)
@@ -79,11 +81,14 @@ class Arc0:
         if len(self.files) != file_count:
             raise ValueError("ARC0 file count mismatch")
 
+    def _open(self):
+        return nullcontext(self.source) if hasattr(self.source, "read") else self.source.open("rb")
+
     def read(self, member: str) -> bytes:
         offset, size = self.files[member]
         if size > MAX_MEMBER:
             raise ValueError("ARC0 reference table exceeds its size limit")
-        with self.path.open("rb") as stream:
+        with self._open() as stream:
             stream.seek(self.data + offset)
             raw = stream.read(size)
         if len(raw) != size:

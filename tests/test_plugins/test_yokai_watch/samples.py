@@ -2,6 +2,8 @@
 import struct
 import zlib
 
+from core.containers.level5 import STORED, compress
+
 
 def _pad(data: bytearray, size: int = 16) -> None:
     data += b"\xff" * (-len(data) % size)
@@ -68,3 +70,25 @@ def dialogue_file() -> bytes:
                      text_info(0x2222, 0, "ダミー"),
                      text_info(0x2222, 1, "Hey there, <PNAME01>!"),
                      ("TEXT_INFO_END", [])])
+
+
+def arc0_file(members) -> bytes:
+    """An ARC0 archive of ``members`` ({path: bytes}) in one directory, its tables stored uncompressed."""
+    names = bytearray(b"\0")
+    entries, payload = bytearray(), bytearray()
+    for name, raw in members.items():
+        struct_entry = struct.pack("<4I", 0, len(names), len(payload), len(raw))
+        entries.extend(struct_entry)
+        names.extend(name.encode("shift-jis") + b"\0")
+        payload.extend(raw)
+    dirs = struct.pack("<IHhHhii", 0, 0, 0, 0, len(members), 0, 0)
+    tables = [compress(data, STORED) for data in (dirs, b"", bytes(entries), bytes(names))]
+    offsets, cursor = [], 0x48
+    for table in tables:
+        offsets.append(cursor)
+        cursor += len(table)
+    head = bytearray(0x48)
+    head[:4] = b"ARC0"
+    struct.pack_into("<5I", head, 4, *offsets, cursor)
+    struct.pack_into("<HHi", head, 0x18, 1, 0, len(members))
+    return bytes(head) + b"".join(tables) + payload

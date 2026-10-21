@@ -22,7 +22,9 @@ MAGIC_SECTIONS = b"NCZSECTN"
 MAGIC_BLOCKS = b"NCZBLOCK"
 SECTION_SIZE = 0x40
 BLOCK_HEADER_SIZE = 0x18
-MAX_SECTIONS = 4             # an NCA has at most four sections
+# An NCA has at most four sections, but nsz writes one entry per AES-CTR-EX subsection of an update's BKTR patch (the
+# Yo-kai Watch 1 update lists 17). The bound keeps the table read small (256 KiB).
+MAX_SECTIONS = 4096
 # The block size is 2**exp bytes. nsz writes 2**20 by default and accepts up to 2**32; a block is held in memory, so a
 # hostile file must not ask for more than 16 MiB.
 MIN_BLOCK_EXP, MAX_BLOCK_EXP = 14, 24

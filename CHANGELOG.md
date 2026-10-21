@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- New Project wizard: Yo-kai Watch 1 projects come straight from the 3DS image (USA) or the Switch base game and update (`.nsp`/`.nsz`); its archives are read in place and `unpacked\source` + `unpacked\meta` match the workspace's `1_unpack.bat`. A Switch update `.nsz` with more than four NCZ sections (one per BKTR subsection) is read.
 - Project Manager: **Share project...** packs a project (project folder, translation files, linked series glossaries; no game files, sessions or caches) into one `.zip` with its paths made relative and outside paths cleared; **Import shared project...** unpacks such a zip into a folder the receiver chooses and points it at the receiver's own game files.
 - New Project wizard keeps game images that a plugin reads as they are, skips a malformed table while it checks an extracted folder, and says when that folder path is a file.
 

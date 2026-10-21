@@ -4,11 +4,12 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_debug, log_warning
 from utils.utils import clean_spaces
 
-from . import tags
+from . import tags, unpack
 from .cfgbin import FormatError
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .speakers import GAMES, Speakers, game_of
@@ -118,6 +119,29 @@ class GameRules(BaseGameRules):
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
         return [FileFormat((".bin",), "bytes", "Level-5 text tables (cfg.bin)"), *DEFAULT_FORMATS]
+
+    # -- Project Manager wizard -------------------------------------------------
+
+    def get_source_roles(self) -> List[Dict[str, str]]:
+        """The base game and, on Switch, its update: the game reads the update's archive over the base one."""
+        return [{"id": "base", "label": tr("Base game")}, {"id": "update", "label": tr("Update")}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, Any]]:
+        return unpack.identify(path)
+
+    def get_platforms(self) -> List[Dict[str, str]]:
+        return [{"id": "3ds", "label": tr("Nintendo 3DS")}, {"id": "switch", "label": tr("Nintendo Switch")}]
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
+        """Yo-kai Watch 1 (3DS USA, Switch): the text, fonts and textures into ``source``, speakers into ``meta``."""
+        return unpack.unpack(sources, target_dir, progress, is_cancelled)
+
+    def unpack_key_consoles(self) -> List[str]:
+        return ["3ds", "switch"]
+
+    def get_source_subfolder(self) -> Optional[str]:
+        """``source``: the speaker tables are in ``meta`` beside it (the workspace layout)."""
+        return "source"
 
     def includes_source_file(self, rel_path: str) -> bool:
         """Only expanded text tables become blocks; workspace notes and metadata are not game text."""
