@@ -1,0 +1,31 @@
+[
+ {
+  "label": "Game font (Common/Common, GameFont.brfnt; 23 x 33 cells, UTF-16; Ukrainian cells added on save)",
+  "format": "brfnt",
+  "path": "versions/wii/files/env/Common/Common/__PACK__.gfa",
+  "member": "common.arc/arc/font/GameFont.brfnt",
+  "params": {"min_sheets": 16}
+ },
+ {
+  "label": "Game font copy in the menu bar (menu_bar.arc; glyphs follow the game font)",
+  "format": "brfnt",
+  "path": "versions/wii/files/env/Common/Common/__PACK__.gfa",
+  "member": "menu_bar.arc/arc/font/GameFont.brfnt",
+  "params": {"min_sheets": 16},
+  "sync_glyphs_with": "Game font (Common/Common, GameFont.brfnt; 23 x 33 cells, UTF-16; Ukrainian cells added on save)"
+ },
+ {
+  "label": "Story subtitle font (Common/Movie, movieFont.brfnt; Ukrainian cells added on save)",
+  "format": "brfnt",
+  "path": "versions/wii/files/env/Common/Movie/__PACK__.gfa",
+  "member": "movie.arc/arc/font/movieFont.brfnt",
+  "params": {"min_sheets": 16}
+ },
+ {
+  "label": "Staff roll font (Common/Ending, StaffRollFont.brfnt; Ukrainian cells added on save)",
+  "format": "brfnt",
+  "path": "versions/wii/files/env/Common/Ending/__PACK__.gfa",
+  "member": "Ending.arc/arc/font/StaffRollFont.brfnt",
+  "params": {"min_sheets": 16}
+ }
+]

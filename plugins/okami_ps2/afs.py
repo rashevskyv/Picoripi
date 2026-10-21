@@ -64,3 +64,13 @@ def message_entries(read: Reader, size: int, endian: str = "<") -> List[AfsEntry
 
 def read_entry(read: Reader, entry: AfsEntry) -> bytes:
     return read(entry.offset, entry.size)
+
+
+TIM2_MAGIC = b"TIM2"
+TEXTURE_LIMIT = 4 * 1024 * 1024       # a picture with words is far smaller; larger entries are skipped unread
+
+
+def texture_entries(read: Reader, size: int) -> List[AfsEntry]:
+    """The entries of the archive that are PS2 TIM2 pictures (each read only from its first four bytes)."""
+    return [entry for entry in table(read, size)
+            if 0 < entry.size <= TEXTURE_LIMIT and bytes(read(entry.offset, 4)) == TIM2_MAGIC]

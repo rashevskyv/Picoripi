@@ -213,3 +213,17 @@ def test_the_streamed_writer_matches_the_bytes_writer_and_its_size():
     size = core_afs.write_to(reader, len(data), out, replacements)
     assert out.getvalue() == core_afs.write(data, replacements)
     assert size == len(out.getvalue()) == core_afs.layout(reader, len(data), replacements).total
+
+
+def test_changed_pictures_and_messages_are_read_as_disc_entries(tmp_path):
+    from plugins.okami_ps2 import build as ps2_build
+
+    source = tmp_path / "source"
+    translation = tmp_path / "translation"
+    (translation / "pictures" / "DATA0").mkdir(parents=True)
+    (translation / "afs" / "DATA0").mkdir(parents=True)
+    (translation / "pictures" / "DATA0" / "0022.tm2").write_bytes(b"TIM2-edited")
+    (translation / "afs" / "DATA0" / "0005.bin").write_bytes(b"message")
+    (translation / "pictures" / "DATA0" / "notes.tm2").write_bytes(b"not an entry")
+    changes = ps2_build.read_changes(str(source), str(translation))
+    assert changes == {"_DATA0.AFS": {22: b"TIM2-edited", 5: b"message"}}

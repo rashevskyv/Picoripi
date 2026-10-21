@@ -41,8 +41,23 @@ def identify(path: str) -> Optional[Dict[str, str]]:
     return {"role": WII, "platform": WII}
 
 
+# The game font (Common, one GFAC pack) and the English picture packs with words in them (U8 archives of TPLs).
+FONT_PACK_REL = "files/env/Common/Common/__PACK__.gfa"          # GameFont: menus and messages
+FONT_PACK_RELS = (FONT_PACK_REL, "files/env/Common/Movie/__PACK__.gfa", "files/env/Common/Ending/__PACK__.gfa")  # + movieFont (story subtitles), StaffRollFont
+TEXTURE_PACK_RELS = (
+    "files/env/Common/PadGuide/__PACK__.gfa",
+    "files/env/English_USA/CommonResource/__PACK__.gfa",
+    "files/env/English_USA/FileSelectResource/__PACK__.gfa",
+    "files/env/English_USA/ResultResource/__PACK__.gfa",
+    "files/env/English_USA/SelectMainResource/__PACK__.gfa",
+    "files/env/English_USA/ShopResource/__PACK__.gfa",
+    "files/env/English_USA/TitleResource/__PACK__.gfa",
+)
+
+
 def _select(path: str) -> bool:
-    return path.startswith(PACK_DIR) and path.endswith(PACK_NAME)
+    return (path.startswith(PACK_DIR) and path.endswith(PACK_NAME)) or path in FONT_PACK_RELS \
+        or path in TEXTURE_PACK_RELS
 
 
 def doc_rel(entry_name: str) -> str:
