@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-18
+updated: 2026-10-20
 owns: unfinished work
 tokens: 48.3k
 purpose: Everything left open, one line each, by work package
@@ -9,6 +9,12 @@ purpose: Everything left open, one line each, by work package
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## Share project (`core/project_library/share.py`, 2026-10-20, branch `feat/project-share`)
+
+- Open: translation files outside `translation_path` are not packed; their paths are cleared. Example: the
+  Twilight Princess fonts in `ISO/UA/root/res/Fontus` (`fonts_dir_path`).
+- Open: import takes an extracted game folder (or the one file); it does not unpack a game image as the wizard does.
 
 ## Same text in manuals (`plugins/manual_3ds`, D46, 2026-10-18, branch `feat/manual-same-text`)
 

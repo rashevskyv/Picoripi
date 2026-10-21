@@ -26,7 +26,7 @@ from core.glossary.series import GROUP_METADATA_KEY, series_chain, series_dir
 from core.i18n import tr
 from core.project.persist_mixin import next_project_sequence
 from core.project_library import index, registry, resources, views
-from core.project_library import build
+from core.project_library import build, share
 from core.project_library.build import emulator_argv, emulator_platform, emulator_template_for
 from core.project_library.cards import fallback_name, percent_translated, read_card
 from core.project_library.discovery import find_projects, platform_from_parts
@@ -477,6 +477,7 @@ class ProjectManagerDialog(QDialog):
         menu.addAction(tr("New project..."), self._new_project_clicked)
         menu.addAction(tr("Add existing project..."), self._add_existing_clicked)
         menu.addAction(tr("Import projects from a folder..."), self._import_clicked)
+        menu.addAction(tr("Import shared project..."), self._import_shared_clicked)
         self._add_button.setMenu(menu)
         bar.addWidget(self._add_button)
 
@@ -1216,6 +1217,9 @@ class ProjectManagerDialog(QDialog):
         change_icon = QPushButton(tr("Change icon..."))
         change_icon.clicked.connect(_call(self._icon_clicked, row))
         buttons.addWidget(change_icon)
+        share_button = QPushButton(tr("Share project..."))
+        share_button.clicked.connect(_call(self._share_clicked, row))
+        buttons.addWidget(share_button)
         buttons.addWidget(self._action_button("Build mod", "build", row))
         buttons.addWidget(self._action_button("Export mod", "export", row))
         buttons.addWidget(self._action_button("Run in emulator", "run", row))
@@ -1444,6 +1448,7 @@ class ProjectManagerDialog(QDialog):
         if row:
             self._menu_item(menu, tr("Open"), self._open, row["path"])
             self._menu_item(menu, tr("Show in folder"), self._reveal, row["path"])
+            self._menu_item(menu, tr("Share project..."), self._share_clicked, row)
             menu.addSeparator()
             self._menu_item(menu, tr("Rename..."), self._rename_clicked, row)
             self._menu_item(menu, tr("Move to folder..."), self._move_clicked, row)
@@ -1745,14 +1750,78 @@ class ProjectManagerDialog(QDialog):
     def _add_existing_clicked(self) -> None:
         path, _filter = QFileDialog.getOpenFileName(self, tr("Add existing project"), str(Path.home()),
                                                     tr("Project files") + " (*.uiproj);;" + tr("All files") + " (*)")
-        if not path:
-            return
+        if path:
+            self._add_project_file(path)
+
+    def _add_project_file(self, path: str) -> None:
         job = BackgroundJob(_card_facts, path)
         job.done.connect(lambda facts, p=path: self._mutate(partial(_op_add, path=p, project_id=facts[0],
                                                                    platform=facts[1])))
         job.failed.connect(lambda _m: QMessageBox.warning(
             self, tr("Add existing project"), tr("This file is not a readable project.")))
         self._run(job, lambda _facts: None)
+
+    # ----- sharing projects (core/project_library/share.py) -----
+    def _share_clicked(self, row: Dict[str, Any]) -> None:
+        name = (row.get("name") or Path(row["path"]).parent.parent.name or "project").strip()
+        target, _filter = QFileDialog.getSaveFileName(self, tr("Share project"), str(Path.home() / f"{name}.zip"),
+                                                      tr("Shared project") + " (*.zip)")
+        if not target:
+            return
+        self._status.setText(tr("Packing the project..."))
+        job = BackgroundJob(share.export_project, row["path"], target)
+        job.done.connect(lambda manifest, t=target: self._on_shared(manifest, t))
+        job.failed.connect(lambda message: QMessageBox.warning(self, tr("Share project"), message))
+        self._run(job, lambda _manifest: None)
+
+    def _on_shared(self, manifest: Dict[str, Any], target: str) -> None:
+        self._status.setText(tr("Project packed: {0}", target))
+        lines = [tr("The project is packed into {0}.", target),
+                 tr("Translation files: {0}. Glossaries: {1}.", manifest["translation_files"], manifest["glossaries"]),
+                 tr("The original game files are not in the package: the other person chooses their own."),
+                 tr("Changes that are not saved in the editor are not in the package.")]
+        if manifest["cleared"]:
+            lines.append(tr("{0} paths outside the project folders were cleared. The other person sets them again.",
+                            len(manifest["cleared"])))
+        QMessageBox.information(self, tr("Share project"), "\n\n".join(lines))
+
+    def _import_shared_clicked(self) -> None:
+        package, _filter = QFileDialog.getOpenFileName(self, tr("Import shared project"), str(Path.home()),
+                                                       tr("Shared project") + " (*.zip)")
+        if not package:
+            return
+        job = BackgroundJob(share.read_manifest, package)
+        job.done.connect(lambda manifest, p=package: self._import_shared_paths(p, manifest))
+        job.failed.connect(lambda message: QMessageBox.warning(self, tr("Import shared project"), message))
+        self._run(job, lambda _manifest: None)
+
+    def _import_shared_paths(self, package: str, manifest: Dict[str, Any]) -> None:
+        """Ask where the project goes and where this person's original game files are, then unpack it."""
+        destination = QFileDialog.getExistingDirectory(
+            self, tr("Folder for the project {0} (it gets the picoripi and translation folders)",
+                     manifest.get("name", "")), str(Path.home()))
+        if not destination:
+            return
+        title = tr("Your original game files (the sender used {0})", manifest.get("source_name") or "-")
+        if manifest.get("is_directory_mode", True):
+            source = QFileDialog.getExistingDirectory(self, title, destination)
+        else:
+            source, _filter = QFileDialog.getOpenFileName(self, title, destination)
+        if not source:
+            return
+        self._status.setText(tr("Unpacking the shared project..."))
+        job = BackgroundJob(share.import_package, package, destination, source)
+        job.done.connect(self._on_shared_imported)
+        job.failed.connect(lambda message: QMessageBox.warning(self, tr("Import shared project"), message))
+        self._run(job, lambda _result: None)
+
+    def _on_shared_imported(self, result: Dict[str, Any]) -> None:
+        self._status.setText(tr("Shared project imported: {0}", result["project_file"]))
+        self._add_project_file(result["project_file"])
+        if result.get("cleared"):
+            QMessageBox.information(self, tr("Import shared project"), tr(
+                "{0} paths of the sender were cleared (fonts, references and similar). Set them again in the "
+                "project settings if the project needs them.", len(result["cleared"])))
 
     def _import_clicked(self) -> None:
         root = QFileDialog.getExistingDirectory(self, tr("Import projects from a folder"), str(Path.home()))
