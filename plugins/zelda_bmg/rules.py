@@ -883,7 +883,7 @@ class GameRules(BaseGameRules):
 
     def get_display_name(self) -> str:
         """Get the display name."""
-        return "Zelda: Twilight Princess BMG"
+        return "Zelda: Twilight Princess"
 
     def get_spellcheck_ignore_pattern(self) -> str:
         # Ignore curly braces {...} which are used for tags and escape sequences

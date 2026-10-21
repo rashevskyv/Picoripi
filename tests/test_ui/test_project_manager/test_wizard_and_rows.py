@@ -519,3 +519,19 @@ def test_the_file_name_column_takes_the_free_width(qtbot):
     header = wizard._files_tree.header()
     assert header.sectionResizeMode(0) == QHeaderView.ResizeMode.Stretch
     assert {header.sectionResizeMode(c) for c in (1, 2, 3)} == {QHeaderView.ResizeMode.ResizeToContents}
+
+
+def test_the_location_step_suggests_a_folder_from_the_project_name(qtbot):
+    from pathlib import Path
+
+    wizard = ProjectWizard(None, _loader, lambda info: None)
+    qtbot.addWidget(wizard)
+    wizard._name.setText('Zelda: "Twilight" Princess')
+
+    wizard._show_page(2)
+
+    assert Path(wizard._folder.text()) == Path.home() / "Documents" / "Picoripi" / "Zelda Twilight Princess"
+    wizard._folder.setText("D:/mine")
+    wizard._show_page(1)
+    wizard._show_page(2)
+    assert wizard._folder.text() == "D:/mine"      # a folder the user typed is kept

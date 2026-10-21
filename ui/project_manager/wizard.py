@@ -484,7 +484,14 @@ class ProjectWizard(QDialog):
         self._create.setVisible(index == 2)
         self._create.setEnabled(self._unpack_job is None)
         if index == 2:
+            if not self._folder.text().strip():
+                self._folder.setText(self._suggested_folder())
             self._update_summary()
+
+    def _suggested_folder(self) -> str:
+        """A folder for the project from its name, in the user's Documents. The user can change it."""
+        name = "".join(ch for ch in self._name.text().strip() if ch not in "\\/:*?\"<>|").strip('. ') or "Project"
+        return str(Path.home() / "Documents" / "Picoripi" / name)
 
     def _next_clicked(self) -> None:
         index = self._pages.currentIndex()
