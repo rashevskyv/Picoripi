@@ -43,6 +43,23 @@ def _unique_sibling(parent: Path, name: str) -> Path:
     return candidate
 
 
+def source_subfolders(rules: Any) -> List[str]:
+    """The source folders ``get_source_subfolder`` names (one path or a list of paths), in order."""
+    value = rules.get_source_subfolder()
+    if not value:
+        return []
+    return [value] if isinstance(value, str) else [str(item) for item in value if item]
+
+
+def source_root(rules: Any, root: Path) -> Optional[Path]:
+    """The first named source folder that exists under ``root``; ``root`` when the plugin names none; else None."""
+    candidates = source_subfolders(rules)
+    if not candidates:
+        return root
+    folders = (root.joinpath(*item.split("/")) for item in candidates)
+    return next((folder for folder in folders if folder.is_dir()), None)
+
+
 def _remove_own(folder: Path) -> None:
     """Remove a folder this module made (a temporary one). Never called on a folder the user chose."""
     shutil.rmtree(folder, ignore_errors=True)
@@ -54,7 +71,7 @@ def run_unpack(rules: Any, sources: Dict[str, str], project_dir: str | os.PathLi
     """Unpack the role files of a new project into ``project_dir/unpacked``.
 
     Returns the project's source folder, or None when the plugin needs no unpacking. That is the unpacked folder,
-    or its subfolder from ``get_source_subfolder``. Raises ``Cancel`` when the user cancelled; the temporary folder
+    or the first subfolder from ``get_source_subfolder`` that exists. Raises ``Cancel`` when the user cancelled; the temporary folder
     is then removed and nothing else is touched. Raises ``ValueError`` before writing when the drive has too little
     room for a game image, when the plugin unpacks nothing and has no file format for a chosen game image, or when the
     unpacked tree lacks the source subfolder. ``key_provider`` maps a console id to its key file path for this job
@@ -77,14 +94,13 @@ def run_unpack(rules: Any, sources: Dict[str, str], project_dir: str | os.PathLi
                 raise ValueError(tr("This game's plugin cannot unpack this image. Choose an already-extracted "
                                     "game folder with its text tables unpacked from game archives."))
             return None
-        subfolder = rules.get_source_subfolder()
-        parts = subfolder.split("/") if subfolder else []
-        if parts and not temporary.joinpath(*parts).is_dir():
-            raise ValueError(tr("The unpacked files have no folder {0}.", subfolder))
+        root = source_root(rules, temporary)
+        if root is None:
+            raise ValueError(tr("The unpacked files have no folder {0}.", " | ".join(source_subfolders(rules))))
         final = _unique_sibling(project, UNPACKED_NAME)
         os.replace(temporary, final)
         log_info(f"Unpacked {len(sources)} source files into {final}.")
-        return str(final.joinpath(*parts))
+        return str(final / root.relative_to(temporary))
     except BaseException:
         _remove_own(temporary)
         raise

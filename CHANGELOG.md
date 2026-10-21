@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Twilight Princess in the New Project wizard: the USA Wii disc (RZDE01, Wii key from the key store) unpacks like the GameCube disc, and an unpacked Wii U HD title folder becomes a Wii U project with `content/res/Msguk` as its source; `get_source_subfolder` may name several folders (the first that exists wins), and the extracted-folder check reads text inside archives (`plugins/zelda_bmg/rules.py`, `core/project_library/build.py`, `core/project_library/source_folder.py`).
 - Project Manager: **Share project...** packs a project (project folder, translation files, linked series glossaries; no game files, sessions or caches) into one `.zip` with its paths made relative and outside paths cleared; **Import shared project...** unpacks such a zip into a folder the receiver chooses and points it at the receiver's own game files.
 - New Project wizard keeps game images that a plugin reads as they are, skips a malformed table while it checks an extracted folder, and says when that folder path is a file.
 

@@ -217,8 +217,9 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
              "recognised game image is then used only when get_file_formats claims its extension.",
              call=None, returns=str, optional=True),
         Hook("get_source_subfolder", "Folder of the unpacked tree that is the project's source root, e.g. "
-             "files/res/Msgus (slash path). Default: None, the whole unpacked folder.",
-             call=(), returns=str, optional=True),
+             "files/res/Msgus (slash path), or a list of such paths: the first that exists. Default: None, the whole "
+             "unpacked folder.",
+             call=(), returns=(str, list), optional=True),
         Hook("unpack_key_consoles", "Consoles whose key file the unpack reads: any of 3ds, switch, wii, oodle "
              "(the Oodle library path). The wizard "
              "asks for a key file only for an encrypted file of a listed console. Default: none.",

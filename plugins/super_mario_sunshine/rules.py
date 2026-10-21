@@ -161,6 +161,9 @@ class GameRules(TwilightPrincessRules):
     def get_source_subfolder(self) -> Optional[str]:
         return None
 
+    def unpack_key_consoles(self) -> List[str]:
+        return []   # a GameCube disc only; the Twilight Princess base class reads the Wii key
+
     def get_build_targets(self) -> List[Dict[str, Any]]:
         return [
             {"id": "gc_iso", "label": tr("GameCube disc image (ISO)"), "platforms": ["gc"], "kind": "patch"},
