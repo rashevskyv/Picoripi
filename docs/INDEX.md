@@ -22,7 +22,7 @@ Read the row, then open only the document you need.
 | `docs/wiki/11_AI_Translation.md` (+uk) | Providers, prompts, chunks, run memory, translation memory | 6.0k | current | handlers/translation, core/translation |
 | `docs/wiki/12_Picoripi_Companion.md` (+uk) | Companion server and glossary sync | 1.9k | current | core/companion_sync.py, companion/ |
 | `docs/wiki/13_Working_Together.md` (+uk) | Rooms, roles, claims, comments | 2.9k | current | core/collab |
-| `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (+uk) | Main window, menus, filters, settings tabs, shortcuts | 59.6k | current | ui/, components/, dialogs/ |
+| `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (+uk) | Main window, menus, filters, settings tabs, shortcuts | 11.3k | current | ui/, components/, dialogs/ |
 | `docs/wiki/2_API_Reference.md` (+uk) | Which Python file implements which control | 0.8k | current | module map |
 | `docs/wiki/3_Plugin_Developer_Guide.md` (+uk) | The one plugin guide: files, hooks, capabilities, tests | 14.6k | current | plugins/ |
 | `docs/wiki/4_Configuration_Guide.md` (+uk) | Map of every Settings tab and control, defaults, restart needs, and where each value is stored | 4.0k | current | ui/settings |
@@ -34,7 +34,7 @@ Read the row, then open only the document you need.
 | `docs/wiki/Build_and_Test.md` (+uk) | Build a mod from saved files, export it, run it in an emulator, and test it per platform | 2.1k | current | core/project_library/build.py |
 | `docs/wiki/Editor_Basics.md` (+uk) | Main window map, Blocks tree, Strings list, editors, status bar, and how to translate one line | 2.5k | current | ui/builders/ |
 | `docs/wiki/Fonts_and_Textures.md` (+uk) | Edit game fonts and textures, add Ukrainian letters, and set the fonts folders and default font of a project | 1.8k | current | tools/bfn_editor/ and ui/texture_window.py |
-| `docs/wiki/Game_Notes.md` (+uk) | Per-game technical notes: source folders, file formats, tags, previews, build steps | 47.4k | current | plugins |
+| `docs/wiki/Game_Notes.md` (+uk) | Per-game technical notes: source folders, file formats, tags, previews, build steps | 47.5k | current | plugins |
 | `docs/wiki/Hotkeys.md` (+uk) | Every keyboard shortcut and modifier click of the main window and its separate windows, grouped by task, with menu paths | 2.2k | current | ui/builders/menu_builder.py |
 | `docs/wiki/New_Project_Scenarios.md` (+uk) | The three-step new-project wizard and each kind of game source it accepts | 1.8k | current | ui/project_manager/wizard.py, core/project_library/ |
 | `docs/wiki/Project_Manager.md` (+uk) | The Project Manager window: list, folders, flags, import, share, storage and reopen at start | 2.1k | current | ui/project_manager/window.py, core/project_library/ |
