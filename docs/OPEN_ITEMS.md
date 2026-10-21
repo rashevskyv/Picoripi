@@ -62,6 +62,18 @@ the line when it is done or moved into a plan.
 - Wii (`ROWP08`, Ready at Dawn port, encrypted image): `plugins/okami_wii` reads the 1034 message containers of `files/_data0.afs` (streamed) and the two archives' entries through `WiiImage`. The containers are big-endian (AFS table is little-endian); the codec takes `endian`. Round trip: 1034 of 1034 unchanged. Build writes only the changed entries as files (`afs/DATA0/NNNN.bin`); a Wii disc image needs the Wii writer (`feat/wii-writer`, not on main).
 - Wii text: 474,945 strings; about 1/3 of strings hold a `{xxxx}` tag, and 81 % of the 16-bit units are known letters or control codes (PS2: 86 %). The unknown units that look like ASCII (`Mess`, `Info`) sit in records the table layout may misread; check on the screen before the translator relies on them.
 - Wii: no emulator run (Dolphin is not used here). Growth of a Wii entry is untested in the game; the build does not write the disc.
+## Pokémon recomp packages (`plugins/common/pokemon_recomp.py`, 2026-10-21, branch `feat/port-pokemon-recomps`)
+
+- Done: a clean pret build of the Emerald decomp (WSL) gives the original USA SHA-1 `f3ae08…`. The owner's `Emerald\build\pokeemerald.gba` has the same SHA-1.
+- Done: a pret build with a same-length message change runs in EmeraldRecomp v0.1.2 (SHA-1 `7c3ab2…`, the same bytes as an in-place patch).
+- Done: a pret build with a longer message (+27 bytes) moves the code. The release shows a blank screen (frame 1500, final PC `0x082e0642`, 2,577 unmapped accesses).
+- Done: the re-recompile route for that ROM. `plugins/common/recomp_templates/emerald_resym.sh` (copied into the package as `recompile_UA.sh`) imports the build's ELF with the port's importer, derives a base config for the new SHA-1, runs `gba_recompile`, and builds the port. Built in WSL with the pinned gbarecomp (215da74). The +27 port shows the longer line at frame 1060 (`shots\resym_longer_1060.png`). Coverage is NOT_STATIC: 3 dispatch misses go through the interpreter, and three self-heal gcc compiles fail under WSL (`native_calls` 2115, `failed` 3).
+- Open: the re-recompile was proven on the +27 Emerald ROM only. A FireRed or LeafGreen changed pret build is refused until its route is built and run. Gen 2 changed pret builds are refused: the importer reads the original addresses.
+- Open: the recompile step takes a long time and needs WSL, cmake, ninja, SDL2 dev and the port's submodules. On the Windows mount the configure stalled (cmake waits in the 9P transport, and the Windows `PATH` entries make every `find_program` slow). The script resets `PATH`, and its build tree should sit on the WSL disk.
+- Open: the FireRed CONTROLS overlay is game content (`gText_HelpSystemControls`), not a launcher page. A visible edit on it works headless: "The TESTING buttons will be explained…" (frame 1600, `shots\frlg_overlay_1600.png`). Passing it with key messages into the unfocused window did not work reliably (the window runs slowly without focus; `PostMessage` and `SendMessage` both tried).
+- Open: a pret workspace with several dumps packages one folder per dump (FireRed and LeafGreen, Gold and Silver, Crystal 1.0 and 1.1). The Gen 2 packages carry `set_gen2_gate_UA.py`, tested on a fresh Gold checkout only.
+- Owner decision: the package ships no GBA BIOS and no LÖVE runtime. Both come from the owner's own copies.
+- Owner decision: the Gen2 importer keys its cache on the canonical SHA-1 (`RomImporter.lua`). A translated import in the default save folder can replace an official import. Portable mode (`portable.txt`) keeps them apart; the package README says so.
 
 ## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-bfd`)
 
