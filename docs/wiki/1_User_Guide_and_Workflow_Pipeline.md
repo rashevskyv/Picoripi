@@ -857,7 +857,9 @@ omase.nds`, made by the unpack) with the edited banks and files put in; no `zt`
      `ST\SEL\SEL.BIN` (title and file select, endings, staff roll) and the stage and boss overlays
      `ST\*\*.BIN`, `BOSS\*\*.BIN` (cutscenes, the librarian's shop and bestiary, pick-up messages, and the
      prologue caption in `ST\ST0\ST0.BIN`: one editor line per script line, `{PAGE}` at a line's end ends a
-     page; the caption is drawn in the console font, so Cyrillic needs the reader that the build installs) — and the
+     page; the caption is drawn in the console font, so Cyrillic needs the reader that the build installs; Ї Є Ґ
+     and their small letters come from the caption's own letter table, Tools → Font Editor, "Caption letters";
+     a line wider than the 512-pixel panel is flagged) — and the
      picture files `BIN\F_*.BIN.pic`, `ST\SEL\F_SEL.BIN.pic` (the disc files with `.pic` added, so they are not
      listed as text); **Translation:** `translation`. Where each string is comes from the decompilation
      (`layout_us.json`, made by the workspace's `tools\sotn_layout.py`), so no text is guessed. Two fonts: the

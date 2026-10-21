@@ -12,6 +12,7 @@ from . import doc as docs
 from . import scroll
 from . import text_window
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
+from .problem_analyzer import ProblemAnalyzer
 from .tag_manager import TAG_PATTERN, TagManager
 
 _PLUGIN_DIR = Path(__file__).resolve().parent
@@ -32,9 +33,10 @@ _ROLES = {
                                       "line and 4 lines a page; tags such as {WAIT 30} or {SPEED 02} time the "
                                       "text and must stay."),
     "credits": ("Staff roll", "One staff roll line; the leading tag ({ENTRY 10}) holds its kind and position."),
-    "caption": ("Prologue caption", "One line of the prologue scroll in the console's 12 x 16 font: a fixed 12 px "
-                                    "a letter, about 40 letters a line. {PAGE} at the end of a line ends the page; "
-                                    "keep it. Letters the BIOS font lacks (Ї Є Ґ) are written as '?'."),
+    "caption": ("Prologue caption", "One line of the prologue scroll in the console's 12 x 16 font: 12 px a letter, "
+                                    "8 px a space; the line must fit the 512 px panel right of its x offset. "
+                                    "{PAGE} at the end of a line ends the page; keep it. Ї Є Ґ (and lowercase) are "
+                                    "drawn from the caption's own letter table."),
 }
 
 
@@ -51,6 +53,7 @@ class GameRules(BaseGameRules):
 
     problem_prefix = PLUGIN_PREFIX
     problem_definitions = PROBLEM_DEFINITIONS
+    problem_analyzer_class = ProblemAnalyzer
     tag_manager_class = TagManager
     tag_style = "curly"
 
@@ -226,6 +229,18 @@ class GameRules(BaseGameRules):
         while last + 1 < len(block) and not block[last].plain.endswith(scroll.PAGE_TAG):
             last += 1
         return [(item.x, item.raw) for item in block[first:last + 1]], index - first
+
+    def caption_too_wide(self, block_idx: int, string_idx: int, text: str) -> Optional[bool]:
+        """Whether a prologue caption line (its editor text) is wider than the panel right of its x offset:
+        True or False for a caption line, None for any other line. Reads only."""
+        found = self._line(block_idx, string_idx)
+        if found is None or found[1].enc != "sc":
+            return None
+        try:
+            raw, _brk = scroll.from_editor(text, last=False)
+        except scroll.ScrollError:
+            return False          # a misplaced {PAGE} is another problem; the width is not judged
+        return scroll.line_too_wide(raw, found[1].x)
 
     def get_stage_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
         """The stage code of the line's script file (``ST0`` for the prologue), or None."""

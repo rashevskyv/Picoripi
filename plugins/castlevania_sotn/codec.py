@@ -51,6 +51,10 @@ CS_OFFSET = 0x20            # cutscene and credits bytes are the cell number + 0
 QUOTE_SJ = b"\x81\x68\x81\x68"
 # Ukrainian letters the BIOS font draws with a Latin glyph.
 SJ_LATIN = {"І": "I", "і": "i"}
+# Ukrainian letters with no BIOS glyph: private Shift-JIS codes (user area) that the prologue caption's reader
+# maps to six glyphs of the caption's own table in ST0.BIN (scroll.py).
+SJ_PRIVATE = {"Ї": 0xF040, "Є": 0xF041, "Ґ": 0xF042, "ї": 0xF043, "є": 0xF044, "ґ": 0xF045}
+SJ_PRIVATE_CHAR = {code: char for char, code in SJ_PRIVATE.items()}
 
 
 def _cell_char(cell: int) -> Optional[str]:

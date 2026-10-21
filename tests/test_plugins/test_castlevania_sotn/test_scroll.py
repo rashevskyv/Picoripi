@@ -1,4 +1,5 @@
-"""The prologue caption of Symphony of the Night: the script, the editor lines, the draw and the code patches.
+"""The prologue caption of Symphony of the Night: the script, the editor lines, the draw, the code patches, the
+private letters and the width rule.
 
 Synthetic bytes and a fake BIOS only; the workspace's ST0.BIN is tested in test_rules.py.
 """
@@ -6,7 +7,8 @@ import struct
 
 import pytest
 
-from plugins.castlevania_sotn import menu_text, scroll
+from core import texture_formats
+from plugins.castlevania_sotn import codec, menu_text, scroll
 
 
 def _script(*pieces) -> bytes:
@@ -67,9 +69,25 @@ def test_braces_and_control_bytes_read_as_tags():
 
 def test_cyrillic_goes_to_its_shift_jis_code_and_capital_i_stands_for_ukrainian_i():
     missing = set()
-    raw, _brk = scroll.from_editor("Ай, і Ї", last=True, missing=missing)
-    assert raw == "Ай, i ?".encode("cp932")          # Cyrillic pairs, Latin i for і, '?' for Ї
-    assert missing == {"Ї"}
+    raw, _brk = scroll.from_editor("Ай, і Ж", last=True, missing=missing)
+    assert raw == "Ай, i Ж".encode("cp932")          # Cyrillic pairs, Latin i for і
+    assert missing == set()
+
+
+def test_the_private_letters_are_their_codes_and_read_back_as_letters():
+    raw, _brk = scroll.from_editor("Їжак Єнот Ґанок ї є ґ", last=True)
+    assert raw.startswith(b"\xf0\x40") and b"\xf0\x41" in raw and b"\xf0\x42" in raw
+    assert b"\xf0\x43" in raw and b"\xf0\x44" in raw and b"\xf0\x45" in raw
+    lines, _length = scroll.read_script(raw + b"\x00", 0, len(raw) + 1)
+    assert scroll.to_editor(lines[0]) == "Їжак Єнот Ґанок ї є ґ"
+    assert codec.SJ_PRIVATE["Ї"] == 0xF040 and codec.SJ_PRIVATE_CHAR[0xF045] == "ґ"
+
+
+def test_a_letter_the_bios_font_lacks_is_a_question_mark_and_a_missing_entry():
+    missing = set()
+    raw, _brk = scroll.from_editor("ж€", last=True, missing=missing)
+    assert raw == "ж".encode("cp932") + b"?"
+    assert missing == {"€"}
 
 
 def test_the_game_maps_a_byte_to_its_shift_jis_code():
@@ -84,8 +102,20 @@ def test_the_game_maps_a_byte_to_its_shift_jis_code():
 
 def test_a_glyph_that_would_start_in_the_column_gap_moves_past_it():
     # starts at panel 200 px: 200, 212 next; 224 is in the gap [224, 256) so the third glyph starts at 256
-    glyphs = scroll._cells(b"abc", 50, lambda code: None)
-    assert [px for px, _glyph in glyphs] == [200, 212, 256]
+    assert [px for px, _code in scroll._cells(b"abc", 50)] == [200, 212, 256]
+
+
+def test_the_width_is_12_px_a_letter_and_8_px_a_space():
+    assert scroll.advance_px(b"abc") == 36
+    assert scroll.advance_px(b"a b") == 32
+    assert scroll.advance_px(b"\xf0\x40\xf0\x41") == 24          # two private letters, a pair each
+
+
+def test_a_line_is_too_wide_past_the_panel_right_of_its_offset():
+    assert not scroll.line_too_wide(b"x" * 42, 0)         # 504 px
+    assert scroll.line_too_wide(b"x" * 43, 0)             # 516 px
+    assert scroll.line_too_wide(b"x" * 40, 10)            # 480 px against 512 - 40 = 472
+    assert not scroll.line_too_wide(b"x" * 39, 10)        # 468 px
 
 
 def test_a_page_draws_its_ink_at_the_line_places_on_the_panel():
@@ -102,6 +132,28 @@ def test_a_page_draws_its_ink_at_the_line_places_on_the_panel():
     assert alpha.crop((left, 0, left + 12, scroll.GLYPH_ROWS)).getextrema()[1] == 255          # line 1 has ink
     assert alpha.crop((left, scroll.LINE_PITCH, left + 12, scroll.LINE_PITCH + scroll.GLYPH_ROWS)).getextrema()[1] == 255
     assert alpha.crop((0, 0, left, scroll.GLYPH_ROWS)).getextrema()[1] == 0    # nothing left of the line
+
+
+def test_the_placeholder_letters_are_16_rows_of_12_pixels_and_the_table_holds_them():
+    for char in scroll.PLACEHOLDER_LETTERS:
+        rows = scroll.placeholder_rows(char)
+        assert len(rows) == 16 and all(len(row) == 12 for row in rows)
+        assert any("#" in row for row in rows)
+    table = scroll.glyph_table()
+    assert len(table) == scroll.GLYPH_BYTES == 192
+    for index, char in enumerate(scroll.PLACEHOLDER_LETTERS):
+        ink = scroll.table_rows(table, index)
+        assert ["".join("#" if v else "." for v in row) for row in ink] == scroll.placeholder_rows(char)
+
+
+def test_the_letter_table_reads_and_writes_through_the_texture_format():
+    params = {"offset": scroll.GLYPH_AT, "count": 6, "width": 12, "height": 16}
+    data = bytearray(scroll.GLYPH_AT + scroll.GLYPH_BYTES + 16)
+    data[scroll.GLYPH_AT:scroll.GLYPH_AT + scroll.GLYPH_BYTES] = scroll.glyph_table()
+    sheet = texture_formats.read("glyph_bits", bytes(data), params)[0].image
+    assert sheet.size == (72, 16)
+    again = texture_formats.write("glyph_bits", bytes(data), {0: sheet}, params)
+    assert again == bytes(data)                                  # an unedited table writes back the same bytes
 
 
 def test_the_draw_code_script_pointer_is_read_and_written_back():
@@ -122,18 +174,40 @@ def test_a_pointer_with_the_sign_bit_in_its_low_half_carries_into_the_high_half(
     assert scroll.script_start(bytes(out)) == 0x18000
 
 
+def test_the_reader_fits_its_window_and_its_jump_is_the_one_that_reaches_it():
+    assert scroll.CAVE_SIZE <= 256
+    assert scroll.CAVE[:4] == bytes.fromhex("7fffa224")                       # addiu $v0, $a1, -0x81
+    assert scroll.CAVE_JUMP_WORD == 0x08066ACC                                # j 0x8019AB30
+    assert scroll.CAVE_AT + scroll.CAVE_SIZE <= 109616                        # inside the file's spare range
+
+
 def test_the_lead_byte_reader_is_installed_at_the_glyph_wrapper():
-    cave_at = 109360
-    data = bytearray(max(scroll.GLYPH_WRAPPER + 4, cave_at + scroll.CAVE_SIZE))
+    data = bytearray(max(scroll.GLYPH_WRAPPER + 4, scroll.CAVE_AT + scroll.CAVE_SIZE))
     struct.pack_into("<I", data, scroll.GLYPH_WRAPPER, scroll.GLYPH_WRAPPER_WORD)
     out = bytearray(data)
-    scroll.install_cave(out, bytes(data), cave_at)
-    assert bytes(out[cave_at:cave_at + scroll.CAVE_SIZE]) == scroll.CAVE
-    assert struct.unpack_from("<I", out, scroll.GLYPH_WRAPPER)[0] == 0x08066ACC   # j 0x8019AB30
-    assert scroll.CAVE[:4] == bytes.fromhex("7fffa224")                          # addiu $v0, $a1, -0x81
+    scroll.install_cave(out, bytes(data))
+    assert bytes(out[scroll.CAVE_AT:scroll.CAVE_AT + scroll.CAVE_SIZE]) == scroll.CAVE
+    assert struct.unpack_from("<I", out, scroll.GLYPH_WRAPPER)[0] == scroll.CAVE_JUMP_WORD
 
 
 def test_the_lead_byte_reader_is_refused_when_the_wrapper_differs():
-    data = bytearray(max(scroll.GLYPH_WRAPPER + 4, 109360 + scroll.CAVE_SIZE))
+    data = bytearray(max(scroll.GLYPH_WRAPPER + 4, scroll.CAVE_AT + scroll.CAVE_SIZE))
     with pytest.raises(scroll.ScrollError):
-        scroll.install_cave(bytearray(data), bytes(data), 109360)
+        scroll.install_cave(bytearray(data), bytes(data))
+
+
+def test_a_caption_line_gets_only_the_width_problem_and_other_lines_keep_the_generic_checks():
+    from types import SimpleNamespace
+
+    from plugins.castlevania_sotn.problem_analyzer import ProblemAnalyzer
+
+    class Rules:
+        def caption_too_wide(self, block, string, text):
+            return None if block != 3 else text == "too wide"
+
+    analyzer = ProblemAnalyzer.__new__(ProblemAnalyzer)
+    analyzer.game_rules = Rules()
+    analyzer.problem_ids = SimpleNamespace(PROBLEM_CAPTION_WIDTH="SOTN_CAPTION_WIDTH")
+    analyzer._current_scan_block_idx, analyzer._current_scan_string_idx = 3, 0
+    assert analyzer.analyze_data_string("too wide", {}, 0) == [{"SOTN_CAPTION_WIDTH"}]
+    assert analyzer.analyze_data_string("fits", {}, 0) == [set()]

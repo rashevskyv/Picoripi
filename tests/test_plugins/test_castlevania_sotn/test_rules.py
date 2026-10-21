@@ -168,6 +168,20 @@ def test_a_longer_caption_line_moves_the_script_and_reads_back():
 
 
 @needs_data
+def test_a_private_letter_installs_the_reader_and_the_letter_table_and_a_save_keeps_the_owners_letters():
+    data = (SOURCE / "ST" / "ST0" / "ST0.BIN").read_bytes()
+    texts = doc.parse(data).texts()
+    texts[-1][12] = "Їжак, Єнот, Ґанок."
+    out = doc.build(data, texts)
+    assert out[scroll.CAVE_AT:scroll.CAVE_AT + 4] == scroll.CAVE[:4]
+    assert out[scroll.GLYPH_AT:scroll.GLYPH_AT + scroll.GLYPH_BYTES] == scroll.glyph_table()
+    assert doc.parse(out).texts()[-1][12] == "Їжак, Єнот, Ґанок."
+    edited = bytearray(out)
+    edited[scroll.GLYPH_AT] ^= 0xFF                              # the owner's letter, drawn in the Font Editor
+    assert doc.merge(bytes(edited), out)[scroll.GLYPH_AT] == edited[scroll.GLYPH_AT]
+
+
+@needs_data
 def test_a_longer_item_name_is_moved_and_read_back():
     data = (SOURCE / "DRA.BIN").read_bytes()
     parsed = doc.parse(data)
