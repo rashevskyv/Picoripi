@@ -1,33 +1,23 @@
-"""No More Heroes plugin: text blocks exported by the workspace script (load, save, other keys kept, Ukrainian),
-tags, the HOME Menu table; the game's LZ, text codec and text box rebuild of the workspace script when it is on
-this machine; the real fonts and text when the workspace is unpacked here."""
+"""No More Heroes plugin: text blocks (load, save, other keys kept, Ukrainian), tags, the HOME Menu table; the game's
+LZ, text codec and text box rebuild; the real fonts and text when the workspace is unpacked here."""
 import romhacking_root
-import importlib
 import json
-import sys
 
 import pytest
 
 from core import font_formats
 from core.formats import SaveContext
+from plugins.no_more_heroes import rmhg
 from plugins.no_more_heroes.rules import TAG_RE
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
 PLUGIN = "no_more_heroes"
 WS = romhacking_root.under('No More Heroes')
-SCRIPTS = romhacking_root.under('_shared\\scripts')
 real = pytest.mark.skipif(not (WS / "source" / "text" / "main.dol.nmt").exists(), reason="No More Heroes not unpacked here")
 
 SAMPLE = {"file": "Title/TITLE.rsl", "blocks": [
     {"name": "MOVIE", "gdlg": ["/9/0"], "lines": [2, 3], "strings": ["I know a lot of gamers out there ", "Rank %02d"]},
     {"name": "SYS_SWEET", "gdlg": ["/15/1/0", "/15/6/0"], "lines": [1], "strings": ["Perfect for beginners."]}]}
-
-
-def nmh():
-    if not (SCRIPTS / "zt" / "nmh.py").is_file():
-        pytest.skip("workspace scripts not on this machine")
-    sys.path.insert(0, str(SCRIPTS))
-    return importlib.import_module("zt.nmh")
 
 
 def test_the_plugin_loads_and_validates():
@@ -65,28 +55,26 @@ def test_the_home_menu_table_shows_the_english_cells():
 
 
 def test_the_game_lz_round_trip():
-    zt = nmh()
     data = b"RMHG" + bytes(40) + b"abcabcabcabc" * 50 + bytes(range(256)) * 3 + b"\x91" * 9
-    packed = zt.lz_encode(data)
-    assert zt.is_packed(packed) and zt.lz_decode(packed) == data and len(packed) < len(data)
+    packed = rmhg.lz_encode(data)
+    assert rmhg.is_packed(packed) and rmhg.lz_decode(packed) == data and len(packed) < len(data)
 
 
 def test_text_codec_and_box_rebuild():
-    zt = nmh()
-    raw = zt.encode_text("Привіт, Ґанок! <$8256> ’")
-    assert zt.decode_text(raw) == "Привіт, Ґанок! ７ ’" and raw.startswith(b"\x84\x50")
-    assert zt.codes_of(b"A\x84\x92") == [0x41, 0x8492]
-    # a GDLG without dialogs: header, string offset table at 0x34, strings XOR 0x8D at 0x80
     import struct
+    raw = rmhg.encode_text("Привіт, Ґанок! <$8256> ’")
+    assert rmhg.decode_text(raw) == "Привіт, Ґанок! ７ ’" and raw.startswith(b"\x84\x50")
+    assert rmhg.codes_of(b"A\x84\x92") == [0x41, 0x8492]
+    # a GDLG without dialogs: header, string offset table at 0x34, strings XOR 0x8D at 0x80
     head = bytearray(0x80)
     head[:8] = b"GDLG\x01\x00\x00\x01"
     struct.pack_into("<HHIIII", head, 8, 0, 3, 0x40, 0x30, 0x80, 0x34)
     struct.pack_into("<III", head, 0x34, 0, 4, 8)
     blob = bytes(head) + bytes(b ^ 0x8D for b in b"BOX\0YES\0NO\0") + b"\x8d" * 5
-    assert zt.gdlg_strings(blob) == [b"BOX", b"YES", b"NO"]
-    new = zt.gdlg_with(blob, [b"BOX", "ТАК".encode("cp932"), b"NO"])
-    assert zt.gdlg_strings(new) == [b"BOX", "ТАК".encode("cp932"), b"NO"] and len(new) % 0x10 == 0
-    assert zt.gdlg_with(blob, zt.gdlg_strings(blob)) == blob
+    assert rmhg.gdlg_strings(blob) == [b"BOX", b"YES", b"NO"]
+    new = rmhg.gdlg_with(blob, [b"BOX", "ТАК".encode("cp932"), b"NO"])
+    assert rmhg.gdlg_strings(new) == [b"BOX", "ТАК".encode("cp932"), b"NO"] and len(new) % 0x10 == 0
+    assert rmhg.gdlg_with(blob, rmhg.gdlg_strings(blob)) == blob
 
 
 @real

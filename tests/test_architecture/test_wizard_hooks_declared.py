@@ -81,7 +81,6 @@ BASELINE = {
     "miitopia_nx": "owner source is not a disc image (folders); the user prepares the folder or files",
     "monster_hunter_3ds": "owner source is not a disc image (folders); the user prepares the folder or files",
     "monster_hunter_stories_nx": "owner source is not a disc image (folders); the user prepares the folder or files",
-    "no_more_heroes": "owner has a .iso,.rvz image; no unpack hook yet, the wizard refuses it (unpacking needs a port of the workspace's zt script)",
     "one_piece_uwr": "owner source is not a disc image (folders); the user prepares the folder or files",
     "paper_mario_64": "owner source is not a disc image (folders); the user prepares the folder or files",
     "paper_mario_cs": "owner source is not a disc image (folders); the user prepares the folder or files",

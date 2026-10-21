@@ -1659,9 +1659,13 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 
 - Done: the wizard refuses a game image that the chosen plugin cannot unpack (`build.run_unpack`), before anything is
   created. Creation is all or nothing; a start-up project that fails or makes no progress for two minutes is given up.
-- Open: No More Heroes (`no_more_heroes`) and MadWorld (`madworld`) have no unpack. Their source is the converted
-  tree of the owner's `nmh.py` / `madworld.py` (GDLG text, STRIMAGE glyph atlases, fonts, GCT/TPL textures, main.dol,
-  `image/*_index.json`). Port size: about 1,900 lines of owner code. Not started.
+- Done: No More Heroes (`no_more_heroes`, branch `feat/nmh-unpack`) unpacks its Europe disc image (ISO or RVZ) in the
+  wizard into `source/` (the owner's `nmh.py` layout, byte for byte) and builds a plain ISO (`wii_iso`). The build
+  output matched the owner's script build byte for byte for a visible title edit.
+- Open: No More Heroes: an RVZ source is refused by the build ("needs a plain ISO"). Decide: convert with Dolphin
+  first, or add a WIA-to-ISO writer that re-encrypts the partition (not in core).
+- Open: MadWorld (`madworld`) has no unpack. Its source is the converted tree of the owner's `madworld.py` (`text/*.mwt`,
+  STRIMAGE glyph atlases, fonts, GCT/TPL textures). Not started.
 - Open: 16 other plugins with an owner game image have the same gap (3DS, Wii, PS1 games); each needs its own
   unpacker for the owner's converted source. The baseline in `tests/test_architecture/test_wizard_hooks_declared.py`
   lists them with a reason; a plugin leaves it when it gets a hook.

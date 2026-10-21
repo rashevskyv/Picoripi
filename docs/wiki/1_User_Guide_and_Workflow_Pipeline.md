@@ -932,12 +932,14 @@ omase.nds`, made by the unpack) with the edited banks and files put in; no `zt`
      Ґ Є І Ї. The Font Editor opens all 14 FONT fonts (format `fragile_dreams`; Japanese glyphs are kept as
      they are); **Tools → Textures…** lists about 2,800 TPL pictures (title logo, tutorials, menus, maps,
      health and safety screens, HOME Menu, disc banner). `2_build.bat` compresses the changed files again.
-   - `no_more_heroes` — No More Heroes (Wii, Europe). **Source:** the workspace's `source` folder
-     (`1_unpack.bat` reads the disc's RMHG resource files, unpacking the game's LZ): `text\<disc file>.nmt` — the
+   - `no_more_heroes` — No More Heroes (Wii, Europe). **Wizard:** choose the disc image (ISO or RVZ); the wizard
+     unpacks it into the project's `source` folder. An encrypted ISO needs the Wii key file in console keys.
+     **Build:** "Wii disc image (ISO, English)" writes a copy of the ISO; the build needs a plain ISO, not RVZ.
+     **Source:** the unpacked `source` folder (the game's RMHG resource files, unpacking the game's LZ): `text\<disc file>.nmt` — the
      English lines of every text box of one game file (cut-scenes, stages and the city, side jobs, items, menus;
      about 12,000 lines in 1,064 files), `text\main.dol.nmt` (menu words kept in the program: title copyright,
      save screen, map and shop key guides, job board; written in place) and `hbm\home.csv` (HOME Menu). The game
-     draws no text from a font: each box carries a picture of its own glyphs, which `2_build.bat` draws anew from
+     draws no text from a font: each box carries a picture of its own glyphs, which the build draws anew from
      the old picture and the fonts. The Font Editor opens 15 fonts as glyph grids (format `texture_grid`, I4;
      each has empty cells for the 66 Ukrainian letters, written as Shift-JIS Cyrillic codes) and the HOME Menu
      font; **Tools → Textures…** lists about 1,080 pictures (boot logos, menus, loading and safety screens, item
