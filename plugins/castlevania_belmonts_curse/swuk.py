@@ -23,3 +23,26 @@ def import_swuk(mod_bundle: bytes, source_dir: Path, translation_dir: Path) -> T
         (target / f"{name}.json").write_bytes(tables.table_json(name, entries))
     missing = sorted(set(source) - set(imported))
     return len(imported), missing
+
+
+def import_swuk_fonts(font_bundle: bytes, source_dir: Path, translation_dir: Path) -> Tuple[List[str], List[str]]:
+    """Write the mod's font pairs (``fonts.font_pairs``) for each font asset the source has; returns (written, missing)."""
+    from plugins.castlevania_belmonts_curse import fonts
+    pairs = fonts.font_pairs(font_bundle)
+    target = translation_dir / fonts.FOLDER
+    written = []
+    for name in sorted(pairs):
+        if not (source_dir / fonts.FOLDER / f"{name}{fonts.SUFFIX}").is_file():
+            continue
+        target.mkdir(parents=True, exist_ok=True)
+        font_json, atlas_png = pairs[name]
+        (target / f"{name}{fonts.SUFFIX}").write_bytes(font_json)
+        (target / f"{name}.png").write_bytes(atlas_png)
+        written.append(name)
+    missing = sorted(name for name in _source_fonts(source_dir) if name not in written)
+    return written, missing
+
+
+def _source_fonts(source_dir: Path) -> List[str]:
+    from plugins.castlevania_belmonts_curse import fonts
+    return [path.name[:-len(fonts.SUFFIX)] for path in (source_dir / fonts.FOLDER).glob("*" + fonts.SUFFIX)]

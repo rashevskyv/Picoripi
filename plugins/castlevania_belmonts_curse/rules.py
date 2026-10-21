@@ -1,15 +1,17 @@
-"""Castlevania: Belmont's Curse (Nintendo Switch): the English string tables of the Unity Localization bundle.
+"""Castlevania: Belmont's Curse (Switch, Unity Localization): the English texts of the game as project files.
 
-A project's source folder is ``source`` (written by the wizard's unpack): ``message\\<table>.json`` for each of the 45
-English string tables (``tables.py``). Each table is one block; each entry is one string. The build writes the edited
-texts back into the English localization bundle as a LayeredFS mod (``build.py``).
+A project's source folder is ``source``, written by the wizard's unpack: ``message\\<table>.json`` for each of the 45 English
+string tables (``tables.py``), and ``ui\\<bundle>.json`` for each interface or room bundle with shown text (``ui_text.py``).
+Each file is one block; each entry is one string. The build writes the edited texts back into the bundles, the fonts
+(``fonts.py``) and the catalog (``catalog.py``), as a LayeredFS mod (``build.py``).
 """
+import json
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
 
-from . import build, tables, unpack
+from . import build, tables, ui_text, unpack
 
 
 class GameRules(BaseGameRules):
@@ -17,10 +19,14 @@ class GameRules(BaseGameRules):
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
-        self._table: Optional[Tuple[str, List[int]]] = None
+        self._file: Optional[Tuple[str, str, List[Any]]] = None    # (kind, table name, ids of the file)
 
     def get_display_name(self) -> str:
         return "Castlevania: Belmont's Curse"
+
+    def get_file_formats(self) -> list:
+        from core.formats import FileFormat
+        return [FileFormat((".json",), "bytes", "Castlevania texts")]
 
     # -- wizard: unpack and build ----------------------------------------------
 
@@ -57,17 +63,24 @@ class GameRules(BaseGameRules):
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Dict[str, str]]:
         if not isinstance(json_obj, (bytes, bytearray)):
             return super().load_data_from_json_obj(json_obj)
-        name, entries = tables.parse_table_json(bytes(json_obj))
-        self._table = (name, [key for key, _text in entries])
-        return [[text for _key, text in entries]], {}
+        body = json.loads(bytes(json_obj).decode("utf-8"))
+        name = str(body["table"])
+        items = body["entries"]
+        if items and isinstance(items[0]["id"], str):
+            self._file = ("ui", name, [str(item["id"]) for item in items])
+        else:
+            self._file = ("table", name, [int(item["id"]) for item in items])
+        return [[str(item["text"]) for item in items]], {}
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
-        if self._table is None:
+        if self._file is None:
             return super().save_data_to_json_obj(data, block_names)
-        name, ids = self._table
+        kind, name, ids = self._file
         texts = list(data[0]) if data and isinstance(data[0], list) else []
         texts += [""] * (len(ids) - len(texts))
+        if kind == "ui":
+            return ui_text.table_json(name, list(zip(ids, texts)))
         return tables.table_json(name, list(zip(ids, texts)))
 
     def reset_runtime_state(self) -> None:
-        self._table = None
+        self._file = None
