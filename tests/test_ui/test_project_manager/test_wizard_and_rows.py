@@ -531,7 +531,7 @@ def test_the_location_step_suggests_a_folder_from_the_project_name(qtbot):
     wizard._show_page(2)
 
     assert Path(wizard._folder.text()) == Path.home() / "Documents" / "Picoripi" / "Zelda Twilight Princess"
-    wizard._folder.setText("D:/mine")
+    wizard._folder.setText("my_projects/mine")
     wizard._show_page(1)
     wizard._show_page(2)
-    assert wizard._folder.text() == "D:/mine"      # a folder the user typed is kept
+    assert wizard._folder.text() == "my_projects/mine"      # a folder the user typed is kept
