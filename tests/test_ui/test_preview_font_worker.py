@@ -118,3 +118,29 @@ def test_preview_font_stale_generation_and_closed_project_ignored(qtbot, tmp_pat
     pm.project = None  # Project closed before worker finishes
     loader._preview_scan_done([("closed.json", {}, None)], "", 5)
     assert "closed.json" not in mw.all_font_maps
+
+
+def test_one_broken_preview_font_keeps_the_others(tmp_path, monkeypatch):
+    """A font that fails while its sheets are built is logged and skipped; the good font is still prepared."""
+    from core import font_formats
+    from core.settings.font_map_loader import _prepare_preview_fonts
+
+    good = tmp_path / "good.qbf"
+    good.write_bytes(_qbf_two_letters())
+    broken = tmp_path / "broken.qbf"
+    broken.write_bytes(_qbf_two_letters())
+    real_extract = font_formats.extract
+
+    def extract(fmt, raw_bytes, params):
+        metadata, sheets = real_extract(fmt, raw_bytes, params)
+        return metadata, (sheets + [None] if params.get("broken") else sheets)
+
+    monkeypatch.setattr(font_formats, "extract", extract)
+    descriptors = [
+        {"label": "Broken", "format": "qbf", "path": str(broken), "preview": True, "params": {"broken": True}},
+        {"label": "Good", "format": "qbf", "path": str(good), "preview": True},
+    ]
+
+    prepared = _prepare_preview_fonts(descriptors, {"source_path": str(tmp_path)})
+
+    assert [name for name, _font_map, _font in prepared] == ["good.json"]

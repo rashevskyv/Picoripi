@@ -29,16 +29,16 @@ def _prepare_preview_fonts(descriptors: list, project_metadata: Dict[str, Any]) 
         try:
             raw_bytes = source.read_current()
             metadata, sheets = font_formats.extract(source.format, raw_bytes, source.params)
-        except (OSError, ValueError, KeyError, IndexError) as exc:
+            font_map = font_formats.font_map(metadata)
+            font = BfnCore()
+            font.metadata = metadata
+            font.gly1, font.map1 = metadata.get("GLY1", []), metadata.get("MAP1", [])
+            font.wid1, font.inf1 = metadata.get("WID1", []), metadata.get("INF1", [])
+            font._qimages_cache = [pil_to_qimage(sheet) for sheet in sheets]
+        except (OSError, ValueError, KeyError, IndexError, TypeError, AttributeError) as exc:
             log_warning(f"Preview font {source.label}: {exc}")
             continue
         name = source.font_map or f"{Path(source.name).stem}.json"
-        font_map = font_formats.font_map(metadata)
-        font = BfnCore()
-        font.metadata = metadata
-        font.gly1, font.map1 = metadata.get("GLY1", []), metadata.get("MAP1", [])
-        font.wid1, font.inf1 = metadata.get("WID1", []), metadata.get("INF1", [])
-        font._qimages_cache = [pil_to_qimage(sheet) for sheet in sheets]
         prepared.append((name, font_map, font))
     return prepared
 

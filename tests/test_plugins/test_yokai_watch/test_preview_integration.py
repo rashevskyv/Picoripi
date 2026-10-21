@@ -2,6 +2,7 @@
 
 actual rendered glyph pixels, edit updates, color/page tags, hero context, and asynchronous lifecycle.
 """
+import romhacking_root
 from pathlib import Path
 import threading
 from types import SimpleNamespace
@@ -35,7 +36,7 @@ def _get_or_make_yokai_font(tmp_path: Path) -> Path:
     """Provides a real or synthetic Yo-kai Watch XF font in the expected project directory."""
     target = tmp_path / "fnt" / "ft_nrm.xf"
     target.parent.mkdir(parents=True, exist_ok=True)
-    real_3ds_font = Path(r"E:\Emulators\RomHacking\Yo-kai Watch\Yo-kai Watch\3DS\source\fnt\ft_nrm.xf")
+    real_3ds_font = romhacking_root.under(r"Yo-kai Watch\Yo-kai Watch\3DS\source\fnt\ft_nrm.xf")
     if real_3ds_font.is_file():
         target.write_bytes(real_3ds_font.read_bytes())
     else:
@@ -109,6 +110,9 @@ def test_player_name_placeholders_respect_hero_and_gender_context():
     assert clean_f == "Hey, Katie!"
     clean_02, _, _, _ = rules.prepare_preview_glyph_text("Hey, {PNAME02}!")
     assert clean_02 == "Katie" or clean_02 == "Hey, Katie!"
+    # A tag that only ends in _F is not a hero tag.
+    clean_other, _, _, _ = rules.prepare_preview_glyph_text("Hey, {ITEM_F}!")
+    assert clean_other == "Hey, !"
 
     # B. Row context: _f_ route file -> Katie
     mw_mock = MagicMock()
