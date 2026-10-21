@@ -1101,7 +1101,9 @@ class BaseGameRules:
         """The roles a project's source files can have, as ``[{"id": ..., "label": ...}]``.
 
         A game with an update or a second disc declares one role per kind of file. The first role is the
-        one a single file gets when nothing else is known. Default: one role, ``base``.
+        one a single file gets when nothing else is known. Default: one role, ``base``. The host always adds
+        ``base``, ``update`` and ``dlc`` after the declared roles; many files may be DLC, and they reach
+        ``unpack_sources`` as ``dlc``, ``dlc_2``, ``dlc_3``... (``plugin_facts.paths_of_role``).
         """
         return [{"id": "base", "label": "Base game"}]
 

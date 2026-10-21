@@ -53,14 +53,64 @@ def test_roles_platforms_and_targets_are_normalised():
     rules = FakeRules()
 
     assert plugin_facts.roles_of(rules) == [
-        {"id": "base", "label": "Base game"}, {"id": "update", "label": "Update"}, {"id": "ghost", "label": "ghost"}]
+        {"id": "base", "label": "Base game", "multiple": False}, {"id": "update", "label": "Update", "multiple": False},
+        {"id": "ghost", "label": "ghost", "multiple": False}, {"id": "dlc", "label": "DLC", "multiple": True}]
     assert plugin_facts.platforms_of(rules) == [{"id": "3ds", "label": "Nintendo 3DS"}]
     assert plugin_facts.targets_of(rules) == [
         {"id": "patch", "label": "Patch", "platforms": ["3ds"], "kind": "patch"}]
 
 
-def test_a_plugin_without_roles_gets_one_base_role():
-    assert plugin_facts.roles_of(BaseGameRules()) == [{"id": "base", "label": "Base game"}]
+def test_every_game_offers_base_update_and_many_dlc():
+    roles = plugin_facts.roles_of(BaseGameRules())
+    assert [(role["id"], role["multiple"]) for role in roles] == [("base", False), ("update", False), ("dlc", True)]
+
+
+def test_repeated_role_keys_keep_their_order():
+    sources = {"base": "b", "dlc_3": "d3", "dlc": "d1", "dlc_2": "d2", "dlcx": "no"}
+    assert [plugin_facts.role_key("dlc", i) for i in (1, 2, 3)] == ["dlc", "dlc_2", "dlc_3"]
+    assert plugin_facts.paths_of_role(sources, "dlc") == ["d1", "d2", "d3"]
+
+
+@pytest.mark.parametrize("found, expected", [
+    ({"kind": "switch", "title_id": "0100C0000CEEA000", "title_kind": "base"}, ("base", "switch")),
+    ({"kind": "switch", "title_id": "0100C0000CEEA800", "title_kind": "update"}, ("update", "switch")),
+    ({"kind": "switch", "title_id": "0100C0000CEEB001", "title_kind": "dlc"}, ("dlc", "switch")),
+    ({"kind": "3ds", "title_id": "0004000E00167700"}, ("update", "3ds")),
+    ({"kind": "3ds", "title_id": "0004008C00167701"}, ("dlc", "3ds")),
+    ({"kind": "3ds", "title_id": "0004000000167700"}, ("base", "3ds")),
+    ({"kind": "gc", "game_id": "GZ2E01"}, ("base", "gc")),
+    (None, ("", "")),
+])
+def test_the_header_gives_role_and_platform(found, expected):
+    identity = plugin_facts.generic_identity(found)
+    assert (identity["role"], identity["platform"]) == expected
+
+
+class NoUnpackRules(BaseGameRules):
+    """A game that reads loose files only: no unpack of its own."""
+
+
+def test_a_game_image_without_an_unpack_is_unreadable_and_a_folder_is_fine(tmp_path, monkeypatch):
+    image = tmp_path / "game.nsz"
+    image.write_bytes(b"x")
+    folder = tmp_path / "unpacked"
+    folder.mkdir()
+    monkeypatch.setattr(plugin_facts.images, "identify", lambda path: (
+        {"kind": "switch", "title_id": "0100C0000CEEA800", "title_kind": "update", "encrypted": True}
+        if str(path).endswith(".nsz") else None))
+    by_path = {item["path"]: item for item in plugin_facts.identify_sources(NoUnpackRules(), [str(image), str(folder)])}
+    assert (by_path[str(image)]["role"], by_path[str(image)]["platform"]) == ("update", "switch")
+    assert by_path[str(image)]["status"] == plugin_facts.STATUS_UNREADABLE
+    assert by_path[str(image)]["key"] == ""        # no key is asked for: this game cannot read the file anyway
+    assert by_path[str(folder)]["status"] == plugin_facts.STATUS_FOLDER
+
+
+def test_a_wii_u_disc_image_is_named_but_not_read(tmp_path):
+    wux = tmp_path / "game.wux"
+    wux.write_bytes(plugin_facts.WUX_MAGIC + b"\0" * 60)
+    [item] = plugin_facts.identify_sources(NoUnpackRules(), [str(wux)])
+    assert (item["platform"], item["status"]) == ("wiiu", plugin_facts.STATUS_UNREADABLE)
+    assert plugin_facts.platform_label("wiiu") == "Wii U"
 
 
 def test_identification_drops_undeclared_roles_and_survives_a_failing_plugin(tmp_path):

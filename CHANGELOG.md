@@ -1,7 +1,9 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
-
+- Project Manager: a project made by the wizard saves the game's own picture as `icon.png` (3DS SMDH icon, GameCube `opening.bnr` banner; `core/project_library/game_icon.py`); an icon already there is kept.
+- First start: the data folder dialog asks for the interface language (system language preselected when a catalog exists); the dialog switches at once and the choice is saved as `ui_language` in the chosen folder.
+- Project Manager wizard: Base game, Update and DLC are always offered and DLC may repeat (`dlc`, `dlc_2`, ... in `sources`); roles and platforms come from the file header when the plugin does not say (Switch and 3DS title IDs, Wii U `.wux`); several rows get one role with Apply; a Status column and red text show at once a repeated role, a file the game cannot read (add its folder) or a missing key file (Add the key file button), and Next waits; Add folder... adds an unpacked game; the game list is searchable, the project name is filled from the game, the icon field is gone (Change icon on the row), the file name column takes the free width, and an unpack failure also opens a message box.
 - Project Manager: **Share project...** packs a project (project folder, translation files, linked series glossaries; no game files, sessions or caches) into one `.zip` with its paths made relative and outside paths cleared; **Import shared project...** unpacks such a zip into a folder the receiver chooses and points it at the receiver's own game files.
 - New Project wizard keeps game images that a plugin reads as they are, skips a malformed table while it checks an extracted folder, and says when that folder path is a file.
 

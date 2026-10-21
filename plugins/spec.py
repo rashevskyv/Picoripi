@@ -206,7 +206,8 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
              "reference path, or None to use the path as it is.", call=None, returns=str, optional=True),
     )),
     ('Project Manager (worker thread: no widgets, no self.mw)', (
-        Hook("get_source_roles", "Roles the project's source files can have: [{id, label}]. The first is the default.",
+        Hook("get_source_roles", "Roles the project's source files can have: [{id, label}]. The first is the default. "
+             "The host adds Base game, Update and DLC after them; DLC may repeat (dlc, dlc_2, ...).",
              call=(), returns=list),
         Hook("identify_source", "Recognise a file the user added, by its content: {role, platform} or None. "
              "An optional 'libraries': [\"oodle\"] lists the stored library paths its unpack loads.",

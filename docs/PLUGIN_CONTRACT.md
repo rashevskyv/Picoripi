@@ -137,7 +137,7 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 
 | Hook | What it is for | Notes |
 |---|---|---|
-| `get_source_roles` | Roles the project's source files can have: [{id, label}]. The first is the default. |  |
+| `get_source_roles` | Roles the project's source files can have: [{id, label}]. The first is the default. The host adds Base game, Update and DLC after them; DLC may repeat (dlc, dlc_2, ...). |  |
 | `identify_source` | Recognise a file the user added, by its content: {role, platform} or None. An optional 'libraries': ["oodle"] lists the stored library paths its unpack loads. |  |
 | `get_platforms` | Platforms the game ships on: [{id, label}]. |  |
 | `unpack_sources` | Unpack the role files into an empty folder: progress(percent, text) and is_cancelled() are passed in. Returns the folder, or None to use the files as they are; a recognised game image is then used only when get_file_formats claims its extension. |  |

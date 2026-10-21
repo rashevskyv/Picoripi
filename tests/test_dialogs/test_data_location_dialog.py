@@ -144,7 +144,7 @@ def test_first_start_offers_every_interface_language(qtbot, app_folder, english_
     qtbot.addWidget(dialog)
     codes = [dialog._language_combo.itemData(i) for i in range(dialog._language_combo.count())]
     assert codes == i18n.available_languages()
-    assert "uk" in codes
+    assert codes[:1] == ["en"] and len(codes) > 1      # English first, then every catalog with translations
 
 
 def test_switching_the_language_translates_the_dialog_and_keeps_the_choices(qtbot, app_folder, tmp_path,

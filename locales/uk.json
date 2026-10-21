@@ -3016,5 +3016,20 @@
     "Original: Russian (ru)": "Оригінал: російська (ru)",
     "Original: English (en)": "Оригінал: англійська (en)",
     "No English text on this page: it does not line up with the Russian.": "На цій сторінці немає англійського тексту: він не збігається з російським.",
-    "No original text on this page.": "На цій сторінці немає оригінального тексту."
+    "No original text on this page.": "На цій сторінці немає оригінального тексту.",
+  "Type a part of the game's name": "Введіть частину назви гри",
+  "The game's name is filled in; change it if you like": "Назва гри підставляється сама; змініть її, якщо хочете",
+  "Step 2 of 3: the files. Add the game, its update and its DLC: files or unpacked folders. Picoripi reads each file and sets its role and platform; you can change them. Select several rows to give them one role. The originals stay where they are.": "Крок 2 з 3: файли. Додайте гру, її оновлення та DLC: файли або розпаковані папки. Picoripi читає кожен файл і ставить його роль і платформу; ви можете їх змінити. Виділіть кілька рядків, щоб дати їм одну роль. Оригінали лишаються на своїх місцях.",
+  "Add folder...": "Додати папку...",
+  "An unpacked game: a folder with the game's files.": "Розпакована гра: папка з файлами гри.",
+  "Add an unpacked game folder": "Додати розпаковану папку гри",
+  "Two files have the role {0}. Only DLC can repeat: give each other file its own role.": "Два файли мають роль {0}. Повторюватися може лише DLC: дайте кожному іншому файлу власну роль.",
+  "Role for the selected files:": "Роль для виділених файлів:",
+  "Cannot read: add its folder": "Не читається: додайте папку",
+  "Needs the key file": "Потрібен файл ключів",
+  "Not recognised by this game": "Ця гра не розпізнає файл",
+  "Add the key file for {0}...": "Додати файл ключів для {0}...",
+  "Choose the game.": "Виберіть гру.",
+  "{0}: this game cannot read a {1} file itself. Remove it and add the unpacked folder of the game instead (Add folder...).": "{0}: ця гра не вміє сама читати файл {1}. Приберіть його і додайте натомість розпаковану папку гри (Додати папку...).",
+  "{0} is encrypted. Picoripi needs the key file for {1} to read it. Add the key file, or remove the file and add the unpacked folder instead.": "{0} зашифровано. Щоб прочитати його, Picoripi потрібен файл ключів для {1}. Додайте файл ключів або приберіть файл і додайте натомість розпаковану папку."
 }

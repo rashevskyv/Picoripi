@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from core import formats
+from core.i18n import tr
 from core.project_library import console_keys, images
 from core.project_library.cards import count_strings
 from utils.constants import APP_VERSION, plugins_root
@@ -40,15 +41,81 @@ def default_load_rules(plugin_name: str, main_window: Any = None) -> Any:
         return module.GameRules(main_window)
 
 
-def roles_of(rules: Any) -> List[Dict[str, str]]:
-    """The source roles of a plugin, ``[{"id", "label"}]``. A plugin that declares none gets one ``base`` role."""
-    roles = []
+GENERIC_ROLES = (("base", "Base game"), ("update", "Update"), ("dlc", "DLC"))
+MULTIPLE_ROLES = frozenset({"dlc"})   # roles that many files may share; each other role belongs to one file
+N3DS_TITLE_KIND = {"00040000": "base", "0004000E": "update", "0004008C": "dlc"}   # 3DS title ID high word
+KIND_WIIU = "wiiu"                    # a Wii U disc image (.wux): recognised for its platform, never read
+WUX_MAGIC = b"WUX0"
+STATUS_OK, STATUS_FOLDER, STATUS_UNREADABLE, STATUS_UNRECOGNISED = "ok", "folder", "unreadable", "unrecognised"
+
+
+def roles_of(rules: Any) -> List[Dict[str, Any]]:
+    """The source roles of a plugin, ``[{"id", "label", "multiple"}]``.
+
+    The plugin's own roles come first. Base game, Update and DLC are always offered, so a user can add every file of
+    a game at once. ``multiple`` is True for a role that many files may share (DLC).
+    """
+    roles: List[Dict[str, Any]] = []
     for role in rules.get_source_roles() or []:
         role_id = str(role.get("id") or "").strip()
         if role_id and role_id not in {r["id"] for r in roles}:
             roles.append({"id": role_id, "label": str(role.get("label") or role_id)})
-    return roles or [{"id": "base", "label": "Base game"}]
+    for role_id, label in GENERIC_ROLES:
+        if role_id not in {r["id"] for r in roles}:
+            roles.append({"id": role_id, "label": tr(label)})
+    for role in roles:
+        role["multiple"] = role["id"] in MULTIPLE_ROLES
+    return roles
 
+
+def role_key(role: str, index: int) -> str:
+    """The ``sources`` key of the ``index``-th file (from 1) of a role: ``dlc``, then ``dlc_2``, ``dlc_3``..."""
+    return role if index <= 1 else f"{role}_{index}"
+
+
+def paths_of_role(sources: Dict[str, str], role: str) -> List[str]:
+    """Every path of ``role`` in a ``sources`` map, in order: ``dlc``, ``dlc_2``, ``dlc_3``..."""
+    found = [(1, path) for key, path in sources.items() if key == role]
+    for key, path in sources.items():
+        prefix, _sep, number = key.rpartition("_")
+        if prefix == role and number.isdigit():
+            found.append((int(number), path))
+    return [path for _index, path in sorted(found)]
+
+
+def describe_file(path: str) -> Optional[Dict[str, Any]]:
+    """The header fields of a game image (``images.identify``), a Wii U ``.wux`` (platform only), or None."""
+    found = images.identify(path)
+    if found is not None:
+        return found
+    try:
+        with open(path, "rb") as stream:
+            magic = stream.read(len(WUX_MAGIC))
+    except OSError:
+        return None
+    return {"kind": KIND_WIIU, "game_id": "", "encrypted": True} if magic == WUX_MAGIC else None
+
+
+def generic_identity(found: Optional[Dict[str, Any]]) -> Dict[str, str]:
+    """``{"role", "platform"}`` read from an image's own header, for a file the plugin does not recognise.
+
+    The role comes from the title ID: the low bits of a Switch title, the high word of a 3DS title. Any other image
+    is a base game. Both are "" for a file that is not an image Picoripi recognises.
+    """
+    if not found:
+        return {"role": "", "platform": ""}
+    kind = str(found.get("kind") or "")
+    role = str(found.get("title_kind") or "")
+    if kind == images.KIND_3DS:
+        role = N3DS_TITLE_KIND.get(str(found.get("title_id") or "")[:8].upper(), "base")
+    return {"role": role or "base", "platform": kind}
+
+
+def platform_label(platform_id: str) -> str:
+    """A readable name of a platform id that an image reports (``switch`` -> Nintendo Switch)."""
+    if platform_id == KIND_WIIU:
+        return tr("Wii U")
+    return tr(images.KIND_LABEL.get(platform_id, platform_id))
 
 def platforms_of(rules: Any) -> List[Dict[str, str]]:
     """The platforms of a plugin, ``[{"id", "label"}]``."""
@@ -77,36 +144,64 @@ def targets_of(rules: Any) -> List[Dict[str, Any]]:
 
 
 def identify_sources(rules: Any, paths: Sequence[str], is_cancelled: Cancelled = lambda: False) -> List[Dict[str, Any]]:
-    """For each path: ``{"path", "role", "platform", "key", "key_ready"}``.
+    """For each path: ``{"path", "role", "platform", "status", "title_id", "key", "key_ready", "libraries", ...}``.
 
-    ``role`` is "" when the plugin does not recognise the file. A role the plugin did not declare is dropped, so the
-    wizard never shows a role it cannot save. ``key`` is the console whose key file the file needs ("" when none);
-    ``key_ready`` is True when Picoripi already has that console's key file. ``libraries`` lists the other stored
-    paths the unpack of this file loads (an identity's ``"libraries"``, e.g. ``"oodle"``), only those the plugin lists
-    in ``unpack_key_consoles``.
+    The plugin's ``identify_source`` answers first. A file it does not recognise gets the role and platform its own
+    header gives (``generic_identity``). A role the plugin did not declare is dropped. ``status``: ``ok``; ``folder``
+    (a folder, used as it is); ``unreadable`` (a game image this game cannot unpack: add the unpacked folder);
+    ``unrecognised`` (an image the plugin's unpack does not recognise). ``key`` is the console whose key file the file
+    needs ("" when none); ``key_ready`` is True when Picoripi already has that key file. ``libraries`` lists the other
+    stored paths the unpack of this file loads (an identity's ``"libraries"``, e.g. ``"oodle"``), only those the
+    plugin lists in ``unpack_key_consoles``.
     """
     known = {role["id"] for role in roles_of(rules)}
     allowed = _unpack_consoles(rules)
+    unpacks = _has_unpack(rules) or bool(allowed)    # a game that reads console keys unpacks images
     result: List[Dict[str, Any]] = []
     for path in paths:
         if is_cancelled():
             break
-        role, platform, libraries = "", "", []
+        libraries: List[str] = []
+        is_folder = os.path.isdir(path)
+        found = None if is_folder else describe_file(path)
         try:
-            identity = rules.identify_source(path)
-        except Exception as exc:  # a plugin's bug must not stop the wizard; the user picks the role
+            identity = None if is_folder else rules.identify_source(path)
+        except Exception as exc:  # a plugin's bug must not stop the wizard; the header or the user gives the role
             log_warning(f"identify_source failed for {path}: {exc}")
             identity = None
         if isinstance(identity, dict) and str(identity.get("role") or "") in known:
-            role = str(identity["role"])
-            platform = str(identity.get("platform") or "")
+            role, platform = str(identity["role"]), str(identity.get("platform") or "")
             libraries = [str(item) for item in identity.get("libraries") or [] if str(item) in allowed]
-        console = _key_console(rules, path)
-        result.append({"path": path, "role": role, "platform": platform, "key": console,
+            status = STATUS_OK
+        else:
+            generic = generic_identity(found)
+            role = generic["role"] if generic["role"] in known else ""
+            platform = generic["platform"]
+            status = _status_of(found, is_folder, unpacks)
+        console = _key_console(found, allowed) if status in (STATUS_OK, STATUS_UNRECOGNISED) else ""
+        result.append({"path": path, "role": role, "platform": platform, "status": status,
+                       "title_id": str((found or {}).get("title_id") or (found or {}).get("game_id") or ""),
+                       "key": console,
                        "key_ready": bool(console) and console_keys.path_for(console) is not None,
                        "libraries": libraries,
                        "libraries_ready": [item for item in libraries if console_keys.path_for(item) is not None]})
     return result
+
+
+def _status_of(found: Optional[Dict[str, Any]], is_folder: bool, unpacks: bool) -> str:
+    """The status of a file the plugin did not recognise (see ``identify_sources``)."""
+    if is_folder:
+        return STATUS_FOLDER
+    kind = str((found or {}).get("kind") or "")
+    if kind == KIND_WIIU or (kind in images.UNPACK_KINDS and not unpacks):
+        return STATUS_UNREADABLE
+    return STATUS_UNRECOGNISED if kind in images.UNPACK_KINDS else STATUS_OK
+
+
+def _has_unpack(rules: Any) -> bool:
+    """True when the plugin has its own ``unpack_sources``; without it a game image cannot become a source."""
+    owner = next((cls for cls in type(rules).__mro__ if "unpack_sources" in vars(cls)), None)
+    return owner is not None and owner.__name__ != "BaseGameRules"
 
 
 def _unpack_consoles(rules: Any) -> List[str]:
@@ -118,11 +213,12 @@ def _unpack_consoles(rules: Any) -> List[str]:
         return []
 
 
-def _key_console(rules: Any, path: str) -> str:
-    """The console whose key file an encrypted file needs, when the game's unpack reads that console; else ""."""
-    console = images.needs_key(path) or ""
-    return console if console and console in _unpack_consoles(rules) else ""
-
+def _key_console(found: Optional[Dict[str, Any]], allowed: Sequence[str]) -> str:
+    """The console whose key file an encrypted image needs, when the game's unpack reads that console; else ""."""
+    if not found or not found.get("encrypted") or found.get("kind") not in images.UNPACK_KINDS:
+        return ""
+    console = images.CONSOLE_OF_KIND.get(str(found["kind"]), "")
+    return console if console in allowed else ""
 
 def _root(base: Path, value: Any) -> Optional[Path]:
     if not value:

@@ -173,7 +173,7 @@ Do not declare a capability the plugin cannot deliver.
 The Project Manager's new-project wizard, its Build, Export and Run buttons and its list icons use six optional hooks.
 Each hook has a default, so a plugin without them still works: the wizard then takes the role and the platform from the user, uses the files as they are, and the buttons stay off.
 
-- `get_source_roles()` lists the roles a project's files can have, for example base game, update, DLC and disc 2. The first role is the default.
+- `get_source_roles()` lists the roles a project's files can have, for example base game, update, DLC and disc 2. The first role is the default. The host always offers **Base game**, **Update** and **DLC** after them, so a user can add every file of a game; DLC may repeat, and `unpack_sources` then gets the keys `dlc`, `dlc_2`, `dlc_3`... (`plugin_facts.paths_of_role(sources, "dlc")` lists them). A file `identify_source` does not recognise gets the role and platform of its own header (Switch and 3DS title IDs).
 - `identify_source(path)` reads one file the user added, by its content, and returns its role and platform. It returns `None` for a file that is not from this game.
 - `get_platforms()` lists the platforms the game ships on. The wizard uses it when `identify_source` does not name one.
 - `unpack_sources(sources, target_dir, progress, is_cancelled)` unpacks the role files into an empty folder that the host made. It returns that folder, or `None` when the files need no unpacking.
