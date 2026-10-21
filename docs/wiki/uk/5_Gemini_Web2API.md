@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/translation/providers.py
-tokens: 2.7k
+tokens: 2.8k
 ---
 # Gemini Web2API (WebTOP)
 
@@ -154,3 +154,8 @@ python chatmock.py serve --reasoning-effort low --reasoning-summary none    # п
 - UI Settings: `ui/settings/ai_mixin.py` (`Parallel Requests`, плейсхолдер Gemini Base URL `http://127.0.0.1:8081/v1`)
 - HTTP-клієнт: `core/translation/providers.py`; класифікація помилок, політика повторів і запобіжник: `core/translation/transport.py`
 - Нижня межа таймауту глосарія: `handlers/translation/glossary_pipeline_handler.py`
+
+<!-- wiki-nav -->
+---
+
+**Назад:** [AI-переклад](11_AI_Translation.md) · [До змісту вікі](README.md) · **Далі:** [Віртуальна навігація і прев’ю](6_Virtual_Navigation_and_Preview.md)

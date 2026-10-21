@@ -18,19 +18,19 @@ Read the row, then open only the document you need.
 | `docs/ROADMAP.md` | Master plan: the work packages of Picoripi, their state and the order | 1.6k | current | work packages, order of work |
 | `docs/TESTING_STRATEGY_AND_AUDIT.md` | Shape of the test suite, lanes, known risks | 2.3k | current | tests/ |
 | `docs/TRANSLATION_PROMPTING_STRATEGY.md` | Target design of translation context and prompts (Ukrainian) | 6.2k | design | handlers/translation/prompt_composer |
-| `docs/wiki/0_Getting_Started.md` (+uk) | First start to first translated line: install, data folder, adding a game, editing, next steps | 1.9k | current | ui/project_manager/wizard.py |
-| `docs/wiki/11_AI_Translation.md` (+uk) | Providers, prompts, chunks, run memory, translation memory | 5.9k | current | handlers/translation, core/translation |
-| `docs/wiki/12_Picoripi_Companion.md` (+uk) | Companion server and glossary sync | 1.8k | current | core/companion_sync.py, companion/ |
+| `docs/wiki/0_Getting_Started.md` (+uk) | First start to a built mod: install, data folder, Project Manager, wizard, editor, widths, tags, saving, AI, glossary, settings map, build | 8.3k | current | ui/project_manager/wizard.py |
+| `docs/wiki/11_AI_Translation.md` (+uk) | Providers, prompts, chunks, run memory, translation memory | 6.0k | current | handlers/translation, core/translation |
+| `docs/wiki/12_Picoripi_Companion.md` (+uk) | Companion server and glossary sync | 1.9k | current | core/companion_sync.py, companion/ |
 | `docs/wiki/13_Working_Together.md` (+uk) | Rooms, roles, claims, comments | 2.9k | current | core/collab |
 | `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (+uk) | Main window, menus, filters, settings tabs, shortcuts | 59.5k | current | ui/, components/, dialogs/ |
 | `docs/wiki/2_API_Reference.md` (+uk) | Which Python file implements which control | 0.8k | current | module map |
-| `docs/wiki/3_Plugin_Developer_Guide.md` (+uk) | The one plugin guide: files, hooks, capabilities, tests | 14.5k | current | plugins/ |
+| `docs/wiki/3_Plugin_Developer_Guide.md` (+uk) | The one plugin guide: files, hooks, capabilities, tests | 14.6k | current | plugins/ |
 | `docs/wiki/4_Configuration_Guide.md` (+uk) | Settings files, project files, where data is stored | 2.4k | current | core/settings |
-| `docs/wiki/5_Gemini_Web2API.md` (+uk) | The local Gemini proxy: start, settings, errors | 2.1k | current | core/translation/providers.py |
+| `docs/wiki/5_Gemini_Web2API.md` (+uk) | The local Gemini proxy: start, settings, errors | 2.2k | current | core/translation/providers.py |
 | `docs/wiki/6_Virtual_Navigation_and_Preview.md` (+uk) | Virtual folders, story and speaker views, preview | 1.4k | current | ui/updaters/block_list |
 | `docs/wiki/7_Maintaining_This_Wiki.md` (+uk) | Which page owns which fact; how to update EN and UK | 0.8k | current | docs/wiki |
 | `docs/wiki/8_Localization_Pipeline.md` (+uk) | Pipeline wizard: script, glossary build, reconcile | 4.7k | current | core/glossary_build, core/glossary |
-| `docs/wiki/9_Script_Markup.md` (+uk) | Script Markup Studio | 1.8k | current | core/script_markup, ui/script_markup |
+| `docs/wiki/9_Script_Markup.md` (+uk) | Script Markup Studio | 1.9k | current | core/script_markup, ui/script_markup |
 | `docs/wiki/README.md` (+uk) | Wiki index and reading order | 0.7k | current | docs/wiki |
 | `AGENTS.md` | Agent entry: hard rules, commands, checklist |  | current | everything |
 | `README.md` | Pitch, install, run, tests, doc map |  | current | repository |

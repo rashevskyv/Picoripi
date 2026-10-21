@@ -145,3 +145,8 @@ The log file `app_debug.txt` stays next to the program unless **Log File Path** 
 - Do not put machine-absolute paths in wiki or README examples.
 
 To fill extra interface languages (or to complete Ukrainian): start Gemini Web2API, then run `tools/i18n-translate/run.bat`. The window selects target languages; **Ukrainian is on by default**. After a catalog has translations, it appears in **Language**; the name comes from `@language_name` in that JSON. Missing strings stay English.
+
+<!-- wiki-nav -->
+---
+
+**Previous:** [Picoripi Companion (Mobile PWA & Sync)](12_Picoripi_Companion.md) · [Back to the wiki index](README.md) · **Next:** [Plugin Developer Guide](3_Plugin_Developer_Guide.md)

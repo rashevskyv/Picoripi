@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: core/glossary_build, core/glossary
-tokens: 6.3k
+tokens: 6.4k
 ---
 # Пайплайн локалізації
 
@@ -224,3 +224,8 @@ block with AI** запускає довгий повний обхід і все 
 - Не ставте Parallel Requests вище за кількість Active-акаунтів проксі.
 - Не трактуйте “N / M rows translated” як оцінку QA; правильні ідентичні рядки виглядають неперекладеними.
 - Не документуйте і не чекайте пунктів, які є лише в `docs/PIPELINE_ROADMAP.md` — це план, не цей майстер.
+
+<!-- wiki-nav -->
+---
+
+**Назад:** [Посібник: інтерфейс](1_User_Guide_and_Workflow_Pipeline.md) · [До змісту вікі](README.md) · **Далі:** [AI-переклад](11_AI_Translation.md)

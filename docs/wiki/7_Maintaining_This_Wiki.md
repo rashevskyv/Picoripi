@@ -51,3 +51,8 @@ After a user-visible or settings change:
 5. If a control was renamed, search `docs/wiki` for the old English label.
 
 Agents: invoke the `update-wiki` skill (`/update-wiki`) after such work, or when the user asks to refresh docs. Re-read the owning source file before editing the page.
+
+<!-- wiki-nav -->
+---
+
+**Previous:** [Code map (maintainers)](2_API_Reference.md) · [Back to the wiki index](README.md)

@@ -147,16 +147,16 @@ class PluginTabsMixin:
     def _setup_rules_subtab(self, tab):
         """Internal helper to setup rules subtab."""
         layout = QFormLayout(tab)
-        self.game_dialog_width_spinbox = LabeledSpinBox("Game Dialog Max Width (px):", 100, 10000, 240, parent=self)
+        self.game_dialog_width_spinbox = LabeledSpinBox(tr("Game Dialog Max Width (px):"), 100, 10000, 240, parent=self)
         self.game_dialog_width_spinbox.spin_box.valueChanged.connect(self.on_rules_changed)
 
-        self.width_warning_spinbox = LabeledSpinBox("Editor Line Width Warning (px):", 100, 10000, 208, parent=self)
+        self.width_warning_spinbox = LabeledSpinBox(tr("Editor Line Width Warning (px):"), 100, 10000, 208, parent=self)
         self.width_warning_spinbox.spin_box.valueChanged.connect(self.on_rules_changed)
 
         self.show_width_guideline_checkbox = QCheckBox(tr('Show guideline'), self)
         self.show_width_guideline_checkbox.stateChanged.connect(self.on_rules_changed)
 
-        self.lines_per_page_spinbox = LabeledSpinBox("Lines Per Page:", 1, 20, 4, parent=self)
+        self.lines_per_page_spinbox = LabeledSpinBox(tr("Lines Per Page:"), 1, 20, 4, parent=self)
         self.lines_per_page_spinbox.spin_box.valueChanged.connect(self.on_rules_changed)
 
         # A plugin with several kinds of message window supplies the rows of a
@@ -233,7 +233,7 @@ class PluginTabsMixin:
         grid.setContentsMargins(0, 6, 0, 0)
         grid.setHorizontalSpacing(12)
         grid.setVerticalSpacing(6)
-        headers = ("Window type", "Warning", "Maximum", "Lines")
+        headers = (tr("Window type"), tr("Warning"), tr("Maximum"), tr("Lines"))
         for column, text in enumerate(headers):
             header = QLabel(text, defaults_group)
             header.setStyleSheet("font-weight: bold;")

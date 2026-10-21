@@ -162,3 +162,8 @@ words and rows they translated first, their edits, and today's words, with medal
 translated row counts as an edit, not as new words. The page shows counts and names only, never text; anyone who can
 reach the room's address can open it. Each participant's Picoripi sends the room a fresh project summary when it
 joins and then once a minute while edits happen.
+
+<!-- wiki-nav -->
+---
+
+**Previous:** [Script Markup Studio](9_Script_Markup.md) · [Back to the wiki index](README.md) · **Next:** [Picoripi Companion (Mobile PWA & Sync)](12_Picoripi_Companion.md)

@@ -2,7 +2,7 @@
 status: current
 updated: 2026-09-02
 owns: core/script_markup, ui/script_markup
-tokens: 2.4k
+tokens: 2.5k
 ---
 # Script Markup Studio
 
@@ -141,3 +141,8 @@ tokens: 2.4k
 **Не** експортуйте і потім правте Markdown руками, якщо Studio має лишатися власником проєкту — працюйте в Studio і експортуйте знову.
 
 **Не** пропускайте розмітку і не чекайте повного Merge Speakers чи повних сідів персонажів у глосарії.
+
+<!-- wiki-nav -->
+---
+
+**Назад:** [Віртуальна навігація і прев’ю](6_Virtual_Navigation_and_Preview.md) · [До змісту вікі](README.md) · **Далі:** [Спільна робота і прогрес](13_Working_Together.md)

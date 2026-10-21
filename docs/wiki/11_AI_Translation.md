@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: handlers/translation, core/translation
-tokens: 5.9k
+tokens: 6.0k
 purpose: Providers, prompts, chunks, run memory, translation memory
 ---
 # AI Translation
@@ -191,3 +191,8 @@ Pipeline launch: **Tools → Prepare Glossary…** or wizard step **Prepare and 
 - Do not start a second Translate while **AI Busy**.
 - Do not put API keys or cookies in the wiki, README, or commits. Use Settings or `.env`.
 - Do not set Parallel Requests far above Active accounts; extra workers wait on cooldown.
+
+<!-- wiki-nav -->
+---
+
+**Previous:** [Localization Pipeline](8_Localization_Pipeline.md) · [Back to the wiki index](README.md) · **Next:** [Gemini Web2API (WebTOP)](5_Gemini_Web2API.md)
