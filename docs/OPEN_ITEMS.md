@@ -14,7 +14,7 @@ the line when it is done or moved into a plan.
 
 - Done: GFAC + GFCP (BPE) codec in `core/containers/gfac.py`; 2225 packs parse; the English pack round-trips; the entry checksum is a function of the name and is kept as stored.
 - Done: the English BMG files (575 messages) load and re-save byte for byte; the build writes a Riivolution patch and a Dolphin descriptor.
-- Open (blocking the proof): Dolphin did not apply the mod in a private copy. The descriptor and the `Load\Riivolution` layout both show no log line. Probably the patch needs enabling in Dolphin's UI. The Wii Remote pipe did not start.
+- Open (blocking the proof): in a private portable Dolphin copy, the mod descriptor boots (the log shows the base RVZ), but no patch line appears, and the title screen does not advance past "Press 2" in 150-300 s. Input tried: Wii Remote expressions (timer pulse, constant) with BackgroundInput; no input line in the log and no `User\Pipes` folder.
 - Open: the checksum hash function is unknown, so a new file name cannot be added to a pack yet. Only edits to existing entries are supported.
 - Open: the font (BRFNT/RFNT) is not edited. Cyrillic needs glyphs in the game's font.
 - Open: textures with text are not in the plugin.
