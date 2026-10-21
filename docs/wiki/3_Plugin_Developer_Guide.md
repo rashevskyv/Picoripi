@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: plugins/
-tokens: 14.5k
+tokens: 14.6k
 purpose: The one plugin guide: files, hooks, capabilities, tests
 ---
 # Plugin Developer Guide
@@ -60,6 +60,8 @@ If the import fails, the user gets **Plugin Load Error** and the application fal
 **Menu actions:** `get_plugin_actions()` may add `QAction`s (`name`, `text`, `tooltip`, `shortcut`, `handler`, `menu`, `toolbar`). The AI translate actions belong to the application and are present for every game.
 
 **Voice clips:** `get_voice_clips(project_dir)` lists the clips (`id`, `title`, `disc`: the .bin the original is read from, `voice_dir`: where a translated WAV is kept). `export_voice_clip`, `import_voice_clip` and `apply_voice_clips` do the work; a plugin's own Tools action opens the dialog, and every export, import or apply runs in a worker. A game without voice clips keeps the defaults (an empty list).
+
+**Subtitle timing:** a plugin can keep the timing of its subtitle lines in its own file beside the voice (Lunar SSSC: `translation\voice\subtitle_timing.json`, read by `GameRules.timing_for`, missing file = the built-in timing). The text module takes the timing as an argument on read and write. The Tools dialog runs its jobs in workers (`subtitle_state`, `save_subtitle_timing`, `subtitle_play_file`), as the voice dialog does; a change reaches the build after the project is saved.
 
 ---
 

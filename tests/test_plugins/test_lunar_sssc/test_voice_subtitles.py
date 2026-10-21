@@ -7,9 +7,9 @@ import struct
 
 import romhacking_root  # noqa: F401  (path setup for the repository's packages)
 
-from plugins.lunar_sssc import codec, doc, script, voice_subtitles as vs
+from plugins.lunar_sssc import codec, doc, script, subtitle_timing, voice_subtitles as vs
 
-BLANK = [""] * len(vs.SEGMENTS)
+BLANK = [""] * len(subtitle_timing.SEGMENTS)
 
 
 def _synthetic_script() -> bytes:
@@ -61,9 +61,11 @@ def test_every_set_of_lines_keeps_the_code_after_it_on_the_four_byte_grid():
 def test_each_line_is_held_for_its_segment_in_frames():
     region = _region(["ONE", "", "THREE"] + [""] * 5)
     first = codec.decode_message(region, 2, len(region))     # the first message: segment 0 starts at 0 s
-    start, end = vs.SEGMENTS[0]
+    start, end = subtitle_timing.SEGMENTS[0]                     # frames from the clip start
     assert first.startswith("ONE")
-    assert ("{F8:%02X}{close}" % round((end - start) * vs.FPS)) in first
+    assert ("{F8:%02X}{close}" % (end - start)) in first         # shown for the cue's frames, then closed
+    gap = subtitle_timing.SEGMENTS[2][0] - end                  # the pause to the next cue is after the close
+    assert first.endswith("{close}%s" % vs._pauses(gap))
 
 
 def test_splice_moves_the_labels_after_the_insert_and_keeps_the_others():

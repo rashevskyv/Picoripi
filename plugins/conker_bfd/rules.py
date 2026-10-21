@@ -4,6 +4,8 @@ Scope of this version:
 - identify and unpack the US ROM (the pinned SHA-1 and internal title are required);
 - write each text table as JSON (format ``conker-bfd-text/3``): instruction-book pages (bank 0x1A) and menu
   sub-tables (bank 0x1C), with the glyph metrics the width measure needs;
+- write each talk-bubble table as JSON (format ``conker-bfd-dialogue/1``): one file per bank 0x06 entry, one string
+  per bubble page (nested containers of text leaves, see ``dialogue``);
 - write the 95 font glyphs as PGM sources and the RLE records as JSON;
 - write the 453 bank-0x16 streams as MP3 files and an index (frames, cues, duration);
 - build a patched ROM and a BPS patch from the edited tables. Text may grow: a changed bank is relaid out at the
@@ -24,7 +26,7 @@ from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_warning
 
-from . import book_text, bps, box_scale, code_patches, font, header_crc, n64_archive, preview, rom_layout, text_blocks, voice
+from . import book_text, bps, box_scale, code_patches, dialogue, font, header_crc, n64_archive, preview, rom_layout, text_blocks, voice
 from .config import PROBLEM_CHARACTER, PROBLEM_DEFINITIONS, PROBLEM_LENGTH
 
 ROLE_ROM = "rom"
@@ -70,6 +72,7 @@ class GameRules(BaseGameRules):
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
         self._table: Optional[book_text.Table] = None
+        self._dialogue: Optional[dialogue.Table] = None
         self._font_block: Optional[Dict[str, Any]] = None
         self._legacy_headers: List[Dict[str, Any]] = []
         self._legacy_segments: List[List[Dict[str, Any]]] = []
@@ -114,6 +117,12 @@ class GameRules(BaseGameRules):
             if is_cancelled():
                 return None
             obj = book_text.table_to_json(table, font_block)
+            _write_text(Path(root, "text", *table.name.split("/")).with_suffix(".json"),
+                        json.dumps(obj, ensure_ascii=False, indent=1))
+        for table in dialogue.extract(rom):
+            if is_cancelled():
+                return None
+            obj = dialogue.table_to_json(table, font_block)
             _write_text(Path(root, "text", *table.name.split("/")).with_suffix(".json"),
                         json.dumps(obj, ensure_ascii=False, indent=1))
         _write_text(Path(root, REF_NAME),
@@ -178,12 +187,14 @@ class GameRules(BaseGameRules):
             raise ValueError(tr("The ROM is not the pinned US release."))
         progress(10, tr("Reading the edited text tables"))
         tables = self._edited_tables(translation_dir)
+        dialogue_tables = self._edited_dialogue(translation_dir)
         if is_cancelled():
             return output_dir
         progress(30, tr("Rebuilding the text banks"))
         raw = code_patches.apply_raw(rom, box_scale.scale_patches(box_scale.DEFAULT_SCALE))
         patched = code_patches.apply_to_rom(raw)  # data-driven changes; the same object when there are none
         changed = book_text.rebuild(rom, tables)
+        changed.update(dialogue.rebuild(rom, dialogue_tables))
         new_rom = rom_layout.relayout_banks(patched, changed) if changed else patched
         if new_rom is not rom:
             new_rom = header_crc.fix(new_rom)     # the header checksum must match the edited ROM
@@ -199,6 +210,17 @@ class GameRules(BaseGameRules):
         progress(100, tr("Done"))
         return str(out)
 
+    def _edited_dialogue(self, translation_dir: str) -> List[dialogue.Table]:
+        root = Path(translation_dir, "text")
+        if not root.is_dir():
+            return []
+        tables: List[dialogue.Table] = []
+        for path in sorted(root.rglob("*.json")):
+            obj = json.loads(path.read_text(encoding="utf-8"))
+            if obj.get("format") == dialogue.FORMAT_ID:
+                tables.append(dialogue.table_from_json(obj))
+        return tables
+
     def _edited_tables(self, translation_dir: str) -> List[book_text.Table]:
         root = Path(translation_dir, "text")
         if not root.is_dir():
@@ -213,6 +235,13 @@ class GameRules(BaseGameRules):
         return tables
 
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Dict[str, str]]:
+        self._dialogue = None
+        if isinstance(json_obj, dict) and json_obj.get("format") == dialogue.FORMAT_ID:
+            table = dialogue.table_from_json(json_obj)
+            self._dialogue = table
+            self._font_block = json_obj.get("font")
+            self._set_metrics(self._font_block)
+            return [[text_blocks.bytes_to_string(page.text) for page in table.pages]], {"0": table.name}
         if isinstance(json_obj, dict) and json_obj.get("format") == FORMAT_ID:
             table = book_text.table_from_json(json_obj)
             self._table = table
@@ -226,6 +255,18 @@ class GameRules(BaseGameRules):
         return [[]], {"0": tr("Conker texts")}
 
     def save_data_to_json_obj(self, data: list, block_names: Optional[Dict[str, str]] = None) -> Any:
+        if self._dialogue is not None:
+            values = data[0] if data and isinstance(data[0], list) else []
+            for pos, page in enumerate(self._dialogue.pages):
+                if pos >= len(values) or values[pos] is None:
+                    continue
+                try:
+                    new = text_blocks.string_to_bytes(str(values[pos]))
+                except ValueError:
+                    continue  # keep the original until the character is fixed
+                if not dialogue.page_error(new):
+                    page.text = new
+            return dialogue.table_to_json(self._dialogue, self._font_block)
         if self._table is not None:
             values = data[0] if data and isinstance(data[0], list) else []
             for pos, item in enumerate(book_text.text_items(self._table)):
@@ -242,6 +283,12 @@ class GameRules(BaseGameRules):
         return self._save_legacy(data)
 
     def get_text_fit_problems_for_string(self, block_idx: int, string_idx: int, text: str) -> List[str]:
+        if self._dialogue is not None:
+            try:
+                new = text_blocks.string_to_bytes(text)
+            except ValueError:
+                return [PROBLEM_CHARACTER]
+            return [PROBLEM_CHARACTER] if dialogue.page_error(new) else []  # bubbles grow with the rebuild
         if self._table is not None:
             try:
                 new = text_blocks.string_to_bytes(text)
@@ -338,6 +385,7 @@ class GameRules(BaseGameRules):
 
     def reset_runtime_state(self) -> None:
         self._table = None
+        self._dialogue = None
         self._font_block = None
         self._legacy_headers, self._legacy_segments, self._legacy_limits = [], [], []
         self._metrics, self._glyph_map = None, None

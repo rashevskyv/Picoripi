@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: plugins/
-tokens: 19.3k
+tokens: 19.5k
 ---
 # Посібник розробника плагінів
 
@@ -59,6 +59,8 @@ $env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto tests/test_pl
 **Дії меню:** `get_plugin_actions()` може додавати `QAction` (`name`, `text`, `tooltip`, `shortcut`, `handler`, `menu`, `toolbar`). Дії AI-перекладу належать застосунку і є для кожної гри.
 
 **Голосові фрагменти:** `get_voice_clips(project_dir)` повертає фрагменти (`id`, `title`, `disc`: .bin, з якого читається оригінал, `voice_dir`: де зберігається перекладений WAV). `export_voice_clip`, `import_voice_clip` і `apply_voice_clips` виконують роботу; дія меню плагіна відкриває діалог, а кожен експорт, імпорт або запис іде у воркері. Гра без голосових фрагментів лишає типові значення (порожній список).
+
+**Таймінг субтитрів:** плагін може зберігати таймінг рядків субтитрів в окремому файлі поруч із голосом (Lunar SSSC: `translation\voice\subtitle_timing.json`, його читає `GameRules.timing_for`; без файлу діє вбудований таймінг). Текстовий модуль приймає таймінг як аргумент при читанні й записі. Діалог у меню виконує завдання у воркерах (`subtitle_state`, `save_subtitle_timing`, `subtitle_play_file`), як діалог голосових фрагментів; зміна потрапляє в збірку після збереження проєкту.
 
 ---
 
