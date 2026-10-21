@@ -198,7 +198,7 @@ class SerializedFile:
         """The bytes of an object for ``value`` (the same shape ``read`` gives)."""
         writer = Writer("<")
         try:
-            write_value(self.type_node(path_id), value, writer)
+            write_value(self.type_node(path_id), value, writer, self._reference_node)
         except (TypeTreeError, KeyError, TypeError, struct.error) as exc:
             raise SerializedError(f"object {path_id} does not write: {exc}") from None
         return bytes(writer.buf)

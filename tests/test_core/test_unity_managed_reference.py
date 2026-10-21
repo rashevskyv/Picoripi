@@ -51,3 +51,14 @@ def test_managed_reference_without_a_resolver_is_refused():
     data = struct.pack("<q", 1) + _pack_string("Speaker") + _pack_string("") + _pack_string("") + struct.pack("<i", 0)
     with pytest.raises(TypeTreeError):
         read_value(_reference_node(), Reader(data, 0, "<"))
+
+
+def test_managed_reference_writes_back_the_same_bytes():
+    from core.unity.binary import Writer
+    from core.unity.typetree import write_value
+
+    data = struct.pack("<q", 42) + _pack_string("Speaker") + _pack_string("Game") + _pack_string("Asm") + struct.pack("<i", 9)
+    value = read_value(_reference_node(), Reader(data, 0, "<"), _resolver)
+    writer = Writer("<")
+    write_value(_reference_node(), value, writer, _resolver)
+    assert bytes(writer.buf) == data

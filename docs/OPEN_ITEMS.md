@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-18
+updated: 2026-10-21
 owns: unfinished work
 tokens: 47.4k
 purpose: Everything left open, one line each, by work package
@@ -9,6 +9,18 @@ purpose: Everything left open, one line each, by work package
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## Castlevania: Belmont's Curse (Switch, `plugins/castlevania_belmonts_curse`, 2026-10-21, branch `feat/castlevania-new`)
+
+- Open: the English string tables are translated (SWUK, 2 698 of 2 751 strings changed; 53 lines stay English: debug texts, names, resolutions; 18 empty originals). Owner decision: keep those 53 English, or translate them too.
+- Open: the mod is not checked on a console. The bundle is rebuilt uncompressed, so its size and CRC differ from the original; the catalog (`catalog.json`) is unchanged. Addressables may check the CRC: test with `switch_mcp.py` or on the owner's Switch, and update the catalog entry if it fails.
+- Open: the SWUK font (`fonts-latin`) is not in the build; Cyrillic letters may not draw until the font is rebuilt with Ukrainian glyphs (the font is not yet a project file).
+- Open: hardcoded UI text (credits names and roles, start menu, settings, loading, dialogues in `ui-*` bundles, about 5 900 strings) is not in the project yet. Next step after the tables.
+- Open: room text (`room-*`, mostly `New Text` placeholders and locale-key sprites) is not in the project.
+- Open: 1 841 objects of 4 958 156 do not read (about 0.04 %): 1 824 are MonoBehaviours with managed references (SerializeReference) in narration, projectiles and mob-data bundles. The narration bundle holds dialogue (for example "All is silent except for the breath of a light wind…"). Separate follow-up task: find the managed-reference layout error in `core/unity/typetree.py` (the reader runs past the data, or a managed type name is missing from the file's reference table).
+- Open: the Unity format 22 reader is verified on the 3 051 bundles of the base and update (all bundles and plain serialized files parse; unchanged files round-trip byte for byte). Raw `.resS` and `.resource` streams are not parsed (they are not serialized files).
+- Open: the Project Manager wizard was run headless (`run_unpack`); the GUI wizard path and the saved `project.uiproj` were not exercised.
+- Owner decision: DLC (the 106 KB stub and the add-on NSP) is out of scope.
 
 ## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-bfd`)
 
