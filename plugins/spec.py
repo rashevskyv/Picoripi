@@ -213,7 +213,8 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
              call=None, returns=dict, optional=True),
         Hook("get_platforms", "Platforms the game ships on: [{id, label}].", call=(), returns=list),
         Hook("unpack_sources", "Unpack the role files into an empty folder: progress(percent, text) and "
-             "is_cancelled() are passed in. Returns the folder, or None to use the files as they are.",
+             "is_cancelled() are passed in. Returns the folder, or None to use the files as they are; a "
+             "recognised game image is then used only when get_file_formats claims its extension.",
              call=None, returns=str, optional=True),
         Hook("get_source_subfolder", "Folder of the unpacked tree that is the project's source root, e.g. "
              "files/res/Msgus (slash path). Default: None, the whole unpacked folder.",

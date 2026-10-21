@@ -140,7 +140,7 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | `get_source_roles` | Roles the project's source files can have: [{id, label}]. The first is the default. |  |
 | `identify_source` | Recognise a file the user added, by its content: {role, platform} or None. An optional 'libraries': ["oodle"] lists the stored library paths its unpack loads. |  |
 | `get_platforms` | Platforms the game ships on: [{id, label}]. |  |
-| `unpack_sources` | Unpack the role files into an empty folder: progress(percent, text) and is_cancelled() are passed in. Returns the folder, or None to use the files as they are. |  |
+| `unpack_sources` | Unpack the role files into an empty folder: progress(percent, text) and is_cancelled() are passed in. Returns the folder, or None to use the files as they are; a recognised game image is then used only when get_file_formats claims its extension. |  |
 | `get_source_subfolder` | Folder of the unpacked tree that is the project's source root, e.g. files/res/Msgus (slash path). Default: None, the whole unpacked folder. |  |
 | `unpack_key_consoles` | Consoles whose key file the unpack reads: any of 3ds, switch, wii, oodle (the Oodle library path). The wizard asks for a key file only for an encrypted file of a listed console. Default: none. |  |
 | `get_build_targets` | What the game can build: [{id, label, platforms, kind}] with kind files, patch or layeredfs. Empty: the Build, Export and Run buttons stay off. |  |

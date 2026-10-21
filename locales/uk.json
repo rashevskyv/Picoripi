@@ -2949,6 +2949,7 @@
   "Extracted game folder: {0}": "Тека розпакованої гри: {0}",
   "Add key file...": "Додати файл ключів…",
   "The extracted game folder does not exist.": "Тека розпакованої гри не існує.",
+  "The extracted game folder is a file. Choose a folder.": "Шлях до теки розпакованої гри вказує на файл. Виберіть теку.",
   "No readable game text was found. Choose the extracted source folder for this game, with its text tables unpacked from game archives.": "Не знайдено текстів гри, які можна прочитати. Виберіть теку ресурсів цієї гри з текстовими таблицями, розпакованими з ігрових архівів.",
   "This game's plugin cannot unpack this image. Choose an already-extracted game folder with its text tables unpacked from game archives.": "Плагін цієї гри не підтримує розпакування цього образу. Виберіть теку вже розпакованої гри з текстовими таблицями, розпакованими з ігрових архівів.",
   "Use one extracted game folder, or add game files. Remove the other sources.": "Використовуйте одну теку розпакованої гри або файли гри. Вилучіть інші джерела.",

@@ -3,6 +3,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 ## [Unreleased]
 
 - Project Manager: **Share project...** packs a project (project folder, translation files, linked series glossaries; no game files, sessions or caches) into one `.zip` with its paths made relative and outside paths cleared; **Import shared project...** unpacks such a zip into a folder the receiver chooses and points it at the receiver's own game files.
+- New Project wizard keeps game images that a plugin reads as they are, skips a malformed table while it checks an extracted folder, and says when that folder path is a file.
+
 - Project Manager virtual groups can own a shared series glossary with create, link, replace, and unlink actions; member projects automatically inherit the glossary across translation and series tabs without duplicate entries, preserving explicit project links and ancestor discovery during moves and unlinks.
 - Project Manager groups: moving a project, deleting a folder or importing no longer fails when a member's project file is missing (it is logged and skipped), and nothing is written when there is no group glossary to change; removing a project from the manager clears its group glossary link; the open project's series chain is built on the sync worker, not the UI thread. Tests in `tests/test_ui/test_project_manager/test_group_glossary.py`.
 
