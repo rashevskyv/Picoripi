@@ -1667,5 +1667,13 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - Open: MadWorld (`madworld`) has no unpack. Its source is the converted tree of the owner's `madworld.py` (`text/*.mwt`,
   STRIMAGE glyph atlases, fonts, GCT/TPL textures). Not started.
 - Open: 16 other plugins with an owner game image have the same gap (3DS, Wii, PS1 games); each needs its own
+- Done (2026-10-20, `feat/madworld-unpack`): MadWorld (`madworld`) unpacks in the wizard and builds a Wii ISO copy.
+  The owner's `zt/madworld.py` is ported into `plugins/madworld/`. The unpack of the owner's ISO and RVZ matches the
+  script's `source\` tree byte for byte (235 files). An unchanged build gives the original ISO byte for byte. A
+  visible test edit shows in a private Dolphin copy. Open: a `.rvz` base must be converted to ISO before the build;
+  the English health-and-safety screen that Dolphin shows is `strap_*_us.tpl`, but the export keeps only `_eu`
+  (decide: export `_us` too).
+- Open: No More Heroes (`no_more_heroes`) has no unpack yet (branch `feat/nmh-unpack`).
+- Open: other plugins with an owner game image have the same gap (3DS, Wii, PS1 games); each needs its own
   unpacker for the owner's converted source. The baseline in `tests/test_architecture/test_wizard_hooks_declared.py`
   lists them with a reason; a plugin leaves it when it gets a hook.

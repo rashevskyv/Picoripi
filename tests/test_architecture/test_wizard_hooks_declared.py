@@ -62,7 +62,6 @@ BASELINE = {
     "lunar_ebc": "owner source is not a disc image (folders); the user prepares the folder or files",
     "lunar_ssh": "owner source is not a disc image (folders); the user prepares the folder or files",
     "lunar_sssc": "owner source is not a disc image (folders); the user prepares the folder or files",
-    "madworld": "owner has a .iso,.rvz image; no unpack hook yet, the wizard refuses it (unpacking needs a port of the workspace's zt script)",
     "manual_3ds": "owner source is not a disc image (folders); the user prepares the folder or files",
     "mario_vs_donkey_kong_gba": "owner source is not a disc image (folders); the user prepares the folder or files",
     "mario_vs_donkey_kong_switch": "owner source is not a disc image (folders); the user prepares the folder or files",
