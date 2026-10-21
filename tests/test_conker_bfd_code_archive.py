@@ -12,7 +12,10 @@ ROM_SIZE = 0x4000000
 
 
 def _archive_bytes(chunks, data, gap=16):
-    stored = [na.encode_rzip(c) for c in chunks]
+    stored = []
+    for chunk in chunks:
+        blob = na.encode_rzip(chunk)
+        stored.append(blob + b"\x00" * (len(blob) & 1))  # the real archive keeps every chunk start even
     header = bytearray(0x800)
     starts, cursor = [], 0x800
     for blob in stored:
@@ -66,3 +69,34 @@ def test_a_code_chunk_keeps_its_decoded_length():
     archive = ca.parse(_rom_with(_archive_bytes(CHUNKS, DATA)))
     with pytest.raises(na.RomError):
         archive.set_chunk(0, b"too short")
+
+
+def test_a_re_encoded_chunk_keeps_its_slot_or_pads_to_even():
+    assert ca._slot_fit(b"abc", 8) == b"abc" + b"\x00" * 5          # fits: the old slot length
+    assert len(ca._slot_fit(b"a" * 9, 8)) == 10                    # grows past it: even length
+    assert len(ca._slot_fit(b"a" * 10, 8)) == 10                   # grows, already even
+
+
+def test_every_chunk_start_stays_even_after_a_grown_chunk():
+    archive = ca.parse(_rom_with(_archive_bytes(CHUNKS, DATA)))
+    for index, level in ((0, 0), (1, 1), (2, 9)):
+        archive.set_chunk(index, archive.decoded(index), level=level)
+    back = ca.parse(_rom_with(ca.build(archive)))
+    assert back.decoded_code() == b"".join(CHUNKS)
+    assert all(offset % 2 == 0 for offset in back.offsets)
+
+
+def test_the_gap_after_the_code_keeps_its_original_bytes():
+    archive = ca.parse(_rom_with(_archive_bytes(CHUNKS, DATA)))
+    archive.padding = bytes([1, 2, 3]) + archive.padding[3:]
+    rebuilt = ca.build(archive)
+    gap = archive.offsets[-1]                 # offsets are relative to ARCHIVE_START, as is ``rebuilt``
+    assert rebuilt[gap:gap + 3] == bytes([1, 2, 3])
+
+
+def test_a_data_section_past_the_loader_end_is_refused(monkeypatch):
+    archive = ca.parse(_rom_with(_archive_bytes(CHUNKS, DATA)))
+    archive.set_chunk(1, archive.decoded(1), level=0)
+    monkeypatch.setattr(ca, "LOADER_DATA_END", ca.ARCHIVE_START + 0x100)
+    with pytest.raises(na.RomError):
+        ca.build(archive)

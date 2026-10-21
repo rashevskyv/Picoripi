@@ -22,6 +22,8 @@ ARCHIVE_END = 0x1A37E0          # the flat RZIP stream starts here (storage map)
 OFFSET_KEY = 0x8039CCCA
 CODE_BASE = 0x15000000          # RAM address of the decoded code's first byte
 CHUNK_BYTES = 4096              # decoded size of a code chunk; the stored chunk must stay within it too
+# The boot loader (decomp init_1050.c) reads the data section up to this fixed ROM address, not to a size.
+LOADER_DATA_END = 0x19EA88
 
 
 @dataclass
@@ -87,6 +89,17 @@ def parse(rom: bytes) -> Archive:
                    trailer=raw[data_start + used:])
 
 
+def _slot_fit(encoded: bytes, slot: int) -> bytes:
+    """Pad a re-encoded chunk to its old slot, or to an even length when it grows past it.
+
+    The cartridge DMA reads from an address whose low bit is ignored, so every chunk start must stay even. The
+    original starts are all even; a re-encoded chunk has an odd length about half the time. A chunk that fits its
+    slot keeps every later offset unchanged.
+    """
+    target = slot if len(encoded) <= slot else len(encoded) + (len(encoded) & 1)
+    return encoded + b"\x00" * (target - len(encoded))
+
+
 def build(archive: Archive) -> bytes:
     """The archive's bytes at ``ARCHIVE_START``. Raises ``RomError`` when it does not fit the span."""
     first = archive.offsets[0]
@@ -95,7 +108,7 @@ def build(archive: Archive) -> bytes:
         if index in archive.changed:
             if len(archive.changed[index]) > CHUNK_BYTES:
                 raise na.RomError(f"code chunk {index} is {len(archive.changed[index])} bytes stored; the limit is {CHUNK_BYTES}")
-            stored.append(archive.changed[index])
+            stored.append(_slot_fit(archive.changed[index], len(blob)))
         else:
             stored.append(blob)
     starts: List[int] = []
@@ -108,9 +121,13 @@ def build(archive: Archive) -> bytes:
     data_start = archive.data_start if code_end <= archive.data_start else code_end + len(archive.padding)
     if data_start < code_end:
         raise na.RomError("the code reaches the data section")
+    if any(start % 2 for start in starts) or code_end % 2:
+        raise na.RomError("a code chunk would start at an odd address; the cartridge DMA cannot read it")
     end_of_data = data_start + len(archive.data_stored)
     if end_of_data > ARCHIVE_END - ARCHIVE_START:
         raise na.RomError(f"the archive would end at {end_of_data:#x}, past the flat stream")
+    if ARCHIVE_START + end_of_data > LOADER_DATA_END:
+        raise na.RomError(f"the data section would end at {ARCHIVE_START + end_of_data:#x}, past the loader's end")
     header = bytearray(archive.header)
     words = [data_start] + [start ^ OFFSET_KEY for start in starts] + [code_end ^ OFFSET_KEY]
     if len(words) * 4 + 4 > len(header):
@@ -120,7 +137,8 @@ def build(archive: Archive) -> bytes:
     body = bytearray(header)
     for blob in stored:
         body += blob
-    body += b"\x00" * (data_start - code_end)
+    gap = data_start - code_end
+    body += (archive.padding + b"\x00" * gap)[:gap]    # the gap keeps its original bytes, zeros past them
     body += archive.data_stored
     span = ARCHIVE_END - ARCHIVE_START
     room = span - len(body)
