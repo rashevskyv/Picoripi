@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Conker's Bad Fur Day (N64, USA) Ukrainian font cells (`plugins/conker_bfd/font_extend.py`): placeholder glyph records for Ґ Є І Ї and their lowercase forms, copied from Latin base glyphs; not yet written to the ROM (the glyph count 95 and the glyph map at data 0x2E10 need code patches).
 - Conker's Bad Fur Day (N64, USA) text box scale (`plugins/conker_bfd/box_scale.py`): the two design-resolution divisors (ROM 0x39E2 and 0x3A16, the boot code that sets D_800380A0/A4) are patched with expected-byte checks; scale 1.25 reads back as 1.2532 and 1.2558 in the emulator. Default scale 1.0 keeps the ROM unchanged.
 - Conker's Bad Fur Day (N64, USA) code patches (`plugins/conker_bfd/code_patches.py`): data-driven `(chunk, offset, expected, new)` patches, checked before writing, applied in `build_target` through the game archive builder; the list is empty until the box patch lands.
 - Conker's Bad Fur Day (N64, USA) header checksum (`plugins/conker_bfd/header_crc.py`): the CIC-6105 CRC1 and CRC2 are computed and written by every ROM build; both words match the US header (the 6105 boot-table term is `t1 += word(0x750 + (addr & 0xFF)) ^ d`).
