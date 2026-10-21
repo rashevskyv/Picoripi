@@ -96,12 +96,7 @@ def test_documents_build_a_translated_pack(tmp_path: Path):
     (translation / unpack.DOC_DIR / "message_english_USA_area.json").write_text(
         json.dumps(doc, ensure_ascii=False), encoding="utf-8")
 
-    out = tmp_path / "out"
-    build.build_wii_riivolution(str(tmp_path), str(translation), str(out),
-                                lambda *_: None, lambda: False)
-    xml = (out / "riivolution" / f"{build.MOD_NAME}.xml").read_text(encoding="utf-8")
-    assert f'disc="/{unpack.PACK_REL}"' in xml
-    archive = gfac.read_gfac((out / build.MOD_NAME / unpack.PACK_REL).read_bytes())
+    archive = gfac.read_gfac(build.rebuilt_pack(tmp_path, translation))
     texts = {e.name: [m["text"] for m in bmgtext.read_messages(e.data)] for e in archive.entries}
     assert texts == {"message_english_USA_area.bmg": ["Area one", "Zone two"],
                      "message_english_USA_demo.bmg": ["Demo"]}
@@ -129,3 +124,15 @@ def test_identify_accepts_only_the_usa_disc_revision_zero(monkeypatch):
     assert unpack.identify("disc.rvz") is None
     monkeypatch.setattr(images, "identify", fake({"kind": images.KIND_GC, "game_id": "RWLE01", "revision": 0}))
     assert unpack.identify("disc.rvz") is None
+
+
+def test_iso_build_needs_the_wii_key_file(monkeypatch):
+    monkeypatch.setattr(build.console_keys, "path_for", lambda console: None)
+    with pytest.raises(ValueError):
+        build._common_key()
+
+
+def test_only_the_iso_target_is_declared():
+    targets = GameRules().get_build_targets()
+    assert [t["id"] for t in targets] == [build.ISO_TARGET]
+    assert targets[0]["platforms"] == [unpack.WII]

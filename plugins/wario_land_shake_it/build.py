@@ -1,37 +1,37 @@
-"""Wario Land: Shake It! Wii build: a Riivolution patch and a Dolphin launcher for the USA disc.
+"""Wario Land: Shake It! Wii build: a plain disc image (ISO) with the English message pack replaced.
 
-The English (USA) message pack is rebuilt from its source pack: each BMG file is rebuilt from its text document, an
-unchanged file keeps its bytes, and the GFAC archive is written with the same header fields and entry checksums.
-The patch replaces that one pack on the disc.
+The base is the USA disc (ISO, WIA or RVZ, from ``versions/wii/source.json``). ``wii_writer.copy_as_iso`` writes a plain
+ISO copy and seals every partition again. ``write_changes`` then replaces the English (USA) message pack in the DATA
+partition. The rebuilt pack is smaller than the original, so it keeps its place. The original disc is never changed.
+
+The pack is rebuilt from its source pack: each BMG file is rebuilt from its text document, an unchanged file keeps
+its bytes, and the GFAC archive keeps the header fields and the entry checksums.
 """
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Callable, List
 
-from core.containers import gfac
-from utils.atomic_io import atomic_write_bytes
+from core.containers import gfac, wii_disc, wii_writer
+from core.i18n import tr
+from core.project_library import console_keys
+from core.project_library.build import Cancel
 
 from . import bmgtext, unpack
 
-MOD_NAME = "WarioLandShakeItUA"
+ISO_TARGET = "wii_iso"
+ISO_NAME = "WarioLandShakeItUA.iso"
 Progress = Callable[[int, str], None]
 Cancelled = Callable[[], bool]
 
 
-def riivolution_xml(name: str, game: str, disc_paths: List[str]) -> str:
-    """A Riivolution patch for the USA disc of ``game`` (its three-letter id) that replaces ``disc_paths``."""
-    lines = "\n".join(f'\t\t<file disc="/{path}" external="{path}" />' for path in disc_paths)
-    return (
-        '<wiidisc version="1">\n'
-        f'\t<id game="{game}">\n\t\t<region type="E" />\n\t</id>\n'
-        f'\t<options>\n\t\t<section name="{name}">\n'
-        '\t\t\t<option name="Ukrainian translation" default="1">\n'
-        f'\t\t\t\t<choice name="On"><patch id="{name}" /></choice>\n'
-        '\t\t\t</option>\n\t\t</section>\n\t</options>\n'
-        f'\t<patch id="{name}" root="/{name}">\n{lines}\n\t</patch>\n'
-        '</wiidisc>\n')
+def _common_key() -> bytes:
+    path = console_keys.path_for("wii")
+    if not path:
+        raise ValueError(tr("Set the Wii key file in the console keys first."))
+    return wii_disc.load_common_key(path)
 
 
 def _texts(doc_path: Path) -> List[str]:
@@ -48,31 +48,33 @@ def rebuilt_pack(source_root: Path, translation_dir: Path) -> bytes:
         doc_path = translation_dir / doc_rel
         if not doc_path.is_file():
             doc_path = source_root / doc_rel
-        new_data = bmgtext.rebuild(entry.data, _texts(doc_path))
-        entry.data = new_data
+        entry.data = bmgtext.rebuild(entry.data, _texts(doc_path))
     return gfac.write_gfac(archive)
 
 
-def build_wii_riivolution(source_dir: str, translation_dir: str, output_dir: str, progress: Progress,
-                          is_cancelled: Cancelled) -> str:
+def build_iso(source_dir: str, translation_dir: str, output_dir: str,
+              progress: Progress, is_cancelled: Cancelled) -> str:
+    """Write the translated disc image into ``output_dir`` and return its path."""
     source_root = Path(source_dir)
     trans = Path(translation_dir) if translation_dir else source_root
-    out = Path(output_dir)
-    progress(10, "")
-    if is_cancelled():
-        return str(out)
+    image = json.loads((source_root / unpack.VERSIONS / unpack.WII / "source.json")
+                       .read_text(encoding="utf-8"))["image"]
+    common = _common_key()
+    progress(0, "")
     pack = rebuilt_pack(source_root, trans)
-    disc_path = unpack.PACK_REL
-    atomic_write_bytes(out / MOD_NAME / disc_path, pack)
-    progress(70, "")
-    xml = out / "riivolution" / f"{MOD_NAME}.xml"
-    atomic_write_bytes(xml, riivolution_xml(MOD_NAME, unpack.GAME_PREFIX, [disc_path]).encode("utf-8"))
-    image = json.loads((source_root / unpack.VERSIONS / unpack.WII / "source.json").read_text(encoding="utf-8"))["image"]
-    descriptor = {"type": "dolphin-game-mod-descriptor", "version": 1, "base-file": image,
-                  "display-name": "Wario Land: Shake It! (UA)",
-                  "riivolution": {"patches": [{
-                      "xml": f"riivolution/{MOD_NAME}.xml", "root": ".",
-                      "options": [{"section-name": MOD_NAME, "option-name": "Ukrainian translation", "choice": 1}]}]}}
-    atomic_write_bytes(out / f"{MOD_NAME}.json", json.dumps(descriptor, indent=1).encode("utf-8"))
+    out_dir = Path(output_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    target = out_dir / ISO_NAME
+    tmp = target.with_name(target.name + ".tmp")
+    try:
+        if not wii_writer.copy_as_iso(str(image), str(tmp), common, progress, is_cancelled):
+            raise Cancel()
+        progress(96, "")
+        with open(tmp, "r+b") as stream:
+            wii_writer.write_changes(stream, common, {unpack.PACK_REL: pack})
+        os.replace(tmp, target)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
     progress(100, "")
-    return str(out)
+    return str(target)

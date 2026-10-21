@@ -45,15 +45,18 @@ class GameRules(BaseGameRules):
     def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
         return unpack.unpack(sources, target_dir, progress, is_cancelled)
 
+    def unpack_key_consoles(self) -> List[str]:
+        return [unpack.WII]
+
     def get_build_targets(self) -> List[Dict[str, Any]]:
-        return [{"id": "wii_riivolution", "label": tr("Wii: Riivolution patch and Dolphin launcher"),
-                 "platforms": [unpack.WII], "kind": "layeredfs"}]
+        return [{"id": build.ISO_TARGET, "label": tr("Wii disc image (ISO, English)"),
+                 "platforms": [unpack.WII], "kind": "patch"}]
 
     def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
                      progress, is_cancelled) -> str:
-        if target_id != "wii_riivolution":
+        if target_id != build.ISO_TARGET:
             return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
-        return build.build_wii_riivolution(source_dir, translation_dir, output_dir, progress, is_cancelled)
+        return build.build_iso(source_dir, translation_dir, output_dir, progress, is_cancelled)
 
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Dict[str, str]]:
         if not isinstance(json_obj, dict) or json_obj.get("format") != unpack.FORMAT_ID:

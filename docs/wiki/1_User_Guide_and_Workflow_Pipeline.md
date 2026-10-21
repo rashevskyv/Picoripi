@@ -957,6 +957,13 @@ omase.nds`, made by the unpack) with the edited banks and files put in; no `zt`
      image (ISO)** writes a plain ISO and draws each changed table's glyph picture anew. An `.rvz` source is written
      as an ISO first (several minutes). It also needs the Wii key file. A letter with no picture in the font is
      left out of the game; the build status line names it and `BUILD_WARNINGS.txt` beside the ISO lists it.
+   - `wario_land_shake_it` — Wario Land: Shake It! (Wii, USA, RWLE01 rev 0). **Wizard:** choose the disc image (ISO, WIA
+     or RVZ); the wizard unpacks the English message packs into the project's `unpacked` folder and writes one text
+     document per message file (`MessageData\*.json`). **Source:** one block per BMG file: 575 messages in six files
+     (area, demo, error, game, stage, treasure); a `{esc:FF:00000100}` in the text is a game code and stays as it is.
+     **Build:** "Wii disc image (ISO, English)" writes a plain ISO with the English pack replaced; the build needs the
+     Wii key file in console keys. **Not yet:** fonts (the game's font has no Ukrainian glyphs), textures with text,
+     other languages as reference columns.
    - `xenoblade_wii` — Xenoblade Chronicles (Wii, USA) and Xenoblade Chronicles 3D (New 3DS, EUR): one plugin,
      one translation. **Source:** the workspace's `source` folder (`1_unpack.bat`), at the same paths on both
      platforms: the English BDAT table files `bdat\bdat_common.bin` (120 tables: menus, items, arts, skills,
