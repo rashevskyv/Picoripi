@@ -104,7 +104,7 @@ def test_list_section_rebuilds_exactly():
 
 def test_table_section_rebuilds_exactly():
     raw = table_section([
-        ([0x8203, 0x656D, 0x3531, 0x001F], [[0x44, 0x38, 0x35], [0x31, 0x3E, 0x34]]),
+        ([0x8203, 0x6D65, 0x3531, 0x001F], [[0x44, 0x38, 0x35], [0x31, 0x3E, 0x34]]),
         ([0x0019], [[0x31, 0x46, 0x35], [0x3F, 0x36]]),
     ])
     section = msd.parse_section(raw)
@@ -119,7 +119,7 @@ def test_unknown_section_is_not_parsed():
 
 
 def test_replace_strings_keeps_record_lengths_or_refuses():
-    raw = table_section([([0x8203, 0x656D, 0x3531, 0x001F], [[0x44, 0x38, 0x35]])])
+    raw = table_section([([0x8203, 0x6D65, 0x3531, 0x001F], [[0x44, 0x38, 0x35]])])
     section = msd.parse_section(raw)
     same = msd.replace_strings(section, [units(0x31, 0x3E, 0x34)])
     assert same.serialize() != raw and len(same.serialize()) == len(raw)
@@ -143,14 +143,41 @@ def test_container_read_and_write_text_round_trip():
     assert rebuilt == data and warnings == []
 
 
-def test_write_text_applies_a_same_length_edit_and_reports_a_longer_one():
+def test_write_text_applies_a_same_length_edit_without_a_warning():
     data = container([("MSD", list_section([0x44, 0x38, 0x35], [0x31, 0x3E, 0x34]))])
     edited, warnings = textfile.write_text(data, ["tee", "and"])
     assert warnings == []
     assert textfile.read_text(edited) == ["tee", "and"]
-    # A list section is one record: a longer string changes its length, so the record is kept and reported.
-    longer, warnings = textfile.write_text(data, ["theee", "and"])
-    assert longer == data
+
+
+def container_with_rof(msd_raw):
+    """ACT, MSD and a ROF section whose RUNOFS64 table holds the three section starts."""
+    act = b"\x11" * 32
+    base = 4 + 8 * 3
+    rof_start = base + len(act) + len(msd_raw)
+    starts = [base, base + len(act), rof_start]
+    rof = b"RUNOFS64" + b"".join(struct.pack("<Q", value) for value in starts)
+    return container([("ACT", act), ("MSD", msd_raw), ("ROF", rof)])
+
+
+def test_growth_moves_offsets_and_runofs_starts_and_reads_back():
+    data = container_with_rof(list_section([0x44, 0x38, 0x35], [0x31]))
+    edited, warnings = textfile.write_text(data, ["theeeee", "a"])
+    assert warnings and "not yet proven" in warnings[0]
+    assert len(edited) == len(data) + 8                  # four more units in the first string
+    assert textfile.read_text(edited) == ["theeeee", "a"]
+    parsed = msd.parse_container(edited)
+    starts = [start for start, _end in parsed.spans]
+    rof = parsed.section_bytes(2)
+    assert [struct.unpack_from("<Q", rof, 8 + 8 * j)[0] for j in range(3)] == starts
+    assert parsed.section_bytes(0) == b"\x11" * 32       # the untouched section is the same bytes
+
+
+def test_growth_then_shrink_back_is_the_original_file():
+    data = container_with_rof(table_section([([0x8203, 0x6D65, 0x3531, 0x001F], [[0x44, 0x38, 0x35]])]))
+    grown, _ = textfile.write_text(data, ["theeeee"])
+    back, warnings = textfile.write_text(grown, ["the"])
+    assert back == data
     assert warnings
 
 

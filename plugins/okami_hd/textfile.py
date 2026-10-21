@@ -1,9 +1,11 @@
 """Okami HD message files: the strings of a container file as text, and the same file with edited text written back.
 
 ``read_text`` gives one text per string, in file order over all MSD sections. ``write_text`` takes the same list
-and returns the file with the edits. An edit is written only when its record keeps its byte length and the text
-encodes; any other edit keeps the original bytes of that record and is reported as a warning. A file with no MSD
-section is not text: ``read_text`` returns an empty list and ``write_text`` returns the file as it was.
+and returns the file with the edits. A longer or shorter text changes its record's length; the table offsets of the
+record, the section offsets of the container and the RUNOFS64 section starts are rewritten (``msd``). Every
+record whose length changed is reported as a warning, because the growth is not yet proven in the game. A text
+that does not encode keeps its original bytes and is reported. A file with no MSD section is not text: ``read_text``
+returns an empty list and ``write_text`` returns the file as it was.
 """
 from __future__ import annotations
 
@@ -70,8 +72,10 @@ def write_text(data: bytes, texts: List[str]) -> Tuple[bytes, List[str]]:
                     raws.append(original)
             candidate = msd.Record(record.head, raws, record.tail)
             if candidate.byte_length() != record.byte_length():
-                warnings.append("a record changed length; the record was kept as it was")
-                candidate = record
+                # Growth: the table offsets and the RUNOFS64 section starts are rewritten. Not proven in the game
+                # yet (see docs/OPEN_ITEMS.md), so the translator is told.
+                warnings.append(f"record length changed by {candidate.byte_length() - record.byte_length():+d} bytes "
+                                "(layout changed; not yet proven in the game)")
             new_records.append(candidate)
         section = msd.MsdSection(layout=section.layout, prefix=section.prefix, records=new_records, tail=section.tail)
         replacements[index] = section.serialize()

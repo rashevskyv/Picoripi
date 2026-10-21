@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Sequence, Tuple
 
 LIST_HEADER = bytes.fromhex("01000000 0c000000")   # the first 8 bytes; the list header is 12 bytes (with X)
-TABLE_HEADER_ME51 = (0x8203, 0x656D, 0x3531)  # "me51" record header, as units
+TABLE_HEADER_ME51 = (0x8203, 0x6D65, 0x3531)  # "me51" record header, as units (bytes 03 82 65 6d 31 35)
 SECTION_TAG = b"MSD"
 TERMINATOR = b"\x00\x00"
 
@@ -143,19 +143,44 @@ def parse_section(raw: bytes) -> Optional[MsdSection]:
     return MsdSection(layout="table", prefix=raw[:table_end], records=records)
 
 
+RUNOFS_MAGIC = b"RUNOFS64"
+
+
 def serialize_container(container: Container, sections: dict) -> bytes:
     """The container bytes with the sections in ``sections`` (index -> new bytes) replaced.
 
-    Every section keeps its place in the file, so offsets in the container header do not change when a section
-    keeps its length. A section that changes length is rejected by the caller (``replace_strings``).
+    Sections may change length. The section offsets in the container header move with them, and so do the
+    absolute section offsets in the RUNOFS64 table (the ROF section): entry j holds the start of section j. A file
+    whose sections are not contiguous, or whose RUNOFS64 table does not hold the section starts in order, is refused.
+    With no change the result is the original bytes.
     """
-    out = bytearray(container.data)
-    for index, new_bytes in sections.items():
-        start, end = container.spans[index]
-        if len(new_bytes) != end - start:
-            raise MsdError("section length changed; the file offsets would move")
-        out[start:end] = new_bytes
-    return bytes(out)
+    spans = container.spans
+    for (_s0, e0), (s1, _e1) in zip(spans, spans[1:]):
+        if e0 != s1:
+            raise MsdError("sections are not contiguous; the offsets cannot be moved safely")
+    new_sections = [sections.get(index, container.section_bytes(index)) for index in range(len(spans))]
+    head = bytearray(container.data[:spans[0][0]])
+    new_offsets = []
+    position = spans[0][0]
+    for raw in new_sections:
+        new_offsets.append(position)
+        position += len(raw)
+    for index, offset in enumerate(new_offsets):
+        struct.pack_into("<I", head, 4 + 4 * index, offset)
+    rof_index = [index for index, tag in enumerate(container.tags) if tag == "ROF"]
+    if rof_index:
+        k = rof_index[-1]
+        rof = bytearray(new_sections[k])
+        if rof[:8] == RUNOFS_MAGIC:
+            for j, (start, _end) in enumerate(spans):
+                at = 8 + 8 * j
+                if at + 8 > len(rof):
+                    raise MsdError("RUNOFS64 table is shorter than the section count")
+                if struct.unpack_from("<Q", rof, at)[0] != start:
+                    raise MsdError("RUNOFS64 entry does not hold a section start")
+                struct.pack_into("<Q", rof, at, new_offsets[j])
+            new_sections[k] = bytes(rof)
+    return bytes(head) + b"".join(new_sections)
 
 
 def strings_of(section: MsdSection) -> List[bytes]:
