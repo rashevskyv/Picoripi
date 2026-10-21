@@ -472,7 +472,7 @@ class GameRules(BaseGameRules):
         if target_id == "rom":
             return rom_project.build(source_dir, translation_dir, output_dir, progress, is_cancelled)
         if target_id == pokemon_recomp.TARGET_ID:
-            return pokemon_recomp.build_package(
+            return pokemon_recomp.build_packages(
                 source_dir, translation_dir, output_dir,
                 lambda s, t, o: rom_project.build(s, t, o, progress, is_cancelled), progress, is_cancelled)
         raise ValueError(f"Unknown build target: {target_id}")
