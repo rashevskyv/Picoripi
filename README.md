@@ -45,7 +45,7 @@ Without a compiler, `setup.bat` fails with `Microsoft Visual C++ 14.0 or greater
 CMake is not needed for the app. Full Visual Studio already includes all of this. Linux needs `gcc` and the Python
 headers (`python3-dev`); macOS needs the Xcode command line tools.
 
-First start step by step, with screenshots: [Getting started](docs/wiki/14_Getting_Started.md).
+First start step by step, with screenshots: [Getting started](docs/wiki/0_Getting_Started.md). The wiki is also a website: <https://rashevskyv.github.io/Picoripi/>.
 
 By hand, on any platform:
 

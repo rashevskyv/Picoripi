@@ -7,7 +7,7 @@ purpose: First start, step by step: install, data folder, adding games
 ---
 # Getting Started
 
-**Language:** English · [Українська](uk/14_Getting_Started.md)
+**Language:** English · [Українська](uk/0_Getting_Started.md)
 
 This page takes you from the GitHub page to a game open in the editor, with the screens you will see. It was
 written from tests by people who had never used Picoripi. Every step was run on a clean copy of the program.

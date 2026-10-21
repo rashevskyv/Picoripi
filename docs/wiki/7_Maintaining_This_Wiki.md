@@ -27,8 +27,9 @@ English files in `docs/wiki/` are the source of truth. `docs/wiki/uk/` is the Uk
 | AI Translate / Variation / Chat / providers | `11_AI_Translation.md` |
 | Picoripi Companion (mobile PWA and sync server) | `12_Picoripi_Companion.md` |
 | Rooms (working together), progress page, team board | `13_Working_Together.md` |
-| First start: install, data folder, the new-project wizard, with screenshots (`img/getting_started/`) | `14_Getting_Started.md` |
+| First start: install, data folder, the new-project wizard, with screenshots (`img/getting_started/`) | `0_Getting_Started.md` |
 | Short pitch + setup + doc map | repo `README.md` |
+| The wiki as a website (GitHub Pages, built by `scripts/build_wiki_site.py` from `docs/wiki`; `.github/workflows/wiki-site.yml`) | no text of its own: edit the pages |
 | Every feature in one list | `docs/FEATURES.md` |
 | Dated list of shipped **code** changes | `CHANGELOG.md` |
 | Agent operating contract | `AGENTS.md` (the reasoning: `docs/ENGINEERING.md`; the code map: `docs/ARCHITECTURE.md`) |
