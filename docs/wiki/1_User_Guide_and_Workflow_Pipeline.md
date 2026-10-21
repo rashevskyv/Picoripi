@@ -879,14 +879,16 @@ omase.nds`, made by the unpack) with the edited banks and files put in; no `zt`
      SymphonyRecomp. **Source:** the workspace's `source` (`1_unpack.bat`): the program files under their disc
      paths — `DRA.BIN` (item, relic, spell and enemy names and descriptions, menus, memory card messages),
      `ST\SEL\SEL.BIN` (title and file select, endings, staff roll) and the stage and boss overlays
-     `ST\*\*.BIN`, `BOSS\*\*.BIN` (cutscenes, the librarian's shop and bestiary, pick-up messages) — and the
+     `ST\*\*.BIN`, `BOSS\*\*.BIN` (cutscenes, the librarian's shop and bestiary, pick-up messages, and the
+     prologue caption in `ST\ST0\ST0.BIN`: one editor line per script line, `{PAGE}` at a line's end ends a
+     page; the caption is drawn in the console font, so Cyrillic needs the reader that the build installs) — and the
      picture files `BIN\F_*.BIN.pic`, `ST\SEL\F_SEL.BIN.pic` (the disc files with `.pic` added, so they are not
      listed as text); **Translation:** `translation`. Where each string is comes from the decompilation
      (`layout_us.json`, made by the workspace's `tools\sotn_layout.py`), so no text is guessed. Two fonts: the
      8x8 font (menus, names, cutscene dialogue; Tools → Font Editor, `F_GAME.BIN`, format `texture_grid`; the
      build copies it into `F_GAME2` and `F_TITLE1`) and the console's BIOS font (descriptions, messages:
      Shift-JIS, it has Cyrillic but no Ґ Є Ї; І і are written as Latin). Ukrainian letters of the 8x8 font go
-     through `translation_map.json` to free katakana cells (look-alike letters use the Latin cells). Cutscene
+     through `translation_map.json` to free katakana cells (look-alike letters use the Latin cells). A second 8x8 font, the red damage numbers and status words (`F_GAME.BIN` at 0x10000), is in the Font Editor too: its digit row is mapped, its word rows are free. Saving a font writes its copies (`F_GAME2`, `F_TITLE1`) into the translation folder. The cutscene dialogue window preview draws the first page in the 8x8 font at the window place of its script's POS command. Its text position matches one DuckStation dialogue frame; the speaker name and the menus are not drawn yet. On the prologue stage (ST0) it also draws the two hearts digits of the Richter HUD (preview only; the sheet is read from `ST0.BIN`). Cutscene
      lines show timing commands as tags (`{WAIT 30}`, `{SPEED 02}`) and the speaker from the portrait; a
      staff-roll line starts with its tag (`{ENTRY 10}`). Text may grow: a string only data points at moves
      inside its pool (pointers rewritten) or into a range the decompilation marks unused; a cutscene that

@@ -39,7 +39,8 @@ KIND_WII = "wii"
 KIND_GDROM = "gdrom"
 KIND_PSX = "psx"
 CONSOLE_OF_KIND = {KIND_3DS: "3ds", KIND_SWITCH: "switch", KIND_WII: "wii"}
-CONSOLE_LABEL = {"3ds": "Nintendo 3DS", "switch": "Nintendo Switch", "wii": "Wii", "oodle": "Oodle library"}
+CONSOLE_LABEL = {"3ds": "Nintendo 3DS", "switch": "Nintendo Switch", "wii": "Wii", "oodle": "Oodle library",
+                 "psx_bios": "PlayStation BIOS"}
 UNPACK_KINDS = frozenset((KIND_GC, KIND_NDS, KIND_3DS, KIND_SWITCH, KIND_WII, KIND_GDROM, KIND_PSX))   # the kinds an unpack step can read
 KIND_LABEL = {KIND_GC: "GameCube", KIND_NDS: "Nintendo DS", KIND_3DS: "Nintendo 3DS", KIND_SWITCH: "Nintendo Switch",
               KIND_WII: "Wii", KIND_GDROM: "Dreamcast", KIND_PSX: "PlayStation"}   # the platform name a message shows

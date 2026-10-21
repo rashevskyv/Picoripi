@@ -22,7 +22,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Set, Tuple
 
-from . import codec, script
+from . import codec, scroll, script
 
 LAYOUT_FILE = Path(__file__).resolve().parent / "layout_us.json"
 STAGES = {
@@ -55,8 +55,13 @@ def file_of(data: bytes) -> Optional[str]:
     return by_size().get(len(data))
 
 
+def stage_code(path: str) -> str:
+    """The stage code of a disc path: ``ST/ST0/ST0.BIN`` gives ``ST0``."""
+    return path.split("/")[-1].split(".")[0]
+
+
 def place_name(path: str) -> str:
-    stage = path.split("/")[-1].split(".")[0]
+    stage = stage_code(path)
     plain = stage[1:] if stage.startswith("R") and stage[1:] in STAGES else stage
     name = STAGES.get(plain, "")
     if stage != plain:
@@ -77,6 +82,8 @@ class Line:
     speaker: str = ""
     ref: Tuple = ()                  # ("s", string index) / ("c", script index, line) / ("r", region, entry)
     plain: Optional[str] = None      # a script line: its editor text (already decoded)
+    place: Tuple = ()                # a script line: the window place (startX, startY) of its POS command, or ()
+    x: int = 0                       # a caption line: its x offset in the caption panel (halfwords), kept on save
 
     def text(self, reverse_map: Optional[Dict[str, str]] = None) -> str:
         if self.plain is not None:
@@ -141,8 +148,17 @@ def parse(data: bytes, reverse_map: Optional[Dict[str, str]] = None) -> Doc:
             speaker = actors[item.speaker] if 0 <= item.speaker < len(actors) else ""
             text = script.line_text(ops, item, reverse_map)
             lines.append(Line(b"", "dialogue", f"{place}: cutscene {region['name']} line {count}", "cs",
-                              speaker=speaker, ref=("c", number, count), plain=text))
+                              speaker=speaker, ref=("c", number, count), plain=text,
+                              place=script.place_before(ops, item.first)))
         doc.names[str(len(doc.blocks))] = f"Cutscene: {region['name']}"
+        doc.blocks.append(lines)
+    if "scroll" in entry:
+        # appended last, so the block numbers of the other blocks stay the same
+        captions, _length = scroll.read_script(data, scroll.script_start(data), len(data))
+        lines = [Line(caption.raw, "caption", f"{place}: prologue scroll line {count}", "sc",
+                      ref=("p", count), plain=scroll.to_editor(caption), x=caption.x)
+                 for count, caption in enumerate(captions)]
+        doc.names[str(len(doc.blocks))] = "Prologue scroll"
         doc.blocks.append(lines)
     return doc
 
@@ -157,6 +173,7 @@ def build(source: bytes, data: Sequence[Sequence[Optional[str]]], mapping: Optio
     entry = layout()["files"][doc.path]
     new_strings: Dict[int, bytes] = {}
     new_script: Dict[int, Dict[int, bytes]] = {}
+    caption_block: Optional[int] = None
     for number, block in enumerate(doc.blocks):
         texts = data[number] if number < len(data) else []
         for index, line in enumerate(block):
@@ -166,6 +183,9 @@ def build(source: bytes, data: Sequence[Sequence[Optional[str]]], mapping: Optio
             if text == line.text(reverse_map):
                 continue
             kind = line.ref[0]
+            if kind == "p":
+                caption_block = number          # the whole caption is written again from its editor lines
+                continue
             try:
                 if kind == "s":
                     item = entry["strings"][line.ref[1]]
@@ -177,10 +197,12 @@ def build(source: bytes, data: Sequence[Sequence[Optional[str]]], mapping: Optio
                     new_script.setdefault(line.ref[1], {})[line.ref[2]] = script.encode_credit(text, mapping, missing)
             except script.ScriptError as error:
                 raise FormatError(f"{doc.path}: {line.where}: {error}") from error
-    if not new_strings and not new_script:
+    if not new_strings and not new_script and caption_block is None:
         return bytes(source)
     out = bytearray(source)
     spare = script.Spare(entry.get("spare", ()))
+    if "scroll" in entry:
+        spare.reserve(entry["scroll"]["cave"], scroll.CAVE_SIZE)   # the caption's lead-byte reader never moves
     if new_strings:
         _write_strings(out, source, entry, new_strings, doc.path, spare)
     for number, lines in new_script.items():
@@ -194,9 +216,47 @@ def build(source: bytes, data: Sequence[Sequence[Optional[str]]], mapping: Optio
         except script.ScriptError as error:
             raise FormatError(f"{doc.path}: cutscene {region['name']}: {error}") from error
         out[region["start"]:region["end"]] = part
+    if caption_block is not None:
+        texts = data[caption_block]
+        lines = doc.blocks[caption_block]
+        _write_caption(out, source, entry, doc.path, [texts[k] if k < len(texts) and texts[k] is not None
+                                            else line.text(reverse_map)
+                                            for k, line in enumerate(lines)], spare, missing)
     for at, raw in spare.writes:
         out[at:at + len(raw)] = raw
     return bytes(out)
+
+
+def _write_caption(out: bytearray, source: bytes, entry: dict, path: str, texts: List[str], spare: script.Spare,
+                   missing: Optional[Set[str]]) -> None:
+    """The prologue caption (ST0): in place when it fits the old script, else in a spare range with the
+    draw code's script pointer moved there. A Shift-JIS line also installs the lead-byte reader."""
+    spec = entry["scroll"]
+    original, _length = scroll.read_script(source, scroll.script_start(source), len(source))
+    if len(texts) != len(original):
+        raise FormatError(f"{path}: the prologue caption has {len(original)} lines, the translation {len(texts)}")
+    raws, brks = [], []
+    for number, text in enumerate(texts):
+        try:
+            raw, brk = scroll.from_editor(text, last=number == len(texts) - 1, missing=missing)
+        except scroll.ScrollError as error:
+            raise FormatError(f"{path}: prologue scroll line {number}: {error}") from error
+        raws.append(raw)
+        brks.append(brk)
+    stream = scroll.build_script(raws, brks, [line.x for line in original])
+    start, end = spec["start"], spec["end"]
+    room = end - start
+    if len(stream) <= room:
+        out[start:end] = stream + bytes(room - len(stream))
+    else:
+        at = spare.take(len(stream), 4)
+        if at is None:
+            raise FormatError(f"{path}: the prologue caption needs {len(stream)} bytes; the game has {room} for it "
+                              f"and {spare.room} free elsewhere in the file; shorten some lines")
+        out[at:at + len(stream)] = stream
+        scroll.point_at(out, source, entry["base"] + at)
+    if any(byte >= 0x80 for byte in stream):
+        scroll.install_cave(out, source, spec["cave"])
 
 
 def _write_strings(out: bytearray, source: bytes, entry: dict, new: Dict[int, bytes], path: str,
@@ -288,6 +348,8 @@ def source_ref(path: str, line: Line) -> str:
         return f"sotn-decomp config/assets.us.yaml: {path} cutscene script ({line.where.split(': ', 1)[-1]})"
     if line.enc == "cr":
         return f"sotn-decomp config/assets.us.yaml: {path} credits"
+    if line.enc == "sc":
+        return "sotn-decomp src/st/st0/prologue_cutscene_script.h (prologue_script_en, PSX branch); draw src/st/st0/3101C_psx.c"
     folder = path.split("/")
     if path == "DRA.BIN":
         return f"sotn-decomp src/dra ({line.where.split(': ', 1)[-1]}; tables in src/config_us.h)"
@@ -331,6 +393,9 @@ def text_regions(path: str) -> List[Tuple[int, int]]:
     regions += [(ref, ref + 4) for item in entry["strings"] for ref in item["refs"]]
     regions += [(region["start"], region["end"]) for region in entry.get("scripts", [])]
     regions += [tuple(area) for area in entry.get("spare", [])]
+    if "scroll" in entry:
+        regions += [(entry["scroll"]["start"], entry["scroll"]["end"]),
+                    (scroll.SCRIPT_LOAD, scroll.SCRIPT_LOAD + 8), (scroll.GLYPH_WRAPPER, scroll.GLYPH_WRAPPER + 4)]
     return sorted(regions)
 
 
