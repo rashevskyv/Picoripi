@@ -8,9 +8,10 @@ unchanged keeps its original bytes, so an unedited file is rebuilt byte for byte
 """
 from __future__ import annotations
 
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from . import codec, script, strings, voice_subtitles
+from .subtitle_timing import Timing
 
 Blocks = List[List[str]]
 SUBTITLE_BLOCK = "Voice subtitles"
@@ -32,7 +33,7 @@ def _table_ids(data: bytes) -> List[int]:
     return [t for t, table in enumerate(strings.slots(data)) if table]
 
 
-def read(data: bytes) -> Tuple[Blocks, Dict[str, str]]:
+def read(data: bytes, timing: Optional[Timing] = None) -> Tuple[Blocks, Dict[str, str]]:
     """``(blocks, block names)`` of a file."""
     if kind(data) == "names":
         tables = strings.slots(data)
@@ -43,7 +44,7 @@ def read(data: bytes) -> Tuple[Blocks, Dict[str, str]]:
         return blocks, names
     if voice_subtitles.present(data):
         lines = _script_lines(voice_subtitles.without(data))
-        return [lines, voice_subtitles.lines_of(data)], {"1": SUBTITLE_BLOCK}
+        return [lines, voice_subtitles.lines_of(data, timing)], {"1": SUBTITLE_BLOCK}
     return [_script_lines(data)], {}
 
 
@@ -56,7 +57,7 @@ def _script_lines(data: bytes) -> List[str]:
     return lines
 
 
-def write(source: bytes, blocks: Blocks, missing: Set[str]) -> bytes:
+def write(source: bytes, blocks: Blocks, missing: Set[str], timing: Optional[Timing] = None) -> bytes:
     """``source`` with the texts of ``blocks`` (the shape ``read`` returned). Characters the game cannot
     write become '?' and are added to ``missing``."""
     encoder = codec.Encoder()
@@ -99,6 +100,6 @@ def write(source: bytes, blocks: Blocks, missing: Set[str]) -> bytes:
     missing |= encoder.missing
     out = script.rebuild(base, replaced)
     if subtitled:
-        subs = blocks[1] if len(blocks) > 1 else voice_subtitles.lines_of(source)
-        out = voice_subtitles.with_lines(out, subs)
+        subs = blocks[1] if len(blocks) > 1 else voice_subtitles.lines_of(source, timing)
+        out = voice_subtitles.with_lines(out, subs, timing)
     return out

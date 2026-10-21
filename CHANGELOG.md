@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Lunar: Silver Star Story Complete (PS1) subtitle timing (`plugins/lunar_sssc/subtitle_timing.py`, `subtitle_timing_dialog.py`, `voice_subtitles.py`): the opening monologue's cues have frame start and end, pauses between them (the box closes) and a clip offset, saved in `translation\voice\subtitle_timing.json`; Tools → "Voice subtitles timing..." edits them on the waveform with Play; verified in a private DuckStation build.
 - Wiki website: `scripts/build_wiki_site.py` renders `docs/wiki` (EN and UK) into a static site and `.github/workflows/wiki-site.yml` publishes it with GitHub Pages on every push to `main`; the Getting Started page is page 0.
 - Docs: new wiki page `0_Getting_Started.md` (EN and UK) walks a newcomer from the GitHub download to a game open in the editor, with screenshots in `docs/wiki/img/getting_started/`; written from newcomer tests of five games (Yo-kai Watch Switch and 3DS, Twilight Princess GameCube, Wii and Wii U HD).
 - Project Manager wizard: the location step suggests `Documents\Picoripi\<project name>` when the folder is empty; the Twilight Princess plugin is named "Zelda: Twilight Princess" (without "BMG").

@@ -126,14 +126,32 @@ def _read_raw_from(disc_path: str | Path):
     return f, read_raw
 
 
-def export_original(disc_path: str | Path, clip: Clip, wav_path: str | Path) -> float:
-    """Decode the clip of the original disc to a WAV; returns its length in seconds."""
+def original_samples(disc_path: str | Path, clip: Clip) -> List[int]:
+    """The clip's samples as the original disc plays them."""
     f, read_raw = _read_raw_from(disc_path)
     with f:
         lbas = slots(read_raw, clip)
         if not lbas:
             raise VoiceError(f"{clip.title}: no sectors of file {clip.file} channel {clip.channel} on this disc")
-        samples = decode_clip(read_raw, lbas)
+        return decode_clip(read_raw, lbas)
+
+
+def peaks(samples: Sequence[int], buckets: int = 1200) -> List[float]:
+    """The loudest level (0..1) of each of ``buckets`` equal parts of the clip, for a waveform."""
+    if not samples or buckets < 1:
+        return [0.0] * max(buckets, 0)
+    top = 32768.0
+    step = len(samples) / buckets
+    out = []
+    for b in range(buckets):
+        part = samples[int(b * step):max(int((b + 1) * step), int(b * step) + 1)]
+        out.append(max((abs(s) for s in part), default=0) / top)
+    return out
+
+
+def export_original(disc_path: str | Path, clip: Clip, wav_path: str | Path) -> float:
+    """Decode the clip of the original disc to a WAV; returns its length in seconds."""
+    samples = original_samples(disc_path, clip)
     write_wav(wav_path, samples, clip.rate)
     return len(samples) / clip.rate
 
