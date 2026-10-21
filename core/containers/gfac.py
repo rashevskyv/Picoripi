@@ -12,16 +12,21 @@ Layout, read from the game's own files and checked against the decoded data:
 - BPE (type 1): blocks of [pair table][token count, 2 bytes big-endian][tokens]. The pair table gives, for each
   code 0..255, either an identity entry (a literal byte) or a pair (left, right) that expands to left then right.
 
-The entry checksum is stored and copied unchanged. It is not CRC-32 of the name or of the data, so it is not
-recomputed on write. The BPE encoder is written from the format above; it does not reproduce the game's encoder
-byte for byte, so only packs that were edited are re-encoded. Untouched packs keep their original bytes.
+Checksum: checked across all 2,225 Wario Land packs. Each name always has the same checksum, including 21 names
+that repeat in several packs with different sizes. So the field is a hash of the name, not of the data. It is
+not CRC-32 or FNV, djb2, sdbm or Jenkins of the name. The writer copies it unchanged; edited data keeps the
+name's checksum. Writing a new name would need the real hash, which is not known yet.
+Alignment: every entry starts at ``align(previous end, 0x20)`` in all 2,225 packs, so ``GFAC_DATA_ALIGN`` is 0x20.
+The BPE encoder is written from the format above; it does not reproduce the game's encoder byte for byte, so
+only packs that were edited are re-encoded. Untouched packs keep their original bytes.
 """
 
 from __future__ import annotations
 
 import struct
+from collections import Counter
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple
+from typing import List
 
 GFAC_MAGIC = b"GFAC"
 GFCP_MAGIC = b"GFCP"
@@ -134,10 +139,7 @@ def _bpe_encode_block(block: bytes) -> bytes:
         code = next((v for v in range(255, -1, -1) if v not in taken), None)
         if code is None:
             break
-        counts: Dict[Tuple[int, int], int] = {}
-        for i in range(len(buf) - 1):
-            key = (buf[i], buf[i + 1])
-            counts[key] = counts.get(key, 0) + 1
+        counts = Counter(zip(buf, buf[1:]))
         if not counts:
             break
         (a, b), best = max(counts.items(), key=lambda item: (item[1], -item[0][0], -item[0][1]))
