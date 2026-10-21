@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Optional, TYPE_CHECKING
 from PyQt6.QtWidgets import QProgressDialog
-from PyQt6.QtCore import QTimer
+from PyQt6.QtCore import QObject, QTimer
 from handlers.base_handler import BaseHandler
 from handlers.async_issue_scanner import AsyncIssueScanner
 from handlers.autofix_worker import AutofixWorker
@@ -35,7 +35,8 @@ class TextOperationHandler(
         self._active_autofix_worker: Optional[AutofixWorker] = None
         self._active_autofix_progress: Optional[QProgressDialog] = None
 
-        self.preview_update_timer = QTimer()
+        # Owned by the window: a pending debounce must not fire after the window is gone.
+        self.preview_update_timer = QTimer(context if isinstance(context, QObject) else None)
         self.preview_update_timer.setSingleShot(True)
         self.preview_update_timer.timeout.connect(self._on_preview_update_timer_timeout)
         self._debounce_block_idx = -1
