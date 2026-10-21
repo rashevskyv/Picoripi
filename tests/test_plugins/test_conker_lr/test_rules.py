@@ -59,7 +59,7 @@ def test_only_the_english_text_files_are_wanted():
     assert not _wanted("default.xbe")
 
 
-def test_build_writes_the_changed_file_and_refuses_growth(tmp_path):
+def test_build_writes_the_changed_file_and_grows_a_longer_line(tmp_path):
     source = tmp_path / "source"
     translation = tmp_path / "translation"
     output = tmp_path / "output"
@@ -75,12 +75,9 @@ def test_build_writes_the_changed_file_and_refuses_growth(tmp_path):
     built = (output / FOLDER_REL).read_bytes()
     assert [s.text for s in caff_text.read_slots(built)] == ["Hi there", "Bai"]
 
-    obj["strings"] = ["This text is far too long for its slot", "Bai"]
+    obj["strings"] = ["This text is far longer than its original slot was", "Bai"]
     (translation / "text" / "Frontend.json").write_text(json.dumps(obj), encoding="utf-8")
-    try:
-        rules.build_target(TARGET_FILES, str(source), str(translation), str(tmp_path / "o2"),
-                           lambda *a: None, lambda: False)
-    except ValueError as exc:
-        assert "needs" in str(exc)
-        return
-    raise AssertionError("a text longer than its slot must be refused")
+    rules.build_target(TARGET_FILES, str(source), str(translation), str(tmp_path / "o2"),
+                       lambda *a: None, lambda: False)
+    grown = (tmp_path / "o2" / FOLDER_REL).read_bytes()
+    assert [s.text for s in caff_text.read_slots(grown)] == ["This text is far longer than its original slot was", "Bai"]

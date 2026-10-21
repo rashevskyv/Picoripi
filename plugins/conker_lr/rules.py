@@ -4,9 +4,10 @@ Scope of this version:
 - identify the USA XISO image (title id 0x4D530051) and unpack the English text files: each file's original
   ``default.bin`` is kept under ``original/`` for the build, and its translatable strings are written as JSON
   (format ``conker-lr-caff-text/1``) under ``text/``;
-- build the translated ``default.bin`` files of the changed strings. A string must fit its own slot (its original
-  length): growth needs the block's offset table, which is not decoded yet.
-Not in this version: the UI text tables (``UIFrontend`` is left out), fonts, and the XISO rebuild.
+- build the translated ``default.bin`` files. A longer line grows its block: the LSBL offset table, the header
+  pointers and the section sizes are moved with it (``caff_text.write_slots``).
+Not in this version: the UI text tables (``UIFrontend`` and ``UIPause`` are left out), fonts, the subtitle box
+size, and the XISO rebuild.
 """
 from __future__ import annotations
 
@@ -31,7 +32,7 @@ ORIGINAL_DIR = "original"
 TEXT_JSON_DIR = "text"
 TARGET_FILES = "translated_files"
 # The UI table of this folder has keys and layout records, not dialogue: its block count does not match.
-NOT_DECODED_FOLDERS = {"UIFrontend"}
+NOT_DECODED_FOLDERS = {"UIFrontend", "UIPause"}
 
 
 def _wanted(path: str) -> bool:
@@ -119,7 +120,11 @@ class GameRules(BaseGameRules):
             if is_cancelled():
                 return None
             data = Path(original, *rel.split("/")).read_bytes()
-            slots = caff_text.read_slots(data)
+            try:
+                slots = caff_text.read_slots(data)
+            except caff_text.CaffError:
+                # a file whose layout is not decoded keeps its original only; it is not a text file
+                continue
             texts = [slots[i].text for i in caff_text.translatable(slots)]
             obj = {"format": FORMAT_ID, "file": rel, "strings": texts}
             (text_dir / f"{_folder_of(rel)}.json").write_text(
@@ -149,9 +154,6 @@ class GameRules(BaseGameRules):
             data = original_path.read_bytes()
             try:
                 new_data = caff_text.write_slots(data, obj["strings"])
-            except caff_text.SlotOverflow as exc:
-                raise ValueError(tr("{0}: text {1} needs {2} bytes, its slot holds {3}. Longer text is not supported yet.",
-                                    rel, exc.index + 1, exc.needed, exc.capacity)) from exc
             except caff_text.CaffError as exc:
                 raise ValueError(tr("{0}: {1}", rel, str(exc))) from exc
             if new_data != data:

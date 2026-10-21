@@ -131,8 +131,9 @@ the line when it is done or moved into a plan.
 
 ## Conker: Live & Reloaded (Xbox, USA) (`plugins/conker_lr`, 2026-10-21, branch `feat/conker-lr`)
 
-- Open: growth. The LSBL block's (id, offset) table is not decoded; a text must fit its slot (the original length). A longer Ukrainian line is refused at build time.
-- Open: `UIFrontend/default.bin` (key and position table, 219 entries) does not match the block count; the plugin leaves it out.
+- Open: the subtitle box is not yet sized for a longer line (the box size is in the game's code or layout data; not found yet).
+- Done (growth): a longer line rebuilds the blob and moves the table, header pointers and section sizes (`caff_text.write_slots`); 67 of 68 English files pass identity and growth checks on the disc; the on-screen check is still open.
+- Open: `UIFrontend/default.bin` (key and position table, 219 entries) does not match the block count; `UIPause/default.bin` has a second table after its end record (its count is the table length); the plugin leaves both out.
 - Open: `chapters_text` has a second text blob after its LSBL block (`Options`, `Chapters`, `Game 1`...); the plugin reads only the LSBL strings. Labels like `Game 1` on the title screen are pictures, not text.
 - Open: other languages (Japanese, French, German, Spanish, Italian) use the same container; the scanner reads Latin-1 text only, so Japanese needs a wider scan. Only the English slot is in scope.
 - Open: fonts (`dvddata/aid/font/ConkerFont`, `FrontendTitle`) and `media/ArialUni.Ttf` are not analysed; width checks are off until a font map exists.
