@@ -1500,7 +1500,7 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 
 ## Unpack in Picoripi (phase 1, 2026-10-13)
 - Phase 2: the console key file (D30 has the owner's rule). Wii, Wii U, 3DS and Switch images need it. Wii discs need a partition reader too.
-- Wii WIA and RVZ images, and NKit images of other kinds, are not read; the zt scripts still convert them with DolphinTool or wit. The wizard says so and asks for an ISO. GameCube WIA and RVZ are read natively since D33 (`core/containers/wia.py`). NKit GameCube discs are read as they are (D30 addendum).
+- Wii WIA and RVZ images are read as their decrypted discs; a build from one writes a plain ISO first (`core/containers/wii_writer.py`, 2026-10-21). NKit images of other kinds are not read; the zt scripts still convert them with DolphinTool or wit. GameCube WIA and RVZ are read natively since D33 (`core/containers/wia.py`). NKit GameCube discs are read as they are (D30 addendum).
 - Phase 2a is wired (D30 addendum). Recorded differences, not fixed (the workspaces are not regenerated):
   - Curious Village (Layton DS): the unpack writes 65 more `.gds` scripts than the workspace has (465 text files against 400 blocks). The plugin gives rows for them, and the current zt agrees.
   - SoulSilver (Gen 4): `a/1/3/3` differs from the HeartGold-based workspace. The HeartGold output matches it.
@@ -1727,9 +1727,23 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 
 - Done: the wizard refuses a game image that the chosen plugin cannot unpack (`build.run_unpack`), before anything is
   created. Creation is all or nothing; a start-up project that fails or makes no progress for two minutes is given up.
-- Open: No More Heroes (`no_more_heroes`) and MadWorld (`madworld`) have no unpack. Their source is the converted
-  tree of the owner's `nmh.py` / `madworld.py` (GDLG text, STRIMAGE glyph atlases, fonts, GCT/TPL textures, main.dol,
-  `image/*_index.json`). Port size: about 1,900 lines of owner code. Not started.
+- Done: No More Heroes (`no_more_heroes`, branch `feat/nmh-unpack`) unpacks its Europe disc image (ISO or RVZ) in the
+  wizard into `source/` (the owner's `nmh.py` layout, byte for byte) and builds a plain ISO (`wii_iso`). The build
+  output matched the owner's script build byte for byte for a visible title edit.
+- Done (2026-10-21, `feat/wii-writer`): an RVZ or WIA source builds too. `core/containers/wii_writer.py` writes the
+  plain ISO: it copies the raw areas, then seals each partition (hashes H0-H3, the last group's missing clusters as zero
+  data, re-encryption with the ticket key); the TMD changes only when H3 changes. Both plugins use this one writer.
+  Proof: the MadWorld RVZ, unpacked and built with no edit, gives the owner's original ISO byte for byte.
+- Open: a build from an RVZ or WIA takes about 8 minutes (Python hashing and AES of every cluster). Faster sealing only if
+  the owner needs quicker builds.
 - Open: 16 other plugins with an owner game image have the same gap (3DS, Wii, PS1 games); each needs its own
+- Done (2026-10-20, `feat/madworld-unpack`): MadWorld (`madworld`) unpacks in the wizard and builds a Wii ISO copy.
+  The owner's `zt/madworld.py` is ported into `plugins/madworld/`. The unpack of the owner's ISO and RVZ matches the
+  script's `source\` tree byte for byte (235 files). An unchanged build gives the original ISO byte for byte. A
+  visible test edit shows in a private Dolphin copy. Done (2026-10-21): an `.rvz` base builds (see the Wii writer item
+  above); the English health-and-safety pictures `strap_*_us.tpl` are unpacked and packed.
+- Done (2026-10-21): build warnings (a letter with no picture in the font) are written to `BUILD_WARNINGS.txt` beside
+  the result and the Project Manager status line names the first one. Open: a problem-list entry per string.
+- Open: other plugins with an owner game image have the same gap (3DS, Wii, PS1 games); each needs its own
   unpacker for the owner's converted source. The baseline in `tests/test_architecture/test_wizard_hooks_declared.py`
   lists them with a reason; a plugin leaves it when it gets a hook.
