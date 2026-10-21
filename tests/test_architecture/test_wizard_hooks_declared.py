@@ -96,7 +96,6 @@ BASELINE = {
     "senran_kagura_burst": "owner source is not a disc image (folders); the user prepares the folder or files",
     "silent_hill1_switch": "no owner workspace on disk to check; no image is known",
     "silent_hill2_pc": "owner source is not a disc image (folders); the user prepares the folder or files",
-    "silent_hill2_switch": "no owner workspace on disk to check; no image is known",
     "silent_hill_3_pc": "owner source is not a disc image (folders); the user prepares the folder or files",
     "silent_hill_ps1": "owner source is not a disc image (folders); the user prepares the folder or files",
     "sly_cooper": "owner source is not a disc image (folders); the user prepares the folder or files",

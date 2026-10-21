@@ -18,7 +18,7 @@ the line when it is done or moved into a plan.
 ## Silent Hill 2 sh23ds 3DS and the message table (`plugins/silent_hill2_switch`, `plugins/silent_hill2_pc`, 2026-10-20, branch `feat/port-sh2-3ds`)
 
 - Blocked for the pack gate: the packer (`pack.py`) requires the Director's Cut `sh2pc.exe`, MD5 `f3f5360298b6d0f6f2e09cf24a0925d1`. Checked 2026-10-20, no copy of that exe exists on disk: the EE installer, the EE folder and the sh2-nx package keep no original exe (no embedded PE with that hash).
-- Found 2026-10-20: `D:\Downloads\pc\silent_hill_2_dc_ukr_patch.exe` (Inno Setup, extracted with innoextract to `C:\RomHacking_scratch\sh23ds\dc_patch\out`) holds `app\sh2pc.exe` (6,238,208 B, MD5 `b5c07aa4`). It is not the gate exe, but it has the DC layout: all 174 stage-table pointers of the packer (58 stages, addr/ev_list/ev_pos) are in it, the font table sits at the packer's address `0x806480`, and `events.py` on it gives 58 stages and 2,078 events (the documented DC count). The EE exe gives unmapped addresses in the same run.
+- Found 2026-10-20: the Ukrainian DC patch installer `silent_hill_2_dc_ukr_patch.exe` (Inno Setup, extracted with innoextract to a private scratch folder) holds `app\sh2pc.exe` (6,238,208 B, MD5 `b5c07aa4`). It is not the gate exe, but it has the DC layout: all 174 stage-table pointers of the packer (58 stages, addr/ev_list/ev_pos) are in it, the font table sits at the packer's address `0x806480`, and `events.py` on it gives 58 stages and 2,078 events (the documented DC count). The EE exe gives unmapped addresses in the same run.
 - Done 2026-10-21: the full pack is built in WSL (`PACK_EXIT 0`, 5,750 files, 1.4 GB) from a private DC-layout game folder with the gate bypassed (`SH23DS_BYPASS_MD5=1` in the scratch copy only). The Ukrainian `events` and `font` overlay is copied over it. The port builds (`make`, devkitARM) and `makerom -f ncch` packs a plain CXI.
 - Open 2026-10-21: the CXI boots in a private Azahar copy (preview NAND, sdmc and nand pointed at the private copy; the shared tool's config had pointed at the shared folder). The Silent Hill 2 and Konami logos show. The game process then exits about 34 s after launch, with no fatal line in `azahar_log.txt`. Blocker: the exit reason is not known yet; the log shows repeated `svc=0x32 ... description=1015` errors.
 - Done 2026-10-21: the private Azahar copy points its NAND and SD at its own folders. The port's `debug.txt` (`logos 0`, `newgame 1`) starts a new game: the restroom (stage 2, `er01`) runs with the in-game HUD, and the game keeps running past 34 s. The earlier exit came from the shared-folder SD path, not from the homebrew.
@@ -31,11 +31,11 @@ the line when it is done or moved into a plan.
 - Open: full-width codes (0xE0 and up: the results-screen star and the Latin letters) have no glyph in the Ukrainian font, so they are not drawn. The port cuts each line at 128 characters.
 - Open: the 3DS font comes only from the Switch Ukrainian atlas, scaled. The capital Ї is the spare cell 122 (Ъ shape) until the translator draws it.
 - Open: the sh23ds packer writes 7 kinds of `.msg`. The 8 translated files it does not read (`config_pc`, `item_msg_e`, `letter_*`, `m_card_msg_e`, `memo_msg_e`) are not in `3ds/sh23ds`.
-- Done 2026-10-20: the session restore calls the plugin's `migrate_session_snapshot` for a session without `data_layout` (`core/data_processor/session_manager.py`, `SESSION_DATA_LAYOUT = 2`). The PC plugin maps the rows and the edits with `mes_legacy.migrate_block`; a merged-row edit whose length changed is dropped with a log line. The Switch plugin does not migrate (its rows are message bodies without the head and tail bytes): such a session is not restored and the project opens from its files, which are unchanged. The user's unsaved edits in that session are lost. Save before upgrading.
+- Done 2026-10-20: the session restore calls the plugin's `migrate_session_snapshot` when a session's `data_layout` differs from the plugin's `session_data_layout()` (`core/data_processor/session_manager.py`; the PC plugin declares layout 2 in `plugins/silent_hill2_pc/rules.py`). The PC plugin maps the rows and the edits with `mes_legacy.migrate_block`; a merged-row edit whose length changed is dropped with a log line. The Switch plugin does not migrate (its rows are message bodies without the head and tail bytes): such a session is not restored and the project opens from its files, which are unchanged. The user's unsaved edits in that session are lost. Save before upgrading.
 - Font: the base is our Switch font (`EE\sh2e\font`, with our capital-Ї work). The Ukrainian patch differs in cell 122 (its Ї) and in the width entries 61 and 173. Not adopted.
 - Open: the sh23ds packer does not need a patch for the messages or the font. Copy the output over the packer's `3ds` folder.
 
-## Wario Land: Shake It! (Wii, USA, `RWLE01`; workspace `E:\Emulators\RomHacking\Wario Land\Shake It\Wii\`, 2026-10-20)
+## Wario Land: Shake It! (Wii, USA, `RWLE01`; workspace in a private folder, 2026-10-20)
 
 - Done: the RVZ is copied from `_new\Wario Land - Shake It (USA) (EnFrEs).zip` to `Wii\source\` (the zip stays). The RVZ is read with `core/containers/wia.py` (no key). Partition 1 is the game (`RWLE01`); partition 0 is `RELSAB`. The FST offsets and sizes are shifted by 2 (Wii).
 - Open: no plugin yet. Needed: `wario_land_shake_it` with unpack (RVZ, partition 1), text, fonts (`.breft`/`.breff`), textures, and a Dolphin/Riivolution mod build. The visible-edit proof in a private muted Dolphin copy is not done.
@@ -175,7 +175,7 @@ and_dec`) has all of them. A scratch tree was built from it with the owner's `to
 - The real-data screenshot test (`tests/test_plugins/test_manual_3ds/test_simulator.py`) needs `PICORIPI_3DS_CALIB` (the folder that holds `shots_r17b`) besides `PICORIPI_ROMHACKING`; the chrome crops come from `<data>/plugins/manual_3ds/chrome` (git-ignored, cut from console screenshots).
 - One layout truth (chosen 2026-10-14): the plugin's problems take the lines from the owner's model (that is where the build puts them: `layout.layout_for`, since round 19 the console's own measure: `fontSize / 25`, each pane's charSpace, the card edge, the ink overhangs) and judge each stored line with the console's measure (`layout.console_problems`: `console_render.FONT_WIDTH`, `WRAP_SLACK`, `COLUMN_WIDTH`, `FRAME_INNER`, `SUB_PIXEL`): WRAP (the viewer breaks the line inside its pane), WIDTH (ink past the card edge), BESIDE (past a picture's edge or a box frame's inner edge; the clearance before a picture is the owner layout's job, so Nintendo's own "/" panes are no defect). The preview runs the real render (`simulator.defects_of`) on the worker; the scan does not render (the per-line measure is the same arithmetic). The owner's column-budget WIDTH rule is gone from the plugin; the gate-comparison test compares the gate's text and pane failures only.
 - Done (owner round 19, 848d04b): the owner's model measures as the console draws (`fontSize / 25`, `charSpace`, ink overhangs, frame widths from the textures), so the 329 cand_r18 lines past the card edge belong to the past builds; the next build's render decides.
-- New 3DS screenshots (2026-10-15, D40): `shots_r19` holds 150 pairs; 36 are the old `shots_r17b` and `shots_new` pairs (byte-identical), 114 are new (console clock 2011-01-01), 113 of them viewer pairs. Classified by machine (`E:\Emulators\RomHacking\_shared\reports\manual_sim_fidelity_2026-10-15\shots_r19_0101.json`). The 9 pairs of the 21:00 batch are cand_r19; the 103 pairs of the 03:06–04:24 batch were shot with the card copy `nd000_card_1653.bin` (`calib\nd000`), a build no tmp folder holds; one pair matches `nd000_card_1621.bin`. The report folder has the per-pair sheets and the categorised list. `shots_r19_new` (36 pairs) is `shots_r17b` plus `shots_new`, byte-identical, not a new batch.
+- New 3DS screenshots (2026-10-15, D40): `shots_r19` holds 150 pairs; 36 are the old `shots_r17b` and `shots_new` pairs (byte-identical), 114 are new (console clock 2011-01-01), 113 of them viewer pairs. Classified by machine (shots_r19_0101.json). The 9 pairs of the 21:00 batch are cand_r19; the 103 pairs of the 03:06–04:24 batch were shot with the card copy `nd000_card_1653.bin` (`calib\nd000`), a build no tmp folder holds; one pair matches `nd000_card_1621.bin`. The report folder has the per-pair sheets and the categorised list. `shots_r19_new` (36 pairs) is `shots_r17b` plus `shots_new`, byte-identical, not a new batch.
 - Done (2026-10-15): the editor scan reports the render-only defects (`M3D_CELL`, `M3D_OVERLAP`, `M3D_COVERED`) by building and drawing the string's page with the owner's tools (`page_build.page_kinds`), and `geometry.json` carries the painted frame widths, so BESIDE agrees with the render. Open: the whole-project scan runs on the UI thread (`IssueScanHandler._perform_issues_scan_for_block`), so there the page render goes to one background `WorkerThread` at a time (texts read on the UI thread, interrupted between pages by the preview panel's shutdown on window close or plugin switch, results of a replaced manual dropped) and the block is rescanned when it is done (`rules._ScanRender` -> `_render_done` -> `rescan_issues_for_single_block`; audit r33); a project of 18 manuals renders 352 pages once after load (about 0.5 s a page, in the background). Without the owner's folder (`<data>/plugins/manual_3ds/preview.json`) the three kinds are not reported; the layout kinds are.
 - Chrome from the viewer's own romfs (title 0004003000009B02, 87 files: `layout/*.arc` LZ10 darc with BCLYT, BCLAN and BCLIM; `message/*/ebird.msbt`): the header, badge, scroll indicator, arrows and bottom-bar textures are there (`BtnHeadLineTxt`, `PageNum`, `ScrollIndicator`, `SideScrollArw`, `BtnBack00`, `BtnClose00`, `BtnTextSize00`, `PageShdw00`), but their stored positions are moved by the applet's code and animations (the badge sits at x −120 in the layout and at canvas x 54 on the console), so the screenshot crops stay. No New 3DS variant of the viewer exists in the NAND dump (`00040030` has no `2000xxxx` title). A page's own structure needs no code: `__AREA__` blocks of 480 px, `HorizonG` rows, `wnd1` cells, `txt1` lines of one stored line each (Nintendo ends a continued line with `\n`).
 - Done (2026-10-15, `fix/manual-preview-pm-search`): a project of many manual files keeps one manual per block (`rules._Manual`; before, only the file parsed last, and nothing after a restored session, so every string was looked up in the wrong manual and the preview said "The index is not drawn here"). The session carries the manuals without `ua` (`export_runtime_state`, about 1.4 MB for the 18 manuals, exported at each autosave); a session written before (the owner's has no plugin state) is completed once by a state-only read of the project files on a worker (`SessionMixin._read_missing_plugin_state`), then the issues are scanned again. While that read runs, the plugin may be asked from both threads; the geometry of a block is resolved on the thread that asks first. Checked offscreen on a copy of the owner's project: one page paragraph of each of the 18 blocks draws its Ukrainian text, except `browser` (no `Manual.bcma` on the owner's disk: the panel says so).
@@ -626,7 +626,7 @@ Open:
 - Not encoded yet: BC6H; ASTC block sizes other than 4x4, 8x8, 10x10 and 12x12 (ASTC encoding writes one RGBA line per
   block with a 4x4 weight grid, BC1-like). TotK layout archives are copied into `source/UI/LayoutArchive` by hand: `zt/nx.py`
   `TOTK_PARTS` does not unpack them yet. Textures inside models (TP title logo in `titlelogo_r.bmd`, WW subtitle in two BDLs, WW HD `Tlogo.bfres`), the Wii channel banner (`opening.bnr`: IMET > U8 > LZ77 > U8 > TPL, LZ77 not handled).
-- No container yet: TPHD TMPK/GTX (needs a decrypted dump), MGS `stage.dat` (zlib folders > tex13 packs > TPL: 449 textures; the TPL itself is handled — needs the stage.dat container or loose packs from the workspace unpack), 3DS BCH and SPBD particles (TFH boss cards). Drafts: `E:\Emulators\RomHacking\_shared\textures\drafts`.
+- No container yet: TPHD TMPK/GTX (needs a decrypted dump), MGS `stage.dat` (zlib folders > tex13 packs > TPL: 449 textures; the TPL itself is handled — needs the stage.dat container or loose packs from the workspace unpack), 3DS BCH and SPBD particles (TFH boss cards). Drafts: a private folder.
 - 3DS games have no plugin: their textures open with File → Open (BFLIM, CTPK, CTXB; SARC/SZS, ZAR/GAR, LzS archives) and are edited in place; a plugin with `texture_sources.json` (drafts `zelda_albw`, `zelda_tfh`, `zelda_oot3d`, `zelda_mm3d`) would list them. OoT3D title logo letters are in a CMB model (not handled).
 - Majora's Mask `yar` archives have no room to grow in the ROM: an edit that compresses worse than the original is fitted by recompressing every block of the archive optimally; if even that does not fit, the save is refused with the file's size.
 - An archive around an edited texture is laid out anew by its container code (SARC, RARC); Revert restores the texture file byte for byte, not necessarily the archive.
@@ -763,7 +763,7 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 - Staff roll look-alikes (А В Е І К М Н О Р С Т Х, a e i o p c y x) keep their Latin cells and read back as Latin.
 - Staff roll digits: the English credits print only 0 and 2. The reserved digits 1 and 3-8 collide with nothing
   in English; a translator cannot type them in credits (`VGS_CREDITS_RESERVED` flags them with the reason).
-- In-game proof (DuckStation, private copy `D:\RomHacking_tmp\vs_tr\duckstation`, test disc built from a private
+- In-game proof (DuckStation, a private DuckStation copy, test disc built from a private
   workspace; owner files untouched): the test disc builds with `{page}` edits to `EVENT/0004.EVT` and
   `EVENT/0005.EVT` and an item name edit. The game boots and shows real balloons. The test text was not reached
   in the session (the scene order was not known); the menu edit was not reached either. Still open.
@@ -1106,7 +1106,7 @@ omfs`) could be
 - UI command "Create plugin from template" (copy `plugins/default_plugin`, rename, open the prompt file).
   WP5.4 delivers the generator (`tools/new_plugin.py`); the menu entry is still unplanned.
 
-## Found during WP8 (the proxy, `D:\git\dev\gemini-web2api`)
+## Found during WP8 (the proxy, gemini-web2api)
 
 - **Nothing in proxy 1.4.0 has met Google.** Tests stub Gemini. Unverified against the real service: the
   `f.req` body with raw UTF-8 instead of escaped text (it is what a browser sends, but it was not tried),
@@ -1126,7 +1126,7 @@ omfs`) could be
 
 - **WP8 is NOT in the proxy's working directory.** That directory had 16 modified, uncommitted files (the
   v1.3.1-1.3.3 work) and the proxy is a live service, so nothing there was touched. WP8 lives on the branch
-  `audit/wp8`, checked out as a separate git worktree in `D:\git\dev\gemini-web2api-wp8`. Its first commit is a
+  `audit/wp8`, checked out as a separate git worktree in gemini-web2api-wp8. Its first commit is a
   snapshot of the uncommitted work (so that WP8 commits can be told apart); the rest are the WP8 tasks.
   Nothing is pushed. To use it: commit your own work on `main`, then `git merge audit/wp8` (the snapshot commit
   holds the same content, so the merge is clean) and delete the worktree with
@@ -1272,7 +1272,7 @@ omfs`) could be
   (`components/project_dialogs.py:240,260,594,617`, `ui/settings/path_picker_mixin.py:73`,
   `handlers/list_selection/physical_selection_mixin.py:384`). A plugin's own format is reachable through
   "All Files"; the single-file open/save dialogs already use `core.formats.dialog_filter`.
-- **Test leftovers under `C:\Temp\project`** (`.extracted/translation/bmgres.arc/zel_unit.bmg`, …): written by
+- **Test leftovers under a private temp folder** (`.extracted/translation/bmgres.arc/zel_unit.bmg`, …): written by
   `tests/test_core/test_data_state_processor_native_packing.py` before WP5.5 (it mocked `Path` but not the
   file writer). The tests no longer write there; the folder can be deleted.
 - **Watch: `tests/test_ui/test_bfn_preview_widget.py::test_preview_initial_scale_with_background_fits_viewport_proportionally`**
@@ -1322,7 +1322,7 @@ omfs`) could be
   the `"profile"` settings key cover it. Add a combo in `ui/settings/ai_mixin.py` if users need it.
 - **A test file depends on this machine's data.** `tests/test_handlers/test_ai_prompt_composer.py` builds
   the composer on a bare `MagicMock` main window; the story-context code then finds and parses the real
-  script at `E:\Emulators\RomHacking\Zelda\Twilight Princess\GC + Wii\zelda_tp_script.txt` and queries MemPalace (the file takes
+  script at zelda_tp_script.txt and queries MemPalace (the file takes
   ~20 s and its "Story Context" sections come from that script). Stub `composer.story_context` in the fixture.
 - **Leftovers of the removed translation-session path.** `AIWorker.run` still has `session_info` /
   `session_state` branches that can no longer be reached for translation tasks, the composers still accept
@@ -1332,7 +1332,7 @@ omfs`) could be
   text it also turns `{PLAYER}`-style escapes into names in neighbour rows and reference lines, which is
   useful. Applying it per section instead of to the final string would be the tidy version.
 - **`max_reference_languages` has no settings-dialog control** (translation config key; default every language, 0 none).
-- **Holding folder to delete**: `D:\git\dev\Picoripi_local_cleanup_2026-10-01` (562 MB: `gemini/`, `.grok/`,
+- **Holding folder to delete**: Picoripi_local_cleanup_2026-10-01 (562 MB: `gemini/`, `.grok/`,
   `.tmp_audit/`, 35 `graphify-out` snapshots, `stderr_output.log`, `image.png`, `settings.json.migrated`).
   Task 0.9 moved these out of the workspace instead of deleting them.
 - Root `CHANGELOG.md` is ~38 KB after archiving: the last 14 days hold 17 verbose release entries. New
@@ -1380,7 +1380,7 @@ omfs`) could be
 - Speaker names are decomp descriptions ("Clock Town - Gate-Blocking Soldier", OoT actor names like `En_Go2`
   where no description exists); a curated name table would read better. Cutscene-only lines, ids computed at
   run time and Bombers' Notebook entries without a placed actor get no speaker. Report:
-  `E:\Emulators\RomHacking\Zelda\Majoras Mask\N64\reports\context_report.md`.
+  context_report.md.
 
 ## The Wind Waker HD plugin (`plugins/zelda_ww`, Wii U)
 
@@ -1511,7 +1511,7 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 
 ## Unpack in Picoripi (phase 2b, 2026-10-13, partial)
 - BLOCKED: decryption of 3DS, Switch and Wii content. `pycryptodome==3.23.0` is pinned in `requirements-dev.txt` but not installed in the project venv: the install was denied by the auto-mode permission check, and the brief forbids a pure-Python AES. Every encrypted read raises `encrypted_error` (`core/containers/console_crypto.py`). Owner runs `install_picoripi_crypto.bat` (in the owner's `_shared\scripts` folder; it installs the pin into the project venv), then phase 2c fills the decrypt bodies at that seam: NCCH CTR and keyscrambler (3DS), NCA XTS and CTR with `prod.keys` (Switch), the common key CBC per sector (Wii).
-- Owner step after 2c: `scripts\verify_unpack_keys.py` and its `.bat` (not written here; it has nothing to run until the decrypt bodies exist). It takes the key file path as an argument, unpacks the given images to `D:\RomHacking_tmp\unpack_check\`, and prints counts and hash equality per game only.
+- Owner step after 2c: `scripts\verify_unpack_keys.py` and its `.bat` (not written here; it has nothing to run until the decrypt bodies exist). It takes the key file path as an argument, unpacks the given images to the unpack_check folder, and prints counts and hash equality per game only.
 - Key file formats the store will hold, not read yet: 3DS `aes_keys.txt` (boot9 next to it is used by the workspace tool), Switch `prod.keys`, Wii `keys.bin` (0x400 bytes, common key at 0x114; 0x158 is the NAND AES key that `tools/wii_nand` reads).
 - The pin is not in `requirements.txt`. When the decrypt bodies land, decide whether it joins the app's requirements.
 - ExeFS `code.bin` is decoded from BLZ when the exheader says so (`nitro.blz_decompress`). Verified against the Update CIA. The base Majora's Mask 3D code differs from the workspace, because the workspace ExeFS is the Update build (D30 addendum). Copy of Princess (text in `code.bin`) is not wired yet.
@@ -1539,7 +1539,7 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
   - 3DS, Miracle Mask CIA (`00040000000A8600_..._CTR_P_AKKP.cia`) against `Professor Layton\Miracle Mask`: 719 workspace files, 718 equal sha256, 0 missing. Decryption of RomFS and ExeFS is verified. The one difference is `exheader.bin`, 510 bytes: byte `0x0D` (`0x02` SDApplication; the CIA build has it, the cartridge build does not) and `0x400`-`0x5FF` (the RSA-2048 AccessDesc signature and the NCCH public key, which the CIA and cartridge builds sign differently). The workspace came from the decrypted Europe `.cci`, whose exheader equals the workspace copy. Bit `0x01` (CompressExefsCode) is set in both, and the workspace `code.bin` is decoded, as ours is. So our exheader keeps bit `0x01`; no reader change was needed.
   - Switch, Skyward Sword HD base NSP against `Zelda\Skyward Sword\HD - Switch` (`romfs` only): 162 workspace files in `exefs` and `romfs`, 161 equal sha256. The one difference is `romfs\EU\Object\nl_NL\5-CenterField.arc`: workspace 234554 bytes (dated 2026-10-04), ours 234522, which is the size in the RomFS table. The workspace file is most likely edited; not confirmed. The unpack has 720 files the workspace does not hold (the workspace is a subset).
   - Wii: first real-disc run 2026-10-18 (the owner's RZDE01 disc, key file in the console key store). The reader read the common key at 0x158 (the NAND key), so every decrypt failed. Fixed to 0x114. Then the H0 hash test of the first cluster passed 31 of 31, and the disc's `fontres.arc` equals the GC original. Only the first cluster was hash-checked; the rest of the disc is not.
-- Built, synthetic tests only before that run: decryption for 3DS (NCCH sections, CIA title key), Switch (NSP: NCA header, key area, CTR sections, ticket title key) and Wii (data partition, cluster IV). Run `E:\Emulators\RomHacking\_shared\scripts\verify_unpack_keys.bat` per image (`--image`, `--source` = the workspace `source` folder, and the key file argument of its console). It prints counts and equality only and unpacks into `D:\RomHacking_tmp\unpack_check\`.
+- Built, synthetic tests only before that run: decryption for 3DS (NCCH sections, CIA title key), Switch (NSP: NCA header, key area, CTR sections, ticket title key) and Wii (data partition, cluster IV). Run verify_unpack_keys.bat per image (`--image`, `--source` = the workspace `source` folder, and the key file argument of its console). It prints counts and equality only and unpacks into the unpack_check folder.
 - Still not verified on real data: the NCCH version 1 counter (3dbrew; no owner title checked); the NCCH 0x20 "new keyY generator" flag (the reader tries the signature KeyY and reports a wrong key if the tables do not parse); fixed-key and seed titles (refused). The Switch key-area and titlekek derivation (`switch_crypto.py`, from the spec, not from `nsz`, which is not on this PC) and the 3DS keyscrambler are now verified for the titles of the 2026-10-14 run only.
 - Refused with a message: 3DS fixed-key titles (flag 0x01); Wii Korean and vWii common keys (key index 1 and 2); Switch XCI images; Switch NCA0 and NCA2 headers; Switch XTS sections; Switch compressed sections; Switch personalised tickets; several program NCAs in one package; any other 3DS or Switch crypto method.
 - Partly read: a Switch update whose RomFS is a patch (BKTR). `SwitchImage.romfs_is_patch` is True and no RomFS entries are returned; the ExeFS is read. Sparse sections are read as plain: not checked (the sparse-info offset is not confirmed).

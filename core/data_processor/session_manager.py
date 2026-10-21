@@ -11,10 +11,6 @@ from typing import Any, Optional
 from core import formats
 from utils.logging_utils import log_debug, log_info, log_warning, log_error
 
-# Layout of the message rows a session holds. 2: SH2 message rows read from the table's word 1 (the fix). A session
-# without the key was written before it: the plugin's migrate_session_snapshot maps its rows, or the session is not restored.
-SESSION_DATA_LAYOUT = 2
-
 class SessionManager:
     """Manages session serialization, autosaving, durable JSON checkpoints, and fallbacks."""
     def __init__(self, data_processor: Any):
@@ -78,9 +74,17 @@ class SessionManager:
                 pass
             return False
 
+    def _session_layout(self) -> Optional[int]:
+        """The message-row layout the active plugin declares, or None when it declares none."""
+        hook = getattr(getattr(self.mw, "current_game_rules", None), "session_data_layout", None)
+        layout = hook() if callable(hook) else None
+        return layout if isinstance(layout, int) and not isinstance(layout, bool) else None
+
     def _attach_runtime_session_state(self, snapshot: dict) -> dict:
-        snapshot["data_layout"] = SESSION_DATA_LAYOUT
         """Add runtime-only state that lives outside AppDataStore."""
+        layout = self._session_layout()
+        if layout is not None:
+            snapshot["data_layout"] = layout
         ui_updater = getattr(self.mw, "ui_updater", None)
         get_tree_state = getattr(ui_updater, "get_tree_state", None)
         if callable(get_tree_state):
@@ -242,7 +246,6 @@ class SessionManager:
 
         json_snapshot = {
             "version": 1,
-            "data_layout": snapshot.get("data_layout"),
             "saved_at": snapshot.get("saved_at", 0.0),
             "checkpoint_id": snapshot.get("checkpoint_id"),
             "json_path": snapshot.get("json_path"),
@@ -284,6 +287,8 @@ class SessionManager:
             "plugin_runtime_state": self._to_json_safe_value(snapshot.get("plugin_runtime_state")),
             "ui_tree_state": self._to_json_safe_value(snapshot.get("ui_tree_state", {})),
         }
+        if "data_layout" in snapshot:
+            json_snapshot["data_layout"] = snapshot["data_layout"]
         return json_snapshot
 
     def deserialize_session_from_json(self, json_data: dict) -> dict:
@@ -320,7 +325,6 @@ class SessionManager:
 
         snapshot = {
             "version": 1,
-            "data_layout": json_data.get("data_layout"),
             "saved_at": json_data.get("saved_at", 0.0),
             "checkpoint_id": json_data.get("checkpoint_id"),
             "json_path": json_data.get("json_path"),
@@ -362,6 +366,8 @@ class SessionManager:
             "plugin_runtime_state": self._from_json_safe_value(json_data.get("plugin_runtime_state")),
             "ui_tree_state": self._from_json_safe_value(json_data.get("ui_tree_state", {})),
         }
+        if "data_layout" in json_data:
+            snapshot["data_layout"] = json_data["data_layout"]
         return snapshot
 
     def schedule_autosave(self) -> None:
@@ -455,21 +461,18 @@ class SessionManager:
             return False
 
     def _upgrade_session_layout(self, snapshot: dict) -> Optional[dict]:
-        """A session written before SESSION_DATA_LAYOUT goes through the plugin's migrate_session_snapshot. The
-        plugin returns it with the current marker, or leaves it without one: then it is not restored (None), and the
-        project opens from its files, which were never changed by the fix."""
-        if snapshot.get("data_layout") == SESSION_DATA_LAYOUT:
+        """A session whose layout differs from the active plugin's goes through its migrate_session_snapshot. The
+        plugin returns it stamped with the current layout, or without a stamp: then it is not restored (None), and the
+        project opens from its files. A plugin that declares no layout never migrates."""
+        layout = self._session_layout()
+        if layout is None or snapshot.get("data_layout") == layout:
             return snapshot
-        rules = getattr(self.mw, "current_game_rules", None)
-        hook = getattr(rules, "migrate_session_snapshot", None)
-        if not callable(hook):
-            return snapshot
-        migrated = hook(snapshot)
-        if isinstance(migrated, dict) and migrated.get("data_layout") == SESSION_DATA_LAYOUT:
+        migrated = self.mw.current_game_rules.migrate_session_snapshot(snapshot)
+        if isinstance(migrated, dict) and migrated.get("data_layout") == layout:
             log_info("DSP: the session's message rows were migrated to the current table layout")
             return migrated
-        log_warning("DSP: the session holds rows of the old message layout and cannot be migrated; it is not "
-                    "restored. The project opens from its files, which are unchanged.")
+        log_warning("DSP: the session holds rows of another message layout and cannot be migrated; it is not "
+                    "restored. The project opens from its files.")
         return None
 
     def load_session_file(self) -> bool:

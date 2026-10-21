@@ -148,7 +148,7 @@ Exit: a new game plugin with a custom binary format can be added without touchin
 
 ---
 
-## WP8 — gemini-web2api proxy (separate repo `D:\git\dev\gemini-web2api`; ~1 session)
+## WP8 — gemini-web2api proxy (separate repo gemini-web2api; ~1 session)
 
 | # | Task | Evidence | Files | Verify |
 |---|---|---|---|---|

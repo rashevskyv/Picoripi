@@ -588,9 +588,9 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 - `[x]` **AUD-T8. Системно усунути xdist-нестабільність реальних воркерів/integration тестів (ВИРІШЕНО повністю).**
   - *Крок 1:* Збільшено таймаути real-worker/integration тестів (з 1000→15000, 3000→20000, journey-waits→25000); spellchecker race замінено на детерміноване `qtbot.waitUntil`/`waitSignal`.
   - *Крок 2:* Повністю усунено ризики xdist-нестабільності під повним паралельним навантаженням xdist (`-n auto` на 16 воркерах) без відключення паралелізму. Для цього:
-    - Піднято таймаути QThread-тестів життєвого циклу воркерів у [test_cancellable_workers.py](file:///d:/git/dev/Picoripi/tests/test_dialogs/test_cancellable_workers.py) та [test_real_workers_lifecycle.py](file:///d:/git/dev/Picoripi/tests/test_dialogs/test_real_workers_lifecycle.py) до `30000` (30 с) для компенсації піків CPU-контеншену.
-    - Адаптовано поріг виконання performance-тесту `test_spellcheck_scan_performance` у [test_performance.py](file:///d:/git/dev/Picoripi/tests/test_performance.py) до 800 мс, щоб усунути помилкові спрацьовування під час конкуренції за CPU.
-    - Переведено запуск `GlossaryOccurrenceWorker` у тесті `test_user_journey_glossary_crud_highlight` у [test_user_journeys.py](file:///d:/git/dev/Picoripi/tests/test_integration/test_user_journeys.py) у синхронний режим (`worker.run()`), оскільки цей journey-тест перевіряє інтеграційну бізнес-логіку, а не асинхронні потоки операційної системи. Це повністю зняло залежність від OS thread scheduling у даному тесті.
+    - Піднято таймаути QThread-тестів життєвого циклу воркерів у [test_cancellable_workers.py](../../tests/test_dialogs/test_cancellable_workers.py) та [test_real_workers_lifecycle.py](../../tests/test_dialogs/test_real_workers_lifecycle.py) до `30000` (30 с) для компенсації піків CPU-контеншену.
+    - Адаптовано поріг виконання performance-тесту `test_spellcheck_scan_performance` у [test_performance.py](../../tests/test_performance.py) до 800 мс, щоб усунути помилкові спрацьовування під час конкуренції за CPU.
+    - Переведено запуск `GlossaryOccurrenceWorker` у тесті `test_user_journey_glossary_crud_highlight` у [test_user_journeys.py](../../tests/test_integration/test_user_journeys.py) у синхронний режим (`worker.run()`), оскільки цей journey-тест перевіряє інтеграційну бізнес-логіку, а не асинхронні потоки операційної системи. Це повністю зняло залежність від OS thread scheduling у даному тесті.
   - *Результат:* 20 повних паралельних прогонів тестового сьюту (1343 unit-тести + 9 performance + ruff) пройшли зі 100% успішністю (**20/20 PASSED**).
   *Складність:* Середня. *Файли:* `tests/test_dialogs/`, `tests/test_integration/`, `tests/test_performance.py`, `test_all.ps1`.
 
@@ -644,10 +644,10 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 ### 8.13. Завершення AUD-T8 крок 2 та фінальна стабілізація (2026-06-22)
 
 Для досягнення 100% стабільності та детермінізму під повним паралельним навантаженням xdist (`pytest -n auto` на 16 воркерах) без відключення паралельного режиму (що є критичним для швидкості розробки) реалізовано:
-1. **Підвищення таймаутів до 30 секунд** для QThread-тестів життєвого циклу воркерів у [test_cancellable_workers.py](file:///d:/git/dev/Picoripi/tests/test_dialogs/test_cancellable_workers.py) та [test_real_workers_lifecycle.py](file:///d:/git/dev/Picoripi/tests/test_dialogs/test_real_workers_lifecycle.py) (`timeout=30000`). Це компенсує будь-які пікові CPU-голодування фонових Qt-потоків під час конкуренції з 16 xdist-воркерами.
-2. **Адаптація порогу виконання** у performance-тесті `test_spellcheck_scan_performance` ([test_performance.py](file:///d:/git/dev/Picoripi/tests/test_performance.py)) до 800 мс. Це запобігає помилковим падінням тесту, викликаним спільним навантаженням xdist на CPU під час ініціалізації чистих Python-словників бібліотеки `spylls`.
-3. **Синхронізація воркера в інтеграційному тесті:** В інтеграційному journey-тесті `test_user_journey_glossary_crud_highlight` ([test_user_journeys.py](file:///d:/git/dev/Picoripi/tests/test_integration/test_user_journeys.py)) переведено виклик `GlossaryOccurrenceWorker` у синхронний режим (`worker.run()`). Оскільки цей тест фокусується виключно на бізнес-логіці інтеграційного процесу побудови індексу глосарію, а не на поведінці потоків ОС, заміна `worker.start()` на `worker.run()` повністю прибрала нестабільність через OS thread scheduling.
-4. **Відновлення паралельного запуску:** Усі тести відновлено до запуску через `-n auto` у [test_all.ps1](file:///d:/git/dev/Picoripi/test_all.ps1).
+1. **Підвищення таймаутів до 30 секунд** для QThread-тестів життєвого циклу воркерів у [test_cancellable_workers.py](../../tests/test_dialogs/test_cancellable_workers.py) та [test_real_workers_lifecycle.py](../../tests/test_dialogs/test_real_workers_lifecycle.py) (`timeout=30000`). Це компенсує будь-які пікові CPU-голодування фонових Qt-потоків під час конкуренції з 16 xdist-воркерами.
+2. **Адаптація порогу виконання** у performance-тесті `test_spellcheck_scan_performance` ([test_performance.py](../../tests/test_performance.py)) до 800 мс. Це запобігає помилковим падінням тесту, викликаним спільним навантаженням xdist на CPU під час ініціалізації чистих Python-словників бібліотеки `spylls`.
+3. **Синхронізація воркера в інтеграційному тесті:** В інтеграційному journey-тесті `test_user_journey_glossary_crud_highlight` ([test_user_journeys.py](../../tests/test_integration/test_user_journeys.py)) переведено виклик `GlossaryOccurrenceWorker` у синхронний режим (`worker.run()`). Оскільки цей тест фокусується виключно на бізнес-логіці інтеграційного процесу побудови індексу глосарію, а не на поведінці потоків ОС, заміна `worker.start()` на `worker.run()` повністю прибрала нестабільність через OS thread scheduling.
+4. **Відновлення паралельного запуску:** Усі тести відновлено до запуску через `-n auto` у [test_all.ps1](../../test_all.ps1).
 
 **Результати фінального стрес-тестування:**
 Користувачем успішно запущено PowerShell-скрипт `run_stress_tests.ps1` на 20 повних послідовних прогонів усього тестового сьюту (1343 unit-тести + 9 performance + ruff) у повному паралельному режимі:
@@ -670,9 +670,9 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 
 ### 8.15. QA-перевірка AUD-A2/AUD-A3 (2026-06-23, декомпозиція TranslationHandler)
 
-**AUD-A2 (`TranslationHandler`) виконано та прийнято agent-2 після одного виправлення.** Великий координаційний клас у [translation_handler.py](file:///d:/git/dev/Picoripi/handlers/translation_handler.py) зменшено приблизно з 1770 до 1108 рядків; частину відповідальностей винесено в:
-1. **`TranslationProgressManager`** ([progress_manager.py](file:///d:/git/dev/Picoripi/handlers/translation/progress_manager.py)) — збереження/відновлення прогресу перекладу в metadata.
-2. **`AIBatchTranslator`** ([batch_translator.py](file:///d:/git/dev/Picoripi/handlers/translation/batch_translator.py)) — batch/chunk/preview/single success paths, cache restore та chunk-progress обробка.
+**AUD-A2 (`TranslationHandler`) виконано та прийнято agent-2 після одного виправлення.** Великий координаційний клас у [translation_handler.py](../../handlers/translation_handler.py) зменшено приблизно з 1770 до 1108 рядків; частину відповідальностей винесено в:
+1. **`TranslationProgressManager`** ([progress_manager.py](../../handlers/translation/progress_manager.py)) — збереження/відновлення прогресу перекладу в metadata.
+2. **`AIBatchTranslator`** ([batch_translator.py](../../handlers/translation/batch_translator.py)) — batch/chunk/preview/single success paths, cache restore та chunk-progress обробка.
 3. **`TranslationHandler`** лишився координатором і зберіг proxy-методи (`_handle_chunk_translated`, `_handle_preview_translation_success`, `_handle_single_translation_success`) для старих тестів/зовнішніх викликів.
 
 **Agent-2 знайшов і виправив суміснісну регресію:** після переносу `_resolve_base_timeout()` перестав поважати `provider.settings['timeout']` і повертав default `90` замість старого значення (наприклад, `47`). Виправлено в `AIBatchTranslator._resolve_base_timeout`: валідний `provider.settings['timeout']` знову має пріоритет; додано regression-тест `test_th_resolve_base_timeout_uses_provider_settings`.
@@ -696,17 +696,17 @@ Post-review уточнення: сценарій Glossary CRUD & Highlight те�
 **AUD-A3 та AUD-A4 повністю виконано та успішно верифіковано.**
 
 1. **Завдання AUD-A4 (mock-guards):**
-   - Повністю вилучено 5 mock-guards `hasattr(..., 'assert_called_with')` з продуктового коду ([translation_handler.py](file:///d:/git/dev/Picoripi/handlers/translation_handler.py) та [batch_translator.py](file:///d:/git/dev/Picoripi/handlers/translation/batch_translator.py)).
+   - Повністю вилучено 5 mock-guards `hasattr(..., 'assert_called_with')` з продуктового коду ([translation_handler.py](../../handlers/translation_handler.py) та [batch_translator.py](../../handlers/translation/batch_translator.py)).
    - Продуктовий код тепер повністю чистий від mock-specific конструкцій. Перевірки типів на рівні бізнес-логіки (наприклад, `isinstance(..., dict)`) природно відсікають `MagicMock` об'єкти в тестах, що дозволяє їм проходити коректно без спеціальних mock-guards.
 
 2. **Завдання AUD-A3 (декомпозиція великих класів):**
-   - **`SearchReviewDialog`** ([search_review_dialog.py](file:///d:/git/dev/Picoripi/dialogs/search_review_dialog.py)):
-     - Створено пакет [dialogs/search/](file:///d:/git/dev/Picoripi/dialogs/search/).
-     - Винесено `SearchWorker` у [search_worker.py](file:///d:/git/dev/Picoripi/dialogs/search/search_worker.py) та допоміжні чисті функції пошуку в [search_utils.py](file:///d:/git/dev/Picoripi/dialogs/search/search_utils.py).
+   - **`SearchReviewDialog`** ([search_review_dialog.py](../../dialogs/search_review_dialog.py)):
+     - Створено пакет [dialogs/search/](../../dialogs/search).
+     - Винесено `SearchWorker` у [search_worker.py](../../dialogs/search/search_worker.py) та допоміжні чисті функції пошуку в [search_utils.py](../../dialogs/search/search_utils.py).
      - Додано імпорти та ре-експорти винесених класів та функцій для збереження зворотної сумісності.
-   - **`MainWindowActions`** ([main_window_actions.py](file:///d:/git/dev/Picoripi/ui/main_window/main_window_actions.py)):
-     - Створено [tag_alias_dialog.py](file:///d:/git/dev/Picoripi/dialogs/tag_alias_dialog.py) для `TagAliasDialog` та `AliasUpdateWorker`.
-     - Створено допоміжні класи [bfn_actions.py](file:///d:/git/dev/Picoripi/ui/main_window/bfn_actions.py) та [mempalace_actions.py](file:///d:/git/dev/Picoripi/ui/main_window/mempalace_actions.py) для винесення методів роботи з BFN Font Editor та діалогами MemePalace відповідно.
+   - **`MainWindowActions`** ([main_window_actions.py](../../ui/main_window/main_window_actions.py)):
+     - Створено [tag_alias_dialog.py](../../dialogs/tag_alias_dialog.py) для `TagAliasDialog` та `AliasUpdateWorker`.
+     - Створено допоміжні класи [bfn_actions.py](../../ui/main_window/bfn_actions.py) та [mempalace_actions.py](../../ui/main_window/mempalace_actions.py) для винесення методів роботи з BFN Font Editor та діалогами MemePalace відповідно.
      - До головного класу `MainWindowActions` інтегровано нові хелпери, куди делегуються відповідні виклики. Збережено повну зворотну сумісність з існуючим кодом та тестами завдяки імпортам та ре-експорту аліас-діалогу.
      - Розмір файлу `main_window_actions.py` зменшено приблизно на 650 рядків.
 

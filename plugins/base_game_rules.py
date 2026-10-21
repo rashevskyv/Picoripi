@@ -200,6 +200,24 @@ class BaseGameRules:
     def reset_runtime_state(self) -> None:
         """Forget the loading state: a new file or project is about to be loaded."""
 
+    def session_data_layout(self) -> Optional[int]:
+        """The version of the message rows this game's session holds, or None (default) for no versioning.
+
+        A game that changes what a row holds bumps the number. The session manager stamps the version on every
+        session it saves. A session stamped with another version, or with none, goes through
+        ``migrate_session_snapshot`` before it is restored.
+        """
+        return None
+
+    def migrate_session_snapshot(self, snapshot: dict) -> dict:
+        """Map a session saved with another layout to the current rows.
+
+        Return the snapshot with ``data_layout`` set to ``session_data_layout()`` when the rows can be used. Return
+        it without that key to refuse it: the project then opens from its files. Default: unchanged, which refuses
+        a session that has no matching layout.
+        """
+        return snapshot
+
     def set_load_role(self, role: str) -> None:
         """``"translation"`` while the host parses a translation file with ``load_data_from_json_obj`` (the project
         load, the changes file, the re-parse after a save or a revert, the Project Manager's counts), ``"source"``

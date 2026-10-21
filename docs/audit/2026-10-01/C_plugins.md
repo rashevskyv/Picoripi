@@ -62,7 +62,7 @@ Per-plugin file sizes (lines): `rules.py` 187–245 (bmg 1692), `config.py` 54�
 - *BMG parser* is a top-level module `bmg_tool.py` imported by core (`save_mixin.py:109`) — a Nintendo format in the host, not the plugin.
 - *Host imports a plugin*: `ui/components/bfn_preview/{chrome.py:131, geometry_mixin.py:127,154, paint_mixin.py:160,165,185,201,251,692}` import `plugins.zelda_bmg.window_kinds` / `window_frame_loader`; `handlers/text_autofix_logic.py:44` instantiates `plugins.zelda_mc.rules.GameRules` as the fallback ruleset. The BFN preview is therefore a Twilight Princess preview with a generic facade.
 - *Language*: target language is a global (`target_language`, default `"Ukrainian"`, `glossary_prompt_manager.py:277-279`); plugin prompts hard-code "(UA)" in action labels (`zelda_mc/rules.py:130-148`); reference-language default `"Russian (RU)"` (`base_game_rules.py:260`, `plugin_settings.py:197`). Acceptable for this user, but not a plugin axis.
-- 278 host lines mention zelda/bmg/pokemon/kruptar (`grep -rniE` over core/handlers/ui/utils); hotspots `bfn_actions.py` (48), `save_mixin.py` (29), `plugin_tabs_mixin.py` (20), `script_speaker_finder.py:72` (a literal `e:\Emulators\RomHacking\ZELDA\TP_UA\zelda_tp_script.txt`).
+- 278 host lines mention zelda/bmg/pokemon/kruptar (`grep -rniE` over core/handlers/ui/utils); hotspots `bfn_actions.py` (48), `save_mixin.py` (29), `plugin_tabs_mixin.py` (20), `script_speaker_finder.py:72` (a literal zelda_tp_script.txt).
 - Positive: the "slots not values" rule is enforced by `tests/test_plugins/test_plugin_capability_contract.py:25-37` for 3 engine modules; `core/translation/layout_contract.py:26-45` is a good model of a tolerant hook call.
 
 ## 4. Config & data

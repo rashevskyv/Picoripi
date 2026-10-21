@@ -164,7 +164,7 @@ These are logs, not working docs. They exist because of the Junior/Senior (`audi
 | `.agents/workflows/deploy.md` | Duplicates the deploy skill with different text; merge |
 | `.agents/workflows/graphify.md` | Depends on `~/.gemini/…`; delete |
 | `.agents/rules/graphify.md` | The best graph rule; make it the single source |
-| `.claude/settings.local.json` | 3.4KB of stale permissions: a pasted commit message, `git filter-repo`, `C:\Users\Administrator` paths. Local file; gitignore and delete |
+| `.claude/settings.local.json` | 3.4KB of stale permissions: a pasted commit message, `git filter-repo`, Administrator paths. Local file; gitignore and delete |
 | `.grok/` (40 md + 2 py, 248KB) | Finished split specs and results. It also holds `_line_numbered_text_edit_original.py` (45KB) and `merge_bfn_uk.py`, which pollute grep and the graph. Archive or delete |
 | `gemini/` (1.7MB) | An old copy of the codebase with 5 md files. It is untracked, but sits in the workspace. Delete or exclude |
 | `tools/` | 3 py scripts, `i18n-translate/` (6 files) and `bfn_editor/` (26 files). `bfn_editor` is product code, not a tool; consider moving it to `components/` or `ui/` |

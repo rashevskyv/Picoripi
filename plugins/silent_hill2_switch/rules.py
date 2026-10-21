@@ -41,6 +41,9 @@ class GameRules(PcGameRules):
     def get_display_name(self) -> str:
         return "Silent Hill 2 (Switch, Ukrainian)"
 
+    def get_platforms(self) -> List[Dict[str, str]]:
+        return [{"id": "3ds", "label": tr("Nintendo 3DS")}]
+
     def get_build_targets(self) -> List[Dict[str, Any]]:
         return [{"id": SH23DS_TARGET, "label": tr("sh23ds 3DS port: Ukrainian messages and font"),
                  "platforms": ["3ds"], "kind": "files"}]

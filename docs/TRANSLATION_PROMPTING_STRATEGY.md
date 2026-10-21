@@ -291,7 +291,7 @@ plugins/<game>/
 - [ ] **P3.2** Перекомпонувати запит під context caching (незмінний префікс L1+L2 спереду).
 
 ### Пріоритет 4 — гігієна
-- [ ] **P4.1** Прибрати хардкод-шлях `e:\Emulators\...zelda_tp_script.txt` із `ScriptSpeakerFinder.find_script_path` (рядок ~72) — суто на пошук за `get_default_script_name`.
+- [ ] **P4.1** Прибрати хардкод-шлях ...zelda_tp_script.txt із `ScriptSpeakerFinder.find_script_path` (рядок ~72) — суто на пошук за `get_default_script_name`.
 
 ---
 

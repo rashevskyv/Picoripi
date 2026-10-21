@@ -27,6 +27,8 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | `export_runtime_state` | What the plugin learned while loading and needs again to save (plain JSON data). |  |
 | `restore_runtime_state` | Take back what export_runtime_state returned. |  |
 | `reset_runtime_state` | Forget the loading state before a new file or project is loaded. |  |
+| `session_data_layout` | Version of the message rows the session holds, or None for no versioning. A session stamped with another version, or none, goes through migrate_session_snapshot before restore. |  |
+| `migrate_session_snapshot` | Map a session saved with another layout to the current rows: return it stamped with session_data_layout(), or without the stamp to refuse it. Default: unchanged. |  |
 | `set_load_role` | "translation" while the host parses a translation file, "source" after: a source file that also holds the translation returns the right language. |  |
 | `prepare_save_context` | Called before save_data_to_json_obj for each project file, with a core.formats.SaveContext. |  |
 | `get_text_representation_for_editor` | Stored text of one subline as shown in the editor (tags to aliases). |  |

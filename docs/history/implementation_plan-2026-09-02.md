@@ -63,7 +63,7 @@
 
 ### [Component: Core / Translation]
 
-#### [MODIFY] [script_speaker_finder.py](file:///d:/git/dev/Picoripi/core/translation/script_speaker_finder.py)
+#### [MODIFY] [script_speaker_finder.py](../../core/translation/script_speaker_finder.py)
 *   Оновити функцію `line_strip_is_speaker` для виявлення імен спікерів, які супроводжуються ремарками в круглих дужках:
     ```python
     def line_strip_is_speaker(s: str) -> bool:
@@ -77,7 +77,7 @@
 
 ### [Component: UI / Updaters]
 
-#### [MODIFY] [string_settings_updater.py](file:///d:/git/dev/Picoripi/ui/updaters/string_settings_updater.py)
+#### [MODIFY] [string_settings_updater.py](../../ui/updaters/string_settings_updater.py)
 *   Оновити метод `_apply_normalized_story_speaker` для інтеграції пріоритетів спікерів:
     *   Якщо `speakers` з нормалізованої проекції порожні:
         1.  Спробувати отримати спікера зі скрипту: `ssf.find_speaker_in_script(block_idx, string_idx, text, wing_name, block_label)`.
@@ -86,12 +86,12 @@
 
 ### [Component: Core / Story Inspector]
 
-#### [MODIFY] [story_inspector.py](file:///d:/git/dev/Picoripi/core/story_inspector.py)
+#### [MODIFY] [story_inspector.py](../../core/story_inspector.py)
 *   Додати збір збігів термінів глосарію (переклади та нотатки) для слів у рядку та для спікерів / учасників подій. Повертати їх у полі `glossary_entries`.
 
 ### [Component: UI / Dialogs]
 
-#### [MODIFY] [story_timeline_dialog.py](file:///d:/git/dev/Picoripi/ui/story_timeline_dialog.py)
+#### [MODIFY] [story_timeline_dialog.py](../../ui/story_timeline_dialog.py)
 *   Додати відображення секції `📖 Glossary Info` у HTML з форматированием Markdown для нотаток.
 
 ---

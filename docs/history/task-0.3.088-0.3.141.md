@@ -202,7 +202,7 @@
   - Оновлено документацію (`README.md`, `GEMINI.md`, `docs/wiki/11_AI_Translation.md`, `docs/wiki/uk/11_AI_Translation.md`).
   - Оновлено тестові фікстури у `tests/conftest.py` та `tests/test_performance.py`.
   - Ітерація версії до `0.3.119-dev`.
-- [x] 38. Уніфікація форм Hyrule / Hylia / Hylian у поточному робочому просторі проєкту (`E:\Emulators\RomHacking\ZELDA\TP_UA\TwilihhtPrincess\glossary.json`):
+- [x] 38. Уніфікація форм Hyrule / Hylia / Hylian у поточному робочому просторі проєкту (glossary.json):
   - Виправлено всі 85 записів із формами «хайрул*», «хайлі*», «гілі*», «хілі*» у файлі `TwilihhtPrincess/glossary.json` (де раніше зберігався локальний робочий файл проєкту з `baby bass -> мальок хайрульського окуня`).
   - Оновлено `baby bass` (переклад: «мальок гайрульського окуня», варіанти: «мальок гайрульського окуня», «маленький гайрульський окунь», опис у нотатках).
   - Оновлено `The Legend of the Hylian Loach: Twilight Fish` («Легенда про гайлійського в'юна: Сутінкова риба»), `HYLIAN SOLDIER #5`, `HYLIAN GUARD #2`, `HYLIAN GUARD #4`, `HYLIAN WOMAN #1`, `eastern Hyrule` («Східний Гайрул»).

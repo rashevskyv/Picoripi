@@ -4,8 +4,10 @@ The snapshots are built here from synthetic message files; no game data is read.
 """
 from types import SimpleNamespace
 
-from core.data_processor.session_manager import SESSION_DATA_LAYOUT, SessionManager
+from core.data_processor.session_manager import SessionManager
+from plugins.base_game_rules import BaseGameRules
 from plugins.silent_hill2_pc import mes, mes_legacy
+from plugins.silent_hill2_pc.rules import SESSION_DATA_LAYOUT
 from plugins.silent_hill2_pc.rules import GameRules as PcRules
 from plugins.silent_hill2_switch.rules import GameRules as SwitchRules
 
@@ -74,6 +76,14 @@ def test_session_manager_leaves_a_current_session_alone_and_other_games_too():
     manager = SessionManager(SimpleNamespace(mw=SimpleNamespace(current_game_rules=PcRules())))
     current = {"data_layout": SESSION_DATA_LAYOUT, "data": []}
     assert manager._upgrade_session_layout(current) is current
-    other = SessionManager(SimpleNamespace(mw=SimpleNamespace(current_game_rules=object())))
+    other = SessionManager(SimpleNamespace(mw=SimpleNamespace(current_game_rules=BaseGameRules())))
     old = {"data": [["a"]]}
     assert other._upgrade_session_layout(old) is old
+
+
+def test_session_manager_stamps_only_a_plugin_that_declares_a_layout():
+    pc = SessionManager(SimpleNamespace(mw=SimpleNamespace(current_game_rules=PcRules())))
+    stamped = pc._attach_runtime_session_state({"data": []})
+    assert stamped["data_layout"] == SESSION_DATA_LAYOUT
+    plain = SessionManager(SimpleNamespace(mw=SimpleNamespace(current_game_rules=BaseGameRules())))
+    assert "data_layout" not in plain._attach_runtime_session_state({"data": []})

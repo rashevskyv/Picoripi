@@ -600,6 +600,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 - Series glossary: a project can link one glossary shared by a game series (`project.metadata["series_glossary"]`, files in `~/.picoripi/series_glossaries/`). **Glossary… → Series Glossary...** creates, links or imports one (a `{"terms": [...]}` multi-source document is converted, keeping per-source variants and status); the Glossary window shows it as a **Series: <name>** tab with the same editing and search, **Copy to Project Glossary** / **Promote to Series Glossary** for the selected terms, and terms the two glossaries translate differently marked red in both. AI prompts add series rows, marked lower priority, only for terms the project glossary does not translate; glossary builds never write the series file.
 - Sly Cooper: the option table left `plugins/sly_cooper/tables.py` (licence of ProjectCane unverified; schema not shipped). `load_option_schema()` reads it from a local file given by the caller; `read_tables()` needs that schema and refuses without it.
+- Session layout is plugin-owned: `session_data_layout()` and `migrate_session_snapshot()` hooks replace the core constant. Sessions of other games carry no `data_layout` key; the SH2 PC plugin declares layout 2; the SH2 Switch plugin declares the 3DS platform for its sh23ds target.
 
 ## [0.3.151-dev] - 2026-10-03
 

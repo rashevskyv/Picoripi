@@ -55,7 +55,7 @@ Automatable checks that are not written yet are agent work and live in `docs/OPE
 - **Test junk in `plugins/pokemon_fr/config.json` `context_menu_tags`** (`{boba}`, `<biba>`, an emoji). Delete?
 - **A typing `Protocol` for the plugin contract (WP5 5.1).** The contract is the `HOOKS` table in
   `plugins/spec.py`, kept honest by two tests. Recommendation: no Protocol unless a type checker is used.
-- **The proxy branch `audit/wp8`** (worktree `D:\git\dev\gemini-web2api-wp8`). Tested with a stubbed Gemini
+- **The proxy branch `audit/wp8`** (worktree gemini-web2api-wp8). Tested with a stubbed Gemini
   (`test_rq_wp078_proxy_e2e.py`, 12 tests in the worktree's `tests/test_rq_wp078_proxy.py`, uncommitted).
   It also passed the live run (LIVE below). Recommendation: merge now; set `"host": "0.0.0.0"` first if a phone, Docker or
   the tunnel reaches it, keep `api_keys`; check the token-like placeholder in the uncommitted
@@ -63,11 +63,11 @@ Automatable checks that are not written yet are agent work and live in `docs/OPE
 - **Documents to skim once.** `README.md` (what a newcomer reads first), `AGENTS.md` (12 rules, language
   policy), `docs/DECISIONS.md` (2026 H1 dates are approximate), `docs/wiki/3_Plugin_Developer_Guide.md` (the
   only plugin guide now), `docs/history/` (nothing used daily moved there?).
-- **The holding folder** `D:\git\dev\Picoripi_local_cleanup_2026-10-01` (562 MB) — look through, then delete.
+- **The holding folder** Picoripi_local_cleanup_2026-10-01 (562 MB) — look through, then delete.
 
 ## LIVE
 
-The owner's working project is `E:\Emulators\RomHacking\Zelda\Twilight Princess\GC + Wii\picoripi`; runs use copies of it
+The owner's working project is picoripi; runs use copies of it
 and of `ISO\ENG\root\res\Msgus` (the project's source and translation folder), never the originals.
 
 - **Done 2026-10-03 — old build vs new build on the real model** (old proxy, `gemini-3.7-flash`, 4 workers,

@@ -15,6 +15,10 @@ from . import mes, mes_legacy
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
+# Layout of the message rows a session holds. 2: the rows read the table's word 1 (the message table fix). A session
+# without this layout was written before the fix; migrate_session_snapshot maps its rows.
+SESSION_DATA_LAYOUT = 2
+
 
 class GameRules(BaseGameRules):
     """Silent Hill 2 (PC data, Enhanced Edition packs or the retail data; Switch homebrew reads the same files)."""
@@ -78,14 +82,17 @@ class GameRules(BaseGameRules):
         """(encode the old rows, decode the new messages) for this plugin's role."""
         return mes_legacy.legacy_encode, mes.decode
 
+    def session_data_layout(self) -> Optional[int]:
+        return SESSION_DATA_LAYOUT
+
     def migrate_session_snapshot(self, snapshot: dict) -> dict:
-        """Maps a session saved before the message table fix (no data_layout key) to the current rows.
+        """Maps a session saved before the message table fix (another or no data_layout) to the current rows.
 
         Each block's rows are re-read from their bytes (mes_legacy.migrate_block). Edits move with their message.
         An edit to the merged row is kept only when its byte count did not change; otherwise it is dropped, with a
         log line. Selection, undo and problem marks of a migrated block are cleared. Returns the snapshot.
         """
-        snapshot["data_layout"] = 2   # SESSION_DATA_LAYOUT of core/data_processor/session_manager.py
+        snapshot["data_layout"] = self.session_data_layout()
         data = snapshot.get("data")
         if not isinstance(data, list):
             return snapshot
