@@ -94,18 +94,16 @@ def fit(samples: Sequence[int], slot_count: int) -> List[int]:
 
 
 def decode_clip(read_raw: Callable[[int], bytes], lbas: Sequence[int]) -> List[int]:
-    out: List[int] = []
-    for lba in lbas:
-        out.extend(xa.decode_sector(read_raw(lba)))
-    return out
+    """The clip's samples, one filter history across its slots."""
+    return xa.decode_clip([read_raw(lba) for lba in lbas])
 
 
 def write_clip(disc: BinaryIO, raw_size: int, lbas: Sequence[int], samples: Sequence[int]) -> None:
-    """Write the samples into the slot sectors of an open .bin (raw 2352-byte sectors, in place)."""
-    padded = fit(samples, len(lbas))
-    step = xa.SECTOR_SAMPLES
-    for n, lba in enumerate(lbas):
+    """Encode the samples into the slot sectors of an open .bin (raw 2352-byte sectors, in place)."""
+    fit(samples, len(lbas))                       # refuses a clip that is too long
+    blobs = xa.encode_clip(samples, len(lbas))
+    for lba, blob in zip(lbas, blobs):
         disc.seek(lba * raw_size)
         raw = disc.read(raw_size)
         disc.seek(lba * raw_size)
-        disc.write(xa.write_sector(raw, padded[n * step:(n + 1) * step]))
+        disc.write(xa.write_sector(raw, blob))

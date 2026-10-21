@@ -1,16 +1,19 @@
 """PS1 CD-XA ADPCM for the Lunar voice channel: mono, 37.8 kHz, 4-bit, one sector = 4032 samples.
 
-A Form 2 audio sector holds 18 sound groups of 128 bytes at raw offset 0x18: 16 parameter bytes (8 units,
-then the same 8 again), then 28 rows of 4 bytes. Row i holds one nibble per unit (unit u in byte u >> 1,
-low nibble for even u). Unit u holds 28 samples in row order; the units follow each other in time.
-Sample = (nibble << 12) >> shift, then the filter adds the two previous samples (filter 0 adds nothing).
+A Form 2 audio sector holds 18 sound groups of 128 bytes at raw offset 0x18: 16 parameter bytes (one per
+unit, shift in the low nibble and filter in the high nibble: units 0-3 at bytes 0-3, units 4-7 at bytes
+8-11, each copied 4 bytes later; see ``_param_at``), then 28 rows of 4 bytes.
+Row i holds one nibble per unit (unit u in byte u >> 1, low nibble for even u). Unit u holds 28 samples in
+row order, and the 8 units of a group follow each other in time. Each sample is
+``(nibble << 12) >> shift`` plus a prediction from the two previous decoded samples (filter 0..3).
 
-The encoder writes filter 0 only: quality is low (about 4 bits per sample without prediction).
-ponytail: filter 0 only, add the PS-X filters 1-4 when the voice quality matters.
+The filter history runs across sectors: a decoder or an encoder must keep ``state`` from one sector to the
+next. ``encode_clip`` searches all four filters and all shifts of each unit and keeps the one with the
+least squared error against the decoded result (the same arithmetic as ``decode_sector``).
 """
 from __future__ import annotations
 
-from typing import List
+from typing import List, Sequence
 
 RATE = 37800
 UNITS = 8
@@ -40,6 +43,12 @@ def _clamp(v: int) -> int:
     return max(-32768, min(32767, v))
 
 
+def _param_at(unit: int) -> int:
+    """Byte of the group's parameter block that holds ``unit``'s parameter: units 0-3 at bytes 0-3, units
+    4-7 at bytes 8-11; the same byte + 4 holds the copy (bytes 4-7 and 12-15)."""
+    return unit if unit < 4 else unit + 4
+
+
 def edc(data: bytes) -> int:
     value = 0
     for byte in data:
@@ -57,18 +66,18 @@ def subheader(raw: bytes):
     return raw[0x10], raw[0x11], raw[0x12], raw[0x13]
 
 
-def decode_sector(raw: bytes) -> List[int]:
-    """The 4032 mono samples of one audio sector (filter 0 only is decoded exactly; others are handled)."""
+def decode_sector(raw: bytes, state: List[int]) -> List[int]:
+    """The 4032 mono samples of one audio sector. ``state`` = [previous, older] decoded sample (kept)."""
     if len(raw) != RAW:
         raise XaError("not a raw sector")
     out: List[int] = []
-    old = [0, 0]
     for g in range(GROUPS):
         base = AUDIO + g * 128
-        params = raw[base:base + 8]
+        params = raw[base:base + 16]
         data = raw[base + 16:base + 128]
         for u in range(UNITS):
-            shift, filt = params[u] & 0x0F, (params[u] >> 4) & 0x0F
+            p = params[_param_at(u)]
+            shift, filt = p & 0x0F, (p >> 4) & 0x0F
             if shift > 12:
                 shift = 9
             for i in range(UNIT_SAMPLES):
@@ -76,53 +85,89 @@ def decode_sector(raw: bytes) -> List[int]:
                 nib = (byte >> 4) & 0xF if u & 1 else byte & 0xF
                 s = nib - 16 if nib >= 8 else nib
                 s = (s << 12) >> shift
-                v = _clamp(s + ((old[0] * _POS[filt] + old[1] * _NEG[filt] + 32) >> 6))
-                old[1], old[0] = old[0], v
+                v = _clamp(s + ((state[0] * _POS[filt] + state[1] * _NEG[filt] + 32) >> 6))
+                state[1], state[0] = state[0], v
                 out.append(v)
     return out
 
 
-def _unit_shift(samples: List[int]) -> int:
-    """The largest shift whose step still fits every sample (finest quantisation that does not clip)."""
-    peak = max(abs(s) for s in samples) if samples else 0
-    for shift in range(12, -1, -1):
-        if peak <= 7.5 * (1 << (12 - shift)):
-            return shift
-    return 0
+def decode_clip(sectors: Sequence[bytes]) -> List[int]:
+    """All samples of consecutive audio sectors, with one filter history."""
+    state = [0, 0]
+    out: List[int] = []
+    for raw in sectors:
+        out.extend(decode_sector(raw, state))
+    return out
 
 
-def encode_sector_audio(samples: List[int]) -> bytes:
-    """2304 bytes of sound groups for up to 4032 samples (the rest is silence)."""
-    if len(samples) > SECTOR_SAMPLES:
-        raise XaError("more samples than one sector holds")
-    pcm = list(samples) + [0] * (SECTOR_SAMPLES - len(samples))
-    out = bytearray()
-    for g in range(GROUPS):
-        group = pcm[g * GROUP_SAMPLES:(g + 1) * GROUP_SAMPLES]
-        params = bytearray(16)
-        data = bytearray(112)
-        for u in range(UNITS):
-            unit = group[u * UNIT_SAMPLES:(u + 1) * UNIT_SAMPLES]
-            shift = _unit_shift(unit)
-            params[u] = params[8 + u] = shift
+def _search_unit(unit: Sequence[int], state: List[int]):
+    """Best (error, filter, shift, nibbles, decoded) of one unit against the history in ``state``."""
+    best = None
+    for filt in range(4):
+        pos, neg = _POS[filt], _NEG[filt]
+        for shift in range(12, -1, -1):
             step = 1 << (12 - shift)
-            for i, x in enumerate(unit):
-                nib = max(-8, min(7, round(x / step))) & 0xF
-                pos = i * 4 + (u >> 1)
-                if u & 1:
-                    data[pos] = (data[pos] & 0x0F) | (nib << 4)
-                else:
-                    data[pos] = (data[pos] & 0xF0) | nib
-        out += params + data
-    return bytes(out)
+            o1, o2 = state[0], state[1]
+            err = 0
+            nibs = []
+            dec = []
+            for x in unit:
+                pred = (o1 * pos + o2 * neg + 32) >> 6
+                nib = max(-8, min(7, round((x - pred) / step)))
+                v = _clamp(nib * step + pred)
+                err += (x - v) * (x - v)
+                nibs.append(nib)
+                dec.append(v)
+                o2, o1 = o1, v
+            if best is None or err < best[0]:
+                best = (err, filt, shift, nibs, dec)
+    return best
 
 
-def write_sector(raw: bytes, samples: List[int]) -> bytes:
-    """The raw sector with its audio replaced; header, subheader and the rest stay as they were."""
+def encode_clip(samples: Sequence[int], sectors: int) -> List[bytes]:
+    """Audio bytes (2304 each) for ``sectors`` sectors holding ``samples`` (silence after them).
+
+    Raises XaError if the samples do not fit. Encoding keeps the filter history across sectors, the same
+    as the decoder, so ``decode_clip`` of the result gives back what the encoder decoded.
+    """
+    if len(samples) > sectors * SECTOR_SAMPLES:
+        raise XaError("more samples than the sectors hold")
+    pcm = list(samples) + [0] * (sectors * SECTOR_SAMPLES - len(samples))
+    state = [0, 0]
+    blobs: List[bytes] = []
+    pos = 0
+    for _ in range(sectors):
+        out = bytearray()
+        for _g in range(GROUPS):
+            params = bytearray(16)
+            data = bytearray(112)
+            for u in range(UNITS):
+                unit = pcm[pos:pos + UNIT_SAMPLES]
+                pos += UNIT_SAMPLES
+                _err, filt, shift, nibs, dec = _search_unit(unit, state)
+                at = _param_at(u)
+                params[at] = params[at + 4] = shift | (filt << 4)
+                for i, nib in enumerate(nibs):
+                    idx = i * 4 + (u >> 1)
+                    if u & 1:
+                        data[idx] = (data[idx] & 0x0F) | ((nib & 0xF) << 4)
+                    else:
+                        data[idx] = (data[idx] & 0xF0) | (nib & 0xF)
+                for v in dec:
+                    state[1], state[0] = state[0], v
+            out += params + data
+        blobs.append(bytes(out))
+    return blobs
+
+
+def write_sector(raw: bytes, audio: bytes) -> bytes:
+    """The raw sector with its 2304 audio bytes replaced. Header and subheader stay; EDC is recomputed."""
     if not is_audio(raw):
         raise XaError("not an audio sector")
+    if len(audio) != AUDIO_LEN:
+        raise XaError("audio must be 2304 bytes")
     sector = bytearray(raw)
-    sector[AUDIO:AUDIO + AUDIO_LEN] = encode_sector_audio(samples)
+    sector[AUDIO:AUDIO + AUDIO_LEN] = audio
     if any(sector[EDC_AT:EDC_AT + 4]):
         sector[EDC_AT:EDC_AT + 4] = edc(bytes(sector[0x10:EDC_AT])).to_bytes(4, "little")
     return bytes(sector)
