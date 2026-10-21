@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Wario Land: Shake It! (Wii, USA) plugin (`plugins/wario_land_shake_it`, in progress): identifies the USA disc (RWLE01 rev 0); extracts the English message packs and writes one text document per BMG file; saves messages with the game's escape codes; builds a Riivolution patch and Dolphin descriptor. Fonts, textures and other languages are not in this version.
 - Good-Feel GFAC archives with GFCP (BPE) payloads: `core/containers/gfac.py` reads and writes them (byte-identical for untouched packs); tests in `tests/test_core/test_gfac.py`.
 - Conker's Bad Fur Day (N64, USA) plugin (`plugins/conker_bfd`, in progress): identifies the pinned US ROM; reads its asset banks and RZIP entries; opens the text tables of banks 0x1A and 0x1C (menu, chapters, credits) with a byte-exact round trip and `[@hh]` tags for inline codes; writes the 95-glyph font as PGM sources and the 453 voice streams as MP3 files with their L: cue index; gives the width of a text line from the decompiled glyph metrics (not yet checked in an emulator frame); the ROM build is not implemented.
 - Start: when Qt (PyQt6) cannot be imported (for example "DLL load failed while importing QtCore: The specified procedure could not be found" on Windows), `main.py` prints the steps to try (Visual C++ runtime, a Qt copy earlier in PATH, reinstall of the packages) before it fails (`utils/qt_import_hint.py`, test `tests/test_qt_import_hint.py`); README has the same note.
