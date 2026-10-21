@@ -36,8 +36,15 @@ def test_the_layout_gives_its_letters_their_code_and_latin_look_alikes_too():
     assert csv_text.from_csv("А") == bytes([codec.UA_SLOTS["А"]])     # without a layout: the codec's own cells
 
 
-def test_a_sign_without_a_glyph_has_its_fallback():
-    assert csv_text.from_csv("Ь", LAYOUT) == csv_text.from_csv("ь", LAYOUT)
+def test_the_three_new_cells_hold_the_letters_that_had_none():
+    assert csv_text.from_csv("Ь", LAYOUT) == bytes([0x40])
+    assert csv_text.from_csv("Ґ", LAYOUT) == bytes([0x68])
+    assert csv_text.from_csv("ґ", LAYOUT) == bytes([0x3E])
+    assert codec.decode(bytes([0x40, 0x68, 0x3E]), LAYOUT) == "ЬҐґ"
+    assert csv_text.from_csv("ь", LAYOUT) != bytes([0x40])
+
+
+def test_a_dash_without_a_glyph_has_its_fallback():
     assert csv_text.from_csv("—", LAYOUT) == csv_text.from_csv("-", LAYOUT)
 
 
@@ -74,6 +81,23 @@ def test_a_translation_bank_with_a_layout_decodes_and_saves_with_it():
     assert saved["layout"] == LAYOUT
     assert saved["strings"][1] == codec.encode("Бб", layout_name=LAYOUT).hex()
     assert saved["strings"][0] == strings[0]
+
+
+def test_a_reference_bank_is_shown_by_block_and_string(tmp_path):
+    winner = {"format": TEXT_FORMAT, "game": "dos", "regions": [["Names", 0, 1], ["Events", 2, 2]],
+              "strings": [bytes([0x21]).hex(), bytes([0x40]).hex(), bytes([0x23]).hex()], "layout": LAYOUT}
+    rules = load_rules(PLUGIN)
+    rules.load_data_from_json_obj(winner)
+    folder = tmp_path / "UA_CSV"
+    folder.mkdir()
+    reference = {**winner, "strings": [bytes([0x22]).hex(), bytes([0x40]).hex(), bytes([0x21]).hex()]}
+    (folder / "strings.cvdstext").write_text(json.dumps(reference), encoding="utf-8")
+    assert rules.supports_reference_patch() is True
+    assert rules.get_reference_language_label() == "UA CSV"
+    assert rules.load_reference_patch(str(folder)) == {(0, 0): "В", (0, 1): "Ь", (1, 0): "А"}
+    short = tmp_path / "short.cvdstext"
+    short.write_text(json.dumps({**reference, "strings": [bytes([0x22]).hex()]}), encoding="utf-8")
+    assert rules.load_reference_patch(str(short)) == {}
 
 
 # -- real data ------------------------------------------------------------------------------------------------

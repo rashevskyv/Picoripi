@@ -13,6 +13,7 @@ A project's source folder holds what ``1_unpack.bat`` of the workspace takes out
 """
 import json
 import re
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from core.i18n import tr
@@ -82,6 +83,37 @@ class GameRules(BaseGameRules):
 
     def get_font_sources(self) -> List[Dict[str, Any]]:
         return font_descriptors()
+
+    # -- reference column: the CSV text of a project, kept beside the translation -----------------------------
+
+    def supports_reference_patch(self) -> bool:
+        return True
+
+    def get_reference_language_label(self) -> str:
+        return tr("UA CSV")
+
+    def load_reference_patch(self, patch_path: str, block_names=None) -> Dict[Tuple[int, int], str]:
+        """The strings of a reference bank (a folder with ``strings.cvdstext``, or the file) by (block, string).
+
+        The bank must have the same regions as the loaded translation; another count is refused.
+        """
+        path = Path(patch_path)
+        if path.is_dir():
+            path = path / unpack.TEXT_FILE
+        bank = json.loads(path.read_text(encoding="utf-8-sig"))
+        if not (isinstance(bank, dict) and bank.get("format") == TEXT_FORMAT):
+            log_warning(f"castlevania_ds: {path.name} is not a string bank; the reference is not shown")
+            return {}
+        strings = [bytes.fromhex(str(h)) for h in bank.get("strings") or []]
+        layout = bank.get("layout") or None
+        result: Dict[Tuple[int, int], str] = {}
+        for block_idx, (first, last, _name) in enumerate(self._blocks()):
+            if last >= len(strings):
+                log_warning(f"castlevania_ds: {path.name} has {len(strings)} strings; the reference is not shown")
+                return {}
+            for k, index in enumerate(range(first, last + 1)):
+                result[(block_idx, k)] = codec.decode(strings[index], layout)
+        return result
 
     # -- load and save ---------------------------------------------------------
 

@@ -1,8 +1,11 @@
 {
  "format": "castlevania-ds-layout",
  "name": "blackdragon_ua",
- "note": "Ukrainian letters of the BlackDragon Studio font (USA ROMs DoS, PoR, OoE). Glyph code of each letter. aliases: characters that encode to a code (Latin look-alikes, fallbacks); decode uses glyphs only.",
+ "note": "Ukrainian letters of the BlackDragon Studio font (USA ROMs DoS, PoR, OoE). Glyph code of each letter. aliases: characters that encode to a code (Latin look-alikes, fallbacks); decode uses glyphs only. Codes 3E, 40 and 68 were free cells (no string used them): ґ, Ь and Ґ. Their glyphs are placeholders until drawn in the Font Editor.",
  "glyphs": {
+  "3E": "ґ",
+  "40": "Ь",
+  "68": "Ґ",
   "21": "А",
   "22": "В",
   "23": "С",
@@ -202,7 +205,9 @@
   "Ч": "74",
   "Ш": "7B",
   "Щ": "7C",
-  "Ь": "96",
+  "Ь": "40",
+  "Ґ": "68",
+  "ґ": "3E",
   "Ю": "75",
   "Я": "76",
   "а": "41",
