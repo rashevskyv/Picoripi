@@ -3170,5 +3170,11 @@
   "Start (s)": "Початок (с)",
   "End (s)": "Кінець (с)",
   "Pause after (s)": "Пауза після (с)",
-  "Source (English)": "Оригінал (англ.)"
+  "Source (English)": "Оригінал (англ.)",
+  "Portrait colours are approximate: the portrait palette is not measured yet.": "Кольори портрета приблизні: палітра портрета ще не виміряна.",
+  "Open a game project to see the message window.": "Відкрийте проєкт гри, щоб побачити вікно повідомлення.",
+  "Reading the game font and portraits...": "Читання шрифта гри та портретів...",
+  "The game's font or portrait files are not in this project: {0}": "Шрифт гри або файли портретів не є в проєкті: {0}",
+  "The portrait palette file is missing; portraits are drawn in grey.": "Файл палітри портретів відсутній; портрети малюються сірими.",
+  "The text has no line to draw.": "У тексті немає рядка для малювання."
 }

@@ -109,6 +109,11 @@ class GameRules(BaseGameRules):
                                editor_player_tag_const: str) -> Tuple[str, str, str]:
         return clean_spaces(segment_to_insert), "OK", ""
 
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """The message window in the game's font with its portrait (dialogue_panel.py)."""
+        from .dialogue_panel import LunarDialoguePreview
+        return LunarDialoguePreview(main_window)
+
     # -- voice clips (Tools -> Voice clips) ---------------------------------------
 
     def _workspace(self, project_dir: str) -> Path:
