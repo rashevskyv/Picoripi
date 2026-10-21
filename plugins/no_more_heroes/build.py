@@ -1,9 +1,8 @@
 """Build No More Heroes (Wii, Europe): write the translation into a copy of the disc image as a playable ISO.
 
 The build reads the original disc (its path is in the source mark), packs every changed file of ``translation``
-back into its game format, and writes the disc files into a copy of the ISO in place (``wii_write``). An unchanged
-translation gives the original ISO byte for byte. A plain ISO source is needed: a WIA or RVZ image keeps its
-partition decrypted, so it cannot be written back as an ISO here.
+back into its game format, and writes the disc files into a plain ISO copy of the disc (``core/containers/wii_writer``).
+An unchanged translation gives the original ISO byte for byte. A WIA or RVZ source is written as an ISO first.
 
   translation\\text\\<disc file>.nmt     blocks of English lines (edited); a block's line count must not change
   translation\\font\\<font>.tpl          glyph grids (edited in the Font Editor): new glyphs go into the boxes
@@ -17,17 +16,17 @@ import os
 from pathlib import Path
 from typing import Callable, Dict, List, Tuple
 
-from core.containers import wia, wii_disc
+from core.containers import wii_disc
+from core.containers.wii_writer import copy_as_iso, write_changes
 from core.containers.console_crypto import key_source
 from core.i18n import tr
-from core.project_library import console_keys, images
+from core.project_library import build, console_keys, images
 from core.project_library.build import Cancel
 from plugins.common.disc_source import disc_of_source, find_disc_root
 from utils.logging_utils import log_warning
 
 from . import archives, gx, rmhg
 from .unpack import HBM, INDEX, DiscFiles
-from .wii_write import write_changes
 
 ISO_NAME = "No More Heroes (Europe) (UA).iso"
 TARGET_ISO = "wii_iso"
@@ -313,34 +312,17 @@ def _loose_change(translation: Path, rel: str, disc: DiscFiles, out: dict) -> di
 
 # ---------------------------------------------------------------- the build
 
-def _is_rvz(image: Path) -> bool:
-    with open(image, "rb") as stream:
-        return wia.is_wia_or_rvz(stream.read(4))
-
-
-def _copy(source: Path, tmp: Path, progress: Progress, is_cancelled: Cancelled) -> bool:
-    total = os.path.getsize(source)
-    done = 0
-    with open(source, "rb") as src, open(tmp, "wb") as dst:
-        while True:
-            if is_cancelled():
-                return False
-            chunk = src.read(1 << 22)
-            if not chunk:
-                return True
-            dst.write(chunk)
-            done += len(chunk)
-            progress(min(99, 100 * done // max(1, total)), tr("Copying the disc image"))
+def _copy_iso(image: Path, tmp: Path, common_key: bytes, progress: Progress, is_cancelled: Cancelled) -> None:
+    """The plain ISO of the disc into ``tmp``; a WIA or RVZ image is sealed as a new ISO (core ``wii_writer``)."""
+    if not copy_as_iso(str(image), str(tmp), common_key, progress, is_cancelled):
+        raise Cancel()
 
 
 def build_iso(source_dir: str, translation_dir: str, output_dir: str, progress: Progress,
               is_cancelled: Cancelled) -> str:
-    """Write ``ISO_NAME`` into ``output_dir`` and return its path."""
+    """Write ``ISO_NAME`` into ``output_dir`` and return its path. The warnings go into the result folder."""
     root = find_disc_root(source_dir)
     image = disc_of_source(root)
-    if _is_rvz(image):
-        raise ValueError(tr("The build needs the game as a plain ISO. Convert the {0} image to ISO first.",
-                            image.name))
     key_file = console_keys.path_for("wii")
     if key_file is None:
         raise ValueError(tr("Set the Wii key file in the console keys first."))
@@ -350,15 +332,19 @@ def build_iso(source_dir: str, translation_dir: str, output_dir: str, progress: 
         disc = DiscFiles(reader)
         changes, warnings = pack(translation, source, index, disc, progress, is_cancelled)
     common_key = wii_disc.load_common_key(key_file)
-    out = Path(output_dir) / ISO_NAME
+    out_dir = Path(output_dir)
+    out = out_dir / ISO_NAME
     tmp = out.with_name(out.name + ".tmp")
-    if not _copy(image, tmp, progress, is_cancelled):
+    try:
+        _copy_iso(image, tmp, common_key, progress, is_cancelled)
+        if changes:
+            with open(tmp, "r+b") as stream:
+                write_changes(stream, common_key, changes)
+        os.replace(tmp, out)
+    except BaseException:
         tmp.unlink(missing_ok=True)
-        raise Cancel()
-    if changes:
-        with open(tmp, "r+b") as stream:
-            write_changes(stream, common_key, changes)
-    os.replace(tmp, out)
+        raise
+    build.write_warnings(out_dir, warnings)
     for line in warnings:
         log_warning(line, "nmh")
     return str(out)

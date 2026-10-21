@@ -15,17 +15,17 @@ from collections import Counter
 from pathlib import Path
 from typing import Callable, Dict, List, Set, Tuple
 
-from core.containers import wia, wii_disc
+from core.containers import wii_disc, wii_writer
+from core.containers.console_crypto import key_source
 from core.i18n import tr
-from core.project_library import console_keys
+from core.project_library import build, console_keys, images
 from core.project_library.build import Cancel
 from plugins.common.disc_source import disc_of_source
 from utils.logging_utils import log_warning
 
-from . import archives, fonts, gx, messages, unpack, wii_patch
+from . import archives, fonts, gx, messages, unpack
 
 ISO_NAME = "MadWorld (Europe) (UA).iso"
-COPY_CHUNK = 8 << 20
 HBM = unpack.HBM
 
 
@@ -174,34 +174,18 @@ def pack(source: Path, translation: Path, read: Callable[[str], bytes], units: L
     return out, warnings
 
 
-def _copy(src: Path, dst: Path, progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> None:
-    total = os.path.getsize(src) or 1
-    done = 0
-    with open(src, "rb") as a, open(dst, "wb") as b:
-        while True:
-            if is_cancelled():
-                raise Cancel()
-            chunk = a.read(COPY_CHUNK)
-            if not chunk:
-                break
-            b.write(chunk)
-            done += len(chunk)
-            progress(70 * done // total, "copy")
-
-
 def build_iso(source_dir: str, translation_dir: str, output_dir: str,
               progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> str:
-    """Write the translated disc into ``output_dir`` and return its path. The original disc is never changed."""
+    """Write the translated disc into ``output_dir`` and return its path. The original disc is never changed.
+
+    The base may be an ISO, a WIA or an RVZ: the writer makes a plain ISO copy first (``wii_writer.copy_as_iso``).
+    """
     image = disc_of_source(source_dir)
-    with open(image, "rb") as stream:
-        head = stream.read(0x20)
-    if wia.is_wia_or_rvz(head):
-        raise ValueError(tr("The build writes an .iso copy of the disc. Convert {0} to ISO first.", image.name))
     common = _common_key()
     source, translation = Path(source_dir), Path(translation_dir)
-    with open(image, "rb") as stream:
-        key = wii_patch.title_key(stream, common)
-        reader = wii_disc.WiiImage(stream, common)
+    with key_source(console_keys.path_for), images.open_image(image, None, is_cancelled, progress) as reader:
+        if not isinstance(reader, wii_disc.WiiImage) or reader.game_id != unpack.GAME_ID:
+            raise ValueError(tr("{0} is not MadWorld Europe ({1})", image.name, unpack.GAME_ID))
         entries = {e.path[len("files/"):]: e for e in reader.entries() if e.path.startswith("files/")}
 
         def read(rel: str) -> bytes:
@@ -211,19 +195,23 @@ def build_iso(source_dir: str, translation_dir: str, output_dir: str,
         if units is None:
             raise Cancel()
         changes, warnings = pack(source, translation, read, units, progress, is_cancelled)
-    for line in warnings:
-        log_warning(line, "madworld")
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     target = out_dir / ISO_NAME
     tmp = target.with_name(target.name + ".tmp")
     try:
-        _copy(image, tmp, progress, is_cancelled)
-        progress(80, "write")
-        wii_patch.patch_iso(str(tmp), key, changes)
+        if not wii_writer.copy_as_iso(str(image), str(tmp), common, progress, is_cancelled):
+            raise Cancel()
+        if changes:
+            progress(96, "write")
+            with open(tmp, "r+b") as stream:
+                wii_writer.write_changes(stream, common, {f"files/{rel}": blob for rel, blob in changes.items()})
         os.replace(tmp, target)
     except BaseException:
         tmp.unlink(missing_ok=True)
         raise
+    build.write_warnings(out_dir, warnings)
+    for line in warnings:
+        log_warning(line, "madworld")
     progress(100, "done")
     return str(target)

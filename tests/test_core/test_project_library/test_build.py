@@ -336,3 +336,18 @@ def test_a_disc_image_the_plugin_does_not_unpack_is_refused_and_nothing_is_creat
                          _no_cancel)
 
     assert list(project.iterdir()) == []
+
+
+def test_build_warnings_sit_beside_the_result_and_are_read_back(tmp_path):
+    result = tmp_path / "Game.iso"
+    result.write_bytes(b"")
+    build.write_warnings(tmp_path, ["letters with no picture: Q", "second line"])
+    assert build.read_warnings(result) == ["letters with no picture: Q", "second line"]
+    assert build.read_warnings(tmp_path) == ["letters with no picture: Q", "second line"]
+
+
+def test_a_build_without_warnings_writes_no_warnings_file(tmp_path):
+    result = tmp_path / "Game.iso"
+    build.write_warnings(tmp_path, [])
+    assert not (tmp_path / build.WARNINGS_FILE).exists()
+    assert build.read_warnings(result) == []

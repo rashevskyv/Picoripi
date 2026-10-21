@@ -5,7 +5,7 @@ messages of one message table (cut-scene subtitles in ``event``, mission and tut
 and save messages in ``subscr``), as JSON blocks -- and ``hbm/home.csv`` (Wii HOME Menu). The game draws each table's
 text from a picture of just the glyphs it uses; the build (``build.py``) draws that picture anew from the old one and
 the fonts (``font/font_subtitle.tpl``, ``font/font_heading.tpl``; Ukrainian letters have empty cells to draw) and
-writes the result into a copy of the ISO (``wii_patch.py``).
+writes the result into a plain ISO copy of the disc (``core/containers/wii_writer.py``).
 Control codes show as tags: ``<8010:0064>`` (a code and its argument), ``<8002>``, ``<#0003>`` (a number or
 argument word).
 """

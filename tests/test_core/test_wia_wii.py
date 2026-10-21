@@ -56,10 +56,11 @@ def _compress(method, data):
     return {NONE: lambda d: d, BZIP2: bz2.compress, ZSTD: lambda d: zstd_frame.compress(d, "test")}[method](data)
 
 
-def build_wii(plain: bytes, *, rvz: bool, method: int, chunk: int, exceptions: int = 0, junk=None) -> bytes:
+def build_wii(plain: bytes, *, rvz: bool, method: int, chunk: int, exceptions: int = 0, junk=None, raw=None,
+              data_at: int = DATA_AT) -> bytes:
     """A Wii WIA or RVZ: the raw area as one raw entry, the partition as one data entry. ``junk`` is ``(offset in the
     partition data, size, seed)`` stored as an RVZ seed in its group."""
-    raw = _raw_area()
+    raw = _raw_area() if raw is None else raw
     chunk_data = chunk // SECTOR * SECTOR_DATA
     lists = max(1, chunk // 0x200000)
     blobs, entries = [], []
@@ -87,7 +88,7 @@ def build_wii(plain: bytes, *, rvz: bool, method: int, chunk: int, exceptions: i
         group(head + data, packed, compress)
     head_len = 0x48 + 0xDC
     part_off = head_len
-    part = bytes(16) + struct.pack(">IIII", DATA_AT // SECTOR, len(plain) // SECTOR_DATA, raw_groups,
+    part = bytes(16) + struct.pack(">IIII", data_at // SECTOR, len(plain) // SECTOR_DATA, raw_groups,
                                    len(entries) - raw_groups) + bytes(16)
     raw_table = _compress(method, struct.pack(">QQII", 0x80, len(raw) - 0x80, 0, raw_groups))
     body = bytearray(part + raw_table)
@@ -102,7 +103,7 @@ def build_wii(plain: bytes, *, rvz: bool, method: int, chunk: int, exceptions: i
     body += group_table
     head = bytearray(head_len)
     head[0:4] = wia.MAGIC_RVZ if rvz else wia.MAGIC_WIA
-    struct.pack_into(">Q", head, 0x24, DATA_AT + len(plain) // SECTOR_DATA * SECTOR)
+    struct.pack_into(">Q", head, 0x24, data_at + len(plain) // SECTOR_DATA * SECTOR)
     d = 0x48
     struct.pack_into(">IIII", head, d, 2, method, 0, chunk)
     head[d + 0x10:d + 0x90] = raw[:0x80]

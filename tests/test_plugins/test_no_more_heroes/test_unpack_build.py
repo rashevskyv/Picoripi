@@ -4,7 +4,8 @@ import struct
 from pathlib import Path
 from types import SimpleNamespace
 
-from plugins.no_more_heroes import build, gx, rmhg, unpack, wii_write
+from core.containers import wii_writer
+from plugins.no_more_heroes import build, gx, rmhg, unpack
 from plugins.no_more_heroes.rules import GameRules
 
 GAME_FILE = "Title/TITLE.RSL"
@@ -124,7 +125,7 @@ def test_a_grown_file_moves_to_the_first_free_gap():
     part = Part()
     table = {"files/a.bin": (0x100, 0x8000, 0x100), "files/b.bin": (0x110, 0x8100, 0x100)}
     used = {"files/a.bin": (0x8000, 0x8100), "files/b.bin": (0x8100, 0x8200)}
-    wii_write._write_file(part, table, used, 0x4000, 0x100000, "files/a.bin", bytes(0x200))
+    wii_writer._write_file(part, table, used, 0x4000, 0x100000, "files/a.bin", bytes(0x200))
     assert part.writes[0] == (0x10000, bytes(0x200))
     assert part.writes[-1] == (0x104, struct.pack(">II", 0x10000 >> 2, 0x200))
 
@@ -140,7 +141,7 @@ def test_a_shorter_file_keeps_its_place_and_its_tail_is_zeroed():
     part = Part()
     table = {"files/a.bin": (0x100, 0x8000, 0x100)}
     used = {"files/a.bin": (0x8000, 0x8100)}
-    wii_write._write_file(part, table, used, 0x4000, 0x100000, "files/a.bin", b"ab")
+    wii_writer._write_file(part, table, used, 0x4000, 0x100000, "files/a.bin", b"ab")
     assert part.writes[0] == (0x8000, b"ab")
     assert part.writes[1] == (0x8002, bytes(0xFE))
 
@@ -162,19 +163,6 @@ def _source_of(tmp_path: Path, image: Path) -> tuple:
     (tmp_path / "translation").mkdir()
     (tmp_path / "out").mkdir()
     return root / "source", tmp_path / "translation", tmp_path / "out"
-
-
-def test_a_rvz_source_is_refused_before_anything_is_written(tmp_path):
-    image = tmp_path / "game.rvz"
-    image.write_bytes(b"RVZ\x01" + bytes(64))
-    source, translation, out = _source_of(tmp_path, image)
-    try:
-        build.build_iso(str(source), str(translation), str(out), lambda *_: None, lambda: False)
-    except ValueError as error:
-        assert "plain ISO" in str(error)
-    else:
-        raise AssertionError("an RVZ source must be refused")
-    assert list(out.iterdir()) == []
 
 
 def test_a_build_without_the_wii_key_file_says_so(tmp_path, monkeypatch):

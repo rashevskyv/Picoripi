@@ -327,7 +327,7 @@ def ui_files(names: set) -> List[str]:
             out.append(rel)
         elif re.match(r"(case\w+|etc)/idpac_\w+_us\.dat$", rel) or (rel.startswith("event/") and name.endswith("_us.dat")):
             out.append(rel)
-        elif rel.startswith("banner/") or re.match(r"strap/strap_.*_eu\.tpl$", rel):
+        elif rel.startswith("banner/") or re.match(r"strap/strap_.*_(eu|us)\.tpl$", rel):
             out.append(rel)
     return out
 
