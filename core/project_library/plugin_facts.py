@@ -114,14 +114,18 @@ def generic_identity(found: Optional[Dict[str, Any]]) -> Dict[str, str]:
     return {"role": role or "base", "platform": kind}
 
 
+PLATFORM_LABELS = {   # every platform id a plugin may name (config.json "platforms"), with its English name
+    "gb": "Game Boy", "gbc": "Game Boy Color", "gba": "Game Boy Advance", "nds": "Nintendo DS", "3ds": "Nintendo 3DS",
+    "snes": "Super Nintendo", "n64": "Nintendo 64", "gc": "GameCube", "wii": "Wii", "wiiu": "Wii U",
+    "switch": "Nintendo Switch", "psx": "PlayStation", "ps2": "PlayStation 2", "psp": "PSP", "saturn": "Sega Saturn",
+    "gdrom": "Dreamcast", "pc": "PC", "android": "Android", "other": "Other",
+}
+KNOWN_PLATFORMS = tuple(PLATFORM_LABELS)
+
+
 def platform_label(platform_id: str) -> str:
-    """A readable name of a platform id that an image reports (``switch`` -> Nintendo Switch)."""
-    if platform_id == KIND_WIIU:
-        return tr("Wii U")
-    return tr(images.KIND_LABEL.get(platform_id, platform_id))
-
-
-KNOWN_PLATFORMS = tuple(images.KIND_LABEL) + (KIND_WIIU,)
+    """The readable name of a platform id (``switch`` -> Nintendo Switch); an unknown id is shown as it is."""
+    return tr(PLATFORM_LABELS.get(platform_id, platform_id))
 # A file inside a folder that marks the platform of an unpacked game; sys/main.dol is GameCube or Wii (sys/boot.bin).
 FOLDER_MARKERS = (("meta/meta.xml", KIND_WIIU), ("code/app.xml", KIND_WIIU), ("exheader.bin", images.KIND_3DS),
                   ("exefs/code.bin", images.KIND_3DS), ("exefs/main.npdm", images.KIND_SWITCH),

@@ -1,5 +1,6 @@
 {
     "display_name": "Dragon Quest VII (3DS)",
+    "platforms": ["3ds"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

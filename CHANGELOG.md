@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Plugins: every game plugin names its platforms (110 plugins got `"platforms"` in `config.json`; `BaseGameRules.get_platforms` reads it; ids and names in `plugin_facts.PLATFORM_LABELS`), so the wizard lists them and a one-platform game sets the platform itself; an architecture test keeps it so.
 - Project Manager wizard: the role names Base game, Update and DLC stay English in every interface language; a folder's platform comes from its files (Wii U meta, 3DS and Switch ExeFS, Dolphin `sys/boot.bin`, DS `arm9.bin`) or from a one-platform game, else **Not detected**; the platform list holds the plugin's platforms, or every known platform when the plugin names none.
 - Project Manager: a project made by the wizard saves the game's own picture as `icon.png` (3DS SMDH icon, GameCube `opening.bnr` banner; `core/project_library/game_icon.py`); an icon already there is kept.
 - First start: the data folder dialog asks for the interface language (system language preselected when a catalog exists); the dialog switches at once and the choice is saved as `ui_language` in the chosen folder.

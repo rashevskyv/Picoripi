@@ -1,5 +1,6 @@
 {
     "display_name": "Metal Gear Solid (Master Collection)",
+    "platforms": ["pc", "switch"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

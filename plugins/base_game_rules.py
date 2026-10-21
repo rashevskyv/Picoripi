@@ -1117,8 +1117,22 @@ class BaseGameRules:
         return None
 
     def get_platforms(self) -> List[Dict[str, str]]:
-        """The platforms the game ships on, as ``[{"id": ..., "label": ...}]``. Default: none."""
-        return []
+        """The platforms the game ships on, as ``[{"id": ..., "label": ...}]``.
+
+        Default: the ids listed under ``"platforms"`` in the plugin's ``config.json`` (for example
+        ``["3ds", "switch"]``), named from ``plugin_facts.PLATFORM_LABELS``. Every plugin names at least one.
+        """
+        import sys
+        from pathlib import Path
+
+        from core.project_library.plugin_facts import platform_label
+        module = sys.modules.get(type(self).__module__)
+        config = Path(getattr(module, "__file__", "") or ".").parent / "config.json"
+        try:
+            ids = json.loads(config.read_text(encoding="utf-8")).get("platforms") or []
+        except (OSError, ValueError, AttributeError):
+            return []
+        return [{"id": str(item), "label": platform_label(str(item))} for item in ids]
 
     def unpack_sources(self, sources: Dict[str, str], target_dir: str,
                        progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> Optional[str]:

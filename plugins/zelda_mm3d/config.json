@@ -1,5 +1,6 @@
 {
     "display_name": "Zelda: Majora's Mask 3D",
+    "platforms": ["3ds"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

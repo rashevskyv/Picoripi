@@ -1,5 +1,6 @@
 {
     "display_name": "Paper Mario: The Origami King (Switch)",
+    "platforms": ["switch"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

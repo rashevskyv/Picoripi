@@ -1,5 +1,6 @@
 {
     "display_name": "Metal Gear Solid: Snake Eater 3D",
+    "platforms": ["3ds"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

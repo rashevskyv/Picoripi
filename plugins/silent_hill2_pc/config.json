@@ -1,5 +1,6 @@
 {
     "display_name": "Silent Hill 2 (PC, Switch data)",
+    "platforms": ["pc", "switch"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

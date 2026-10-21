@@ -1,5 +1,6 @@
 {
     "display_name": "Lunar 2: Eternal Blue Complete",
+    "platforms": ["psx"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

@@ -1,5 +1,6 @@
 {
     "display_name": "Castlevania: Symphony of the Night (PlayStation)",
+    "platforms": ["psx"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

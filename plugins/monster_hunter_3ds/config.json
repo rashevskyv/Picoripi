@@ -1,5 +1,6 @@
 {
     "display_name": "Monster Hunter (3DS: 3 Ultimate, 4 Ultimate, Stories)",
+    "platforms": ["3ds"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

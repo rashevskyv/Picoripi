@@ -1,5 +1,6 @@
 {
     "display_name": "Zelda: Link's Awakening DX (Game Boy Color)",
+    "platforms": ["gbc"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

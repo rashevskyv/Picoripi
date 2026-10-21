@@ -1,5 +1,6 @@
 {
     "display_name": "Paper Mario (N64)",
+    "platforms": ["n64"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

@@ -1,5 +1,6 @@
 {
     "display_name": "Donkey Kong Country 3 (GBA)",
+    "platforms": ["gba"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

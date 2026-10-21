@@ -1,5 +1,6 @@
 {
     "display_name": "Harvest Moon 3D / Story of Seasons (3DS)",
+    "platforms": ["3ds"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

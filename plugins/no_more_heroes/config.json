@@ -1,5 +1,6 @@
 {
     "display_name": "No More Heroes",
+    "platforms": ["wii"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

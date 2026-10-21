@@ -1,5 +1,6 @@
 {
     "display_name": "Xenoblade Chronicles (Wii / 3DS)",
+    "platforms": ["wii", "3ds"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},
