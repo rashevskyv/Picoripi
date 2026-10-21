@@ -2949,5 +2949,13 @@
     "Original: Russian (ru)": "Оригінал: російська (ru)",
     "Original: English (en)": "Оригінал: англійська (en)",
     "No English text on this page: it does not line up with the Russian.": "На цій сторінці немає англійського тексту: він не збігається з російським.",
-    "No original text on this page.": "На цій сторінці немає оригінального тексту."
+    "No original text on this page.": "На цій сторінці немає оригінального тексту.",
+  "the sparse table of the section is not inside its NCA": "таблиця розрідження секції не лежить усередині її NCA",
+  "the sparse table of the section is not sorted or has a bad storage index": "таблиця розрідження секції не впорядкована або має хибний індекс сховища",
+  "a sparse section read starts before its first range": "читання розрідженої секції починається раніше за її перший діапазон",
+  "The base file is not a Castlevania: Belmont's Curse image.": "Базовий файл не є образом Castlevania: Belmont's Curse.",
+  "Choose the update file too: the game's RomFS is in the update.": "Виберіть також файл оновлення: RomFS гри міститься в оновленні.",
+  "The English localization bundle is not in this image.": "Англійського bundle локалізації немає в цьому образі.",
+  "This table is not in the game: {0}": "Цієї таблиці немає в грі: {0}",
+  "The English localization bundle is missing; unpack the game again.": "Англійський bundle локалізації відсутній; розпакуйте гру знову."
 }
