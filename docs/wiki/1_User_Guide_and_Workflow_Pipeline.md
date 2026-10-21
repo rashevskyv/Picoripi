@@ -678,6 +678,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `SLUS_006.28` (Font Editor: text font and symbol font) and 15 TIM pictures (Textures: title menu, logos,
      insert-disc screens). Tags: `{wait}`, `{page}`, `{clear}`, `{close}`, `{end}`, `{FA:39}`-style codes.
      A longer message moves the script code after it; `2_build.bat` rebuilds both discs.
+     The opening script (`TEXT001.DAT`) also has a block **Voice subtitles**: one line per speech segment of the opening monologue (8 lines; an empty line shows nothing). Each line appears in a text window for its segment while the voice plays. The lines go after the script op that starts the clip, so `2_build.bat` builds them with the script.
    - `lunar_ebc` — Lunar 2: Eternal Blue Complete (PlayStation, USA, 3 discs). **Source:** the workspace's
      `source` folder (`1_unpack.bat`, files of `DATA.PAK`): `DATA\EVENT` (event scripts), `DATA\PEOPLE` (what
      people on a map say), `DATA\SYSTEM\2499\05-12.bin` (items, spells, menus, memory-card messages),
