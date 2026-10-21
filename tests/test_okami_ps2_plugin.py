@@ -9,7 +9,8 @@ import struct
 import pytest
 
 import romhacking_root
-from plugins.okami_ps2 import afs, iso, unpack
+from core.containers import afs as core_afs
+from plugins.okami_ps2 import afs, build, iso, unpack
 from plugins.okami_ps2.rules import GameRules
 from plugins.okami_hd import textfile
 
@@ -51,6 +52,9 @@ def iso_image(files):
     for name, start, size in placed:
         data = files[name]
         out += data + b"\x00" * ((-len(data)) % 2048)
+    sectors = len(out) // 2048
+    struct.pack_into("<I", out, 16 * 2048 + 80, sectors)
+    struct.pack_into(">I", out, 16 * 2048 + 84, sectors)
     return bytes(out), placed
 
 
@@ -116,9 +120,10 @@ def test_afs_selects_only_message_entries():
     raw = disc_bytes((data, afs_archive([b"junk"])))
     with io.BytesIO(raw) as image:
         system = iso.find(image, "_DATA0.AFS")
-        found = afs.message_entries(image, system)
+        read = afs.ps2_reader(image, system)
+        found = afs.message_entries(read, system.size)
         assert [entry.index for entry in found] == [1]
-        assert afs.read_entry(image, system, found[0]) == container([[0x44, 0x38, 0x35]])
+        assert afs.read_entry(read, found[0]) == container([[0x44, 0x38, 0x35]])
 
 
 def test_unpack_writes_message_entries_per_archive(tmp_path):
@@ -128,7 +133,7 @@ def test_unpack_writes_message_entries_per_archive(tmp_path):
     result = unpack.unpack({"base": str(disc)}, str(out), lambda done, text: None, lambda: False)
     assert result == str(out)
     written = sorted(os.path.relpath(os.path.join(dp, name), out) for dp, _d, names in os.walk(out) for name in names)
-    assert written == [os.path.join("afs", "DATA0", "0000.bin")]
+    assert written == [os.path.join("afs", "DATA0", "0000.bin"), "source_image.ref"]
 
 
 def test_text_layer_round_trip_on_a_ps2_container():
@@ -149,4 +154,62 @@ def test_real_ps2_disc_identifies_and_lists_messages():
     assert unpack.identify(path) is not None
     with open(path, "rb") as image:
         archive = iso.find(image, "_DATA0.AFS")
-        assert len(afs.message_entries(image, archive)) > 100
+        assert len(afs.message_entries(afs.ps2_reader(image, archive), archive.size)) > 100
+
+
+def _quiet(*_args):
+    return None
+
+
+def test_build_without_changes_is_a_byte_copy(tmp_path):
+    src = tmp_path / "disc.iso"
+    src.write_bytes(disc_bytes((afs_archive([container([[0x44, 0x38, 0x35]])]), afs_archive([b"junk"]))))
+    out = tmp_path / "out.iso"
+    build.build_image(str(src), {}, str(out), _quiet, lambda: False)
+    assert out.read_bytes() == src.read_bytes()
+
+
+def test_a_grown_entry_moves_its_archive_to_the_end_and_keeps_the_other_entries(tmp_path):
+    src = tmp_path / "disc.iso"
+    src.write_bytes(disc_bytes((afs_archive([container([[0x44, 0x38, 0x35]]), b"second entry"]), afs_archive([b"junk"]))))
+    original_sectors = src.stat().st_size // 2048
+    big = container([[0x41] * 3000])
+    out = tmp_path / "out.iso"
+    build.build_image(str(src), {"_DATA0.AFS": {0: big}}, str(out), _quiet, lambda: False)
+    with open(out, "rb") as image:
+        archive = iso.find(image, "_DATA0.AFS")
+        assert archive.lba == original_sectors
+        assert iso.volume_sectors(image) == out.stat().st_size // 2048
+        read = afs.ps2_reader(image, archive)
+        entries = core_afs.parse_from(read, archive.size)
+        assert afs.read_entry(read, entries[0]) == big
+        assert afs.read_entry(read, entries[1]) == b"second entry"
+        data1 = iso.find(image, "_DATA1.AFS")
+        assert iso.read(image, data1, 0, data1.size) == afs_archive([b"junk"])
+
+
+def test_a_smaller_entry_is_written_in_place_with_its_new_size(tmp_path):
+    src = tmp_path / "disc.iso"
+    src.write_bytes(disc_bytes((afs_archive([container([[0x41] * 3000]), b"tail"]), afs_archive([b"junk"]))))
+    out = tmp_path / "out.iso"
+    small = container([[0x44, 0x38, 0x35]])
+    build.build_image(str(src), {"_DATA0.AFS": {0: small}}, str(out), _quiet, lambda: False)
+    assert out.stat().st_size == src.stat().st_size
+    with open(src, "rb") as before, open(out, "rb") as image:
+        original = iso.find(before, "_DATA0.AFS")
+        archive = iso.find(image, "_DATA0.AFS")
+        assert archive.lba == original.lba and archive.size < original.size
+        read = afs.ps2_reader(image, archive)
+        entries = core_afs.parse_from(read, archive.size)
+        assert afs.read_entry(read, entries[0]) == small
+        assert afs.read_entry(read, entries[1]) == b"tail"
+
+
+def test_the_streamed_writer_matches_the_bytes_writer_and_its_size():
+    data = afs_archive([b"a" * 300, b"b" * 2100, b"c" * 40])
+    replacements = {1: b"x" * 5000}
+    reader = lambda offset, count: data[offset:offset + count]   # noqa: E731
+    out = io.BytesIO()
+    size = core_afs.write_to(reader, len(data), out, replacements)
+    assert out.getvalue() == core_afs.write(data, replacements)
+    assert size == len(out.getvalue()) == core_afs.layout(reader, len(data), replacements).total

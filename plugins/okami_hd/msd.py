@@ -1,14 +1,16 @@
-"""Okami HD message sections (MSD) inside the .bin / .dat / .pac containers: split into strings and rebuild them.
+"""Okami message sections (MSD) inside the .bin / .dat / .pac containers: split into strings and rebuild them.
 
 Container: u32 count, count x u32 section offsets, count x 4-character tag; section i ends where section i + 1
 starts (the last one ends at the end of the file). Only ``MSD`` sections are read here; the others stay as bytes.
+The byte order of the numbers is ``endian``: little for the Switch and PS2 files (the default), big for the Wii files.
 
 Two MSD layouts are read (English files; checked on every English MSD section of the Switch data):
   list   01 00 00 00 | 0c 00 00 00 | u32 X | body. X is 0 in the English files. The body is 0x0000-terminated
          u16 strings.
   table  u16 count | u16 X | count x (u32 offset, u32 0) | records. The offsets are relative to the section
          start; the first one is the end of the table. A record starts with a header of 4 units
-         (8203 656d 3531 field) or of 1 unit, then 0x0000-terminated strings.
+         (8203 656d 3531 field) or of 1 unit, then 0x0000-terminated strings. In the Wii files the 4-unit header
+         starts with the unit 0x81xx or 0x82xx (big-endian) and the 1-unit header is any other unit.
 Any other section is kept as raw bytes.
 
 Rebuilding is exact: with no change, ``serialize(parse(data)) == data``. A text change is accepted only when every
@@ -52,6 +54,7 @@ class MsdSection:
     prefix: bytes
     records: List[Record]
     tail: bytes = b""          # raw bytes after the last record (table layout only)
+    endian: str = "<"
 
     def serialize(self) -> bytes:
         if self.layout == "list":
@@ -65,7 +68,7 @@ class MsdSection:
             position += record.byte_length()
         table = bytearray(self.prefix)
         for index, offset in enumerate(offsets):
-            struct.pack_into("<I", table, 4 + 8 * index, offset)
+            struct.pack_into(self.endian + "I", table, 4 + 8 * index, offset)
         return bytes(table) + body + self.tail
 
 
@@ -75,14 +78,24 @@ class Container:
     data: bytes
     tags: List[str]
     spans: List[Tuple[int, int]] = field(default_factory=list)
+    endian: str = "<"
 
     def section_bytes(self, index: int) -> bytes:
         start, end = self.spans[index]
         return self.data[start:end]
 
 
-def _units(raw: bytes) -> List[int]:
-    return [struct.unpack_from("<H", raw, i)[0] for i in range(0, len(raw) - 1, 2)]
+def _units(raw: bytes, endian: str = "<") -> List[int]:
+    return [struct.unpack_from(endian + "H", raw, i)[0] for i in range(0, len(raw) - 1, 2)]
+
+
+def _head_units(units: List[int], endian: str) -> int:
+    """The record header length in units: 4 for the "me51" header, else 1."""
+    if endian == "<":
+        return 4 if tuple(units[:3]) == TABLE_HEADER_ME51 else 1
+    if units and (units[0] >> 8) in (0x81, 0x82) and (units[0] & 0xFF) == 0x03:
+        return 4
+    return 1
 
 
 def _split_strings(raw: bytes) -> Tuple[List[bytes], bytes]:
@@ -96,51 +109,51 @@ def _split_strings(raw: bytes) -> Tuple[List[bytes], bytes]:
     return strings, raw[start:]
 
 
-def parse_container(data: bytes) -> Container:
+def parse_container(data: bytes, endian: str = "<") -> Container:
     """The section spans of a container. Raises MsdError when the header does not fit the file."""
     if len(data) < 8:
         raise MsdError("container too short")
-    count = struct.unpack_from("<I", data, 0)[0]
+    count = struct.unpack_from(endian + "I", data, 0)[0]
     if not 1 <= count <= 256:
         raise MsdError("container count out of range")
     tag_at = 4 + 4 * count
     if tag_at + 4 * count > len(data):
         raise MsdError("container header is larger than the file")
-    offsets = [struct.unpack_from("<I", data, 4 + 4 * i)[0] for i in range(count)]
+    offsets = [struct.unpack_from(endian + "I", data, 4 + 4 * i)[0] for i in range(count)]
     if any(offset > len(data) for offset in offsets) or offsets != sorted(offsets):
         raise MsdError("container offsets are not ordered")
     tags = [data[tag_at + 4 * i:tag_at + 4 * i + 4].rstrip(b"\x00").decode("latin-1") for i in range(count)]
     ends = offsets[1:] + [len(data)]
-    return Container(data=data, tags=tags, spans=list(zip(offsets, ends)))
+    return Container(data=data, tags=tags, spans=list(zip(offsets, ends)), endian=endian)
 
 
-def parse_section(raw: bytes) -> Optional[MsdSection]:
+def parse_section(raw: bytes, endian: str = "<") -> Optional[MsdSection]:
     """The MSD section in ``raw``, or None when its layout is not one of the two read here."""
-    if raw[:8] == LIST_HEADER and len(raw) >= 12:
+    if raw[:8] == struct.pack(endian + "II", 1, 12) and len(raw) >= 12:
         body = raw[12:]
         strings, tail = _split_strings(body)
-        return MsdSection(layout="list", prefix=raw[:12], records=[Record(b"", strings, tail)])
+        return MsdSection(layout="list", prefix=raw[:12], records=[Record(b"", strings, tail)], endian=endian)
     if len(raw) < 4:
         return None
-    count, _x = struct.unpack_from("<HH", raw, 0)
+    count, _x = struct.unpack_from(endian + "HH", raw, 0)
     table_end = 4 + 8 * count
     if count == 0 or table_end > len(raw):
         return None
-    offsets = [struct.unpack_from("<I", raw, 4 + 8 * i)[0] for i in range(count)]
+    offsets = [struct.unpack_from(endian + "I", raw, 4 + 8 * i)[0] for i in range(count)]
     if offsets[0] != table_end or offsets != sorted(offsets) or offsets[-1] > len(raw):
         return None
     records: List[Record] = []
     for index, start in enumerate(offsets):
         end = offsets[index + 1] if index + 1 < count else len(raw)
         chunk = raw[start:end]
-        units = _units(chunk)
-        head_units = 4 if tuple(units[:3]) == TABLE_HEADER_ME51 else 1
+        units = _units(chunk, endian)
+        head_units = _head_units(units, endian)
         if len(units) < head_units:
             return None
         head = chunk[:2 * head_units]
         strings, tail = _split_strings(chunk[2 * head_units:])
         records.append(Record(head, strings, tail))
-    return MsdSection(layout="table", prefix=raw[:table_end], records=records)
+    return MsdSection(layout="table", prefix=raw[:table_end], records=records, endian=endian)
 
 
 RUNOFS_MAGIC = b"RUNOFS64"
@@ -154,6 +167,7 @@ def serialize_container(container: Container, sections: dict) -> bytes:
     whose sections are not contiguous, or whose RUNOFS64 table does not hold the section starts in order, is refused.
     With no change the result is the original bytes.
     """
+    endian = container.endian
     spans = container.spans
     for (_s0, e0), (s1, _e1) in zip(spans, spans[1:]):
         if e0 != s1:
@@ -166,7 +180,7 @@ def serialize_container(container: Container, sections: dict) -> bytes:
         new_offsets.append(position)
         position += len(raw)
     for index, offset in enumerate(new_offsets):
-        struct.pack_into("<I", head, 4 + 4 * index, offset)
+        struct.pack_into(endian + "I", head, 4 + 4 * index, offset)
     rof_index = [index for index, tag in enumerate(container.tags) if tag == "ROF"]
     if rof_index:
         k = rof_index[-1]
@@ -176,9 +190,9 @@ def serialize_container(container: Container, sections: dict) -> bytes:
                 at = 8 + 8 * j
                 if at + 8 > len(rof):
                     raise MsdError("RUNOFS64 table is shorter than the section count")
-                if struct.unpack_from("<Q", rof, at)[0] != start:
+                if struct.unpack_from(endian + "Q", rof, at)[0] != start:
                     raise MsdError("RUNOFS64 entry does not hold a section start")
-                struct.pack_into("<Q", rof, at, new_offsets[j])
+                struct.pack_into(endian + "Q", rof, at, new_offsets[j])
             new_sections[k] = bytes(rof)
     return bytes(head) + b"".join(new_sections)
 
@@ -204,7 +218,8 @@ def replace_strings(section: MsdSection, new_strings: Sequence[bytes]) -> MsdSec
         if new_record.byte_length() != record.byte_length():
             raise MsdError("a string changed length; the record must keep its byte length")
         out_records.append(new_record)
-    return MsdSection(layout=section.layout, prefix=section.prefix, records=out_records, tail=section.tail)
+    return MsdSection(layout=section.layout, prefix=section.prefix, records=out_records, tail=section.tail,
+                      endian=section.endian)
 
 
 def is_msd(container: Container, index: int) -> bool:

@@ -1,4 +1,4 @@
-"""Okami HD message files: the strings of a container file as text, and the same file with edited text written back.
+"""Okami message files: the strings of a container file as text, and the same file with edited text written back.
 
 ``read_text`` gives one text per string, in file order over all MSD sections. ``write_text`` takes the same list
 and returns the file with the edits. A longer or shorter text changes its record's length; the table offsets of the
@@ -6,6 +6,8 @@ record, the section offsets of the container and the RUNOFS64 section starts are
 record whose length changed is reported as a warning, because the growth is not yet proven in the game. A text
 that does not encode keeps its original bytes and is reported. A file with no MSD section is not text: ``read_text``
 returns an empty list and ``write_text`` returns the file as it was.
+
+``endian`` is the byte order of the file: little (the default) for the Switch and PS2 files, big for the Wii files.
 """
 from __future__ import annotations
 
@@ -14,38 +16,38 @@ from typing import List, Tuple
 from . import charset, msd
 
 
-def _sections(data: bytes):
+def _sections(data: bytes, endian: str):
     """(container, [(index, section)]) for the MSD sections the codec reads; (None, []) when not a container."""
     try:
-        container = msd.parse_container(data)
+        container = msd.parse_container(data, endian)
     except msd.MsdError:
         return None, []
     found = []
     for index, tag in enumerate(container.tags):
         if tag != "MSD":
             continue
-        section = msd.parse_section(container.section_bytes(index))
+        section = msd.parse_section(container.section_bytes(index), endian)
         if section is not None:
             found.append((index, section))
     return container, found
 
 
-def read_text(data: bytes) -> List[str]:
+def read_text(data: bytes, endian: str = "<") -> List[str]:
     """The decoded text of every string of the file, in file order."""
-    _container, found = _sections(data)
+    _container, found = _sections(data, endian)
     texts: List[str] = []
     for _index, section in found:
-        texts.extend(charset.decode(raw) for raw in msd.strings_of(section))
+        texts.extend(charset.decode(raw, endian) for raw in msd.strings_of(section))
     return texts
 
 
-def write_text(data: bytes, texts: List[str]) -> Tuple[bytes, List[str]]:
+def write_text(data: bytes, texts: List[str], endian: str = "<") -> Tuple[bytes, List[str]]:
     """The file with ``texts`` written over its strings. Returns (new bytes, warnings).
 
     ``texts`` must have one entry per string of ``read_text``; otherwise the file is returned unchanged with a
     warning.
     """
-    container, found = _sections(data)
+    container, found = _sections(data, endian)
     if container is None or not found:
         return data, []
     total = sum(len(msd.strings_of(section)) for _index, section in found)
@@ -66,7 +68,7 @@ def write_text(data: bytes, texts: List[str]) -> Tuple[bytes, List[str]]:
                 text = wanted[position]
                 position += 1
                 try:
-                    raws.append(charset.encode(text))
+                    raws.append(charset.encode(text, endian))
                 except ValueError as error:
                     warnings.append(f"string kept as it was: {error}")
                     raws.append(original)
@@ -77,7 +79,8 @@ def write_text(data: bytes, texts: List[str]) -> Tuple[bytes, List[str]]:
                 warnings.append(f"record length changed by {candidate.byte_length() - record.byte_length():+d} bytes "
                                 "(layout changed; not yet proven in the game)")
             new_records.append(candidate)
-        section = msd.MsdSection(layout=section.layout, prefix=section.prefix, records=new_records, tail=section.tail)
+        section = msd.MsdSection(layout=section.layout, prefix=section.prefix, records=new_records, tail=section.tail,
+                                 endian=endian)
         replacements[index] = section.serialize()
     try:
         return msd.serialize_container(container, replacements), warnings

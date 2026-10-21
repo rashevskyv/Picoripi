@@ -73,11 +73,13 @@ def atlas_cell(code: int) -> tuple:
     return divmod(index, ATLAS_COLUMNS)
 
 
-def decode(raw: bytes) -> str:
-    """The text of a raw string: letters and the space as characters, every other unit as ``{xxxx}``."""
+def decode(raw: bytes, endian: str = "<") -> str:
+    """The text of a raw string: letters and the space as characters, every other unit as ``{xxxx}``.
+
+    ``endian`` is the byte order of the 16-bit units: little for the Switch and PS2 files, big for the Wii files."""
     out = []
     for pos in range(0, len(raw) - 1, 2):
-        unit = struct.unpack_from("<H", raw, pos)[0]
+        unit = struct.unpack_from(endian + "H", raw, pos)[0]
         char = CODE_TO_CHAR.get(unit)
         out.append(char if char is not None else "{%04x}" % unit)
     if len(raw) % 2:
@@ -85,14 +87,14 @@ def decode(raw: bytes) -> str:
     return "".join(out)
 
 
-def encode(text: str) -> bytes:
+def encode(text: str, endian: str = "<") -> bytes:
     """The raw bytes of a text made by ``decode``. Raises ValueError for a character the atlas does not show."""
     out = bytearray()
     pos = 0
     while pos < len(text):
         match = _TAG.match(text, pos)
         if match:
-            out += struct.pack("<H", int(match.group(1), 16))
+            out += struct.pack(endian + "H", int(match.group(1), 16))
             pos = match.end()
             continue
         if text[pos] == "{" and text[pos:pos + 4] and re.match(r"\{[0-9a-fA-F]{2}\}", text[pos:pos + 4]):
@@ -103,6 +105,6 @@ def encode(text: str) -> bytes:
         code = CHAR_TO_CODE.get(char)
         if code is None:
             raise ValueError(f"no atlas glyph for {char!r}")
-        out += struct.pack("<H", code)
+        out += struct.pack(endian + "H", code)
         pos += 1
     return bytes(out)

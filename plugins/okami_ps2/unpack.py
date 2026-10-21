@@ -2,8 +2,11 @@
 
 The disc is read in place. An entry is written to ``afs/DATA0/0478.bin`` (archive, then the entry index); each file is the
 container exactly as on the disc, so the HD text layer (``plugins.okami_hd.textfile``) reads and writes it.
+``source_image.ref`` holds the absolute path of the disc, so the build can write a new disc image from it.
 """
+import json
 import os
+from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
 from core.i18n import tr
@@ -12,6 +15,7 @@ from plugins.okami_ps2 import afs, iso
 
 DISC_ID = b"SLUS_211.15"
 ARCHIVES = ("_DATA0.AFS", "_DATA1.AFS")
+REF_NAME = "source_image.ref"
 
 
 def identify(path: str) -> Optional[Dict[str, Any]]:
@@ -37,11 +41,12 @@ def unpack(sources: Dict[str, str], target_dir: str, progress: Callable[[int, st
     if identify(base) is None:
         raise ImageError(tr("The file is not the Okami PlayStation 2 disc."))
     with open(base, "rb") as image:
-        for number, name in enumerate(ARCHIVES, start=1):
+        for name in ARCHIVES:
             archive = iso.find(image, name)
             if archive is None:
                 raise ImageError(tr("The disc has no {0}.", name))
-            entries = afs.message_entries(image, archive)
+            read = afs.ps2_reader(image, archive)
+            entries = afs.message_entries(read, archive.size)
             folder = os.path.join(target_dir, "afs", name[1:-4])
             os.makedirs(folder, exist_ok=True)
             for position, entry in enumerate(entries, start=1):
@@ -49,6 +54,8 @@ def unpack(sources: Dict[str, str], target_dir: str, progress: Callable[[int, st
                     return None
                 progress(100 * position // max(1, len(entries)), name)
                 with open(os.path.join(folder, f"{entry.index:04d}.bin"), "wb") as out:
-                    out.write(afs.read_entry(image, archive, entry))
+                    out.write(afs.read_entry(read, entry))
+    Path(target_dir, REF_NAME).write_text(json.dumps({"game_id": DISC_ID.decode(), "image": os.path.abspath(base)}),
+                                          encoding="utf-8")
     progress(100, "")
     return target_dir
