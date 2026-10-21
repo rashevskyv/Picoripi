@@ -105,6 +105,15 @@ the line when it is done or moved into a plan.
 - Open: the build takes about 13 to 17 minutes (the writer seals every cluster in Python).
 - Open: the Emu Radar report is a status page only (no game screenshots, no game text).
 - Owner check: `D:\git\dev\Picoripi\data\console_keys.json` (the main checkout) was written twice by a helper that imported the main checkout; the `wii` entry is the owner's `keys.bin` path. The previous value is not known.
+## Black & White, openBlack Switch port (`plugins/black_and_white`, 2026-10-21, branch `feat/black-and-white`)
+
+- Open: the port draws no game text. `RUN_TEXT` plays voice only, `LOAD_LANGUAGE` throws "not implemented", and nothing reads `ADD_TEXT` (`src/CHLApi.cpp`, `src/LHScriptX/MapScriptCommands.cpp`). A translated line shows only after an openblack change: a text parser, a text display for `RUN_TEXT`, and a font with Cyrillic glyphs.
+- Open: no visible proof yet. The Switch console was on another game (Animal Well) and the port is not installed there; the Switch MCP timed out on connect. A Windows proof needs Visual Studio Build Tools and vcpkg; a Switch build needs devkitPro. Both are owner decisions.
+- Open: the port NSP holds three encrypted NCAs, so its binary cannot be read without keys. The keys are not used.
+- Open: the escape for a line break inside a text. The file keeps `\\n` (two backslashes and n) and a few bare line feeds; the game's reading of them is not checked.
+- Open: fonts (`Font0-0.bmp`, `Font0-1.bmp`, `HelpFont.bmp`, `*.fff`) and textures with text (`Front_end_buttons.raw` and others) are not in the plugin. The port loads neither, so their formats are not checked against it.
+- Open: the translation is empty: 0 of 6,974 lines are translated.
+- Owner: the reference files of the Russian overlay (`reference\ru_mod\`) are for format study only. Its text and voice are not used.
 
 ## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-bfd`)
 
