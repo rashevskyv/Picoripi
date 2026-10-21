@@ -123,8 +123,7 @@ the line when it is done or moved into a plan.
 - Open: on BizHawk Ares64 (the core that enforces the checksum at boot) the CRC-fixed variant B and the CRC-fixed grown build did not finish: CPU-bound with no frame output for about 20 minutes. Not explained. Real-hardware and Ares64 boot are not proven.
 - Open: no game-play proof yet (no input route, no changed text on screen). The code archive is not yet written by the build path (`build_target` relays text banks only).
 
-- Open: the port (`E:\conker-data
-epo`) pins the US ROM SHA-1 in `SHA1SUMS`. The build script that reads the ROM lives in CBFD-Recompiled, which is not on this machine; whether it rejects a patched ROM is unknown.
+- Open: the recompiled port's data checkout pins the US ROM SHA-1 in `SHA1SUMS`. The build script that reads the ROM lives in CBFD-Recompiled, which is not on this machine; whether it rejects a patched ROM is unknown.
 - Open: no speech subtitle table found. Text tables found: bank 0x1A (entries 0-4, catapult book) and bank 0x1C sub-tables 0-3 (menu options, pause menu, chapter names, credits). The compressed game data section (task names) is not opened yet.
 - Open: no link from the 453 bank-0x16 streams to events or text lines. The decompilation documents one loader call site ("the exact US caller", `docs/rzip-assets.md`); its table of event to stream index is not extracted. Proxy only, unverified: 220 streams with L: cues (speech-like) and 233 without (music or ambient-like).
 - Open: the text preview uses the decompiled metrics and is not checked in an emulator frame. The canvas (320x240), the box position and the icon widths are assumptions. An owner save state at the catapult book is needed (`owner_play_to_catapult_book.bat`). The preview widget is not wired into the app; only the width hook is.
