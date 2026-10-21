@@ -4,6 +4,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 - Project Manager: **Share project...** packs a project (project folder, translation files, linked series glossaries; no game files, sessions or caches) into one `.zip` with its paths made relative and outside paths cleared; **Import shared project...** unpacks such a zip into a folder the receiver chooses and points it at the receiver's own game files.
 - Project Manager virtual groups can own a shared series glossary with create, link, replace, and unlink actions; member projects automatically inherit the glossary across translation and series tabs without duplicate entries, preserving explicit project links and ancestor discovery during moves and unlinks.
+- Project Manager groups: moving a project, deleting a folder or importing no longer fails when a member's project file is missing (it is logged and skipped), and nothing is written when there is no group glossary to change; removing a project from the manager clears its group glossary link; the open project's series chain is built on the sync worker, not the UI thread. Tests in `tests/test_ui/test_project_manager/test_group_glossary.py`.
 
 - Font Editor keeps nested reads and decodes serial, ignores cancelled or obsolete loads, and prepares formatted font sheets in memory on a worker; loading now has an immediate indicator, cancellation and responsive glyph-table progress, with linear map lookup for large Yo-kai Watch fonts and safe cleanup after closing.
 

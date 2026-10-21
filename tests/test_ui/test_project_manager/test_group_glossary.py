@@ -25,7 +25,9 @@ from ui.project_manager.group_glossary import (
 from ui.project_manager.window import (
     ProjectManagerDialog,
     _op_delete_folder,
+    _op_import,
     _op_move,
+    _op_remove,
     _op_set_folder_glossary,
 )
 
@@ -411,3 +413,62 @@ def test_project_manager_ui_group_header_and_tooltip(qtbot, tmp_path: Path) -> N
     assert "Zelda Series" in label_text
     assert "Glossary: zelda" in label_text
     assert str(glossary.resolve()) in header.toolTip(0)
+
+
+def test_move_and_delete_folder_skip_a_missing_project_file(tmp_path: Path) -> None:
+    glossary = _make_glossary_file(tmp_path / "glossaries" / "shared.json")
+    present = _make_project_file(tmp_path / "projects", "Present")
+    missing = tmp_path / "projects" / "Gone" / "picoripi" / "project.uiproj"
+
+    reg = registry.Registry(registry.read(tmp_path))
+    reg.add(str(present))
+    reg.add(str(missing))
+    plain = reg.create_folder("Plain")
+    shared = reg.create_folder("Shared", glossary_path=str(glossary))
+
+    _op_move(reg, str(missing), plain)
+    _op_move(reg, str(missing), shared)
+    _op_move(reg, str(present), shared)
+    assert {p["path"]: p["folder_id"] for p in reg.document["projects"]} == {str(present): shared, str(missing): shared}
+    assert not missing.exists()
+
+    _op_delete_folder(reg, shared)
+    assert all(p.get("folder_id") is None for p in reg.document["projects"])
+    assert GROUP_METADATA_KEY not in json.loads(present.read_text(encoding="utf-8"))["metadata"]
+
+    reg.remove(str(missing))
+    reg.create_folder("Imported", glossary_path=str(glossary))
+    _op_import(reg, [{"project_file": str(missing), "series": "Imported"}])
+    assert any(p["path"] == str(missing) for p in reg.document["projects"])
+
+
+def test_remove_clears_the_group_glossary_and_rolls_back(tmp_path: Path) -> None:
+    glossary = _make_glossary_file(tmp_path / "glossaries" / "shared.json")
+    personal = _make_glossary_file(tmp_path / "glossaries" / "personal.json")
+    p_file = _make_project_file(
+        tmp_path / "projects", "Game",
+        metadata={GROUP_METADATA_KEY: str(glossary.resolve()), METADATA_KEY: str(personal.resolve())},
+    )
+    reg = registry.Registry(registry.read(tmp_path))
+    fid = reg.create_folder("Shared", glossary_path=str(glossary))
+    reg.add(str(p_file), folder_id=fid)
+
+    rollback = _op_remove(reg, str(p_file))
+    metadata = json.loads(p_file.read_text(encoding="utf-8"))["metadata"]
+    assert reg.document["projects"] == []
+    assert GROUP_METADATA_KEY not in metadata
+    assert metadata[METADATA_KEY] == str(personal.resolve())
+    assert series_chain(Project(name="Game", metadata=metadata), None) == [personal.resolve()]
+
+    rollback()
+    assert json.loads(p_file.read_text(encoding="utf-8"))["metadata"][GROUP_METADATA_KEY] == str(glossary.resolve())
+
+
+def test_remove_leaves_the_open_project_file_to_the_sync_job(tmp_path: Path) -> None:
+    glossary = _make_glossary_file(tmp_path / "glossaries" / "shared.json")
+    p_file = _make_project_file(tmp_path / "projects", "Game", metadata={GROUP_METADATA_KEY: str(glossary.resolve())})
+    reg = registry.Registry(registry.read(tmp_path))
+    reg.add(str(p_file))
+
+    _op_remove(reg, str(p_file), open_file=str(p_file))
+    assert json.loads(p_file.read_text(encoding="utf-8"))["metadata"][GROUP_METADATA_KEY] == str(glossary.resolve())

@@ -4,7 +4,8 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any, Callable, Iterable, List, Optional, Sequence, Tuple
+from types import SimpleNamespace
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QFileDialog, QMessageBox
@@ -14,6 +15,7 @@ from core.glossary.series import (
     GROUP_METADATA_KEY,
     entries_from_json,
     import_series_glossary,
+    series_chain,
     series_dir,
 )
 from core.i18n import tr
@@ -341,7 +343,7 @@ class OpenProjectSyncJob(WorkerThread):
         self,
         project_file: Path | str,
         target_glossary_or_dict: Any,
-        chain_paths: Sequence[Path],
+        metadata: Dict[str, Any],
         request_seq: Optional[int] = None,
     ):
         super().__init__()
@@ -350,7 +352,7 @@ class OpenProjectSyncJob(WorkerThread):
             self._target_glossary = target_glossary_or_dict.get("metadata", {}).get(GROUP_METADATA_KEY)
         else:
             self._target_glossary = str(target_glossary_or_dict) if target_glossary_or_dict else None
-        self._chain_paths = list(chain_paths)
+        self._metadata = dict(metadata)
         self._request_seq = request_seq
         self.committed = False
 
@@ -376,7 +378,9 @@ class OpenProjectSyncJob(WorkerThread):
             managers: list[GlossaryManager] = []
             warnings: list[str] = []
 
-            for path in self._chain_paths:
+            # The chain lists folders on disk, so it is built here and not on the UI thread.
+            chain = series_chain(SimpleNamespace(metadata=self._metadata), self._project_file.parent)
+            for path in chain:
                 if not path.is_file():
                     warnings.append(f"Glossary file missing: {path.name}")
                     continue

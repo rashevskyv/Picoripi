@@ -22,7 +22,7 @@ from PyQt6.QtWidgets import (
     QStackedWidget, QStyledItemDelegate, QToolButton, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 
-from core.glossary.series import GROUP_METADATA_KEY, series_chain, series_dir
+from core.glossary.series import GROUP_METADATA_KEY, series_dir
 from core.i18n import tr
 from core.project.persist_mixin import next_project_sequence
 from core.project_library import index, registry, resources, views
@@ -101,8 +101,38 @@ def _op_add(reg: registry.Registry, path: str, project_id: str, platform: str) -
     reg.add(path, project_id=project_id, platform=platform)
 
 
-def _op_remove(reg: registry.Registry, path: str) -> None:
+def _set_group_glossary(path: str, target: Optional[str], history: List[Tuple[str, Optional[str]]]) -> None:
+    """Set the group glossary in one closed project file and record the old value in ``history``.
+
+    Nothing is written when there is nothing to change. A missing project file is logged and skipped.
+    """
+    prev = read_project_group_glossary(path)
+    if target is None and prev is None:
+        return
+    try:
+        if update_project_group_glossary(path, target):
+            history.append((path, prev))
+    except FileNotFoundError as exc:
+        log_warning(f"Group glossary not updated: {exc}")
+
+
+def _restore_group_glossaries(history: List[Tuple[str, Optional[str]]]) -> None:
+    for m_path, m_prev in reversed(history):
+        try:
+            update_project_group_glossary(m_path, m_prev, is_rollback=True)
+        except Exception as rb_exc:
+            log_error(f"Rollback failed for {m_path}: {rb_exc}")
+
+
+def _op_remove(reg: registry.Registry, path: str, open_file: Optional[str] = None) -> Any:
+    history: List[Tuple[str, Optional[str]]] = []
+    if not open_file or not same_project_file(path, open_file):
+        try:
+            _set_group_glossary(path, None, history)
+        except Exception as exc:
+            raise OSError(f"Failed to remove project {path}: could not clear group glossary ({exc})") from exc
     reg.remove(path)
+    return partial(_restore_group_glossaries, history)
 
 
 def _op_set_name(reg: registry.Registry, path: str, name: str) -> None:
@@ -112,28 +142,15 @@ def _op_set_name(reg: registry.Registry, path: str, name: str) -> None:
 def _op_move(reg: registry.Registry, path: str, folder_id: Optional[str],
              open_file: Optional[str] = None) -> Any:
     target_glossary = reg.folder_glossary(folder_id) if folder_id else None
-    is_open = bool(open_file and same_project_file(path, open_file))
-    prev_glossary = None
-    changed = False
-
-    if not is_open:
-        prev_glossary = read_project_group_glossary(path)
+    history: List[Tuple[str, Optional[str]]] = []
+    if not open_file or not same_project_file(path, open_file):
         try:
-            changed = update_project_group_glossary(path, target_glossary)
+            _set_group_glossary(path, target_glossary, history)
         except Exception as exc:
             log_error(f"Failed to update group glossary when moving project {path}: {exc}")
             raise OSError(f"Failed to move project {path}: could not update group glossary ({exc})") from exc
-
     reg.update_fields(path, folder_id=folder_id)
-
-    def rollback() -> None:
-        if not is_open and changed:
-            try:
-                update_project_group_glossary(path, prev_glossary)
-            except Exception as rb_exc:
-                log_error(f"Rollback failed for {path}: {rb_exc}")
-
-    return rollback
+    return partial(_restore_group_glossaries, history)
 
 
 def _op_set_platform(reg: registry.Registry, path: str, platform: str) -> None:
@@ -151,32 +168,16 @@ def _op_rename_folder(reg: registry.Registry, folder_id: str, name: str) -> None
 def _op_delete_folder(reg: registry.Registry, folder_id: str,
                       open_file: Optional[str] = None) -> Any:
     affected = [entry["path"] for entry in reg.document["projects"] if entry.get("folder_id") == folder_id]
-    modified_history: List[Tuple[str, Optional[str]]] = []
+    history: List[Tuple[str, Optional[str]]] = []
     try:
         for p_path in affected:
             if not open_file or not same_project_file(p_path, open_file):
-                prev = read_project_group_glossary(p_path)
-                changed = update_project_group_glossary(p_path, None)
-                if changed:
-                    modified_history.append((p_path, prev))
+                _set_group_glossary(p_path, None, history)
     except Exception as exc:
-        for m_path, m_prev in reversed(modified_history):
-            try:
-                update_project_group_glossary(m_path, m_prev)
-            except Exception as rb_exc:
-                log_error(f"Rollback failed for {m_path}: {rb_exc}")
+        _restore_group_glossaries(history)
         raise OSError(f"Failed to delete folder {folder_id}: could not clear project group glossary ({exc})") from exc
-
     reg.delete_folder(folder_id)
-
-    def rollback() -> None:
-        for m_path, m_prev in reversed(modified_history):
-            try:
-                update_project_group_glossary(m_path, m_prev)
-            except Exception as rb_exc:
-                log_error(f"Rollback failed for {m_path}: {rb_exc}")
-
-    return rollback
+    return partial(_restore_group_glossaries, history)
 
 
 def _op_set_folder_glossary(reg: registry.Registry, folder_id: str, glossary_path: Optional[str],
@@ -195,7 +196,7 @@ def _op_import(reg: registry.Registry, items: List[Dict[str, Any]],
     for folder in reg.document["folders"]:
         folder_ids.setdefault(folder["name"].casefold(), folder["id"])
 
-    modified_history: List[Tuple[str, Optional[str]]] = []
+    history: List[Tuple[str, Optional[str]]] = []
     try:
         for item in items:
             series = item.get("series") or ""
@@ -208,30 +209,13 @@ def _op_import(reg: registry.Registry, items: List[Dict[str, Any]],
             p_path = item["project_file"]
             added = reg.add(p_path, project_id=item.get("project_id", ""), platform=item.get("platform", ""),
                             folder_id=folder_id)
-            if added and folder_id:
-                target_glossary = reg.folder_glossary(folder_id)
-                if target_glossary:
-                    if not open_file or not same_project_file(p_path, open_file):
-                        prev = read_project_group_glossary(p_path)
-                        changed = update_project_group_glossary(p_path, target_glossary)
-                        if changed:
-                            modified_history.append((p_path, prev))
+            target_glossary = reg.folder_glossary(folder_id) if added and folder_id else None
+            if target_glossary and (not open_file or not same_project_file(p_path, open_file)):
+                _set_group_glossary(p_path, target_glossary, history)
     except Exception as exc:
-        for m_path, m_prev in reversed(modified_history):
-            try:
-                update_project_group_glossary(m_path, m_prev)
-            except Exception as rb_exc:
-                log_error(f"Rollback failed for {m_path}: {rb_exc}")
+        _restore_group_glossaries(history)
         raise OSError(f"Failed to import projects: could not set group glossary ({exc})") from exc
-
-    def rollback() -> None:
-        for m_path, m_prev in reversed(modified_history):
-            try:
-                update_project_group_glossary(m_path, m_prev)
-            except Exception as rb_exc:
-                log_error(f"Rollback failed for {m_path}: {rb_exc}")
-
-    return rollback
+    return partial(_restore_group_glossaries, history)
 
 
 def _card_facts(project_file: str) -> tuple:
@@ -1503,7 +1487,7 @@ class ProjectManagerDialog(QDialog):
             tr("Remove this project from the Project Manager?\n\nNo project file is deleted."),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
         if answer == QMessageBox.StandardButton.Yes:
-            self._mutate(partial(_op_remove, path=row["path"]))
+            self._mutate(partial(_op_remove, path=row["path"], open_file=self._open_project_file()))
 
     def _new_folder_clicked(self) -> None:
         text, ok = QInputDialog.getText(self, tr("New folder"), tr("Folder name:"))
@@ -1561,11 +1545,9 @@ class ProjectManagerDialog(QDialog):
         else:
             project.metadata.pop(GROUP_METADATA_KEY, None)
 
-        from datetime import datetime
         project.modified_at = datetime.now().isoformat()
-        chain = series_chain(project, Path(open_file).parent)
         seq = next_project_sequence(open_file)
-        job = OpenProjectSyncJob(open_file, expected_glossary, chain, request_seq=seq)
+        job = OpenProjectSyncJob(open_file, expected_glossary, dict(project.metadata), request_seq=seq)
         self._open_sync_job = job
 
         def is_active() -> bool:
