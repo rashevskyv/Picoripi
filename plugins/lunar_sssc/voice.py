@@ -36,6 +36,7 @@ class Clip:
     channel: int
     first: int          # track sector of the file's first sector (LBA from the ISO directory)
     count: int          # sectors of the range (the game's read range)
+    rate: int = xa.RATE  # 37800 (double speed) or 18900 Hz: the coding byte of the clip's sectors
 
 
 # The opening monologue: the game's first XA read on disc 1 (see the report). Disc 1 track sector 18108.
@@ -66,32 +67,32 @@ def budget_samples(slot_count: int) -> int:
     return slot_count * xa.SECTOR_SAMPLES
 
 
-def read_wav(path: str | Path) -> List[int]:
-    """Mono 16-bit 37.8 kHz WAV as a list of samples. Other formats are refused, not converted."""
+def read_wav(path: str | Path, rate: int = xa.RATE) -> List[int]:
+    """Mono 16-bit WAV at ``rate`` as a list of samples. Other formats are refused, not converted."""
     with wave.open(str(path), "rb") as w:
-        if w.getnchannels() != 1 or w.getsampwidth() != 2 or w.getframerate() != xa.RATE:
+        if w.getnchannels() != 1 or w.getsampwidth() != 2 or w.getframerate() != rate:
             raise VoiceError(
-                f"{Path(path).name}: need mono 16-bit {xa.RATE} Hz WAV, got {w.getnchannels()} ch, "
+                f"{Path(path).name}: need mono 16-bit {rate} Hz WAV, got {w.getnchannels()} ch, "
                 f"{8 * w.getsampwidth()}-bit, {w.getframerate()} Hz")
         raw = w.readframes(w.getnframes())
     return list(struct.unpack("<%dh" % (len(raw) // 2), raw))
 
 
-def write_wav(path: str | Path, samples: Sequence[int]) -> None:
+def write_wav(path: str | Path, samples: Sequence[int], rate: int = xa.RATE) -> None:
     with wave.open(str(path), "wb") as w:
         w.setnchannels(1)
         w.setsampwidth(2)
-        w.setframerate(xa.RATE)
+        w.setframerate(rate)
         w.writeframes(struct.pack("<%dh" % len(samples), *samples))
 
 
-def fit(samples: Sequence[int], slot_count: int) -> List[int]:
+def fit(samples: Sequence[int], slot_count: int, rate: int = xa.RATE) -> List[int]:
     """The samples padded to the slots' length; refuses audio that does not fit."""
     limit = budget_samples(slot_count)
     if len(samples) > limit:
-        over = (len(samples) - limit) / xa.RATE
+        over = (len(samples) - limit) / rate
         raise VoiceError(f"clip is {over:.2f} s too long for its {slot_count} sectors "
-                         f"({limit / xa.RATE:.2f} s); shorten the text")
+                         f"({limit / rate:.2f} s); shorten the text")
     return list(samples) + [0] * (limit - len(samples))
 
 
@@ -100,9 +101,10 @@ def decode_clip(read_raw: Callable[[int], bytes], lbas: Sequence[int]) -> List[i
     return xa.decode_clip([read_raw(lba) for lba in lbas])
 
 
-def write_clip(disc: BinaryIO, raw_size: int, lbas: Sequence[int], samples: Sequence[int]) -> None:
+def write_clip(disc: BinaryIO, raw_size: int, lbas: Sequence[int], samples: Sequence[int],
+               rate: int = xa.RATE) -> None:
     """Encode the samples into the slot sectors of an open .bin (raw 2352-byte sectors, in place)."""
-    fit(samples, len(lbas))                       # refuses a clip that is too long
+    fit(samples, len(lbas), rate)                 # refuses a clip that is too long
     blobs = xa.encode_clip(samples, len(lbas))
     for lba, blob in zip(lbas, blobs):
         disc.seek(lba * raw_size)
@@ -131,8 +133,8 @@ def export_original(disc_path: str | Path, clip: Clip, wav_path: str | Path) -> 
         if not lbas:
             raise VoiceError(f"{clip.title}: no sectors of file {clip.file} channel {clip.channel} on this disc")
         samples = decode_clip(read_raw, lbas)
-    write_wav(wav_path, samples)
-    return len(samples) / xa.RATE
+    write_wav(wav_path, samples, clip.rate)
+    return len(samples) / clip.rate
 
 
 def import_translation(disc_path: str | Path, clip: Clip, wav_path: str | Path, voice_dir: str | Path) -> float:
@@ -140,11 +142,11 @@ def import_translation(disc_path: str | Path, clip: Clip, wav_path: str | Path, 
     f, read_raw = _read_raw_from(disc_path)
     with f:
         lbas = slots(read_raw, clip)
-    samples = read_wav(wav_path)
-    fit(samples, len(lbas))                       # refuses a clip that is too long
+    samples = read_wav(wav_path, clip.rate)
+    fit(samples, len(lbas), clip.rate)            # refuses a clip that is too long
     Path(voice_dir).mkdir(parents=True, exist_ok=True)
-    write_wav(Path(voice_dir) / f"{clip.id}.wav", samples)
-    return len(samples) / xa.RATE
+    write_wav(Path(voice_dir) / f"{clip.id}.wav", samples, clip.rate)
+    return len(samples) / clip.rate
 
 
 def apply_translation(build_disc_path: str | Path, clip: Clip, voice_dir: str | Path) -> bool:
@@ -152,12 +154,12 @@ def apply_translation(build_disc_path: str | Path, clip: Clip, voice_dir: str | 
     wav = Path(voice_dir) / f"{clip.id}.wav"
     if not wav.is_file():
         return False
-    samples = read_wav(wav)
+    samples = read_wav(wav, clip.rate)
     f, read_raw = _read_raw_from(build_disc_path)
     with f:
         lbas = slots(read_raw, clip)
     with open(build_disc_path, "r+b") as out:
-        write_clip(out, RAW, lbas, samples)
+        write_clip(out, RAW, lbas, samples, clip.rate)
     return True
 
 

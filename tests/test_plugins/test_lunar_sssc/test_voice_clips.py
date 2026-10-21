@@ -119,3 +119,16 @@ def test_dialog_lists_clips_and_disables_actions_without_any(qtbot, tmp_path):
     qtbot.addWidget(empty)
     assert empty._export_btn.isEnabled() is False
     assert empty._list.item(0).text()
+
+
+def test_a_clip_at_18900_hz_takes_only_its_own_rate(tmp_path):
+    disc = _disc(tmp_path, [8, 8])
+    clip = voice.Clip("slow", "Slow clip", file=1, channel=8, first=0, count=2, rate=18900)
+    voice_dir = tmp_path / "voice"
+    ok = tmp_path / "ok.wav"
+    voice.write_wav(ok, [500] * 1000, rate=18900)
+    assert voice.import_translation(disc, clip, ok, voice_dir) == pytest.approx(1000 / 18900)
+    wrong = tmp_path / "wrong.wav"
+    voice.write_wav(wrong, [500] * 1000, rate=37800)
+    with pytest.raises(voice.VoiceError, match="18900 Hz"):
+        voice.import_translation(disc, clip, wrong, voice_dir)

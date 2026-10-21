@@ -112,3 +112,8 @@ def test_wav_round_trip_and_format_refusal(tmp_path):
         w.writeframes(struct.pack("<4h", 0, 0, 0, 0))
     with pytest.raises(voice.VoiceError, match="need mono"):
         voice.read_wav(bad)
+
+
+def test_sector_rate_follows_the_coding_byte():
+    assert xa.sector_rate(_sector(coding=0x00)) == 37800
+    assert xa.sector_rate(_sector(coding=0x04)) == 18900      # Eternal Blue V.XA sectors

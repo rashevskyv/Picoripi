@@ -61,6 +61,11 @@ def is_audio(raw: bytes) -> bool:
     return len(raw) == RAW and bool(raw[0x12] & 0x04) and bool(raw[0x12] & 0x20)
 
 
+def sector_rate(raw: bytes) -> int:
+    """18900 or 37800 Hz from the coding byte (bits 2-3: 1 = 18.9 kHz)."""
+    return 18900 if (raw[0x13] >> 2) & 0x03 else 37800
+
+
 def subheader(raw: bytes):
     """(file, channel, submode, coding) of a raw sector."""
     return raw[0x10], raw[0x11], raw[0x12], raw[0x13]
