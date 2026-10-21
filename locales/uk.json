@@ -3142,7 +3142,7 @@
   "{0} uses the old text format: unpack the disc again.": "{0} має старий формат тексту: розпакуйте ROM знову.",
   "Spanish (ES, fan)": "Іспанська (ES, фан-переклад)",
   "Give the patched ROM (.z64). Patch files are not applied yet: {0}": "Вкажіть пропатчений ROM (.z64). Файли патчів поки не застосовуються: {0}",
-  "Portrait colours are approximate: the portrait palette is not measured yet.": "Кольори портрета приблизні: палітра портрета ще не виміряна.",
+  "Portrait colours come from portrait_colours.json when the project has it; other indices use PEO.PAL.": "Кольори портретів беруться з portrait_colours.json, якщо він є в проєкті; решта індексів використовує PEO.PAL.",
   "Open a game project to see the message window.": "Відкрийте проєкт гри, щоб побачити вікно повідомлення.",
   "Reading the game font and portraits...": "Читання шрифта гри та портретів...",
   "The game's font or portrait files are not in this project: {0}": "Шрифт гри або файли портретів не є в проєкті: {0}",

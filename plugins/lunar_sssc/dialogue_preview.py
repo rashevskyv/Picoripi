@@ -157,18 +157,24 @@ def palette_from_file(data: bytes) -> List[Tuple[int, int, int]]:
 
 
 def face_picture(files: Dict[str, bytes], index: Dict[int, Tuple[str, int]], face: int,
-                 palette: Sequence[Tuple[int, int, int]]) -> Optional[Image.Image]:
-    """RGBA 64x64 portrait of a face number, or None when no member holds it. Index 0 is transparent."""
+                 palette: Sequence[Tuple[int, int, int]],
+                 colours: Optional[Dict[str, Dict[int, Tuple[int, int, int]]]] = None) -> Optional[Image.Image]:
+    """RGBA 64x64 portrait of a face number, or None when no member holds it. Index 0 is transparent.
+
+    ``colours`` maps a member name to its own index -> RGB table (``portrait_colours``); an index it lacks uses
+    ``palette``.
+    """
     entry = index.get(face)
     if entry is None:
         return None
     name, frame = entry
     indices = decode_frame(inflate_member(files[name]), frame)
+    own = (colours or {}).get(name, {})
     image = Image.new("RGBA", (PORTRAIT, PORTRAIT), (0, 0, 0, 0))
     pixels = image.load()
     for i, value in enumerate(indices):
         if value:
-            red, green, blue = palette[value]
+            red, green, blue = own.get(value) or palette[value]
             pixels[i % PORTRAIT, i // PORTRAIT] = (red, green, blue, 255)
     return image
 

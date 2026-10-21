@@ -694,6 +694,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      A longer message moves the script code after it; `2_build.bat` rebuilds both discs.
      The preview draws the message window at the game's place, in the game font, with the portrait of the `{FA:xx}` tag from the `LUNADATA\FACE_nnn.TIZ` files (`1_unpack.bat` copies them; they are not in older workspaces). Portrait colours are approximate until the palette is measured; the window's band is a translucent dark strip drawn over a neutral grey backdrop, because the game's scene is not drawn. The speaker name is shown only for numbers checked on screen (`{FA:6E}` is Nall).
      The opening script (`TEXT001.DAT`) also has a block **Voice subtitles**: one line per speech segment of the opening monologue (8 lines; an empty line shows nothing). Each line appears in a text window for its segment while the voice plays. The lines go after the script op that starts the clip, so `2_build.bat` builds them with the script.
+     Portrait colours (dialogue preview): run `python scripts/lunar_portrait_colours.py <project folder> <sheet.png>` once. It writes `portrait_colours.json` into the project folder. Without it the portraits use `PEO.PAL`.
    - `lunar_ebc` — Lunar 2: Eternal Blue Complete (PlayStation, USA, 3 discs). **Source:** the workspace's
      `source` folder (`1_unpack.bat`, files of `DATA.PAK`): `DATA\EVENT` (event scripts), `DATA\PEOPLE` (what
      people on a map say), `DATA\SYSTEM\2499\05-12.bin` (items, spells, menus, memory-card messages),
