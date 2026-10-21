@@ -2,7 +2,7 @@
 
 The containers are the same as the HD ones (``plugins.okami_hd``), with the same text. The build writes a new disc image
 (``plugins.okami_ps2.build``): the changed entries go into their AFS archives, and the archive is moved to the end of the
-image when it grows past the sectors after it. The build is not booted in an emulator yet (no PS2 BIOS on disk).
+image when it grows past the sectors after it. A build with a grown message entry boots and runs in PCSX2 2.8.2.
 """
 from typing import Any, Dict, List, Optional, Tuple
 

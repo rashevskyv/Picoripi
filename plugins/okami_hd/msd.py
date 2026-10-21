@@ -13,9 +13,12 @@ Two MSD layouts are read (English files; checked on every English MSD section of
          starts with the unit 0x81xx or 0x82xx (big-endian) and the 1-unit header is any other unit.
 Any other section is kept as raw bytes.
 
-Rebuilding is exact: with no change, ``serialize(parse(data)) == data``. A text change is accepted only when every
-record keeps its byte length, because the file also has a RUNOFS64 table of absolute offsets (``ROF`` section) that
-this code does not rewrite. Nothing here reads or writes files.
+Rebuilding is exact: with no change, ``serialize(parse(data)) == data``. A record may change length. The record
+starts in the table and the section starts in the container header are rewritten, and the RUNOFS64 table of absolute
+section starts (``ROF`` section, Switch and Wii files) is rewritten too. The disc keeps two alignments and this code
+keeps them: every record starts on a 4-byte boundary and every section is a multiple of 16 bytes (checked on all 345
+PlayStation 2 entries). The growth of a record breaks them otherwise, and the game stopped in a later cutscene.
+Nothing here reads or writes files.
 """
 from __future__ import annotations
 
@@ -47,6 +50,16 @@ class Record:
         return self.head + b"".join(s + TERMINATOR for s in self.strings) + self.tail
 
 
+def _pad(raw: bytes, multiple: int) -> bytes:
+    """``raw`` with zero bytes after it up to a multiple of ``multiple``."""
+    return raw + b"\x00" * (-len(raw) % multiple)
+
+
+def _pad_section(raw: bytes, min_length: int) -> bytes:
+    """``raw`` padded with zeros to a multiple of 16 bytes and to at least ``min_length`` bytes."""
+    return _pad(raw + b"\x00" * max(0, min_length - len(raw)), 16)
+
+
 @dataclass
 class MsdSection:
     """One MSD section. ``layout`` is "list" or "table"; ``prefix`` is the raw bytes before the records."""
@@ -56,20 +69,22 @@ class MsdSection:
     tail: bytes = b""          # raw bytes after the last record (table layout only)
     endian: str = "<"
 
-    def serialize(self) -> bytes:
+    def serialize(self, min_length: int = 0) -> bytes:
+        """The section bytes with the layout the disc uses: every record starts on a 4-byte boundary, and the section
+        is a multiple of 16 bytes. The zero bytes that make this are pad. The disc pads the same way, so a pad reads
+        back as empty strings at the end of a record. ``min_length`` keeps the section at least that long: a section
+        never shrinks, so a fixed-size buffer that the game may keep stays the same size."""
         if self.layout == "list":
-            return self.prefix + self.records[0].serialize() if self.records else self.prefix
-        table_end = len(self.prefix)
-        body = b"".join(record.serialize() for record in self.records)
-        offsets = []
-        position = table_end
-        for record in self.records:
-            offsets.append(position)
-            position += record.byte_length()
+            body = b"".join(record.serialize() for record in self.records)
+            return _pad_section(self.prefix + body + self.tail, min_length)
+        chunks = [_pad(record.serialize(), 4) for record in self.records]
         table = bytearray(self.prefix)
-        for index, offset in enumerate(offsets):
-            struct.pack_into(self.endian + "I", table, 4 + 8 * index, offset)
-        return bytes(table) + body + self.tail
+        position = len(self.prefix)
+        for index, chunk in enumerate(chunks):
+            struct.pack_into(self.endian + "I", table, 4 + 8 * index, position)
+            position += len(chunk)
+        body = b"".join(chunks) + self.tail
+        return _pad_section(bytes(table) + body, min_length)
 
 
 @dataclass
@@ -90,12 +105,15 @@ def _units(raw: bytes, endian: str = "<") -> List[int]:
 
 
 def _head_units(units: List[int], endian: str) -> int:
-    """The record header length in units: 4 for the "me51" header, else 1."""
-    if endian == "<":
-        return 4 if tuple(units[:3]) == TABLE_HEADER_ME51 else 1
-    if units and (units[0] >> 8) in (0x81, 0x82) and (units[0] & 0xFF) == 0x03:
-        return 4
-    return 1
+    """The record header length in units: the "me51" header (3 units, plus a control unit that follows it), one
+    control unit (0x8000 or more), or none. A unit below 0x8000 is text, so a record that starts with a letter keeps
+    it (the header of 1 unit was taken for the first letter before this rule)."""
+    if len(units) >= 3 and (units[0] >> 8) in (0x81, 0x82) and (units[0] & 0xFF) == 0x03 and tuple(units[1:3]) == (
+            TABLE_HEADER_ME51[1], TABLE_HEADER_ME51[2]):
+        return 4 if len(units) > 3 and units[3] >= 0x8000 else 3
+    if units and units[0] >= 0x8000:
+        return 1
+    return 0
 
 
 def _split_strings(raw: bytes) -> Tuple[List[bytes], bytes]:

@@ -140,10 +140,10 @@ def test_text_layer_round_trip_on_a_ps2_container():
     data = container([[0x44, 0x38, 0x35], [0x31]])
     rules = GameRules()
     lines, names = rules.load_data_from_json_obj(data)
-    assert lines == [["the", "a"]] and names == {"0": "messages"}
+    assert lines == [["the a"]] and names == {"0": "messages"}      # one row per record; strings joined by a space
     assert rules.save_data_to_json_obj(lines, names) == data
-    edited, warnings = textfile.write_text(data, ["the", "b"])
-    assert textfile.read_text(edited) == ["the", "b"] and warnings == []
+    edited, warnings = textfile.write_text(data, ["the b"])
+    assert textfile.read_text(edited) == ["the b"] and warnings == []
 
 
 def test_real_ps2_disc_identifies_and_lists_messages():

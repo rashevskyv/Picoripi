@@ -7,7 +7,7 @@ import os
 import struct
 
 from core.containers import afs as core_afs
-from plugins.okami_hd import charset, textfile
+from plugins.okami_hd import charset, msd, textfile
 from plugins.okami_ps2 import afs
 from plugins.okami_wii import build, unpack
 from plugins.okami_wii.rules import GameRules
@@ -65,7 +65,8 @@ def test_big_endian_container_round_trips_and_takes_a_longer_text():
     assert same == data and warnings == []
     longer, warnings = textfile.write_text(data, ["Hiya"], ">")
     assert textfile.read_text(longer, ">") == ["Hiya"]
-    assert warnings and "record length changed" in warnings[0]
+    assert warnings == []
+    assert len(msd.parse_container(longer, ">").section_bytes(0)) % 16 == 0     # padded to the disc's 16 bytes
 
 
 def test_message_entries_follow_the_byte_order_of_the_containers():

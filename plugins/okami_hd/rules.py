@@ -1,9 +1,9 @@
 """Okami HD (Switch): the English message files as text, one block per file; a translation builds a LayeredFS mod.
 
-A file is a container (``u32 count``, offsets, tags). Its MSD sections hold the dialogue and the menu strings. The
-text of each string is shown with its control codes as ``{xxxx}`` tags (see ``charset``). Saving writes only the
-strings that changed, and only where the record keeps its byte length (see ``textfile``); a change that cannot be
-written is reported and the original bytes of that record stay.
+A file is a container (``u32 count``, offsets, tags). Its MSD sections hold the dialogue and the menu strings. One row
+is one record (a message): its strings are joined by spaces, and control codes show as ``{xxxx}`` tags (see
+``charset``). Saving writes only the rows that changed; a record may change length and the container offsets follow
+(see ``textfile``). A row that cannot be written is reported and the original bytes of that record stay.
 
 Not done yet: the Ukrainian glyph table, the font atlas (``etc/core_30.bin``) and the textures with text.
 """
