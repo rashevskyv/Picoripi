@@ -46,6 +46,7 @@ class LifecycleMixin:
             project.metadata.update(info['metadata'])
             self.mw.project_manager.save()
         log_info(f"Project '{project.name}' created at {info['directory']}; opening it.")
+        generation = self._start_open_attempt()
         self._begin_open_dialog()   # shown at once: the file sync and the block load below take a while
 
         # Switch plugin if needed
@@ -75,6 +76,8 @@ class LifecycleMixin:
             )
 
         def created_synced():
+            if generation != self._open_generation:   # another project was opened while the files were matched
+                return
             self._set_project_actions_enabled(True)
             if hasattr(self.mw, 'ui_handler'):
                 self.mw.ui_handler.update_editor_rules_properties()
@@ -84,6 +87,12 @@ class LifecycleMixin:
 
         # Match the blocks with the files on disk on a worker (a big game has thousands), then load them.
         self._sync_project_files_then(created_synced)
+
+    def _start_open_attempt(self) -> int:
+        """A new create or open: what an earlier one still has on its way (a file sync, a block load) is ignored."""
+        self._open_generation += 1
+        self._active_load_worker = None   # its result no longer matches the active worker, so it is dropped
+        return self._open_generation
 
     def _register_opened(self, project_file: str, save_project_settings: bool = False) -> None:
         """The project is the last one opened and in the recent list. A failed open undoes it (_forget_opened)."""
@@ -158,6 +167,7 @@ class LifecycleMixin:
 
         project = self.mw.project_manager.project
         log_info(f"Project '{project.name}' loaded; opening it.")
+        generation = self._start_open_attempt()
         self._begin_open_dialog()   # shown at once: the file sync and the block load below take a while
 
         # Switch plugin if needed
@@ -200,6 +210,8 @@ class LifecycleMixin:
                 log_debug(f"Failed to auto-sync companion on open: {exc}")
 
         def opened_synced():
+            if generation != self._open_generation:   # another project was opened while the files were matched
+                return
             self._set_project_actions_enabled(True)
             self.ui_updater.update_title()
             self._register_opened(project_path)   # a failed open undoes it (_project_open_failed)

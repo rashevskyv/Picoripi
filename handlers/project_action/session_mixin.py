@@ -255,6 +255,9 @@ class SessionMixin:
             worker.progress.connect(progress_dialog.setValue)
 
         def on_finished(result):
+            if self._active_load_worker is not worker:   # another create or open started since: not this view's data
+                log_info("ProjectActionHandler: a superseded project load finished; its result is dropped.")
+                return
             if not result:
                 self.mw._project_loading_pending = False
                 self._close_open_dialog()
