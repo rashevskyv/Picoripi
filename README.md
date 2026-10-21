@@ -38,6 +38,13 @@ start the same way.
 | First time | `setup.bat` (creates `.venv`, installs `requirements.txt`) | `./run.sh` (creates `.venv`, installs, starts) |
 | Start | `run.bat` | `./run.sh` |
 
+**Windows: C++ build tools.** `pyahocorasick` has no prebuilt wheel for Python 3.13 and 3.14, so `pip` compiles it.
+Without a compiler, `setup.bat` fails with `Microsoft Visual C++ 14.0 or greater is required`. Install
+[Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) once, with the workload
+**Desktop development with C++** and these components: **MSVC v143 build tools** and **Windows 10 or 11 SDK**.
+CMake is not needed for the app. Full Visual Studio already includes all of this. Linux needs `gcc` and the Python
+headers (`python3-dev`); macOS needs the Xcode command line tools.
+
 By hand, on any platform:
 
 ```bash
