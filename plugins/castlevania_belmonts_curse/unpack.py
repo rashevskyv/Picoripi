@@ -2,10 +2,12 @@
 
 The base game and its update are read with Picoripi's Switch reader. The base's RomFS is sparse: the update's BKTR patch
 maps most of it into the base, so the update's patched RomFS is the game's RomFS. The unpack writes under ``romfs\\``:
-the English localization bundle, the ``fonts-latin`` bundle, every ``ui-*`` and ``room-*`` bundle that shows text, and the
-Addressables catalog. The project's source folder is ``source``: ``message\\<table>.json`` for each of the 45 string
-tables, ``font\\fonts-latin\\<asset>.json`` and ``.png`` for the two TextMesh Pro fonts, and ``ui\\<bundle>.json`` for each
-interface or room bundle with shown text (``tables.py``, ``fonts.py``, ``ui_text.py``). The font's JSON is ``<asset>.tmpfont``: ``.json`` files are scanned as blocks.
+the English localization bundle, the ``fonts-latin`` bundle, every ``ui-*`` and ``room-*`` bundle that shows text, the main
+``narration`` bundle (its dialogue graphs and texts) and the Addressables catalog. The project's source folder is ``source``:
+``message\\<table>.json`` for each of the 45 string tables (with the scenes and speakers of the dialogue lines,
+``dialogue.py``), ``font\\fonts-latin\\<asset>.json`` and ``.png`` for the two TextMesh Pro fonts, and ``ui\\<bundle>.json`` for each
+interface, room or narration bundle with shown text (``tables.py``, ``fonts.py``, ``ui_text.py``). The font's JSON is
+``<asset>.tmpfont``: ``.json`` files are scanned as blocks.
 """
 import re
 from pathlib import Path
@@ -14,7 +16,7 @@ from typing import Callable, Dict, Optional
 from core.containers.image_files import ImageError
 from core.i18n import tr
 from core.project_library import images
-from plugins.castlevania_belmonts_curse import fonts, tables, ui_text
+from plugins.castlevania_belmonts_curse import dialogue, fonts, tables, ui_text
 
 BASE_ID = "0100BA4026E94000"
 UPDATE_ID = "0100BA4026E94800"       # the base title id plus 0x800
@@ -75,18 +77,24 @@ def unpack(sources: Dict[str, str], target_dir: str, progress: Callable[[int, st
             if items:
                 ui_hits.append(entry)
             progress(100 * (index + 1) // max(1, len(candidates)), _romfs_path(entry))
+        dialogue_entries = [entry for entry in all_entries if dialogue.BUNDLE.match(_romfs_path(entry))]
         wanted = localization + font_entries + ui_hits + catalog
+        wanted += [entry for entry in dialogue_entries if entry not in ui_hits]
         progress(0, tr("Writing {0} files", str(len(wanted))))
         if not images.write_entries(update_reader, wanted, target_dir, progress, is_cancelled):
             return None
     root = Path(target_dir)
+    dialogue_index = {}
+    if dialogue_entries:
+        dialogue_index, _outside = dialogue.index((root / dialogue_entries[0].path).read_bytes())
     for entry in localization:
         if is_cancelled():
             return None
         _bundle, serialized = tables.open_bundle((root / entry.path).read_bytes())
         for name, path_id in tables.tables(serialized).items():
             entries = tables.read_entries(serialized, path_id)
-            _write(root / SOURCE_DIR / "message" / f"{name}.json", tables.table_json(name, entries))
+            meta = dialogue_index.get(dialogue.collection_of(name))
+            _write(root / SOURCE_DIR / "message" / f"{name}.json", tables.table_json(name, entries, meta))
     for entry in font_entries:
         for name, (font_json, atlas_png) in fonts.font_pairs((root / entry.path).read_bytes()).items():
             _write(root / SOURCE_DIR / fonts.FOLDER / f"{name}{fonts.SUFFIX}", font_json)

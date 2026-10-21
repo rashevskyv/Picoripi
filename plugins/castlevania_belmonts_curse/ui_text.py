@@ -1,4 +1,5 @@
-"""The visible text of the interface and room bundles (``ui-*`` and ``room-*``) of Castlevania: Belmont's Curse (Switch).
+"""The visible text of the interface, room and narration bundles (``ui-*``, ``room-*`` and the main ``narration`` bundle)
+of Castlevania: Belmont's Curse (Switch).
 
 Every shown TextMesh Pro text is a MonoBehaviour with ``m_text`` and ``m_fontAsset``. A text counts when it is not empty
 and not Unity's ``New Text`` placeholder. One bundle with texts is one project file, ``ui\\<bundle name>.json``:
@@ -17,7 +18,7 @@ from core.unity.assets import MONOBEHAVIOUR
 from core.unity.serialized import SerializedError, SerializedFile
 from core.unity.unityfs import Bundle
 
-UI_BUNDLE = re.compile(r"^Data/StreamingAssets/aa/Switch/(ui|room)-[^/]+\.bundle$")
+UI_BUNDLE = re.compile(r"^Data/StreamingAssets/aa/Switch/((ui|room)-[^/]+|narration_assets_all_[0-9a-f]+)\.bundle$")
 PLACEHOLDER = "New Text"
 FOLDER = "ui"
 _STREAM_SUFFIXES = (".resS", ".res", ".resource")

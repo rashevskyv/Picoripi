@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Castlevania: Belmont's Curse: the managed-reference (SerializeReference) objects read, so all 4 958 156 objects of the game's bundles read and round-trip (1 841 did not); the narration bundle's TextMesh Pro texts join the interface texts, and the narration table entries list the scenes and speakers of their dialogue lines.
 - Yo-kai Watch: width limits for Yo-kai Watch 1 on Switch, Yo-kai Watch 2, Yo-kai Watch 4++ and Yo-kai Academy Y, measured on each game's English text with its own main font (`scripts/build_yokai_layouts.py`, which measures the stored 3DS limits again the same); the fit check always measures with that font, and a letter the font lacks counts as the font's average letter (it was 9 pixels, a 3DS letter, also on the Switch). A Switch window is no longer "layout unverified".
 - Project Manager: **Share project...** packs a project (project folder, translation files, linked series glossaries; no game files, sessions or caches) into one `.zip` with its paths made relative and outside paths cleared; **Import shared project...** unpacks such a zip into a folder the receiver chooses and points it at the receiver's own game files.
 - New Project wizard keeps game images that a plugin reads as they are, skips a malformed table while it checks an extracted folder, and says when that folder path is a file.

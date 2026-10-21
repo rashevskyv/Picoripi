@@ -18,9 +18,15 @@ TABLE_KEY = "m_TableData"
 Entry = Tuple[int, str]          # (key id, text)
 
 
-def table_json(name: str, entries: List[Entry]) -> bytes:
-    """The project file of one table: the JSON text, UTF-8, with a final newline."""
-    body = {"table": name, "entries": [{"id": key, "text": text} for key, text in entries]}
+def table_json(name: str, entries: List[Entry], meta: Optional[Dict[int, Dict[str, List[str]]]] = None) -> bytes:
+    """The project file of one table: the JSON text, UTF-8, with a final newline. ``meta`` (key id -> optional
+    ``scenes`` / ``speakers`` lists, from ``dialogue.index``) adds those fields to the entries; the build ignores them."""
+    rows = []
+    for key, text in entries:
+        row: Dict[str, object] = {"id": key, "text": text}
+        row.update({field: values for field, values in (meta or {}).get(key, {}).items() if values})
+        rows.append(row)
+    body = {"table": name, "entries": rows}
     return (json.dumps(body, ensure_ascii=False, indent=1) + "\n").encode("utf-8")
 
 

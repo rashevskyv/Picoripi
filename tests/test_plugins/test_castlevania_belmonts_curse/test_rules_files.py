@@ -24,3 +24,13 @@ def test_an_interface_file_round_trips_through_the_loader():
     assert blocks == [["Start", "Options"]]
     assert rules.save_data_to_json_obj([["Почати", "Options"]], names) == \
         ui_text.table_json("ui-hud", [("CAB-x/10", "Почати"), ("CAB-x/13", "Options")])
+
+
+def test_a_table_file_keeps_its_dialogue_metadata_on_save():
+    meta = {1: {"scenes": ["Medusa_Fight_Random"], "speakers": ["05a631be53c84614894c2c69eb5c32ff"]}}
+    data = tables.table_json("Narration_ACT1_en", [(1, "Line"), (2, "Other")], meta)
+    rules = GameRules(None)
+    blocks, names = rules.load_data_from_json_obj(data)
+    assert blocks == [["Line", "Other"]]
+    assert rules.save_data_to_json_obj([["Рядок", "Other"]], names) == \
+        tables.table_json("Narration_ACT1_en", [(1, "Рядок"), (2, "Other")], meta)

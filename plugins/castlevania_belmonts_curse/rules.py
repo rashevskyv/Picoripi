@@ -1,7 +1,8 @@
 """Castlevania: Belmont's Curse (Switch, Unity Localization): the English texts of the game as project files.
 
 A project's source folder is ``source``, written by the wizard's unpack: ``message\\<table>.json`` for each of the 45 English
-string tables (``tables.py``), and ``ui\\<bundle>.json`` for each interface or room bundle with shown text (``ui_text.py``).
+string tables (``tables.py``), and ``ui\\<bundle>.json`` for each interface, room or narration bundle with shown text (``ui_text.py``). A table entry of a narration line may
+carry the ``scenes`` and ``speakers`` that use it (``dialogue.py``); the build ignores them.
 Each file is one block; each entry is one string. The build writes the edited texts back into the bundles, the fonts
 (``fonts.py``) and the catalog (``catalog.py``), as a LayeredFS mod (``build.py``).
 """
@@ -19,7 +20,8 @@ class GameRules(BaseGameRules):
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
-        self._file: Optional[Tuple[str, str, List[Any]]] = None    # (kind, table name, ids of the file)
+        # (kind, table name, ids of the file, metadata of the entries: id -> optional scenes / speakers lists)
+        self._file: Optional[Tuple[str, str, List[Any], Dict[Any, Dict[str, List[str]]]]] = None
 
     def get_display_name(self) -> str:
         return "Castlevania: Belmont's Curse"
@@ -67,20 +69,23 @@ class GameRules(BaseGameRules):
         name = str(body["table"])
         items = body["entries"]
         if items and isinstance(items[0]["id"], str):
-            self._file = ("ui", name, [str(item["id"]) for item in items])
+            self._file = ("ui", name, [str(item["id"]) for item in items], {})
         else:
-            self._file = ("table", name, [int(item["id"]) for item in items])
+            ids = [int(item["id"]) for item in items]
+            meta = {key: {field: item[field] for field in ("scenes", "speakers") if item.get(field)}
+                    for key, item in zip(ids, items)}
+            self._file = ("table", name, ids, {key: value for key, value in meta.items() if value})
         return [[str(item["text"]) for item in items]], {}
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
         if self._file is None:
             return super().save_data_to_json_obj(data, block_names)
-        kind, name, ids = self._file
+        kind, name, ids, meta = self._file
         texts = list(data[0]) if data and isinstance(data[0], list) else []
         texts += [""] * (len(ids) - len(texts))
         if kind == "ui":
             return ui_text.table_json(name, list(zip(ids, texts)))
-        return tables.table_json(name, list(zip(ids, texts)))
+        return tables.table_json(name, list(zip(ids, texts)), meta)
 
     def reset_runtime_state(self) -> None:
         self._file = None

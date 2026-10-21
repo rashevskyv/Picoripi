@@ -2,7 +2,7 @@
 
 Three kinds of edit are written, each as a rebuilt bundle in ``atmosphere\\contents\\0100BA4026E94000\\romfs\\...``:
 the English localization bundle (the string tables, ``tables.py``), the ``fonts-latin`` bundle (the TextMesh Pro fonts,
-``fonts.py``) and the interface and room bundles with edited texts (``ui_text.py``). A rebuilt bundle is stored without
+``fonts.py``) and the interface, room and narration bundles with edited texts (``ui_text.py``). A rebuilt bundle is stored without
 compression, as the SWUK mod stores its bundles. The catalog ``aa\\catalog.json`` is written with each rebuilt bundle's new
 size (``catalog.py``); every other bundle and file of the game is left alone.
 """
