@@ -194,6 +194,11 @@ class GameRules(BaseGameRules):
         found = self._line(block_idx, string_idx)
         return tuple(found[1].place) if found is not None and found[1].place else None
 
+    def get_stage_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
+        """The stage code of the line's script file (``ST0`` for the prologue), or None."""
+        found = self._line(block_idx, string_idx)
+        return docs.stage_code(found[0].path) if found is not None else None
+
     def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
         """The cutscene window with the 8x8 font (text_preview.py)."""
         from plugins.castlevania_sotn.text_preview import SotnTextPreview

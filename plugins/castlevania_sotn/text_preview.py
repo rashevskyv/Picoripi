@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import QWidget
 
 from core import font_formats
 from core.i18n import tr
-from plugins.castlevania_sotn import codec, text_window
+from plugins.castlevania_sotn import codec, hud, text_window
 from plugins.castlevania_sotn.script import TAG_RE
 from plugins.common.switch_message_preview import source_folder
 from utils.logging_utils import log_debug
@@ -75,6 +75,37 @@ class FontLoader(WorkerThread):
             self.loaded.emit((self._project_dir, sheet))
 
 
+def read_hud_sheet(project_dir: str) -> Optional[Image.Image]:
+    """The Richter HUD sheet of the project's prologue stage (ST0.BIN and F_GAME2.BIN, source copies)."""
+    source, _translation = _project_folders(project_dir)
+    if source is None:
+        return None
+    return hud.read_richter_hud(str(source / "ST" / "ST0" / "ST0.BIN"), str(source / "BIN" / "F_GAME2.BIN.pic"))
+
+
+class HudLoader(WorkerThread):
+    """Decodes the Richter HUD sheet in a worker. ``loaded`` carries ``(project folder, sheet or None)``."""
+
+    loaded = pyqtSignal(object)
+
+    def __init__(self, project_dir: str):
+        super().__init__()
+        self._project_dir = project_dir
+        self._stop = threading.Event()
+
+    def cancel(self) -> None:
+        self._stop.set()
+
+    def run(self) -> None:
+        try:
+            sheet = read_hud_sheet(self._project_dir)
+        except (OSError, ValueError, KeyError, IndexError) as error:
+            log_debug(f"castlevania_sotn preview: no HUD sheet in {self._project_dir}: {error}")
+            sheet = None
+        if not self._stop.is_set():
+            self.loaded.emit((self._project_dir, sheet))
+
+
 def page_codes(text: str) -> List[List[int]]:
     """The first page of editor text as cell codes, one list per line (tags such as {WAIT 30} are not drawn)."""
     lines = TAG_RE.sub("", text).split("\n")
@@ -93,6 +124,8 @@ class SotnTextPreview(QWidget):
         self._loader: Optional[FontLoader] = None
         self._source = ""
         self._image: Optional[QImage] = None
+        self._hud: Optional[Image.Image] = None
+        self._hud_loader: Optional[HudLoader] = None
         self.setMinimumHeight(text_window.CANVAS[1] * ZOOM + 2 * _MARGIN)
         self._start_load()
 
@@ -108,6 +141,10 @@ class SotnTextPreview(QWidget):
             self._loader.cancel()
             safe_shutdown_thread(self._loader, self._loader, WORKER_STOP_MS)
             self._loader = None
+        if self._hud_loader is not None:
+            self._hud_loader.cancel()
+            safe_shutdown_thread(self._hud_loader, self._hud_loader, WORKER_STOP_MS)
+            self._hud_loader = None
         self._sheet = None
 
     def _start_load(self) -> None:
@@ -119,6 +156,9 @@ class SotnTextPreview(QWidget):
         self._loader = FontLoader(self._source)
         self._loader.loaded.connect(self._on_loaded)
         self._loader.start()
+        self._hud_loader = HudLoader(self._source)
+        self._hud_loader.loaded.connect(self._on_hud_loaded)
+        self._hud_loader.start()
         self._note = tr("Reading the game font...")
 
     def _on_loaded(self, payload: object) -> None:
@@ -130,6 +170,25 @@ class SotnTextPreview(QWidget):
             return
         self._sheet = sheet
         self._render()
+
+    def _on_hud_loaded(self, payload: object) -> None:
+        project_dir, sheet = payload
+        if project_dir != self._source:
+            return
+        self._hud = sheet
+        self._render()
+
+    def _with_hud(self, page: Image.Image) -> Image.Image:
+        """The Richter hearts digits behind the window, on the prologue stage (ST0) only. Reads only."""
+        if self._hud is None:
+            return page
+        rules = self._mw.current_game_rules
+        data = self._mw.data_store
+        if rules.get_stage_for_string(data.physical_block_idx, data.current_string_idx) != "ST0":
+            return page
+        frame = hud.draw_hearts(Image.new("RGBA", text_window.CANVAS, (0, 0, 0, 0)), self._hud)
+        frame.alpha_composite(page)
+        return frame
 
     def _speaker_cells(self) -> List[int]:
         """The speaker name of the selected line as cell codes (empty when it has none). Reads only."""
@@ -152,6 +211,7 @@ class SotnTextPreview(QWidget):
             return
         pages = TAG_RE.sub("", self._text).split("\n")
         page = text_window.render_dialogue(self._speaker_cells(), page_codes(self._text), self._sheet, self._place())
+        page = self._with_hud(page)
         self._image = _to_qimage(text_window.scale_nearest(page, ZOOM))
         self._note = tr("Only the first page is drawn.") if len(pages) > text_window.LINES else ""
         self.update()

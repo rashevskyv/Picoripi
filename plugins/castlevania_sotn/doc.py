@@ -55,8 +55,13 @@ def file_of(data: bytes) -> Optional[str]:
     return by_size().get(len(data))
 
 
+def stage_code(path: str) -> str:
+    """The stage code of a disc path: ``ST/ST0/ST0.BIN`` gives ``ST0``."""
+    return path.split("/")[-1].split(".")[0]
+
+
 def place_name(path: str) -> str:
-    stage = path.split("/")[-1].split(".")[0]
+    stage = stage_code(path)
     plain = stage[1:] if stage.startswith("R") and stage[1:] in STAGES else stage
     name = STAGES.get(plain, "")
     if stage != plain:
