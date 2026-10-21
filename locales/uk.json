@@ -3104,5 +3104,15 @@
   "Import translated WAV": "Імпорт перекладу з WAV",
   "Imported {0:.2f} s": "Імпортовано {0:.2f} с",
   "No translated WAV yet: export the original, translate it, then import.": "Перекладу ще немає: експортуйте оригінал, перекладіть його і імпортуйте.",
-  "Playing {0}": "Відтворюється {0}"
+  "Playing {0}": "Відтворюється {0}",
+  "Patched ROM (US)": "Пропатчений ROM (US)",
+  "BPS patch (US ROM to translation)": "BPS-патч (від US ROM до перекладу)",
+  "The ROM {0} is not on disk.": "ROM {0} немає на диску.",
+  "The ROM is not the pinned US release.": "ROM не є закріпленим релізом US.",
+  "Reading the edited text tables": "Читання відредагованих таблиць тексту",
+  "Rebuilding the text banks": "Перебудова банків тексту",
+  "Writing the result": "Запис результату",
+  "{0} uses the old text format: unpack the disc again.": "{0} має старий формат тексту: розпакуйте ROM знову.",
+  "Spanish (ES, fan)": "Іспанська (ES, фан-переклад)",
+  "Give the patched ROM (.z64). Patch files are not applied yet: {0}": "Вкажіть пропатчений ROM (.z64). Файли патчів поки не застосовуються: {0}"
 }

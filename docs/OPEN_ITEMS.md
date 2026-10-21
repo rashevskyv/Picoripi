@@ -116,14 +116,26 @@ the line when it is done or moved into a plan.
 - Owner: the reference files of the Russian overlay (`reference\ru_mod\`) are for format study only. Its text and voice are not used.
 
 ## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-bfd`)
+## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-grow`)
 
+- Boot (2026-10-21): a grown code archive boots on BizHawk Mupen64Plus when the header checksum is recomputed. Proven: the original ROM, a single moved chunk with its header CRC recomputed (C1), and the multi-chunk grown build (`grown_archive_test_crcfix.z64`) all reach the Rare credits at 600 frames. Without the recomputed header the same builds stay black: the game checks the header words after copying the first 1 MB to RAM. The header checksum is CIC-6105 (CRC1, CRC2), implemented in `plugins/conker_bfd/header_crc.py`.
+- Open (font, 2026-10-21): the font relocation and Ukrainian cells are not in the ROM. Facts from the decomp: the font range is in data at `D_80082F80` (ROM `0x40F10`, `0x42450`); the loader `func_15015920` walks records by size into a 10 KB buffer (room to grow); each glyph's pixels are a fixed `u8[224]` (`D_80085990`); the metrics are `D_80085994[glyph * 4]`, whose array size is not in the decomp; the lookup `func_15042C40` scans the 95-byte map `D_80085930[0x5F]` (data `0x2E10`). Two glyph slots (83, 91) are shadowed by duplicate map codes. Eight cells need more glyph slots: the count 95 in the lookup, the metrics and pixel arrays must grow first.
+- Open: on BizHawk Ares64 (the core that enforces the checksum at boot) the CRC-fixed variant B and the CRC-fixed grown build did not finish: CPU-bound with no frame output for about 20 minutes. Not explained. Real-hardware and Ares64 boot are not proven.
+- Open: no game-play proof yet (no input route, no changed text on screen). The code archive is not yet written by the build path (`build_target` relays text banks only).
+
+- Open: the port (`E:\conker-data
+epo`) pins the US ROM SHA-1 in `SHA1SUMS`. The build script that reads the ROM lives in CBFD-Recompiled, which is not on this machine; whether it rejects a patched ROM is unknown.
 - Open: no speech subtitle table found. Text tables found: bank 0x1A (entries 0-4, catapult book) and bank 0x1C sub-tables 0-3 (menu options, pause menu, chapter names, credits). The compressed game data section (task names) is not opened yet.
 - Open: no link from the 453 bank-0x16 streams to events or text lines. The decompilation documents one loader call site ("the exact US caller", `docs/rzip-assets.md`); its table of event to stream index is not extracted. Proxy only, unverified: 220 streams with L: cues (speech-like) and 233 without (music or ambient-like).
 - Open: the text preview uses the decompiled metrics and is not checked in an emulator frame. The canvas (320x240), the box position and the icon widths are assumptions. An owner save state at the catapult book is needed (`owner_play_to_catapult_book.bat`). The preview widget is not wired into the app; only the width hook is.
 - Owner decision: commit 7a3765db holds real game sentences in its test file (since removed). A local squash of the unpushed branch would remove them from its history.
 - Open: the font has no Font Editor format yet; the 95 glyphs are PGM sources only.
-- Open: no ROM build. Text growth needs a budget model; a longer voice stream needs a bank 0x16 repack (the index holds start and length per entry).
+- Open: no ROM proof of the text growth. The patched ROM is built and reads back (synthetic and real ROM tests), and the plugin build writes a ROM and a BPS. The emulator frame is not captured: a private ares copy runs the original and the patched ROM at 60 VPS, but the window shows black in every capture (PrintWindow, screen copy, OpenGL and Direct3D 11). Needs a capture route that shows the game picture.
+- Open: the text box is not enlarged. The line buffer (80 bytes, `func_1516C934`), the lines per page and the display-list budget (`D_800BEBA4`) are the ceilings; the box constants are in game code stored in RZIP code chunks (XOR table). Patching them needs the chunk pipeline and a frame measure.
+- Open: no Ukrainian glyphs. The font is a fixed 95-record table at ROM 0x40F10 with 13 bytes of slack; the glyph map sits in the RZIP game data. New glyphs need a relocated font and a patched address in code.
+- Open: a longer voice stream needs a bank 0x16 repack (the index holds start and length per entry).
 - Open: the port (CBFD-Recompiled) plays speech through the game's MP3 player and extracts its assets at build time from the ROM. No runtime audio override exists in its `host/src`: a new voice needs a patched ROM and a port rebuild (not yet built).
+- Open: the Spanish fan reference (beta, `_reference\ES\conker_esp_v1.1beta.z64` in the workspace) is a patched ROM. Its tables `bank_1C/sub_0002` (110 US strings, 94 in the fan) and `bank_1C/sub_0003` (196 vs 200) are skipped; no content-based alignment yet. Patch files (xdelta, BPS) are not applied: give the patched ROM.
 - Open: the voice re-encode and cue re-splice are proven on a file (`voice.splice_cues`, 40 of 40 cues); the stream has not played in the game or in the port.
 
 ## Same text in manuals (`plugins/manual_3ds`, D46, 2026-10-18, branch `feat/manual-same-text`)
