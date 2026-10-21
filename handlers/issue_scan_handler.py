@@ -133,8 +133,6 @@ class IssueScanHandler(BaseHandler):
         if not self.mw.current_game_rules or not (0 <= block_idx < len(self.mw.data_store.data)):
             return
 
-        log_debug(f"Scanning block {block_idx} for issues...")
-        
         # Clear existing problems for this block
         keys_to_remove = [k for k in self.mw.data_store.problems_per_subline if k[0] == block_idx]
         for key in keys_to_remove:
@@ -200,7 +198,6 @@ class IssueScanHandler(BaseHandler):
             for i, problem_set in enumerate(all_problems_for_string):
                 if problem_set:
                     self.mw.data_store.problems_per_subline[(block_idx, string_idx, i)] = problem_set
-                    log_debug(f"  Found problems in block {block_idx}, string {string_idx}, subline {i}: {problem_set}")
 
     # -----------------------------------------------------------------------
     # Async batched initial scan – runs in chunks so the UI never freezes

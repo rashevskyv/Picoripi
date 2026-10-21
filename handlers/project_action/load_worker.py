@@ -23,6 +23,23 @@ def _sub_block_index(names, count, internal_key) -> int:
     return -1
 
 
+class ProjectSyncWorker(WorkerThread):
+    """Worker thread that matches the project's blocks with the files on disk (archive scan, new blocks)."""
+    synced = pyqtSignal()
+
+    def __init__(self, project_manager, game_rules):
+        super().__init__()
+        self.project_manager = project_manager
+        self.game_rules = game_rules
+
+    def run(self):
+        try:
+            self.project_manager.sync_project_files(plugin=self.game_rules)
+        except Exception as e:
+            log_error(f"ProjectSyncWorker error: {e}", exc_info=True)
+        self.synced.emit()
+
+
 class ProjectLoadWorker(WorkerThread):
     """Worker thread for loading project files asynchronously."""
     finished_with_result = pyqtSignal(dict)

@@ -141,6 +141,7 @@ class SessionMixin:
     def _populate_blocks_from_project(self, on_completed=None) -> None:
         """Populate block list from current project and load data asynchronously."""
         if not self.mw.project_manager or not self.mw.project_manager.project:
+            self._close_open_dialog()
             if on_completed:
                 on_completed(False)
             return
@@ -184,6 +185,7 @@ class SessionMixin:
             self._report_startup(96, "Restoring virtual blocks…")
 
             def finish_cached_restore():
+                self._close_open_dialog()
                 self._report_startup(99, "Project view ready")
                 if on_completed:
                     on_completed(True)
@@ -222,23 +224,20 @@ class SessionMixin:
         worker = ProjectLoadWorker(self.mw.project_manager, self.mw.current_game_rules)
         self.mw._project_loading_pending = True
 
-        progress_dialog = None
-        if not app_mode.headless and not startup_loading:
-            from PyQt6.QtWidgets import QProgressDialog
-            from PyQt6.QtCore import Qt
-            total_steps = len(worker.blocks) * 2
-            progress_dialog = QProgressDialog("Loading project blocks...", None, 0, total_steps, self.mw)
-            progress_dialog.setWindowTitle(tr('Loading Project'))
-            progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
-            progress_dialog.setMinimumDuration(0) # show immediately
+        # The open from the Project Manager already shows its dialog; any other open gets one here.
+        if self._open_dialog is None:
+            self._begin_open_dialog()
+        progress_dialog = self._open_dialog
+        if progress_dialog:
+            progress_dialog.setLabelText(tr("Loading project blocks…"))
+            progress_dialog.setRange(0, len(worker.blocks) * 2)
             progress_dialog.setValue(0)
             worker.progress.connect(progress_dialog.setValue)
 
         def on_finished(result):
             if not result:
                 self.mw._project_loading_pending = False
-                if not app_mode.headless and progress_dialog:
-                    progress_dialog.close()
+                self._close_open_dialog()
                 if worker.error_occurred:
                     QMessageBox.critical(self.mw, tr('Load Error'), f"An error occurred while loading project files:\n{worker.error_occurred}")
                 if on_completed:
@@ -248,7 +247,7 @@ class SessionMixin:
                 return
 
             if progress_dialog:
-                progress_dialog.setLabelText("Building virtual blocks and scanning issues…")
+                progress_dialog.setLabelText(tr("Building virtual blocks and scanning issues…"))
                 progress_dialog.setRange(0, 0)
             self._report_startup(95, "Building virtual blocks and scanning issues…")
 
@@ -299,8 +298,7 @@ class SessionMixin:
                         state_restored = True
 
                 def complete_ready_view():
-                    if progress_dialog:
-                        progress_dialog.close()
+                    self._close_open_dialog()
                     defer_startup_finish = False
                     if on_completed:
                         defer_startup_finish = on_completed(state_restored) is False

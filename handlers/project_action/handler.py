@@ -35,6 +35,8 @@ class ProjectActionHandler(
         self._pending_restore_block: int = 0
         self._pending_restore_cat: Optional[str] = None
         self._finish_startup_after_restore_timer = False
+        self._open_dialog = None  # the busy dialog of a project open (recent_mixin.py)
+        self._active_sync_worker = None
 
     def _report_startup(self, value: int, message: str) -> None:
         reporter = getattr(self.mw, 'report_startup_progress', None)

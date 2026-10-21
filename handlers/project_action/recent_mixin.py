@@ -1,9 +1,14 @@
 """Project actions: the recent projects menu."""
+from functools import partial
 from pathlib import Path
 from typing import List
-from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QMessageBox, QProgressDialog
 from core.project_manager import ProjectManager
+from handlers.project_action.load_worker import ProjectSyncWorker
+from utils import app_mode
 from utils.logging_utils import log_info, log_debug
+from utils.thread_utils import single_shot
 from core.i18n import tr
 
 
@@ -50,6 +55,37 @@ class RecentMixin:
         clear_action = self.mw.recent_projects_menu.addAction(tr('Clear Recent Projects'))
         clear_action.triggered.connect(self._clear_recent_projects)
 
+    def _begin_open_dialog(self) -> bool:
+        """Show the busy dialog of a project open. Not at start-up: the splash shows the progress there."""
+        if app_mode.headless or getattr(self.mw, '_startup_splash', None) is not None:
+            return False
+        dialog = QProgressDialog(tr("Opening project…"), None, 0, 0, self.mw)
+        dialog.setWindowTitle(tr('Loading Project'))
+        dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        dialog.setMinimumDuration(0)
+        dialog.show()
+        self._open_dialog = dialog
+        return True
+
+    def _close_open_dialog(self) -> None:
+        dialog, self._open_dialog = self._open_dialog, None
+        if dialog is not None:
+            dialog.close()
+
+    def _sync_project_files_then(self, done) -> None:
+        """Match the blocks with the files on disk, on a worker while the dialog shows, then call *done*."""
+        project_manager = self.mw.project_manager
+        rules = self.mw.current_game_rules
+        if self._open_dialog is None:
+            project_manager.sync_project_files(plugin=rules)
+            done()
+            return
+        self._open_dialog.setLabelText(tr("Synchronizing project files…"))
+        worker = ProjectSyncWorker(project_manager, rules)
+        self._active_sync_worker = worker
+        worker.synced.connect(done)
+        worker.start()
+
     def _open_recent_project(self, project_path: str) -> None:
         """Open a project from the recent projects list."""
         log_info(f"Opening recent project: {project_path}")
@@ -68,6 +104,13 @@ class RecentMixin:
                 self._update_recent_projects_menu()
             return
 
+        # The dialog must paint before the blocking reads below: they start on the next event-loop turn.
+        if self._begin_open_dialog():
+            single_shot(0, self.mw, partial(self._open_recent_stage, project_path))
+        else:
+            self._open_recent_stage(project_path)
+
+    def _open_recent_stage(self, project_path: str) -> None:
         # Load project using ProjectManager
         self._report_startup(60, "Reading project metadata…")
         self.mw.project_manager = ProjectManager()
@@ -127,13 +170,6 @@ class RecentMixin:
             # 4. Enable project-related UI elements
             self._set_project_actions_enabled(True)
 
-            # 5. Sync project files (extract archives, discover new blocks)
-            self._report_startup(72, "Synchronizing project files…")
-            self.mw.project_manager.sync_project_files(plugin=self.mw.current_game_rules)
-
-            # 6. Populate UI components with the new project data
-            self.ui_updater.update_title()
-
             def on_recent_opened(state_restored):
                 self.record_project_counts()
                 if hasattr(self.mw, 'bookmark_handler'):
@@ -159,9 +195,17 @@ class RecentMixin:
 
                 return True
 
-            self._report_startup(75, "Restoring cached project data…")
-            self._populate_blocks_from_project(on_completed=on_recent_opened)
+            def open_synced():
+                # 6. Populate UI components with the new project data
+                self.ui_updater.update_title()
+                self._report_startup(75, "Restoring cached project data…")
+                self._populate_blocks_from_project(on_completed=on_recent_opened)
+
+            # 5. Sync project files (extract archives, discover new blocks), then 6.
+            self._report_startup(72, "Synchronizing project files…")
+            self._sync_project_files_then(open_synced)
         else:
+            self._close_open_dialog()
             QMessageBox.critical(
                 self.mw,
                 tr('Project Load Failed'),
