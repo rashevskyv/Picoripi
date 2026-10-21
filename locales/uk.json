@@ -3022,5 +3022,8 @@
     "The font file FONT/VSFONT.FNT is not in the project.": "Файлу шрифту FONT/VSFONT.FNT немає в проєкті.",
     "This page has {0} lines; the window shows {1}.": "На цій сторінці {0} рядків; вікно показує {1}.",
     "Row text: {0} px wide (the row starts at +{1}).": "Текст рядка: {0} px завширшки (рядок починається з +{1}).",
-    "The staff roll draws these ASCII bytes as Ukrainian letters, so do not type them: {0}. Type the letter itself.": "Титри малюють ці байти ASCII як українські літери, тож не вводьте їх: {0}. Вводьте саму літеру."
+    "The staff roll draws these ASCII bytes as Ukrainian letters, so do not type them: {0}. Type the letter itself.": "Титри малюють ці байти ASCII як українські літери, тож не вводьте їх: {0}. Вводьте саму літеру.",
+  "sh23ds 3DS port: Ukrainian messages and font": "Порт sh23ds (3DS): українські повідомлення та шрифт",
+  "The Ukrainian font (EE/sh2e/font) is missing from the translation folder.": "Українського шрифту (EE/sh2e/font) немає в папці перекладу.",
+  "The translation has no message files for sh23ds.": "У перекладі немає файлів повідомлень для sh23ds."
 }

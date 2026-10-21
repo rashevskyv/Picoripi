@@ -1,13 +1,18 @@
 """Silent Hill 2 (PC, Enhanced Edition data, also the Switch homebrew data) message files: data\\etc\\message\\*.mes.
 
-Layout (checked on the English and the Russian-pack files):
-  * u16 table: entry k is the start of message k divided by two; entry 0 is the message count
-  * a message: a header ``00 80 XX``, then text bytes and control bytes, usually ended by ``0e ff ff 00 90``
-    (or the next header)
+Layout, as the game and the packer's sh2mes.py read it: a u16 count, then count u16 offsets (in 16-bit words from the
+file start). Message k runs from its offset to the next offset; the last one runs to the end of the file. Message 0
+starts right after the table. Each message is one row. A message usually starts with a header ``00 80 XX`` and ends
+with ``0e ff ff 00 90`` (or the next header).
 
-Text: printable ASCII is shown as itself; 0x00 is a space; 0x07 is an apostrophe (DON'T); every other byte is an
-opaque tag ``{XX}`` that is kept as it is. ``encode(decode(m)) == m`` for every message of every file.
-The table is rebuilt on save, so a changed message may take more bytes (the file is a standalone file on the PC).
+Charset (the PC font: codes below 0xE0 are Windows-1252 characters minus 0x20, sh2conv/ui.py): byte b shows the
+character b + 0x20. So 0x00 is a space and 0x07 an apostrophe (DON'T). Bytes 0xE0 and up, the two bytes that would
+read as a brace (0x5B, 0x5D) and the bytes Windows-1252 leaves undefined are opaque tags ``{XX}``, kept as they are.
+``encode(decode(m)) == m`` for every message of every file. The table is rebuilt on save, so a changed message may
+take more bytes (the file is a standalone file on the PC).
+
+Before this layout, the table was read from word 0 (one entry too early). Projects saved with that reading are
+migrated with silent_hill2_pc/mes_legacy.py.
 """
 from __future__ import annotations
 
@@ -16,17 +21,19 @@ import struct
 from typing import List, Optional
 
 TAG_RE = re.compile(r"\{([0-9A-Fa-f]{2})\}")
-APOSTROPHE = 0x07
 
 
 def table_starts(data: bytes) -> List[int]:
+    """Byte offset of every message. Message 0 follows the table: the offsets are the words 1..count."""
+    if len(data) < 2:
+        raise ValueError("not a message file: too short")
     count = struct.unpack_from("<H", data, 0)[0]
     if count == 0 and len(data) == 2:       # an empty message file (stage_apart_boss_*: just 00 00)
         return []
-    if count == 0 or 2 * count > len(data):
+    if count == 0 or 2 + 2 * count > len(data):
         raise ValueError("not a message file: empty table")
-    starts = [struct.unpack_from("<H", data, 2 * i)[0] * 2 for i in range(count)]
-    if starts[0] != 2 * count or any(starts[i] >= starts[i + 1] for i in range(count - 1)) or starts[-1] >= len(data):
+    starts = [struct.unpack_from("<H", data, 2 + 2 * i)[0] * 2 for i in range(count)]
+    if starts[0] != 2 + 2 * count or any(starts[i] > starts[i + 1] for i in range(count - 1)) or starts[-1] >= len(data):
         raise ValueError("not a message file: table does not fit")
     return starts
 
@@ -39,17 +46,25 @@ def split(data: bytes) -> List[bytes]:
     return [data[s:e] for s, e in zip(starts, ends)]
 
 
+def _shown_char(b: int) -> Optional[str]:
+    """The character byte b shows in the PC font, None for a tag."""
+    if b >= 0xE0 or b in (0x5B, 0x5D):         # 0x5B and 0x5D would read as a brace
+        return None
+    try:
+        return bytes([b + 0x20]).decode("cp1252")
+    except UnicodeDecodeError:
+        return None
+
+
+_SHOWN = {b: ch for b in range(0xE0) for ch in [_shown_char(b)] if ch is not None}
+_CODE = {ch: b for b, ch in _SHOWN.items()}
+
+
 def decode(raw: bytes) -> str:
     out = []
     for b in raw:
-        if b == 0x00:
-            out.append(" ")
-        elif b == APOSTROPHE:
-            out.append("'")
-        elif 0x21 <= b <= 0x7E and b not in (0x27, 0x7B, 0x7D):
-            out.append(chr(b))
-        else:
-            out.append("{%02X}" % b)
+        ch = _SHOWN.get(b)
+        out.append(ch if ch is not None else "{%02X}" % b)
     return "".join(out)
 
 
@@ -67,25 +82,22 @@ def encode(text: str) -> bytes:
 def _plain(text: str) -> bytes:
     out = bytearray()
     for ch in text:
-        if ch == " ":
-            out.append(0x00)
-        elif ch == "'":
-            out.append(APOSTROPHE)
-        elif 0x21 <= ord(ch) <= 0x7E:
-            out.append(ord(ch))
-        else:
+        code = _CODE.get(ch)
+        if code is None:
             raise ValueError(f"character {ch!r} is not in the game's text (use {{XX}} for a code)")
+        out.append(code)
     return bytes(out)
 
 
 def build(messages: List[bytes]) -> bytes:
-    """A message file from its messages: the table is rebuilt from the message lengths (each padded to 2 bytes)."""
+    """A message file from its messages: the count, the offsets (from the file start), then the messages.
+    Each message is padded to 2 bytes."""
     if not messages:
         return b"\x00\x00"  # an empty message file
     padded = [m if len(m) % 2 == 0 else m + b"\x00" for m in messages]
     count = len(padded)
-    table = bytearray()
-    position = 2 * count
+    table = bytearray(struct.pack("<H", count))
+    position = 2 + 2 * count
     for m in padded:
         table += struct.pack("<H", position // 2)
         position += len(m)

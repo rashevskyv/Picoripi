@@ -1,16 +1,17 @@
 """Silent Hill 2 (PC; the same data files serve the Switch homebrew port) plugin: the game's message files.
 
 Each ``data\\etc\\message\\*.mes`` file is one project block; its messages are the block's lines. A line is the
-message as text: letters as they are, 0x00 as a space, 0x07 as an apostrophe, every other byte as a tag ``{XX}``
+message as text in the PC font charset (byte b shows the character b + 0x20 in Windows-1252): 0x00 is a space, 0x07 an
+apostrophe, the bytes the font has no character for are tags ``{XX}``
 (kept as it is). Saving rebuilds the file: the messages are encoded again and the table is rewritten, so a
 longer message is allowed. A line that cannot be encoded keeps its original bytes (a warning is logged).
 """
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from plugins.base_game_rules import BaseGameRules
-from utils.logging_utils import log_debug, log_warning
+from utils.logging_utils import log_debug, log_info, log_warning
 
-from . import mes
+from . import mes, mes_legacy
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
@@ -72,6 +73,69 @@ class GameRules(BaseGameRules):
                 log_warning(f"silent_hill2_pc: message {index} kept as it was: {error}")
                 out.append(original)
         return mes.build(out)
+
+    def _legacy_codec(self) -> Tuple[Callable[[str], bytes], Callable[[bytes], str]]:
+        """(encode the old rows, decode the new messages) for this plugin's role."""
+        return mes_legacy.legacy_encode, mes.decode
+
+    def migrate_session_snapshot(self, snapshot: dict) -> dict:
+        """Maps a session saved before the message table fix (no data_layout key) to the current rows.
+
+        Each block's rows are re-read from their bytes (mes_legacy.migrate_block). Edits move with their message.
+        An edit to the merged row is kept only when its byte count did not change; otherwise it is dropped, with a
+        log line. Selection, undo and problem marks of a migrated block are cleared. Returns the snapshot.
+        """
+        snapshot["data_layout"] = 2   # SESSION_DATA_LAYOUT of core/data_processor/session_manager.py
+        data = snapshot.get("data")
+        if not isinstance(data, list):
+            return snapshot
+        old_encode, new_decode = self._legacy_codec()
+        edits = dict(snapshot.get("edited_data") or {})
+        moved: Dict[Tuple[int, int], str] = {}
+        migrated = set()
+        for b, rows in enumerate(data):
+            if not isinstance(rows, list) or not rows or not all(isinstance(r, str) for r in rows):
+                continue
+            try:
+                new_rows, row_map, notes, cut = mes_legacy.migrate_block(rows, old_encode, new_decode)
+            except ValueError as error:
+                log_warning(f"silent_hill2: block {b} kept its rows (not migrated): {error}")
+                continue
+            migrated.add(b)
+            data[b] = new_rows
+            log_info(f"silent_hill2: block {b} migrated to the current message table ({', '.join(notes)})")
+            for (eb, r), text in edits.items():
+                if eb != b:
+                    continue
+                targets = row_map.get(r, [])
+                if not targets:
+                    log_warning(f"silent_hill2: block {b} edit on the offset row {r} dropped")
+                elif len(targets) == 1:
+                    moved[(b, targets[0])] = text
+                else:
+                    try:
+                        edited_bytes = old_encode(text)
+                    except ValueError:
+                        edited_bytes = None
+                    if edited_bytes is None or cut is None or len(edited_bytes) != len(old_encode(rows[r])):
+                        log_warning(f"silent_hill2: block {b} merged-row edit dropped (its length changed)")
+                    else:
+                        moved[(b, targets[0])] = new_decode(edited_bytes[:cut])
+                        moved[(b, targets[1])] = new_decode(edited_bytes[cut:])
+        if migrated:
+            snapshot["edited_data"] = {k: v for k, v in edits.items() if k[0] not in migrated}
+            snapshot["edited_data"].update(moved)
+            snapshot["undo_stack"] = []
+            snapshot["redo_stack"] = []
+            snapshot["problems_per_subline"] = {
+                k: v for k, v in (snapshot.get("problems_per_subline") or {}).items()
+                if str(k).split(",")[0] not in {str(b) for b in migrated}
+            }
+            if snapshot.get("current_block_idx") in migrated:
+                snapshot["current_string_idx"] = -1
+                snapshot["selected_string_indices"] = []
+                snapshot["last_selected_string_index"] = -1
+        return snapshot
 
     def get_editor_page_size(self) -> int:
         return 1
