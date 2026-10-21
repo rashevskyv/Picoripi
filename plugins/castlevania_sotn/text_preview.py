@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import QWidget
 from core import font_formats
 from core.i18n import tr
 from core.project_library import console_keys
-from plugins.castlevania_sotn import codec, hud, menu_text, text_window
+from plugins.castlevania_sotn import codec, hud, menu_screens, menu_text, text_window
 from plugins.castlevania_sotn.script import TAG_RE
 from plugins.common.switch_message_preview import source_folder
 from utils.logging_utils import log_debug
@@ -27,8 +27,7 @@ from utils.thread_utils import WorkerThread, safe_shutdown_thread
 WORKER_STOP_MS = 2000
 ZOOM = 2
 _MARGIN = 8
-_MENU_BG = (24, 26, 72, 255)       # the menu panel blue (approximate; the menu draws a gradient)
-_MENU_INK = (240, 240, 240, 255)
+_INFO_BAR_CROP = (56, 192, 368, 224)   # the info bar band of the menu panel
 _FONT = json.loads((Path(__file__).with_name("font_sources.json")).read_text(encoding="utf-8"))[0]
 
 
@@ -62,16 +61,13 @@ def read_bios() -> Optional[bytes]:
 
 
 def menu_line_image(bios: bytes, text: bytes) -> Tuple[Image.Image, int]:
-    """The first line as the game draws it in its 12 x 16 font, and the count of characters outside the table."""
-    strip, used, missing = menu_text.draw_line(text, lambda code: menu_text.glyph_at(bios, code))
-    rows = menu_text.ink_rows(strip, used)
-    image = Image.new("RGBA", (max(1, len(rows[0])), menu_text.ROWS), _MENU_BG)
-    pixels = image.load()
-    for y, row in enumerate(rows):
-        for x, on in enumerate(row):
-            if on:
-                pixels[x, y] = _MENU_INK
-    return image, missing
+    """The first line on the info bar of a menu panel, at the game's place (menu_screens), cropped to the bar.
+
+    Returns the picture and the count of characters outside the BIOS table (drawn blank).
+    """
+    panel = menu_screens.panel()
+    missing = menu_screens.paint_info_bar(panel, text, lambda code: menu_text.glyph_at(bios, code))
+    return panel.crop(_INFO_BAR_CROP), missing
 
 
 class FontLoader(WorkerThread):

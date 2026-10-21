@@ -60,4 +60,4 @@ def test_the_menu_line_image_is_16_rows_and_the_laid_out_width():
     bios = _bios_with({0x8260: b"\xff" * menu_text.GLYPH_BYTES})
     image, missing = menu_line_image(bios, b"A")
     assert missing == 0
-    assert image.size == (12, menu_text.ROWS)
+    assert image.size == (312, 32)                               # the info-bar band of the menu panel
