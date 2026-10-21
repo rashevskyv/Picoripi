@@ -83,6 +83,15 @@ def test_a_translation_bank_with_a_layout_decodes_and_saves_with_it():
     assert saved["strings"][0] == strings[0]
 
 
+def test_an_untouched_release_soft_sign_keeps_its_code_when_the_bank_is_saved():
+    strings = [bytes([0x96, 0x21]).hex(), bytes([0x23]).hex()]        # ь and А in this layout
+    bank = {"format": TEXT_FORMAT, "game": "dos", "regions": [["Names", 0, 1]], "strings": strings, "layout": LAYOUT}
+    rules = load_rules(PLUGIN)
+    blocks, names = rules.load_data_from_json_obj(json.loads(json.dumps(bank)))
+    assert blocks[0][0] == "ьА"
+    assert rules.save_data_to_json_obj(blocks, names)["strings"] == strings
+
+
 def test_a_reference_bank_is_shown_by_block_and_string(tmp_path):
     winner = {"format": TEXT_FORMAT, "game": "dos", "regions": [["Names", 0, 1], ["Events", 2, 2]],
               "strings": [bytes([0x21]).hex(), bytes([0x40]).hex(), bytes([0x23]).hex()], "layout": LAYOUT}
