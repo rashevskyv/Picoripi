@@ -11,11 +11,12 @@ slot sectors change; every other byte of the disc stays as it was.
 """
 from __future__ import annotations
 
+import math
 import struct
 import wave
 from dataclasses import dataclass
 from pathlib import Path
-from typing import BinaryIO, Callable, List, Sequence
+from typing import BinaryIO, Callable, List, Sequence, Tuple
 
 from . import xa
 
@@ -161,6 +162,36 @@ def apply_translation(build_disc_path: str | Path, clip: Clip, voice_dir: str | 
     with open(build_disc_path, "r+b") as out:
         write_clip(out, RAW, lbas, samples, clip.rate)
     return True
+
+
+def speech_spans(samples: Sequence[int], rate: int = xa.RATE, fraction: float = 0.05,
+                 min_silence: float = 0.4, min_speech: float = 0.5) -> List[Tuple[float, float]]:
+    """(start, end) in seconds of the speech in a decoded clip.
+
+    50 ms RMS windows; a window is speech when its level is above ``fraction`` of the loudest window.
+    Speech separated by less than ``min_silence`` is one span; spans shorter than ``min_speech`` are dropped.
+    """
+    win = max(1, rate // 20)
+    levels = [math.sqrt(sum(s * s for s in samples[i:i + win]) / win)
+              for i in range(0, len(samples) - win + 1, win)]
+    if not levels:
+        return []
+    threshold = max(levels) * fraction
+    spans: List[List[int]] = []
+    i = 0
+    while i < len(levels):
+        if levels[i] > threshold:
+            j = i
+            while j < len(levels) and levels[j] > threshold:
+                j += 1
+            if spans and (i - spans[-1][1]) * 0.05 < min_silence:
+                spans[-1][1] = j
+            else:
+                spans.append([i, j])
+            i = j
+        else:
+            i += 1
+    return [(a * 0.05, b * 0.05) for a, b in spans if (b - a) * 0.05 >= min_speech]
 
 
 def clip_by_id(clip_id: str) -> Clip:

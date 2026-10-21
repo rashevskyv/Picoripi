@@ -19,6 +19,7 @@ ANCHOR = 0x444E                        # op 0x0053 that starts the monologue cli
 FOLLOW = b"\x52\x00\x3f\x00"           # op 0x0052 with argument 0x3F, the next op of the original file
 FPS = 60                               # NTSC frames: the pause controls count frames
 SEGMENTS: Tuple[Tuple[float, float], ...] = (      # (start, end) in seconds from the clip start
+    # voice.speech_spans(decoded clip, fraction 0.05, min_silence 0.4 s, min_speech 0.5 s); 60 Hz frames
     (0.00, 2.20), (2.80, 6.25), (6.80, 8.80), (9.70, 10.20),
     (10.80, 13.25), (13.80, 17.20), (17.60, 23.15), (23.70, 28.45),
 )

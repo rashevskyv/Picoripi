@@ -79,3 +79,13 @@ def test_splice_moves_the_labels_after_the_insert_and_keeps_the_others():
 def _with_region(region: bytes) -> bytes:
     """The synthetic script with exactly this subtitle region after its clip-start op."""
     return script.splice(_synthetic_script(), vs.ANCHOR + 2, vs.ANCHOR + 2, region)
+
+
+def test_speech_spans_split_on_long_silence_and_drop_short_bursts():
+    from plugins.lunar_sssc import voice
+    rate = 3780                                                   # small rate: the test stays fast
+    burst = [6000] * rate                                         # 1.0 s of speech
+    gap = [0] * rate                                              # 1.0 s of silence
+    short = [6000] * (rate // 5)                                  # 0.2 s: below min_speech
+    samples = burst + gap + short + gap + burst
+    assert voice.speech_spans(samples, rate) == [(0.0, 1.0), (3.2, 4.2)]
