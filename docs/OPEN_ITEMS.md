@@ -89,6 +89,22 @@ the line when it is done or moved into a plan.
 - Open: the Unity format 22 reader is verified on the 3 051 bundles of the base and update (all bundles and plain serialized files parse; unchanged files round-trip byte for byte). Raw `.resS` and `.resource` streams are not parsed (they are not serialized files).
 - Done: `picoripi\project.uiproj` is made by `run_unpack` and `ProjectManager.create_new_project` (the wizard's calls, headless); it loads with 74 blocks (45 tables, 29 interface) and 10 379 strings. The GUI wizard click path was not exercised.
 - Owner decision: DLC (the 106 KB stub and the add-on NSP) is out of scope.
+## Wario Land: Shake It! Wii (`plugins/wario_land_shake_it`, 2026-10-21, branch `feat/wario-land`)
+
+- Done: GFAC + GFCP (BPE) codec in `core/containers/gfac.py`; 2225 packs parse; the English pack round-trips; the entry checksum is a function of the name and is kept as stored.
+- Done: the English BMG files (575 messages) load and re-save byte for byte.
+- Done: the build "Wii disc image (ISO, English)" writes a plain ISO with the English pack replaced (`wii_writer.copy_as_iso` + `write_changes`). Needs the Wii key file (`console_keys`).
+- Done (proof): the ISO boots in a private Dolphin copy; a test edit in a story subtitle shows on screen (scratch build only, not in the project). Input: a Wii Remote timer expression for 2, A and + (`Device = DInput/0/Keyboard Mouse`, `Extension = None`) and BackgroundInput.
+- Done: the wizard path creates the project in `picoripi\` (unpack through `build.run_unpack`, project file through `ProjectManager`).
+- Removed: the Riivolution patch and Dolphin descriptor target (the loading was never shown in Dolphin).
+- Open: the checksum hash function is unknown, so a new file name cannot be added to a pack yet. Only edits to existing entries are supported.
+- Open: the font (BRFNT/RFNT) is not edited. Cyrillic needs glyphs in the game's font.
+- Open: textures with text are not in the plugin.
+- Open: other languages (`English_EUR`, `French_USA`, ...) are not reference columns yet.
+- Open: no text-fit problems (no length limit is known for the BMG strings).
+- Open: the build takes about 13 to 17 minutes (the writer seals every cluster in Python).
+- Open: the Emu Radar report is a status page only (no game screenshots, no game text).
+- Owner check: `D:\git\dev\Picoripi\data\console_keys.json` (the main checkout) was written twice by a helper that imported the main checkout; the `wii` entry is the owner's `keys.bin` path. The previous value is not known.
 
 ## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-bfd`)
 
