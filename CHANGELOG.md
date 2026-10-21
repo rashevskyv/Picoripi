@@ -1,6 +1,8 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+
+- Twilight Princess in the New Project wizard: the USA Wii disc (RZDE01, Wii key from the key store) unpacks like the GameCube disc, and an unpacked Wii U HD title folder becomes a Wii U project with `content/res/Msguk` as its source; `get_source_subfolder` may name several folders (the first that exists wins), and the extracted-folder check reads text inside archives (`plugins/zelda_bmg/rules.py`, `core/project_library/build.py`, `core/project_library/source_folder.py`).
 - Project open and create: a newer open makes an earlier one's file sync and block load do nothing (its result is dropped), so a second project opened while the first still loads shows only its own blocks.
 - Creating a project in the wizard and File → Open Project no longer freeze the window: the progress dialog shows at once and the project files are matched on a worker (a 3,380-file game froze the window for about four minutes); the Project Manager closes after the wizard makes a project, an empty list no longer says "Loading projects...", the success message is translated, a folder row shows its last three path parts, and a folder named after one of the game's platforms (for example `...\Switch\source`) gets that platform.
 - Plugins: every game plugin names its platforms (110 plugins got `"platforms"` in `config.json`; `BaseGameRules.get_platforms` reads it; ids and names in `plugin_facts.PLATFORM_LABELS`), so the wizard lists them and a one-platform game sets the platform itself; an architecture test keeps it so.

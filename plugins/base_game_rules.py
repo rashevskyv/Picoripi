@@ -1150,8 +1150,10 @@ class BaseGameRules:
         """The folder of the unpacked tree that is the project's source root, e.g. ``files/res/Msgus``.
 
         Use it when the unpacked tree holds more than the game's text, so a new project starts from the folder its
-        workspace uses. The path uses ``/`` and is relative to the unpacked folder. The host fails the unpack when
-        that folder is missing. Default: None, the whole unpacked folder is the source.
+        workspace uses. The path uses ``/`` and is relative to the unpacked folder (or to an extracted folder the user
+        added). A game whose platforms lay their files out differently returns a list of such paths: the first that
+        exists is the source. The host fails the unpack when none exists. Default: None, the whole unpacked folder is
+        the source.
         """
         return None
 
