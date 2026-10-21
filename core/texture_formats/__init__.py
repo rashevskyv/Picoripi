@@ -45,7 +45,8 @@ def _backends() -> Dict[str, Any]:
     from core.texture_formats import dq9_spr, gmio, is_tex, pw_txp, sh3_tex, xenos, ztex
     from core.texture_formats import jimg, nlg_tex, ubiart_tex, layton_ds, layton_gfsp
     from core.texture_formats import xnb_texture, pvr
-    return {"pvr": pvr, "xnb_texture": xnb_texture, "gmio": gmio, "ztex": ztex, "bti": bti, "bflim": flim, "ctpk": ctpk, "ctxb": ctxb, "tpl": tpl, "tpl_ctr": tpl_ctr, "bntx": bntx, "g1t": g1t, "g4tx": g4tx,
+    from core.texture_formats import dds
+    return {"dds": dds, "pvr": pvr, "xnb_texture": xnb_texture, "gmio": gmio, "ztex": ztex, "bti": bti, "bflim": flim, "ctpk": ctpk, "ctxb": ctxb, "tpl": tpl, "tpl_ctr": tpl_ctr, "bntx": bntx, "g1t": g1t, "g4tx": g4tx,
             "imgc": imgc, "j3d": j3d, "gba": gba, "gtx": gtx, "txtr": txtr, "gim": gim, "raw": raw, "tiles": tiles, "tilemap": tilemap,
             "txtr_gx": txtr_gx, "tim": tim, "tim2": tim2, "policenauts_pak": policenauts_pak,
             "vs_gim": vagrant.gim, "vs_hf1": vagrant.hf1, "vs_rle": vagrant.rle, "pcx": pcx, "m2": m2,

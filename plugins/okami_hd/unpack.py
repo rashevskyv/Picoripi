@@ -16,6 +16,9 @@ TITLE_ID = "0100276009872000"          # Okami HD (Switch base game)
 ROMFS = "romfs"
 MESSAGE_FOLDERS = ("st0", "st1", "st2", "st3", "stc", "std", "ste", "stf", "id", "iteminfo")
 MESSAGE_FILE = re.compile(r"^romfs/data/(?:%s)/[^/_]+\.(?:bin|dat|pac)$" % "|".join(MESSAGE_FOLDERS))
+# The English font atlas (a BC7 texture at 0x93C0 of etc/core_30.bin) and the English help and control pictures.
+FONT_FILE = "romfs/data/etc/core_30.bin"
+PICTURE_FILE = re.compile(r"^romfs/data/illust/(?:help|control)_\d+(?:_[a-z]+)?\.dds$")
 
 
 def identify(path: str) -> Optional[Dict[str, Any]]:
@@ -54,6 +57,10 @@ def unpack(sources: Dict[str, str], target_dir: str, progress: Callable[[int, st
             if is_cancelled():
                 return None
             if _has_messages(reader.read(entry)):
+                wanted.append(entry._replace(path=entry.path[len(ROMFS) + 1:]))
+        for entry in reader.entries():
+            if entry.path == FONT_FILE or (PICTURE_FILE.match(entry.path)
+                                           and not re.search(r"_[fgj]\.dds$", entry.path)):
                 wanted.append(entry._replace(path=entry.path[len(ROMFS) + 1:]))
         progress(0, tr("Writing {0} files", str(len(wanted))))
         if not images.write_entries(reader, wanted, target_dir, progress, is_cancelled):

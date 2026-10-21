@@ -25,6 +25,21 @@ ATLAS_COLUMNS = 16
 ATLAS_CODE_OFFSET = 3          # code = atlas cell index - 3 (letters)
 
 
+# Ukrainian letters: 66 atlas cells that the English strings never use (codes 0x5E-0xFC, checked on every English MSD
+# string; see tests). The font atlas gives each its cell (code + 3); the owner draws the glyphs in the Font Editor.
+UKRAINIAN_LETTERS = (
+    "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯ"
+    "абвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+)
+UK_SLOT_CODES = (
+    0x5E, 0x5F, 0x60, 0x65, 0x66, 0x67, 0x68, 0x6A, 0x6B, 0x6C, 0x71, 0x76, 0x7E, 0x7F, 0x88, 0x89,
+    0x8C, 0x8E, 0x8F, 0x90, 0x92, 0x93, 0x94, 0x95, 0x9A, 0x9E, 0x9F, 0xA1, 0xA2, 0xA3, 0xA4, 0xA6,
+    0xA7, 0xA9, 0xAC, 0xB1, 0xB3, 0xB5, 0xB6, 0xBA, 0xBB, 0xBD, 0xC0, 0xC2, 0xC4, 0xC9, 0xCD, 0xCE,
+    0xCF, 0xD0, 0xD1, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDD, 0xDE, 0xDF, 0xE0,
+    0xE1, 0xE2,
+)
+
+
 def _cell_chars() -> Dict[int, str]:
     """Message code -> character for the letters and digits that the atlas grid fixes."""
     # atlas cell index -> character. Cells 13, 24 and 25 are blank. The capitals A-V fill cells 26-47 in one run:
@@ -42,6 +57,8 @@ def _cell_chars() -> Dict[int, str]:
             table[start + offset - ATLAS_CODE_OFFSET] = char
     table[SPACE] = " "
     table[APOSTROPHE] = "'"    # "wasn't", "tryin'" in the dialogue
+    for code, letter in zip(UK_SLOT_CODES, UKRAINIAN_LETTERS):
+        table[code] = letter
     return table
 
 

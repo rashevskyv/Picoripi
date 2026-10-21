@@ -76,6 +76,14 @@ def test_letter_codes_match_the_atlas_grid():
     assert charset.CODE_TO_CHAR[charset.APOSTROPHE] == "'"
 
 
+def test_ukrainian_slots_are_66_unique_cells_with_letters():
+    assert len(charset.UK_SLOT_CODES) == len(charset.UKRAINIAN_LETTERS) == 66
+    assert len(set(charset.UK_SLOT_CODES)) == 66
+    assert charset.CODE_TO_CHAR[charset.UK_SLOT_CODES[0]] == "А"
+    assert charset.CODE_TO_CHAR[charset.UK_SLOT_CODES[-1]] == "я"
+    assert charset.encode("Ґґ") == struct.pack("<HH", charset.UK_SLOT_CODES[4], charset.UK_SLOT_CODES[37])
+
+
 def test_atlas_cell_of_a_code():
     assert charset.atlas_cell(0x44) == (4, 7)      # 't' is cell 71 = 4 * 16 + 7
 
@@ -89,7 +97,7 @@ def test_text_round_trip_is_exact_for_any_units():
 
 def test_encode_refuses_a_character_the_atlas_does_not_show():
     with pytest.raises(ValueError):
-        charset.encode("Ж")
+        charset.encode("中")
 
 
 # -- MSD layouts -------------------------------------------------------------------
@@ -229,6 +237,50 @@ def test_build_writes_only_the_changed_files_into_the_layeredfs_romfs(tmp_path):
     romfs = out / "atmosphere" / "contents" / "0100276009872000" / "romfs" / "data" / "st1"
     assert (romfs / "r101.bin").read_bytes() == edited
     assert not (romfs / "r102.bin").exists()
+
+
+def dds_bc7_file(image, mips, pad=0):
+    """A DX10 BC7 DDS (size as given, ``mips`` levels) placed after ``pad`` filler bytes."""
+    from PIL import Image
+    from core.texture_formats import pixels
+    codec = pixels.codec("BC7")
+    header = bytearray(148)
+    header[0:4] = b"DDS "
+    struct.pack_into("<I", header, 4, 124)
+    struct.pack_into("<II", header, 12, image.size[1], image.size[0])
+    struct.pack_into("<I", header, 28, mips)
+    header[84:88] = b"DX10"
+    struct.pack_into("<I", header, 128, 98)
+    body = bytearray()
+    level = image
+    for _ in range(mips):
+        body += codec.encode(level)
+        level = level.resize((max(1, level.size[0] // 2), max(1, level.size[1] // 2)), Image.Resampling.LANCZOS)
+    return b"\x7f" * pad + bytes(header) + bytes(body)
+
+
+def test_dds_bc7_reads_at_an_offset_and_writes_back_exactly():
+    from PIL import Image
+    from core.texture_formats import dds
+    source = Image.new("RGBA", (16, 16), (200, 40, 40, 255))
+    data = dds_bc7_file(source, 2, pad=32)
+    texture = dds.read(data, {"offset": 32})[0]
+    assert texture.image.size == (16, 16) and texture.mipmaps == 2 and texture.pixel_format == "BC7"
+    assert dds.write(data, {0: texture.image}, {"offset": 32}) == data
+
+
+def test_dds_bc7_changes_only_the_changed_blocks_of_level_zero():
+    from PIL import Image
+    from core.texture_formats import dds
+    data = dds_bc7_file(Image.new("RGBA", (16, 16), (200, 40, 40, 255)), 1)
+    image = dds.read(data, {})[0].image.copy()
+    image.paste(Image.new("RGBA", (4, 4), (0, 255, 0, 255)), (8, 8))      # the block at column 2, row 2
+    out = dds.write(data, {0: image}, {})
+    assert len(out) == len(data)
+    base = 148
+    blocks = [i for i in range(0, 16 * 16 // 16) if data[base + 16 * i:base + 16 * i + 16] != out[base + 16 * i:base + 16 * i + 16]]
+    assert blocks == [2 * 4 + 2]
+    assert dds.read(out, {})[0].image.getpixel((9, 9))[1] > 200
 
 
 def test_real_switch_files_rebuild_exactly():
