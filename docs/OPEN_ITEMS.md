@@ -14,11 +14,12 @@ the line when it is done or moved into a plan.
 - Two MSD records are not yet known: a 0x0002-0x0004 code after a word (punctuation) and the 0xA0xx / 0x80xx / 0xD0xx control codes. Shown as tags until checked on the screen.
 - Text growth: a longer record moves the container's section offsets and the RUNOFS64 section starts (rewritten in `msd.serialize_container`); unchanged files keep their bytes. Every changed record is a translator-visible warning until the game proves it. Emulator proof of a +40 % line: not run (see the next item).
 - Emulator proof: the private Eden route needs a `prod.keys` file in the private copy, which the rules do not allow. The real Switch MCP (`switch_mcp.py frame`) did not answer. Built test mod: `atmosphere/contents/0100276009872000/romfs/data/st1/r101.bin` (+12 bytes, the line "Brush technique or so").
-- Eleven small MSD sections (`r011`, `r030`, `r031`-`r034`, `rd02`-`rd06`, headers `00 01` / `00 02`): look like u32 index tables (a count of 15 fills the 64-byte section); no text found yet, not proven.
-- Ukrainian glyphs: the atlas has no Cyrillic; the free cells must be found and drawn in the Font Editor. The atlas is `etc/core_30.bin`, texture at 0x93C0 (1200 x 1200, BC7).
-- Textures with text: the help screens (`illust/help_*`, DXT3) and the control pictures (`illust/control_*`, BC7) carry localized text in the image.
+- Eleven small MSD sections (`r011`, `r030`, `r031`-`r034`, `rd02`-`rd06`): no dialogue; their only printable runs are block names (`MessR031`) and two resource names (`hm29`); the rest is big-endian u32 values. Kept as raw bytes, never changed.
+- Ukrainian glyphs: 66 atlas cells are assigned to the Ukrainian letters (codes 0x5E-0xE2, cell = code + 3), chosen among codes the English strings never use. Their glyphs are blank or Latin-1 accents today; the owner draws them in the Font Editor (`font_sources.json`, texture `etc/core_30.bin` at 0x93C0, `texture_grid` with the DDS backend). Packing an unedited atlas returns the original bytes (checked).
+- Textures with text: sixteen English pictures (`data/illust/help_*.dds` DXT3, `control_*.dds` BC7) are listed in `texture_sources.json`; the DDS backend (`core/texture_formats/dds.py`) reads them and writes changed blocks only. Not yet opened in the Texture window by a person, not checked in the game.
 - PC version (Okami HD, PC): the owner asked for a clean installed copy; the SKIDROW ISO is at 95.3 % and the Catalyst repack at 1.2 %.
-- PS2 and Wii (AFS engine, `_DATA0.AFS` / `_DATA1.AFS`): a second plugin, not started.
+- PS2 (`plugins/okami_ps2`, USA disc, SLUS_211.15): the message containers of `_DATA0.AFS` and `_DATA1.AFS` are read in place and written as text (same codec as HD). Build not done: a longer entry needs the AFS archive and the disc image rewritten.
+- Wii (`ROWP08`, AFS engine, encrypted image): not started; same archive layout as PS2 inside `files/`.
 
 ## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-bfd`)
 
