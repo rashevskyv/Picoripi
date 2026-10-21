@@ -6,13 +6,15 @@ The project's source folder is the ``source`` folder the workspace's unpack step
 ``SLUS_006.28`` (the font, Tools -> Font Editor) and the TIM pictures (Tools -> Textures). Saving
 writes the same files into the translation folder; the build step puts them back on both discs.
 """
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_debug, log_warning
+from core.i18n import tr
 from utils.utils import clean_spaces
 
-from . import doc
+from . import doc, voice
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
@@ -102,3 +104,42 @@ class GameRules(BaseGameRules):
     def process_pasted_segment(self, segment_to_insert: str, original_text_for_tags: str,
                                editor_player_tag_const: str) -> Tuple[str, str, str]:
         return clean_spaces(segment_to_insert), "OK", ""
+
+    # -- voice clips (Tools -> Voice clips) ---------------------------------------
+
+    def _workspace(self, project_dir: str) -> Path:
+        """The workspace folder: the parent of the picoripi folder that holds project.uiproj."""
+        return Path(project_dir).parent
+
+    def get_voice_clips(self, project_dir: str) -> List[Dict[str, Any]]:
+        workspace = self._workspace(project_dir)
+        discs = sorted((workspace / "ISO" / "EN").glob("*(Disc 1) (Track 1).bin"))
+        disc = str(discs[0]) if discs else ""
+        voice_dir = str(workspace / "translation" / "voice")
+        return [{"id": clip.id, "title": clip.title, "disc": disc, "voice_dir": voice_dir} for clip in voice.CLIPS]
+
+    def export_voice_clip(self, clip_id: str, disc_path: str, wav_path: str) -> float:
+        return voice.export_original(disc_path, voice.clip_by_id(clip_id), wav_path)
+
+    def import_voice_clip(self, clip_id: str, disc_path: str, wav_path: str, voice_dir: str) -> float:
+        return voice.import_translation(disc_path, voice.clip_by_id(clip_id), wav_path, voice_dir)
+
+    def apply_voice_clips(self, build_disc_path: str, voice_dir: str) -> int:
+        return sum(1 for clip in voice.CLIPS if voice.apply_translation(build_disc_path, clip, voice_dir))
+
+    def get_plugin_actions(self) -> List[Dict[str, Any]]:
+        return [{
+            "name": "lunar_voice_clips",
+            "text": tr("Voice clips..."),
+            "tooltip": tr("Export the opening monologue, import a translated WAV, play it"),
+            "shortcut": None,
+            "handler": self._open_voice_clips,
+            "menu": "Tools",
+        }]
+
+    def _open_voice_clips(self) -> None:
+        from .voice_dialog import VoiceClipsDialog
+        project_dir = getattr(getattr(self.mw, "project_manager", None), "project_dir", None)
+        if not project_dir:
+            return
+        VoiceClipsDialog(self, str(project_dir), self.mw).exec()

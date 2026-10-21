@@ -1,6 +1,7 @@
 ---
 status: current
 updated: 2026-10-21
+updated: 2026-10-20
 owns: unfinished work
 tokens: 61.3k
 purpose: Everything left open, one line each, by work package
@@ -1891,3 +1892,34 @@ Facts from the USA decomp (`port/sotn-decomp`) and the disc files in `source/`. 
 - Open: the preview draws the placeholder letters, not the table of the project's file; the owner's redrawn glyphs appear in the game, not yet in the preview.
 - Done (proof, private): the state patch of the previous proof, with the line `Їжак, Єнот, Ґанок.` (line 13 of the caption) rebuilt through the shared disc build: the frame shows the three words with the placeholder glyphs (И, Е, Г shapes with the marks).
 - Open: the first caption line's x offset (0x16, `func_801B101C`) is in code, not in the script; the translator cannot move it.
+
+## Lunar SSSC voice clips and opening subtitles (`plugins/lunar_sssc/voice.py`, `xa.py`, 2026-10-20, branch `feat/lunar-audio`)
+
+- Done: the opening monologue is XA audio on disc 1 (`_AUDIO.XA` file 1, channel 8, track sectors 18116 to 22516, 276 slots, 29.44 s budget). The game starts it at New Game (`Setmode 0xC8`, `Setfilter File=1 Channel=8`, `ReadS 04:03:33`). No text on screen during the cliff scene (private DuckStation run).
+- Done: codec (`xa.py`, filter 0 only, mono 37.8 kHz), slot fit (shorter padded, longer refused with the seconds over), in-place sector write (only slot sectors change), round trip on a disc copy with a synthetic tone.
+- Open: the script op or handler that starts the monologue is not identified. `TEXT000.DAT` (boot script, not unpacked) is the first candidate; the interpreter opcodes need a disassembly of the handler at SLUS_006.28.
+- Open: subtitles. No subtitle op exists yet. Plan: a message op with `{end}` (no wait) placed at the trigger, one message per clip, or a timed text box if the interpreter has a wait op. Blocked on the trigger op above.
+- Done: the voice hooks (`get_voice_clips`, `export_voice_clip`, `import_voice_clip`, `apply_voice_clips`) in `BaseGameRules` and `plugins/spec.py`, the Tools action "Voice clips..." (`voice_dialog.py`, jobs in a `WorkerThread`), the Ukrainian strings, the wiki paragraph (EN, UK). Not yet run in the app window (only the offscreen dialog test).
+- Open: the build step does not call `apply_voice_clips` yet: `zt/lunar.py` (outside this repo) must call it on each build .bin.
+- Open: `docs/PIPELINE_ROADMAP.md` and the AI plugin prompt Q8 do not mention the voice hooks yet (checklist item 4).
+- Open: quality. Filter 0 gives about 1 024 units of error on a 6 000 peak. Release voices need psxavenc (external, official source) or filters 1 to 4.
+- Open: Eternal Blue (`V.XA`) and Silver Star Harmony (loose AT3) are not mapped.
+
+## Lunar audio, next steps (2026-10-21, branch `feat/lunar-audio`)
+
+- Open: the start op of the monologue (file 1, channel 8) is not found. PCSX-Redux (official dev build from distrib.app, sha1 checked) does not start in this environment: the process runs, opens no window, runs no Lua and writes no log. Needs another way: a fixed build or machine, or a static MIPS trace of `SLUS_006.28` (CD command write to 0x1F801801, then the callers that reach the script interpreter).
+- Open: per-line subtitles depend on that start op. Not built.
+- Open: Eternal Blue `V.XA` channel map (which op or table selects channel and offset) not found. The clip model already carries a rate (18900 Hz for `V.XA`).
+- Open: Silver Star Harmony AT3 voices: decode only. FFmpeg's ATRAC3plus decoder can read the 401 files (RIFF, format tag 0xFFFE, ATRAC3plus GUID). No open ATRAC3plus encoder is confirmed; the atracdenc sources disagree, so it is not relied on. Leaked Sony tools are not used.
+- Known failing test, not from this branch: `tests/test_ui/test_project_manager/test_dialog.py::test_registry_projects_appear_with_last_opened_first` fails on base commit fb1ed707 too.
+- Open (2026-10-21, PCSX-Redux CLI): `pcsx-redux.main -cli -portable -debugger -interpreter` (the dynarec CPU never fires breakpoints; `-debugger` alone does not) runs Lua, Exec and Write breakpoints fire, at about 30 fps. The boot reaches the game (CD read at frame 472, `SLUS_006.28` runs) and then spins in a loop at 0x80094B90 that waits for flag 0x800B7970 (BIOS writes it once, frame 1050). Pad overrides (START/UP/CROSS, 10 and 40 frames, from frame 1700 to 6000) do not move the game past that loop, and no further CD command is written. BIOS scph5501 and scph1001 give the same result. The static scan finds no direct store to 0x1F801800-03 in `SLUS_006.28`: the CD registers are reached through a pointer table at file offsets 0xA5AB0 onward.
+- Open (2026-10-21, DuckStation GDB, private copy): the GDB stub works (`[Debug] EnableGDBServer = true`, `GDBServerPort = 2345`): `Z0`, `Z2` and `c` answer; stop replies `S05`/`T05watch:1f801801`; `g` gives 73 little-endian words (sp = word 29, ra = 31, pc = 37). The CD command store is at RAM 0x800916C4 (`sb s1`, base r2): it writes command bytes 01, 0A, 0C, 13, 14, 02, 0E, 06, 09, 15, 0B, 1B. Setfilter (0x0D) is not hit yet: with a breakpoint on that store the game stalls after 40 to 60 s (frequent stops during the title poll pause the pad input, so the key presses are lost). Without breakpoints the New Game path runs. Keys: arrow keys need the extended bit; the keys start after the "System booted" line.
+
+## Lunar SSSC opening subtitles (`plugins/lunar_sssc/voice_subtitles.py`, 2026-10-21, branch `feat/lunar-audio`)
+
+- Done: the clip start is script op 0x0053 at TEXT001.DAT offset 0x444E (RAM 0x801DCB80 + 0x444E). The first Setfilter (file 1, channel 8) of a New Game run fires inside that op, with the script cursor at 0x4450 and the clip id 0x3E in gp+0x8AE. The op after it is 0x0052 (argument 0x3F); the voice wait is op 0x0054.
+- Done: block "Voice subtitles" (8 lines, one per speech segment). Times in `voice_subtitles.SEGMENTS` come from `voice.speech_spans` on the decoded clip (0.05 s RMS windows, 0.05 fraction, silences under 0.4 s joined, spans under 0.5 s dropped), in 60 Hz frames. Each line is a message with pause controls `{F8:nn}` and `{close}{end}` (no button wait), placed between the clip-start op and op 0x0052. Empty lines add nothing; an unedited file is rebuilt byte for byte. Synthetic tests: `tests/test_plugins/test_lunar_sssc/test_voice_subtitles.py`.
+- Done: cold boot of a disc built by the shared `zt.py build` (private workspace copy, same steps as `2_build.bat`). The unchanged control disc reaches the menu and New Game. The disc with the subtitle TEXT001 shows the test lines in order during the cliff monologue, with no RAM patch. Lines appear about 18 s after New Game (the trace shows the clip start inside that window).
+- Open: the clip start to first line offset is not measured in game frames. DuckStation has no audio dump, so the speech onset in emulated time is not read. The line starts are relative to op 0x0053; the XA buffering delay (Setloc to first sector) is not modelled.
+- Open: the 8 line texts are translator work. `zt/lunar.py` (outside this repo) needs no change: it reads the saved TEXT001 from the translation folder.
+- Open: `{F8:nn}` as frames at 60 Hz comes from the proof, not from a full disassembly of the pause control.

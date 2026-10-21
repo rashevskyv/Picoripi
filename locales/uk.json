@@ -3091,5 +3091,18 @@
   "Choose the update file too: the game's RomFS is in the update.": "Виберіть також файл оновлення: RomFS гри міститься в оновленні.",
   "The English localization bundle is not in this image.": "Англійського bundle локалізації немає в цьому образі.",
   "This table is not in the game: {0}": "Цієї таблиці немає в грі: {0}",
-  "The English localization bundle is missing; unpack the game again.": "Англійський bundle локалізації відсутній; розпакуйте гру знову."
+  "The English localization bundle is missing; unpack the game again.": "Англійський bundle локалізації відсутній; розпакуйте гру знову.",
+  "Voice clips": "Голосові фрагменти",
+  "Voice clips...": "Голосові фрагменти...",
+  "Export the opening monologue, import a translated WAV, play it": "Експорт вступного монологу, імпорт перекладеного WAV, відтворення",
+  "This game has no voice clips.": "У цій грі немає голосових фрагментів.",
+  "Export original WAV...": "Експорт оригіналу в WAV...",
+  "Import translated WAV...": "Імпорт перекладу з WAV...",
+  "Play": "Відтворити",
+  "Exported {0:.2f} s to {1}": "Експортовано {0:.2f} с до {1}",
+  "Export original WAV": "Експорт оригіналу в WAV",
+  "Import translated WAV": "Імпорт перекладу з WAV",
+  "Imported {0:.2f} s": "Імпортовано {0:.2f} с",
+  "No translated WAV yet: export the original, translate it, then import.": "Перекладу ще немає: експортуйте оригінал, перекладіть його і імпортуйте.",
+  "Playing {0}": "Відтворюється {0}"
 }

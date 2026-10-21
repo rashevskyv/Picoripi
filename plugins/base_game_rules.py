@@ -602,6 +602,23 @@ class BaseGameRules:
         """Get the plugin actions."""
         return []
 
+    def get_voice_clips(self, project_dir: str) -> List[Dict[str, Any]]:
+        """Voice clips the plugin exports, replaces and plays: dicts with ``id``, ``title`` and ``disc`` (the
+        .bin the original clip is read from). Empty: the game has no voice clips."""
+        return []
+
+    def export_voice_clip(self, clip_id: str, disc_path: str, wav_path: str) -> float:
+        """Write the original clip to a WAV; returns its length in seconds."""
+        raise NotImplementedError
+
+    def import_voice_clip(self, clip_id: str, disc_path: str, wav_path: str, voice_dir: str) -> float:
+        """Check a translated WAV against the clip's sectors on the disc and keep it in ``voice_dir``."""
+        raise NotImplementedError
+
+    def apply_voice_clips(self, build_disc_path: str, voice_dir: str) -> int:
+        """Write every translated clip of ``voice_dir`` into a build .bin; returns how many were written."""
+        return 0
+
     def get_text_representation_for_editor(self, data_string_subline: str) -> str:
         """Get the text representation for editor."""
         return self.replace_tags_with_aliases(data_string_subline)
