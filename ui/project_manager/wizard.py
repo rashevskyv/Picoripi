@@ -125,6 +125,7 @@ class ProjectWizard(QDialog):
         bar.addStretch(1)
         bar.addWidget(QLabel(tr("Role for the selected files:")))
         self._batch_role = QComboBox()
+        self._batch_role.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
         bar.addWidget(self._batch_role)
         self._apply_role = QPushButton(tr("Apply"))
         self._apply_role.clicked.connect(self._apply_batch_role)
