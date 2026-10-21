@@ -891,7 +891,7 @@ omfs`) could be
 - Open: the Ukrainian translation (2026-10-20) is the UA ROM text, which is newer by file time in all three games (DoS by 11 min, PoR by 18 days, OoE by 24 min). The CSV project is the reference column "UA CSV". 46 (DoS), 107 (PoR) and 78 (OoE) strings differ between the two; the owner decides if the CSV text should win for them.
 - Open: `Ґ` (code 68), `ґ` (code 3E) and capital `Ь` (code 40) have placeholder glyphs (a one-pixel frame) in the translation fonts. The owner draws them in the Font Editor; the Font Editor shows the English font only, so they are drawn in the font file itself.
 - Open: the layout gives Latin letters the codes of Cyrillic look-alikes (byte 0x21 is `А` and `A`). Typing a Latin `n` in a Ukrainian translation shows `п`.
-- Open: the boot proof has no Ukrainian text on screen. The private melonDS starts all three UA ROMs (title or language screen), but injected keys and touches did not reach the emulator on the hidden desktop. The font check is `reports\proof\*_ua_font_glyphs.png` in each workspace.
+- Open: on-screen proof. DeSmuME 0.9.13 (private copy, hidden desktop, Quick Screenshot) shows Portrait of Ruin's Ukrainian save-warning box. Dawn of Sorrow shows its title and intro; Order of Ecclesia shows its language screen (touch works). No Ukrainian dialogue of DoS or OoE is captured yet. Keyboard input does not reach a DS emulator this way (DirectInput), and the Lua dashboard's Run does not start the script on this build. Font check: `reports\proof\*_ua_font_glyphs.png`.
 - Open: the Font Editor shows the English font only; the translation's UA fonts (`translation\<game>\font\`) are not editable in the app yet.
 
 ## Final Fantasy XII: Revenant Wings plugin (`plugins/ff12rw`, 2026-10-09)
