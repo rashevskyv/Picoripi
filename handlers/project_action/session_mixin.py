@@ -252,7 +252,15 @@ class SessionMixin:
             progress_dialog.setLabelText(tr("Loading project blocks…"))
             progress_dialog.setRange(0, len(worker.blocks) * 2)
             progress_dialog.setValue(0)
-            worker.progress.connect(progress_dialog.setValue)
+
+            def show_progress(current, total):
+                half = total // 2   # the worker counts the source pass, then the translation pass
+                progress_dialog.setLabelText(
+                    tr("Reading source files: {0} of {1}", current, half) if current < half
+                    else tr("Reading translations: {0} of {1}", current - half, half))
+                progress_dialog.setValue(current)
+
+            worker.progress.connect(show_progress)
 
         def on_finished(result):
             if self._active_load_worker is not worker:   # another create or open started since: not this view's data
@@ -271,9 +279,9 @@ class SessionMixin:
                 return
 
             if progress_dialog:
-                progress_dialog.setLabelText(tr("Building virtual blocks and scanning issues…"))
+                progress_dialog.setLabelText(tr("Building virtual blocks…"))
                 progress_dialog.setRange(0, 0)
-            self._report_startup(95, "Building virtual blocks and scanning issues…")
+            self._report_startup(95, "Building virtual blocks…")
 
             self.mw.data_store.data = result['data']
             self.mw.data_store.edited_file_data = result['edited_file_data']
@@ -356,7 +364,7 @@ class SessionMixin:
             except ImportError:
                 wait_for_issue_scan = False
             if scanner and hasattr(scanner, "_perform_initial_silent_scan_all_issues"):
-                if wait_for_issue_scan:
+                if wait_for_issue_scan and app_mode.headless:   # tests open and check at once
                     readiness["issues"] = False
 
                     def issues_ready():
@@ -364,6 +372,8 @@ class SessionMixin:
                         finalize_project_view()
 
                     scanner._perform_initial_silent_scan_all_issues(on_completed=issues_ready)
+                elif wait_for_issue_scan:   # a window: the editor opens now, the scan goes on in short ticks
+                    scanner._perform_initial_silent_scan_all_issues(quiet=True)
                 else:
                     scanner._perform_initial_silent_scan_all_issues()
 

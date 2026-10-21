@@ -3,6 +3,7 @@
 from utils import app_mode
 from utils.atomic_io import atomic_write_json
 import json
+import time
 from pathlib import Path
 from typing import Optional, Tuple
 from PyQt6.QtWidgets import QMessageBox, QProgressDialog
@@ -203,6 +204,7 @@ class IssueScanHandler(BaseHandler):
     # Async batched initial scan – runs in chunks so the UI never freezes
     # -----------------------------------------------------------------------
     _SCAN_BATCH_SIZE = 5   # blocks per timer tick
+    _SCAN_TICK_SECONDS = 0.04   # a tick of a quiet scan stops after this long, so the window keeps painting
 
     def _show_scan_progress_dialog(self, pending_scan_indices: list):
         """Internal helper to show scan progress dialog."""
@@ -217,7 +219,8 @@ class IssueScanHandler(BaseHandler):
             or getattr(self.mw, '_project_loading_pending', False)
         )
         
-        if is_test or covered_by_project_progress:
+        quiet = getattr(self, '_scan_quiet', False)
+        if is_test or covered_by_project_progress or quiet:
             self._progress_dialog = None
         else:
             from PyQt6.QtWidgets import QWidget
@@ -237,12 +240,15 @@ class IssueScanHandler(BaseHandler):
         self._scan_timer.setSingleShot(True)
         self._scan_timer.timeout.connect(self._scan_next_batch)
         
-        delay = 0 if is_test or covered_by_project_progress else 30
+        delay = 0 if is_test or covered_by_project_progress else (5 if quiet else 30)
         self._scan_timer.start(delay)
 
-    def _perform_initial_silent_scan_all_issues(self, on_completed=None, force=False):
-        """Start (or restart) an scan of all blocks, loading from cache if valid (unless force is True)."""
+    def _perform_initial_silent_scan_all_issues(self, on_completed=None, force=False, quiet=False):
+        """Start (or restart) an scan of all blocks, loading from cache if valid (unless force is True).
+
+        quiet: no dialog; the scan runs in short ticks beside the open editor and reports in the status bar."""
         self._scan_completion_callback = on_completed
+        self._scan_quiet = quiet
         if not self.mw.data_store.data:
             # Nothing to scan: the caller still waits for this scan to finish (a project with no blocks would hang).
             self.mw.data_store.problems_per_subline.clear()
@@ -348,17 +354,22 @@ class IssueScanHandler(BaseHandler):
             log_info("Initial issue scan canceled by user.")
             return
 
-        batch = self._scan_pending_indices[:self._SCAN_BATCH_SIZE]
-        self._scan_pending_indices = self._scan_pending_indices[self._SCAN_BATCH_SIZE:]
-
-        for block_idx in batch:
+        quiet = getattr(self, '_scan_quiet', False)
+        started = time.monotonic()
+        done = 0
+        for block_idx in self._scan_pending_indices:
             if block_idx < len(self.mw.data_store.data):
                 self._perform_issues_scan_for_block(block_idx)
-
-        # Refresh problem counts in the tree for processed blocks
-        if hasattr(self.mw, 'ui_updater'):
-            for block_idx in batch:
-                self.mw.ui_updater.update_block_item_text_with_problem_count(block_idx)
+            done += 1
+            if quiet and time.monotonic() - started >= self._SCAN_TICK_SECONDS:
+                break
+            if not quiet and done >= self._SCAN_BATCH_SIZE:
+                break
+        self._scan_pending_indices = self._scan_pending_indices[done:]
+        if quiet and self._scan_pending_indices and getattr(self.mw, 'statusBar', None) is not None:
+            self.mw.statusBar.showMessage(
+                tr("Checking issues: {0} of {1} files", self._scan_total_count - len(self._scan_pending_indices),
+                   self._scan_total_count))
 
         if hasattr(self, '_progress_dialog') and self._progress_dialog:
             completed = self._scan_total_count - len(self._scan_pending_indices)
@@ -380,6 +391,11 @@ class IssueScanHandler(BaseHandler):
                 self._progress_dialog.close()
                 self._progress_dialog = None
             log_debug("Initial issue scan complete.")
+            if quiet and getattr(self.mw, 'statusBar', None) is not None:
+                self.mw.statusBar.clearMessage()
+            # One pass over the tree for all blocks: a refresh per block walks every virtual folder each time.
+            if hasattr(self.mw, 'ui_updater'):
+                self.mw.ui_updater.refresh_block_tree_indicators()
             self._save_issues_cache()
             self.data_processor.schedule_autosave()
             callback = self._scan_completion_callback
@@ -437,11 +453,7 @@ class IssueScanHandler(BaseHandler):
     def rescan_all_tags(self):
         # Invalidate cache to force a full scan
         """Rescan all tags."""
-        def show_completion():
-            if hasattr(self.ui_updater, 'refresh_block_tree_indicators'):
-                self.ui_updater.refresh_block_tree_indicators()
-            else:
-                self.ui_updater.populate_blocks()
+        def show_completion():   # the scan has refreshed the tree by now
             QMessageBox.information(self.mw, tr('Scan Complete'), tr('Full issue scan complete.'))
 
         self._perform_initial_silent_scan_all_issues(on_completed=show_completion, force=True)

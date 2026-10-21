@@ -904,7 +904,9 @@
   "Opening project…": "Відкриття проєкту…",
   "Synchronizing project files…": "Синхронізація файлів проєкту…",
   "Loading project blocks…": "Завантаження блоків проєкту…",
-  "Building virtual blocks and scanning issues…": "Побудова віртуальних блоків і пошук проблем…",
+  "Building virtual blocks…": "Побудова віртуальних блоків…",
+  "Reading source files: {0} of {1}": "Читання вихідних файлів: {0} з {1}",
+  "Reading translations: {0} of {1}": "Читання перекладів: {0} з {1}",
   "Loading settings and fonts…": "Завантаження налаштувань і шрифтів…",
   "Loading...": "Завантаження...",
   "local": "локальний",
@@ -3039,5 +3041,6 @@
   "Other": "Інше",
   "Project '{0}' has been created successfully.": "Проєкт «{0}» створено.",
   "The project did not open, so it was removed. Its files were deleted.": "Проєкт не відкрився, тому його прибрано. Його файли видалено.",
-  "The project files could not be read.": "Не вдалося прочитати файли проєкту."
+  "The project files could not be read.": "Не вдалося прочитати файли проєкту.",
+  "Checking issues: {0} of {1} files": "Перевірка проблем: {0} з {1} файлів"
 }

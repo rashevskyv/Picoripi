@@ -1,5 +1,6 @@
 """Level-5 formats: compression, XPCK packs, IMGC textures and XF fonts (synthetic files; the game's when present)."""
 import romhacking_root
+import random
 import struct
 import zlib
 
@@ -313,3 +314,47 @@ def test_real_fonts_and_textures_write_back_byte_for_byte():
     translated = WORKSPACE / "translation/fnt/ft_nrm.xf"
     if translated.is_file():
         assert set("ЄєІіЇїҐґ’") <= set(font_formats.char_map(font_formats.extract("xf", translated.read_bytes())[0]))
+
+
+# -- Huffman ----------------------------------------------------------------------------------
+
+
+def walk_bit_by_bit(src: bytes, size: int, depth: int) -> bytes:
+    """The Kuriimu2 walk, one bit at a time: the reference the table-driven ``level5._huffman`` must match."""
+    pos = 4
+    tree_size, root = src[pos], src[pos + 1]
+    tree = src[pos + 2:pos + 2 + tree_size * 2]
+    pos += 2 + tree_size * 2
+    count = size * 8 // depth
+    result = bytearray(count)
+    i = code = nxt = done = 0
+    node = root
+    while done < count:
+        if i % 32 == 0:
+            code = struct.unpack_from("<I", src, pos)[0]
+            pos += 4
+        nxt += ((node & 0x3F) << 1) + 2
+        direction = 2 if (code >> (31 - i % 32)) & 1 == 0 else 1
+        leaf = (node >> 5 >> direction) & 1
+        node = tree[nxt - direction]
+        if leaf:
+            result[done] = node
+            done += 1
+            node = root
+            nxt = 0
+        i += 1
+    if depth == 8:
+        return bytes(result)
+    return bytes(result[2 * j] | result[2 * j + 1] << 4 for j in range(size))
+
+
+@pytest.mark.parametrize("method, depth", [(level5.HUFFMAN8, 8), (level5.HUFFMAN4, 4)])
+def test_huffman_table_walk_matches_the_bit_walk(method, depth):
+    # Two levels: the root has two inner nodes, each with two leaves (codes 00, 01, 10, 11 -> a, b, c, d).
+    symbols = (1, 2, 3, 4) if depth == 4 else (65, 66, 67, 68)
+    tree = bytes([0xC0, 0xC1, *symbols])
+    rng = random.Random(7)
+    size = 600
+    words = struct.pack("<%dI" % (size * 8 // depth // 16 + 8), *(rng.getrandbits(32) for _ in range(size * 8 // depth // 16 + 8)))
+    packed = struct.pack("<I", size << 3 | method) + bytes([3, 0x00]) + tree + words
+    assert level5.decompress(packed) == walk_bit_by_bit(packed, size, depth)

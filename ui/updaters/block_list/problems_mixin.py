@@ -85,9 +85,9 @@ class ProblemsMixin:
                         for d_idx in data_indices
                         for l_idx in category.line_indices
                     )
-        elif merged_folder_ids and pm:
+        elif merged_folder_ids and pm:   # nothing unsaved (a fresh open): skip the walk of the folder subtree
             all_p = set()
-            for folder_id in merged_folder_ids:
+            for folder_id in (merged_folder_ids if unsaved_blocks else ()):
                 all_p.update(pm.get_all_block_indices_under_folder(folder_id))
             if block_map:
                 unsaved = any(block_map.get(data_idx) in all_p for data_idx in unsaved_blocks)
