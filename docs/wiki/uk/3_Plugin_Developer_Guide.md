@@ -222,4 +222,4 @@ class GameRules(BaseGameRules):
 <!-- wiki-nav -->
 ---
 
-**Назад:** [Налаштування](4_Configuration_Guide.md) · [До змісту вікі](README.md) · **Далі:** [Карта коду (для супроводу)](2_API_Reference.md)
+**Назад:** [Усунення несправностей](Troubleshooting.md) · [До змісту вікі](README.md) · **Далі:** [Карта коду (для супроводу)](2_API_Reference.md)

@@ -166,4 +166,4 @@ joins and then once a minute while edits happen.
 <!-- wiki-nav -->
 ---
 
-**Previous:** [Script Markup Studio](9_Script_Markup.md) · [Back to the wiki index](README.md) · **Next:** [Picoripi Companion (Mobile PWA & Sync)](12_Picoripi_Companion.md)
+**Previous:** [Building a mod and testing it in the game](Build_and_Test.md) · [Back to the wiki index](README.md) · **Next:** [Picoripi Companion (Mobile PWA & Sync)](12_Picoripi_Companion.md)

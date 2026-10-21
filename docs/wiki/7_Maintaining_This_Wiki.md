@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: docs/wiki
-tokens: 0.8k
+tokens: 1.0k
 purpose: Which page owns which fact; how to update EN and UK
 ---
 # Maintaining this wiki
@@ -27,7 +27,21 @@ English files in `docs/wiki/` are the source of truth. `docs/wiki/uk/` is the Uk
 | AI Translate / Variation / Chat / providers | `11_AI_Translation.md` |
 | Picoripi Companion (mobile PWA and sync server) | `12_Picoripi_Companion.md` |
 | Rooms (working together), progress page, team board | `13_Working_Together.md` |
-| First start: install, data folder, the new-project wizard, with screenshots (`img/getting_started/`) | `0_Getting_Started.md` |
+| First start, install, first project and where to read next (`img/getting_started/`) | `0_Getting_Started.md` |
+| Project Manager window | `Project_Manager.md` |
+| The new-project wizard for every kind of game | `New_Project_Scenarios.md` |
+| Main window, blocks, strings, filters | `Editor_Basics.md` |
+| Keyboard shortcuts | `Hotkeys.md` |
+| Line width, fonts and tags in the editor | `Width_Fonts_Tags.md` |
+| Warnings, auto-fix, spell checking | `Warnings_and_Autofix.md` |
+| Find, replace, bookmarks | `Search_Bookmarks.md` |
+| Saving, undo, backups, recovery | `Saving_and_Recovery.md` |
+| Build, export, emulator, testing in the game | `Build_and_Test.md` |
+| Font Editor and Textures window | `Fonts_and_Textures.md` |
+| Table of supported games (generated from the plugins) | `Supported_Games.md` |
+| Per-game technical notes | `Game_Notes.md` |
+| Common problems and fixes | `Troubleshooting.md` |
+| Short task recipes | `Recipes.md` |
 | Short pitch + setup + doc map | repo `README.md` |
 | The wiki as a website (GitHub Pages, built by `scripts/build_wiki_site.py` from `docs/wiki`; `.github/workflows/wiki-site.yml`) | no text of its own: edit the pages |
 | Every feature in one list | `docs/FEATURES.md` |

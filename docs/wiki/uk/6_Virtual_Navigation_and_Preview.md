@@ -91,4 +91,4 @@ tokens: 2.0k
 <!-- wiki-nav -->
 ---
 
-**Назад:** [Gemini Web2API (WebTOP)](5_Gemini_Web2API.md) · [До змісту вікі](README.md) · **Далі:** [Script Markup Studio](9_Script_Markup.md)
+**Назад:** [Нотатки по іграх](Game_Notes.md) · [До змісту вікі](README.md) · **Далі:** [Script Markup Studio](9_Script_Markup.md)

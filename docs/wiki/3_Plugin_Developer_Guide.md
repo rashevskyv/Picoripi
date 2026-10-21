@@ -223,4 +223,4 @@ The generated test file is the start. Add, with real data: a sample that parses 
 <!-- wiki-nav -->
 ---
 
-**Previous:** [Configuration](4_Configuration_Guide.md) · [Back to the wiki index](README.md) · **Next:** [Code map (maintainers)](2_API_Reference.md)
+**Previous:** [Troubleshooting](Troubleshooting.md) · [Back to the wiki index](README.md) · **Next:** [Code map (maintainers)](2_API_Reference.md)

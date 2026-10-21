@@ -145,4 +145,4 @@ Blank source lines are not “markable”. A stray empty line will not hold the 
 <!-- wiki-nav -->
 ---
 
-**Previous:** [Virtual Navigation and Preview](6_Virtual_Navigation_and_Preview.md) · [Back to the wiki index](README.md) · **Next:** [Working Together and Progress](13_Working_Together.md)
+**Previous:** [Virtual Navigation and Preview](6_Virtual_Navigation_and_Preview.md) · [Back to the wiki index](README.md) · **Next:** [Troubleshooting](Troubleshooting.md)

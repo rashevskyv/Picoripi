@@ -2,7 +2,7 @@
 status: current
 updated: 2026-09-27
 owns: docs/wiki
-tokens: 1.0k
+tokens: 1.3k
 ---
 # Як вести цю вікі
 
@@ -27,7 +27,21 @@ tokens: 1.0k
 | Picoripi Companion (мобільний PWA та сервер синхронізації) | `12_Picoripi_Companion.md` | `uk/12_…` |
 | Вікі як вебсайт (GitHub Pages, збирає `scripts/build_wiki_site.py` з `docs/wiki`; `.github/workflows/wiki-site.yml`) | власного тексту немає: редагуйте сторінки |
 | Кімнати (спільна робота), сторінка прогресу, таблиця команди | `13_Working_Together.md` |
-| Перший запуск: встановлення, тека даних, майстер нового проєкту, зі скріншотами (`img/getting_started/`) | `0_Getting_Started.md` |
+| Перший запуск, встановлення, перший проєкт і куди читати далі (`img/getting_started/`) | `0_Getting_Started.md` |
+| Вікно Менеджера проєктів | `Project_Manager.md` |
+| Майстер нового проєкту для кожного виду гри | `New_Project_Scenarios.md` |
+| Головне вікно, блоки, рядки, фільтри | `Editor_Basics.md` |
+| Клавіатурні скорочення | `Hotkeys.md` |
+| Ширина рядка, шрифти й теги в редакторі | `Width_Fonts_Tags.md` |
+| Попередження, автовиправлення, орфографія | `Warnings_and_Autofix.md` |
+| Пошук, заміна, закладки | `Search_Bookmarks.md` |
+| Збереження, скасування, копії, відновлення | `Saving_and_Recovery.md` |
+| Збірка, експорт, емулятор, перевірка в грі | `Build_and_Test.md` |
+| Редактор шрифтів і вікно текстур | `Fonts_and_Textures.md` |
+| Таблиця підтримуваних ігор (генерується з плагінів) | `Supported_Games.md` |
+| Технічні нотатки по іграх | `Game_Notes.md` |
+| Типові проблеми й розв'язки | `Troubleshooting.md` |
+| Короткі рецепти | `Recipes.md` |
 | Короткий пітч + карта | кореневий `README.md` | посилання на `docs/wiki/uk/README.md` |
 | Усі можливості одним переліком | `docs/FEATURES.md` | лише англійською |
 | Правила для агентів | `AGENTS.md` (обґрунтування: `docs/ENGINEERING.md`; карта коду: `docs/ARCHITECTURE.md`) | лише англійською |
