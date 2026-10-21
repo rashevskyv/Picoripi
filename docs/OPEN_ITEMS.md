@@ -45,7 +45,7 @@ the line when it is done or moved into a plan.
   (FIELD/2000.MDP, one frame) stays behind the switch. An over-budget line is flagged in the editor and saved as typed;
   the build refuses the script with "over its script budget by N bytes" (no partial write). The save base is the source
   file, not the last translation (`prepare_save_context`).
-- Grandia PS1 per-message budget (2026-10-21): growth is allowed inside one message when the message total stays the same (`psx_text._plan_messages`). Open: the in-game proof is pending. Next step: save a DuckStation state at the two-line box 0x91B of FIELD/BA38.MDP ("The third excavation of the Sult / Ruins is almost finished."), reload it for each patched run, and show the edited box with the scene continuing. Until then the rule is unit-tested only.
+- Grandia PS1 per-message budget (2026-10-21): growth is allowed inside one message when the message total stays the same (`psx_text._plan_messages`). In-game proof done: DuckStation, RAM copy of FIELD/BA38.MDP, the two-line box at 0x9D2 ("We assigned an elite battallion / of our Forces to this excavation site."), the scene continues. Screenshots in reports\proof\ (not in git). Limit found: the budget counts bytes, not box width. A line that is already full clips at the box edge ("battallion now" showed as "battallion n"). Growth must also fit the box width; the editor does not check pixel width yet.
 - Grandia PS1 reference scan (2026-10-20, FIELD_2000.MDP, not conclusive): 343 words in 0x80000000..0x801FFFFF, 167
   distinct. The best RAM base for the file (0x80000000) puts 83 of 167 values inside the file; a random base gives about
   a third. No base maps the section to its own offsets, so no absolute-pointer table is shown. Relative operands: no
