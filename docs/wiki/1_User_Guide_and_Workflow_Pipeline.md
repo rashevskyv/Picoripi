@@ -949,7 +949,9 @@ omase.nds`, made by the unpack) with the edited banks and files put in; no `zt`
      `<8002>` and `<#0003>` are the game's codes and stay as they are. The Font Editor opens the subtitle and the
      heading font (`texture_grid`, IA8; empty cells for the Ukrainian letters), the ASCII system font and the
      HOME Menu font; **Tools → Textures…** lists about 500 pictures with text (the MADWORLD logo, menus, HUD,
-     tutorials, safety screen). `2_build.bat` draws each changed table's glyph picture anew.
+     tutorials, safety screen). The wizard unpacks the disc (`.iso` or `.rvz`; an encrypted `.iso` needs the Wii key
+     file). The build target **Wii disc image (ISO)** copies the disc and draws each changed table's glyph picture
+     anew. It needs an `.iso` disc: convert an `.rvz` to ISO first. It also needs the Wii key file.
    - `xenoblade_wii` — Xenoblade Chronicles (Wii, USA) and Xenoblade Chronicles 3D (New 3DS, EUR): one plugin,
      one translation. **Source:** the workspace's `source` folder (`1_unpack.bat`), at the same paths on both
      platforms: the English BDAT table files `bdat\bdat_common.bin` (120 tables: menus, items, arts, skills,
