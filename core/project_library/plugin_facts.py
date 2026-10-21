@@ -153,6 +153,23 @@ def folder_platform(folder: str) -> str:
     return ""
 
 
+PATH_WORDS = {"gc": ("gamecube", "ngc", "gcn"), "wiiu": ("wiiu",), "switch": ("switch", "nx"), "3ds": ("3ds", "n3ds"),
+              "nds": ("nds", "ds"), "psx": ("ps1", "psx", "playstation"), "ps2": ("ps2",), "gba": ("gba",),
+              "gbc": ("gbc",), "n64": ("n64",), "pc": ("pc", "steam"), "wii": ("wii",)}
+
+
+def path_platform(path: str, among: Sequence[str]) -> str:
+    """The platform a folder name of ``path`` names (``...\\Yo-kai Watch\\Switch\\source`` -> switch), or "".
+
+    Only the game's own platforms (``among``) count. Each folder name is compared whole, letters and digits only.
+    """
+    words = {"".join(ch for ch in part.lower() if ch.isalnum()) for part in Path(path).parts}
+    for platform in among:
+        if words & set(PATH_WORDS.get(platform, (platform,))):
+            return platform
+    return ""
+
+
 def offered_platforms(rules: Any) -> List[Dict[str, str]]:
     """The platforms the wizard offers: the plugin's own, or every platform Picoripi knows when it declares none."""
     return platforms_of(rules) or [{"id": kind, "label": platform_label(kind)} for kind in KNOWN_PLATFORMS]
@@ -221,7 +238,7 @@ def identify_sources(rules: Any, paths: Sequence[str], is_cancelled: Cancelled =
             platform = generic["platform"]
             status = _status_of(found, is_folder, unpacks)
         if not platform and is_folder:
-            platform = folder_platform(path)
+            platform = folder_platform(path) or path_platform(path, declared)
         if not platform and len(declared) == 1:
             platform = declared[0]          # a game on one platform: every file of it is on that platform
         console = _key_console(found, allowed) if status in (STATUS_OK, STATUS_UNRECOGNISED) else ""

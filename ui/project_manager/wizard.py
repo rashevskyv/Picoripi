@@ -294,7 +294,9 @@ class ProjectWizard(QDialog):
         for name in names:
             if name in known:
                 continue
-            item = QTreeWidgetItem([Path(name).name, "", "", ""])
+            # A folder is often named "source" or "romfs": its parents tell which game and platform it is.
+            shown = str(Path(*Path(name).parts[-3:])) if source_folder else Path(name).name
+            item = QTreeWidgetItem([shown, "", "", ""])
             item.setToolTip(FILE_COLUMN, name)
             item.setData(0, Qt.ItemDataRole.UserRole, name)
             item.setData(0, TOUCHED, False)

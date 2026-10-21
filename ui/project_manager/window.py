@@ -623,6 +623,7 @@ class ProjectManagerDialog(QDialog):
         if not targets:
             self._scan_active = False
             self._strip.hide()
+            self._status.setText("")   # nothing to load: the empty list says what to do
             return
         self._scan.shutdown()
         self._scan_active = True
@@ -1727,7 +1728,13 @@ class ProjectManagerDialog(QDialog):
 
     # ----- adding projects -----
     def _new_project_clicked(self) -> None:
-        self._new_project()
+        if not self._new_project():   # the wizard made no project
+            return
+        self._closing_for_project = True  # the new project opens in the main window: close without quitting
+        try:
+            self.close()
+        finally:
+            self._closing_for_project = False
 
     def _add_existing_clicked(self) -> None:
         path, _filter = QFileDialog.getOpenFileName(self, tr("Add existing project"), str(Path.home()),

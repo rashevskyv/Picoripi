@@ -301,3 +301,12 @@ def test_count_project_counts_the_blocks_whose_translation_file_is_missing(tmp_p
 
     # an empty translation name is not a missing file: only a named file that is absent counts
     assert result["missing_translations"] == 1
+
+
+def test_a_folder_name_in_the_path_names_one_of_the_games_platforms(tmp_path):
+    source = tmp_path / "Yo-kai Watch" / "Switch" / "source"
+    source.mkdir(parents=True)
+    assert plugin_facts.path_platform(str(source), ["3ds", "switch"]) == "switch"
+    assert plugin_facts.path_platform(str(tmp_path / "Wii U" / "game"), ["gc", "wiiu"]) == "wiiu"
+    assert plugin_facts.path_platform(str(source), ["3ds"]) == ""      # only the game's own platforms count
+    assert plugin_facts.path_platform(str(tmp_path / "Switchboard"), ["switch"]) == ""   # whole names only
