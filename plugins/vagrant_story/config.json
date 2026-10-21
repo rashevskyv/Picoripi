@@ -23,7 +23,10 @@
         "VGS_EMPTY_FIRST_LINE_OF_PAGE": false,
         "VGS_BAD_SPACING": true,
         "VGS_MISSING_ICON_SPACING": false,
-        "VGS_BROKEN_ICON_HYPHEN": false
+        "VGS_BROKEN_ICON_HYPHEN": false,
+        "VGS_LINES_EXCEEDED": false,
+        "VGS_BYTES_EXCEEDED": false,
+        "VGS_CREDITS_RESERVED": false
     },
     "detection_enabled": {
         "VGS_TAG_WARNING": true,
@@ -35,7 +38,10 @@
         "VGS_EMPTY_FIRST_LINE_OF_PAGE": false,
         "VGS_BAD_SPACING": true,
         "VGS_MISSING_ICON_SPACING": false,
-        "VGS_BROKEN_ICON_HYPHEN": false
+        "VGS_BROKEN_ICON_HYPHEN": false,
+        "VGS_LINES_EXCEEDED": true,
+        "VGS_BYTES_EXCEEDED": true,
+        "VGS_CREDITS_RESERVED": true
     },
     "lines_per_page": 4,
     "default_font_file": "vagrant_story_font.json",

@@ -79,7 +79,8 @@ def credits_file(names) -> bytes:
 
 
 def test_staff_roll_is_ascii_in_place():
-    people = [f"Person Number {i:03d}" for i in range(formats.CREDIT_MIN)] + ["Fran>ois Hermellin"]
+    # letters, not digits: digits 1 and 3-8 are staff-roll letter cells (codec.CREDITS_LETTERS)
+    people = [f"Person {chr(65 + i // 26)}{chr(65 + i % 26)}" for i in range(formats.CREDIT_MIN)] + ["Fran>ois Hermellin"]
     data = credits_file(people)
     rules = load_rules("vagrant_story")
     blocks, names = rules.load_data_from_json_obj(data)
@@ -92,7 +93,11 @@ def test_staff_roll_is_ascii_in_place():
     blocks[0][0] = people[0] + "!"
     with pytest.raises(formats.FormatError):
         save(rules, data, blocks, names)
-    blocks[0][0] = "Ґава"
+    blocks[0][0] = "Ґава"                                  # a staff-roll letter of the credits map
+    again, _ = load_rules("vagrant_story").load_data_from_json_obj(save(rules, data, blocks, names))
+    # Ґ and в keep their own cells; the Latin look-alike а reads back as its Latin letter (names are Latin too)
+    assert again[0][0][:4] == "Ґaвa"
+    blocks[0][0] = "őava"                                  # no staff-roll cell for this letter
     with pytest.raises(formats.FormatError):
         save(rules, data, blocks, names)
 

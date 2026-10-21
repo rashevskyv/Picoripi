@@ -30,7 +30,9 @@ A space is written as 0x8F (one byte; the game draws it 6 pixels wide like ``FA 
 """
 from __future__ import annotations
 
+import json
 import re
+from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 from core.font_formats.vagrant import CHARACTERS
@@ -235,3 +237,42 @@ def line_widths(raw: bytes, widths: List[int], char_codes_width: Optional[Dict[i
         elif code == 0xFE and param > 9:
             lines[-1] += (param // 10) * 6
     return lines
+
+
+# -- staff roll ----------------------------------------------------------------------------------
+# The staff roll (ENDING.PRG) draws the ASCII byte c with cell c - 0x20 of its font; a byte below
+# 0x20 is a control code. credits_map.json gives the Ukrainian letters that take a byte the English
+# credits never draw. Such a byte cannot also be typed as its ASCII character.
+
+_CREDITS_FILE = Path(__file__).with_name("credits_map.json")
+
+
+def _load_credits() -> Dict[str, int]:
+    raw = json.loads(_CREDITS_FILE.read_text(encoding="utf-8"))
+    return {letter: int(code, 16) for letter, code in raw.items() if not letter.startswith("_")}
+
+
+CREDITS_LETTERS: Dict[str, int] = _load_credits()
+CREDITS_NAMES: Dict[int, str] = {code: letter for letter, code in CREDITS_LETTERS.items()}
+
+
+def credits_encode(text: str, lookalikes: Optional[Dict[str, str]] = None) -> bytes:
+    """Staff-roll bytes of plain text (no tags). A letter of the credits map takes its byte; a Latin
+    look-alike takes the ASCII byte of its Latin letter; an ASCII character that the credits map uses
+    is refused, because the game would draw the Ukrainian letter for it. Raises ValueError otherwise."""
+    out = bytearray()
+    for char in text:
+        if char in CREDITS_LETTERS:
+            out.append(CREDITS_LETTERS[char])
+        elif lookalikes and char in lookalikes and lookalikes[char].isascii():
+            out.append(ord(lookalikes[char]))
+        elif char.isascii() and ord(char) not in CREDITS_NAMES:
+            out.append(ord(char))
+        else:
+            raise ValueError(f"no staff-roll glyph for {char!r}")
+    return bytes(out)
+
+
+def credits_decode(raw: bytes) -> str:
+    """Editor text of staff-roll bytes: the credits map's letters, ASCII, and {xNN} for other bytes."""
+    return "".join(CREDITS_NAMES.get(c) or (chr(c) if 0x20 <= c < 0x7F else f"{{x{c:02X}}}") for c in raw)

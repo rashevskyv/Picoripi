@@ -1,0 +1,11 @@
+{
+  "_note": "Staff-roll (ENDING.PRG) letters the English credits never draw. The staff roll draws byte c with cell c - 0x20 of its font (ENDING.PRG D4.c, _renderText); each cell is a glyph of the same set, so the Ukrainian letter takes the byte of a cell whose English character the credits do not use. Latin look-alikes (А В Е І К М Н О Р С Т Х and a e i o p c y x) keep their Latin cell (translation_map.json). Spare: 0x39 '9' and 0x71 'q'.",
+  "Щ": "0x21", "Ь": "0x24", "Ю": "0x27", "Я": "0x2B", "Є": "0x3A", "Ї": "0x3C", "Ґ": "0x3F",
+  "щ": "0x23", "ь": "0x25", "ю": "0x2A", "я": "0x2F", "є": "0x3B", "ї": "0x3D",
+  "Б": "0x80", "б": "0x81", "Г": "0x82", "г": "0x83", "Д": "0x84", "д": "0x85",
+  "Ж": "0x86", "ж": "0x87", "З": "0x88", "з": "0x89", "И": "0x8A", "и": "0x8B",
+  "Й": "0x8C", "й": "0x8D", "Л": "0x8E", "л": "0x8F",
+  "П": "0x7B", "п": "0x7C", "Ф": "0x7D", "ф": "0x7E",
+  "Ц": "0x5B", "ц": "0x5C", "Ч": "0x5D", "ч": "0x5E", "Ш": "0x5F", "ш": "0x60",
+  "У": "0x31", "ґ": "0x33", "в": "0x34", "к": "0x35", "м": "0x36", "н": "0x37", "т": "0x38"
+}
