@@ -181,6 +181,22 @@ the line when it is done or moved into a plan.
   match VRAM in the save state (a star field and a battle ground, not text). AKLZ: no AKLZ file among the extracted
   files. `BIN/WIN.BIN` (7094 bytes) starts with a bit-packed stream and no Game Arts header; `FIELD/FWIN.BIN` is a text
   table with pointers. The VRAM glyph page was not searched in the disc files.
+- Grandia PS1 VRAM (2026-10-21): in the owner's save state's main frame, RAM starts at frame offset 0x1A62 (address
+  0x80000000) and VRAM follows RAM at offset 0x201A62 (1024x512 RGB555). The dialogue box text is in that VRAM and
+  its white pixels give an exact glyph mask. The glyph advance table and the drawer are not identified: a scan of
+  RAM for GPU packets found no text quads (only 3D polygons and one 24x32 box sprite). `GR2_LINE_WIDTH` is not
+  implemented: the widths are not known.
+- Grandia PS1 growth (2026-10-21, not proven): tests on a RAM copy of FIELD/BA38.MDP in a private DuckStation, from a
+  fixed save state. A clean copy advances the cursor. Each test with a longer line (+8 or +5 bytes) faults: a reserved
+  instruction at the vector (cursor global overwritten), an instruction bus error at 0x80084100, a data error with
+  BadVAddr 0x00800000 and sp past RAM, or an address error on 0x07070707. Shifting the 8-byte directory, the cursor
+  global or the far script-pointer globals, alone or together, does not remove the fault. The text pointers (typewriter
+  slots near 0x800AD9D4) move every frame, and the connect point differs per launch, so single-shot shifts are not
+  reproducible. The fault site is not identified (EPC is not in the GDB register packet).
+- Grandia PS1 growth next step: a deterministic start (halt at a VM loop head at a fixed cursor), a breakpoint at the
+  exception vector that records the first non-interrupt exception, then the instruction that faults (VM entry
+  0x8005CF84, sub-evaluator 0x800600B4). Keep growth refused (`POOLED_GROWTH = False`) until a +30 % line shows in a
+  frame and the scene continues.
 - Grandia HD Remaster (PC, scene release): the game data is inside `skidrow.bin`, an installer payload with no known
   format. Owner question: a copy of the installed game folder.
 - Grandia II HD Remaster (PC, scene release): the image is UDF, not ISO 9660; Picoripi has no UDF reader.
