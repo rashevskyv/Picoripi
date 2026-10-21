@@ -80,7 +80,8 @@ def test_old_profile_is_copied_into_the_chosen_folder_and_kept(qtbot, app_folder
     dialog = dld.DataLocationDialog(app_folder, legacy=legacy, first_start=True)
     qtbot.addWidget(dialog)
     assert OPTION_LEGACY in dialog._model.options()
-    assert dialog._copy_check.isChecked()
+    assert not dialog._copy_check.isChecked()   # the old profile is imported only when the user ticks the box
+    dialog._copy_check.setChecked(True)
     dialog._confirm()
     qtbot.waitUntil(lambda: dialog.result_folder is not None, timeout=10000)
     copied = json.loads((app_folder / "data" / "settings.json").read_text(encoding="utf-8"))

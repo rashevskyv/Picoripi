@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- First start: the data folder dialog stays on top of other windows (a start from run.bat opened it behind them), and "Copy existing data" is no longer ticked by default (an old profile is imported only when the user ticks it). Project Manager: the add button reads "+ Add project" and the empty list says where it is.
 
 - New Project wizard: Yo-kai Watch 1 projects come straight from the 3DS image (USA) or the Switch base game and update (`.nsp`/`.nsz`); its archives are read in place and `unpacked\source` + `unpacked\meta` match the workspace's `1_unpack.bat`. A Switch update `.nsz` with more than four NCZ sections (one per BKTR subsection) is read.
 - Twilight Princess in the New Project wizard: the USA Wii disc (RZDE01, Wii key from the key store) unpacks like the GameCube disc, and an unpacked Wii U HD title folder becomes a Wii U project with `content/res/Msguk` as its source; `get_source_subfolder` may name several folders (the first that exists wins), and the extracted-folder check reads text inside archives (`plugins/zelda_bmg/rules.py`, `core/project_library/build.py`, `core/project_library/source_folder.py`).

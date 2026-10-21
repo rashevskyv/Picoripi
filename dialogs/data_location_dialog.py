@@ -13,7 +13,7 @@ import uuid
 from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtCore import QLocale, QUrl, pyqtSignal
+from PyQt6.QtCore import QLocale, Qt, QUrl, pyqtSignal
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QComboBox, QDialog, QFileDialog, QHBoxLayout, QLabel, QLineEdit,
@@ -219,7 +219,7 @@ class DataLocationDialog(QDialog):
         layout.addLayout(folder_row)
 
         self._copy_check = QCheckBox(tr("Copy existing data here (the old folder stays unchanged)"), self)
-        self._copy_check.setChecked(legacy is not None or not self._first_start)
+        self._copy_check.setChecked(not self._first_start)   # an old profile is never imported unless the user ticks it
         self._copy_check.toggled.connect(self._refresh)
         self._copy_check.setVisible(bool(legacy) or not self._first_start)
         layout.addWidget(self._copy_check)
@@ -447,8 +447,10 @@ def ensure_data_location_chosen() -> bool:
     current = location.path if location.problem else None
     notice = tr("The saved data folder is missing or read-only. Choose a folder.") if location.problem else ""
     dialog = DataLocationDialog(app_root(), current=current, legacy=legacy_dir(), first_start=True, notice=notice)
+    # The first window of a start from a console: Windows keeps it behind other programs unless it asks to stay on top.
+    dialog.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
     dialog.show()
-    dialog.raise_()            # the first window of a start from a console: bring it to the front
+    dialog.raise_()
     dialog.activateWindow()
     return dialog.exec() == QDialog.DialogCode.Accepted.value
 

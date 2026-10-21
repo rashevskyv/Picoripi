@@ -454,8 +454,9 @@ class ProjectManagerDialog(QDialog):
         layout = QVBoxLayout(self)
         bar = QHBoxLayout()
         self._add_button = QToolButton()
-        self._add_button.setText("+")
+        self._add_button.setText(tr("+ Add project"))
         self._add_button.setToolTip(tr("Add a project"))
+        self._add_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
         self._add_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         menu = QMenu(self._add_button)
         menu.addAction(tr("New project..."), self._new_project_clicked)
@@ -567,7 +568,7 @@ class ProjectManagerDialog(QDialog):
         self._grid_page.setStretchFactor(0, 3)
         self._grid_page.setStretchFactor(1, 2)
 
-        self._empty = _message_page(tr("No projects yet. Press + to add a project."))
+        self._empty = _message_page(tr("No projects yet. Press \"+ Add project\" to add a game."))
         self._no_match = _message_page(tr("No project matches this search."))
 
         self._stack = QStackedWidget()
