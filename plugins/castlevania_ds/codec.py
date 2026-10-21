@@ -15,8 +15,11 @@ A code with no character is written ``[xHH]``.
 """
 from __future__ import annotations
 
+import functools
+import json
 import re
-from typing import Dict, List, Tuple
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 SPECIAL = "・¡¢£¨©®°±´¸¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýŒœˆ˜‐‗‘’‚“”„•…′″›※€™«»⁰"
 UA_LETTERS = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
@@ -56,7 +59,22 @@ class EncodeError(ValueError):
     """A text that cannot be written in the game's codes."""
 
 
-def decode(data: bytes) -> str:
+LAYOUT_DIR = Path(__file__).with_name("layouts")
+
+
+@functools.lru_cache(maxsize=None)
+def layout(name: str) -> Tuple[Dict[int, str], Dict[str, int]]:
+    """``(glyphs, aliases)`` of a font layout in ``layouts/<name>.json``: the letter of each code the layout
+    changes, and every character that encodes to a code (the letters, the Latin look-alikes, the fallbacks)."""
+    data = json.loads((LAYOUT_DIR / f"{name}.json").read_text(encoding="utf-8"))
+    glyphs = {int(code, 16): char for code, char in data.get("glyphs", {}).items()}
+    aliases = {char: int(code, 16) for char, code in data.get("aliases", {}).items()}
+    aliases.update({char: code for code, char in glyphs.items()})
+    return glyphs, aliases
+
+
+def decode(data: bytes, layout_name: Optional[str] = None) -> str:
+    glyphs = layout(layout_name)[0] if layout_name else {}
     out: List[str] = []
     i = 0
     while i < len(data):
@@ -73,6 +91,8 @@ def decode(data: bytes) -> str:
             out.append("\n")
         elif code in SIMPLE:
             out.append(SIMPLE[code] + ("\n" if SIMPLE[code] in BREAKS else ""))
+        elif code in glyphs:
+            out.append(glyphs[code])
         elif code in CHARS:
             out.append(CHARS[code])
         else:
@@ -81,7 +101,8 @@ def decode(data: bytes) -> str:
     return "".join(out)
 
 
-def encode(text: str, strict: bool = True) -> bytes:
+def encode(text: str, strict: bool = True, layout_name: Optional[str] = None) -> bytes:
+    aliases = layout(layout_name)[1] if layout_name else {}
     out = bytearray()
     tokens = re.findall(r"\[[^\[\]\n]*\]|\n|.", str(text), flags=re.S)
     i = 0
@@ -96,6 +117,8 @@ def encode(text: str, strict: bool = True) -> bytes:
                 i += 1                                   # the line break the editor shows after it
         elif token in _PAIR_CODES:
             out += bytes(_PAIR_CODES[token])
+        elif token in aliases:
+            out.append(aliases[token])
         elif token in CODES:
             out.append(CODES[token])
         elif match := re.fullmatch(r"\[(cmd|face|name|color):([0-9A-Fa-f]{2})\]", token):
@@ -114,10 +137,11 @@ def encode(text: str, strict: bool = True) -> bytes:
     return bytes(out)
 
 
-def unknown_chars(text: str) -> List[str]:
+def unknown_chars(text: str, layout_name: Optional[str] = None) -> List[str]:
     """Characters of ``text`` (outside tags) the game has no code for."""
+    aliases = layout(layout_name)[1] if layout_name else {}
     plain = re.sub(r"\[[^\[\]\n]*\]", "", str(text))
-    return sorted({char for char in plain if char != "\n" and char not in CODES})
+    return sorted({char for char in plain if char != "\n" and char not in CODES and char not in aliases})
 
 
 DESCRIPTIONS = {
