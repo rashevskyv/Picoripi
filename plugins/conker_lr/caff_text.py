@@ -202,6 +202,10 @@ def write_slots(data: bytes, texts: Sequence[str]) -> bytes:
             continue
         value = struct.unpack_from("<I", data, lsbl + field)[0]
         struct.pack_into("<I", out, lsbl + field, relocate(lsbl + value) - lsbl)
+    # 4b. in every file LSBL+0x1C is LSBL+0x10 minus 0x1C: keep that relation after the move
+    if struct.unpack_from("<I", data, lsbl + 0x10)[0] - struct.unpack_from("<I", data, lsbl + 0x1C)[0] == 0x1C:
+        new_index = struct.unpack_from("<I", out, lsbl + 0x10)[0]
+        struct.pack_into("<I", out, lsbl + 0x1C, (new_index - 0x1C) & 0xFFFFFFFF)
     # 5. table values: unit offsets from the first string (the table lies before it, so its fields do not move)
     for field in _table_fields(data, lsbl):
         value = struct.unpack_from("<I", data, field)[0]

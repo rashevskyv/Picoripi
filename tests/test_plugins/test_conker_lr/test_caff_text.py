@@ -132,3 +132,17 @@ def test_the_block_index_units_follow_the_growth():
     assert grown[new_first + 2 * new_units[1]:new_first + 2 * new_units[1] + 2] == "y".encode("utf-16le")
     assert new_first + 2 * new_units[2] == new_slots[2].offset
     assert _index_units(caff_text.write_slots(data, ["Hello there", "Bye."])) == units
+
+
+def test_the_pointer_28_bytes_before_the_index_follows_the_index():
+    # In the game's files LSBL+0x1C is LSBL+0x10 minus 0x1C. Growth moves the index; the pair must stay related.
+    base = _caff(["Hello there", "Bye.", "...."])
+    slots = caff_text.read_slots(base)
+    first = slots[0].offset
+    lsbl = base.find(b"LSBL")
+    key_unit = struct.unpack_from("<I", base, lsbl + 0x24 + 6 * 3 + 2)[0]
+    units = [0, (slots[1].offset - first) // 2 + 1, (slots[2].offset - first) // 2, key_unit]
+    data = bytearray(_with_index(base, units))
+    struct.pack_into("<I", data, lsbl + 0x1C, struct.unpack_from("<I", data, lsbl + 0x10)[0] - 0x1C)
+    grown = caff_text.write_slots(bytes(data), ["A much longer first line of text", "Bye."])
+    assert struct.unpack_from("<I", grown, lsbl + 0x1C)[0] == struct.unpack_from("<I", grown, lsbl + 0x10)[0] - 0x1C
