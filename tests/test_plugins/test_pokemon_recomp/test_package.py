@@ -22,9 +22,18 @@ def _sha(data: bytes) -> str:
 def _port(sha: str, **extra) -> dict:
     base = {"id": "emerald", "kind": "gba", "folder": "EmeraldRecomp", "exe": "EmeraldRecomp.exe",
             "game": "Pokemon Emerald (USA)", "built": "pokeemerald.gba", "code": "BPEE", "zip": "z.zip",
-            "release": "https://example.invalid/v0.1.2", "version": "0.1.2"}
+            "release": "https://example.invalid/v0.1.2", "version": "0.1.2", "variant": "emerald",
+            "target": "EmeraldRecomp", "name": "Pokemon Emerald Version (USA)", "tree": "pokeemerald",
+            "elf": "pokeemerald.elf", "rf_old": ""}
     base.update(extra)
     return {sha: base}
+
+
+FIRERED_PORT = {"id": "firered", "kind": "gba", "folder": "FireRedLeafGreenRecomp", "exe": "FireRedRecomp.exe",
+                "game": "Pokemon FireRed v1.0 (USA)", "built": "pokefirered.gba", "code": "BPRE", "zip": "f.zip",
+                "release": "https://example.invalid/fr", "version": "0.0.4", "variant": "firered",
+                "target": "FireRedRecomp", "name": "Pokemon FireRed Version (USA)", "tree": "pokefirered",
+                "elf": "pokefirered.elf", "rf_old": "0x081DEA30"}
 
 
 def _rom_project(root: Path, base: bytes) -> Path:
@@ -125,15 +134,41 @@ def test_pret_changed_emerald_build_ships_the_re_recompile_script(tmp_path, monk
     assert "recompile_UA.sh" in (folder / "README_UA.txt").read_text(encoding="utf-8")
 
 
-def test_pret_changed_firered_build_is_refused(tmp_path, monkeypatch):
-    dump, built = b"firered dump", b"changed"
-    monkeypatch.setattr(pr, "PORTS_BY_BASE_SHA1", _port(_sha(dump), id="firered", folder="FireRedLeafGreenRecomp",
-                                                        built="pokefirered.gba", game="Pokemon FireRed v1.0 (USA)"))
+def test_pret_changed_firered_build_ships_the_re_recompile_script(tmp_path, monkeypatch):
+    dump, built = b"firered dump", b"changed, code moved"
+    monkeypatch.setattr(pr, "PORTS_BY_BASE_SHA1", {_sha(dump): FIRERED_PORT})
     source = _pret_workspace(tmp_path / "ws", {"Pokemon - FireRed Version (USA, Europe).gba": dump})
     (tmp_path / "ws" / "build").mkdir()
     (tmp_path / "ws" / "build" / "pokefirered.gba").write_bytes(built)
-    with pytest.raises(ValueError, match="not built yet|re-recompilation"):
-        pr.build_package(str(source), "", str(tmp_path / "out"), lambda *_: "", noop, never)
+    folder = Path(pr.build_package(str(source), "", str(tmp_path / "out"), lambda *_: "", noop, never))
+
+    assert folder == tmp_path / "out" / "FireRedLeafGreenRecomp" / "firered"
+    assert json.loads((folder / "recomp.json").read_text(encoding="utf-8"))["re_recompile"] is True
+    script = (folder / "recompile_UA.sh").read_text(encoding="utf-8")
+    assert f'SHA="{_sha(built)}"' in script and f'OLD="{_sha(dump)}"' in script
+    assert 'CODE="BPRE"' in script and 'VARIANT="firered"' in script and 'TARGET="FireRedRecomp"' in script
+    assert 'NAME="Pokemon FireRed Version (USA)"' in script and 'RF_OLD="0x081DEA30"' in script
+    assert 'ROM="$HERE/pokefirered.gba"' in script
+    for token in ("__ROM__", "__SHA1__", "__OLD_SHA1__", "__RF_OLD__", "__TARGET__"):
+        assert token not in script
+    readme = (folder / "README_UA.txt").read_text(encoding="utf-8")
+    assert "~/pk/work/pokefirered/pokefirered.elf" in readme and "FireRedRecomp" in readme
+
+
+def test_pret_changed_leafgreen_build_uses_its_own_elf_and_target(tmp_path, monkeypatch):
+    dump, built = b"leafgreen dump", b"changed"
+    port = dict(FIRERED_PORT, id="leafgreen", game="Pokemon LeafGreen (USA)", built="pokeleafgreen.gba",
+                exe="LeafGreenRecomp.exe", target="LeafGreenRecomp", variant="leafgreen", code="BPGE",
+                name="Pokemon LeafGreen (USA)", elf="pokeleafgreen.elf", rf_old="0x081DEA0C")
+    monkeypatch.setattr(pr, "PORTS_BY_BASE_SHA1", {_sha(dump): port})
+    source = _pret_workspace(tmp_path / "ws", {"Pokemon - LeafGreen Version (USA, Europe).gba": dump})
+    (tmp_path / "ws" / "build").mkdir()
+    (tmp_path / "ws" / "build" / "pokeleafgreen.gba").write_bytes(built)
+    folder = Path(pr.build_package(str(source), "", str(tmp_path / "out"), lambda *_: "", noop, never))
+    script = (folder / "recompile_UA.sh").read_text(encoding="utf-8")
+    assert 'CODE="BPGE"' in script and 'TARGET="LeafGreenRecomp"' in script and 'RF_OLD="0x081DEA0C"' in script
+    assert "pokeleafgreen.elf" in (folder / "README_UA.txt").read_text(encoding="utf-8")
+    assert not list(folder.glob("*.exe"))  # the package never carries a port binary
 
 
 def test_pret_workspace_without_a_build_names_2_build_bat(tmp_path, monkeypatch):
@@ -157,6 +192,36 @@ def test_gen2_package_ships_the_gate_script_and_names_the_block(tmp_path, monkey
     assert not (folder / "run_UA.bat").exists()
     readme = (folder / "README_UA.txt").read_text(encoding="utf-8")
     assert f"gold {GOLD} {_sha(payload)}" in readme and "POKEPORT_IMPORT_ROM" in readme
+
+
+GOLD_PORT = {"id": "gold", "kind": "gen2", "folder": "Gen2Recomped", "game": "Pokemon Gold (USA)",
+             "built": "pokegold.gbc", "block": "gold", "canonical": GOLD}
+
+
+def test_pret_changed_gold_build_ships_the_gate_and_its_symbol_map(tmp_path, monkeypatch):
+    dump, built = b"gold dump", b"gold build with a longer message"
+    monkeypatch.setattr(pr, "PORTS_BY_BASE_SHA1", {_sha(dump): GOLD_PORT})
+    source = _pret_workspace(tmp_path / "ws", {"Pokemon - Gold Version (UE) [!].gbc": dump})
+    (tmp_path / "ws" / "build" / "decomp").mkdir(parents=True)
+    (tmp_path / "ws" / "build" / "pokegold.gbc").write_bytes(built)
+    (tmp_path / "ws" / "build" / "decomp" / "pokegold.sym").write_text("00:0000 NULL\n", encoding="utf-8")
+    folder = Path(pr.build_package(str(source), "", str(tmp_path / "out"), lambda *_: "", noop, never))
+
+    assert (folder / "pokegold.sym").read_text(encoding="utf-8") == "00:0000 NULL\n"
+    assert json.loads((folder / "recomp.json").read_text(encoding="utf-8"))["re_recompile"] is True
+    assert (folder / "set_gen2_gate_UA.py").is_file()
+    readme = (folder / "README_UA.txt").read_text(encoding="utf-8")
+    assert f'gold {GOLD} {_sha(built)} "pokegold.sym"' in readme and "pokegold.sym" in readme.split("Кроки")[0]
+
+
+def test_pret_changed_gold_build_without_a_symbol_map_is_refused(tmp_path, monkeypatch):
+    dump, built = b"gold dump", b"gold build"
+    monkeypatch.setattr(pr, "PORTS_BY_BASE_SHA1", {_sha(dump): GOLD_PORT})
+    source = _pret_workspace(tmp_path / "ws", {"Pokemon - Gold Version (UE) [!].gbc": dump})
+    (tmp_path / "ws" / "build").mkdir()
+    (tmp_path / "ws" / "build" / "pokegold.gbc").write_bytes(built)
+    with pytest.raises(ValueError, match="symbol map"):
+        pr.build_package(str(source), "", str(tmp_path / "out"), lambda *_: "", noop, never)
 
 
 def test_build_packages_makes_one_folder_per_dump(tmp_path, monkeypatch):
@@ -188,3 +253,9 @@ def test_both_plugins_list_the_recomp_target():
 def test_known_ports_match_the_accepted_dumps():
     assert pr.PORTS_BY_BASE_SHA1[EMERALD]["id"] == "emerald"
     assert pr.PORTS_BY_BASE_SHA1[GOLD]["kind"] == "gen2"
+    for sha, port in pr.PORTS_BY_BASE_SHA1.items():
+        if port["kind"] == "gba":
+            for key in ("variant", "target", "code", "name", "tree", "elf", "rf_old"):
+                assert key in port, (port["id"], key)
+    assert pr.PORTS_BY_BASE_SHA1["41cb23d8dccc8ebd7c649cd8fbb58eeace6e2fdc"]["code"] == "BPRE"
+    assert pr.PORTS_BY_BASE_SHA1["574fa542ffebb14be69902d1d36f1ec0a4afd71e"]["code"] == "BPGE"
