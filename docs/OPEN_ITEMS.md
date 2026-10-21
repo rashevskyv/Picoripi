@@ -10,7 +10,9 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
-## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-bfd`)
+## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-grow`)
+
+- Open (2026-10-21): a grown code archive does not boot. Proven on BizHawk: the original ROM boots (Ares64 and Mupen64Plus); an in-slot re-encode of one chunk boots; any change that moves a later chunk start stops boot (Ares64 black screen, Mupen64Plus black at 500 frames). Ares64 also rejects a one-byte change inside the header checksum range (CIC-6105), so grown ROMs need CRC1 and CRC2 recomputed. CRC1 matches the US header; CRC2 is not found (432 rule variants tried). The RAM offset table (RDRAM 0x32B30) matches the header in the original; in the shifted build it is not decoded by frame 300.
 
 - Open: the port (`E:\conker-dataepo`) pins the US ROM SHA-1 in `SHA1SUMS`. The build script that reads the ROM lives in CBFD-Recompiled, which is not on this machine; whether it rejects a patched ROM is unknown.
 - Open: no speech subtitle table found. Text tables found: bank 0x1A (entries 0-4, catapult book) and bank 0x1C sub-tables 0-3 (menu options, pause menu, chapter names, credits). The compressed game data section (task names) is not opened yet.
