@@ -14,11 +14,15 @@ zero bytes in every gap):
 
 Entries have no names in these archives: an entry is named by its index. ``parse`` returns the entries,
 ``write`` rebuilds the archive with some entries replaced. An unchanged archive comes back byte for byte.
+
+``parse_from`` and ``write_to`` take a reader ``read(offset, count)`` instead of the bytes, and ``write_to`` streams its
+output: an archive of gigabytes (a PlayStation 2 disc's AFS) is never held in memory.
 """
 from __future__ import annotations
 
+import io
 import struct
-from typing import Mapping, NamedTuple
+from typing import BinaryIO, Callable, Mapping, NamedTuple
 
 from core.i18n import tr
 
@@ -26,6 +30,9 @@ MAGIC = b"AFS\x00"
 ALIGN = 0x800
 HEADER = 8
 PAIR = struct.Struct("<II")
+CHUNK = 8 * 1024 * 1024        # copy size of a payload that is not held in memory
+
+Reader = Callable[[int, int], bytes]
 
 
 class AfsEntry(NamedTuple):
@@ -46,29 +53,55 @@ def _align(value: int) -> int:
     return (value + ALIGN - 1) // ALIGN * ALIGN
 
 
-def parse(data: bytes) -> list[AfsEntry]:
-    """The entries of an AFS archive in table order; AfsError when the table does not fit the bytes."""
-    if len(data) < HEADER or data[:4] != MAGIC:
+def parse_from(read: Reader, size: int) -> list[AfsEntry]:
+    """The entries of an AFS archive of ``size`` bytes that ``read(offset, count)`` gives; AfsError when it does not fit."""
+    if size < HEADER or read(0, 4) != MAGIC:
         raise AfsError(tr("not an AFS archive"))
-    count = struct.unpack_from("<I", data, 4)[0]
-    if HEADER + PAIR.size * (count + 1) > len(data):
+    count = struct.unpack("<I", read(4, 4))[0]
+    if HEADER + PAIR.size * (count + 1) > size:
         raise AfsError(tr("the AFS table of {0} entries runs past the end of the file", count))
+    table = read(HEADER, PAIR.size * count)
     entries = []
     for index in range(count):
-        offset, size = PAIR.unpack_from(data, HEADER + PAIR.size * index)
-        if offset + size > len(data):
+        offset, length = PAIR.unpack_from(table, PAIR.size * index)
+        if offset + length > size:
             raise AfsError(tr("AFS entry {0} runs past the end of the file", index))
-        entries.append(AfsEntry(index, offset, size))
+        entries.append(AfsEntry(index, offset, length))
     return entries
 
 
-def write(data: bytes, replacements: Mapping[int, bytes]) -> bytes:
-    """``data`` with the entries in ``replacements`` replaced; every other byte is kept.
+def parse(data: bytes) -> list[AfsEntry]:
+    """The entries of an AFS archive in table order; AfsError when the table does not fit the bytes."""
+    return parse_from(lambda offset, count: data[offset:offset + count], len(data))
 
-    Entries are laid out again in their original order from the original first offset, each on a 0x800 boundary,
-    so a longer entry moves the ones behind it. The table and the trailer pair are rewritten to match.
-    """
-    entries = parse(data)
+
+def _copy(read: Reader, offset: int, count: int, out: BinaryIO) -> None:
+    """``count`` bytes from ``offset`` of the source, copied to ``out`` in chunks."""
+    for done in range(0, count, CHUNK):
+        out.write(read(offset + done, min(CHUNK, count - done)))
+
+
+def _zeros(out: BinaryIO, count: int) -> None:
+    for done in range(0, count, CHUNK):
+        out.write(b"\x00" * min(CHUNK, count - done))
+
+
+class Layout(NamedTuple):
+    """Where each entry of the rebuilt archive goes; ``total`` is the new size in bytes."""
+    count: int
+    first: int
+    last_end: int
+    new_end: int
+    total: int
+    entries: list
+    placed: list
+    moved: dict
+    trailer: tuple
+
+
+def layout(read: Reader, size: int, replacements: Mapping[int, bytes]) -> Layout:
+    """The layout ``write_to`` would write, without writing: the new offsets, the new size, the trailer pair."""
+    entries = parse_from(read, size)
     count = len(entries)
     for index in replacements:
         if not 0 <= index < count:
@@ -77,36 +110,70 @@ def write(data: bytes, replacements: Mapping[int, bytes]) -> bytes:
             raise AfsError(tr("AFS entry {0} is empty and cannot be filled", index))
     placed = sorted((entry for entry in entries if entry.size), key=lambda entry: (entry.offset, entry.index))
     if not placed:
-        return bytes(data)
+        return Layout(count, 0, 0, 0, size, entries, placed, {}, (0, 0))
     for before, after in zip(placed, placed[1:]):
         if after.offset < before.offset + before.size:
             raise AfsError(tr("AFS entries {0} and {1} overlap", before.index, after.index))
     first = placed[0].offset
-    last = placed[-1]
-    last_end = last.offset + last.size
-    out = bytearray(data[:first])
-    table = {}
+    last_end = placed[-1].offset + placed[-1].size
+    moved: dict[int, tuple[int, int]] = {}
     cursor = first
     new_end = first
     for entry in placed:
         payload = replacements.get(entry.index)
-        if payload is None:
-            payload = data[entry.offset:entry.offset + entry.size]
-        out.extend(b"\x00" * (cursor - len(out)))
-        table[entry.index] = (cursor, len(payload))
-        out.extend(payload)
-        new_end = cursor + len(payload)
+        length = entry.size if payload is None else len(payload)
+        moved[entry.index] = (cursor, length)
+        new_end = cursor + length
         cursor = _align(new_end)
-    tail = data[last_end:]
-    out.extend(tail)
-    trailer_offset, trailer_size = PAIR.unpack_from(data, HEADER + PAIR.size * count)
+    total = _align(new_end + size - last_end)
+    trailer_offset, trailer_size = PAIR.unpack(read(HEADER + PAIR.size * count, PAIR.size))
     if trailer_offset >= last_end and (trailer_offset or trailer_size):
         trailer_offset += new_end - last_end
-    out.extend(b"\x00" * (_align(len(out)) - len(out)))
-    for index, (offset, size) in table.items():
-        PAIR.pack_into(out, HEADER + PAIR.size * index, offset, size)
-    for entry in entries:   # an empty entry keeps its offset unless the file got shorter than that offset
-        if entry.size == 0 and entry.offset > len(out):
-            PAIR.pack_into(out, HEADER + PAIR.size * entry.index, len(out), 0)
-    PAIR.pack_into(out, HEADER + PAIR.size * count, trailer_offset, trailer_size)
-    return bytes(out)
+    return Layout(count, first, last_end, new_end, total, entries, placed, moved, (trailer_offset, trailer_size))
+
+
+def new_size(read: Reader, size: int, replacements: Mapping[int, bytes]) -> int:
+    """The size in bytes of the archive ``write_to`` would write."""
+    return layout(read, size, replacements).total
+
+
+def write_to(read: Reader, size: int, out: BinaryIO, replacements: Mapping[int, bytes]) -> int:
+    """Write the archive with the entries in ``replacements`` replaced to ``out``; returns the new size in bytes.
+
+    Entries are laid out again in their original order from the original first offset, each on a 0x800 boundary,
+    so a longer entry moves the ones behind it. The table and the trailer pair are rewritten to match. Every other
+    byte is kept, so an archive without replacements is copied byte for byte.
+    """
+    plan = layout(read, size, replacements)
+    if not plan.placed:
+        _copy(read, 0, size, out)
+        return size
+    total, moved, count = plan.total, plan.moved, plan.count
+    head = bytearray(read(0, plan.first))
+    for index, (offset, length) in moved.items():
+        PAIR.pack_into(head, HEADER + PAIR.size * index, offset, length)
+    for entry in plan.entries:   # an empty entry keeps its offset unless the file got shorter than that offset
+        if entry.size == 0 and entry.offset > total:
+            PAIR.pack_into(head, HEADER + PAIR.size * entry.index, total, 0)
+    PAIR.pack_into(head, HEADER + PAIR.size * count, *plan.trailer)
+    out.write(head)
+    written = plan.first
+    for entry in plan.placed:
+        offset, length = moved[entry.index]
+        _zeros(out, offset - written)
+        payload = replacements.get(entry.index)
+        if payload is None:
+            _copy(read, entry.offset, entry.size, out)
+        else:
+            out.write(payload)
+        written = offset + length
+    _copy(read, plan.last_end, size - plan.last_end, out)
+    _zeros(out, total - (plan.new_end + size - plan.last_end))
+    return total
+
+
+def write(data: bytes, replacements: Mapping[int, bytes]) -> bytes:
+    """``data`` with the entries in ``replacements`` replaced; every other byte is kept (see ``write_to``)."""
+    out = io.BytesIO()
+    write_to(lambda offset, count: data[offset:offset + count], len(data), out, replacements)
+    return out.getvalue()
