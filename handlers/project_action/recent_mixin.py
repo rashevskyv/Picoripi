@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import QMessageBox, QProgressDialog
 from core.project_manager import ProjectManager
 from handlers.project_action.load_worker import ProjectSyncWorker
 from utils import app_mode
-from utils.logging_utils import log_info, log_debug
+from utils.logging_utils import log_error, log_info, log_debug
 from utils.thread_utils import single_shot
 from core.i18n import tr
 
@@ -87,7 +87,12 @@ class RecentMixin:
         worker.start()
 
     def _open_recent_project(self, project_path: str) -> None:
-        """Open a project from the recent projects list."""
+        """Open a project from the recent projects list, or the last project at start-up.
+
+        All or nothing: the project is registered as the last one only after it has opened. A load that fails, raises,
+        or makes no progress for STARTUP_STALL_MS stops; the project is forgotten as the last one and the Project
+        Manager opens.
+        """
         log_info(f"Opening recent project: {project_path}")
 
         if not Path(project_path).exists():
@@ -104,113 +109,151 @@ class RecentMixin:
                 self._update_recent_projects_menu()
             return
 
+        self._open_generation += 1
+        generation = self._open_generation
+        if getattr(self.mw, '_startup_splash', None) is not None:
+            self._arm_startup_watchdog(project_path)
         # The dialog must paint before the blocking reads below: they start on the next event-loop turn.
         if self._begin_open_dialog():
-            single_shot(0, self.mw, partial(self._open_recent_stage, project_path))
+            single_shot(0, self.mw, partial(self._open_recent_guarded, project_path, generation))
         else:
-            self._open_recent_stage(project_path)
+            self._open_recent_guarded(project_path, generation)
 
-    def _open_recent_stage(self, project_path: str) -> None:
-        # Load project using ProjectManager
+    def _open_recent_guarded(self, project_path: str, generation: int) -> None:
+        try:
+            self._load_recent_project(project_path, generation)
+        except Exception as exc:  # a plugin or a file that raises must not leave the start-up splash up
+            log_error(f"Project {project_path} could not be opened: {exc}", exc_info=True)
+            self._project_open_failed(project_path, str(exc))
+
+    def _load_recent_project(self, project_path: str, generation: int) -> None:
+        """The steps of ``_open_recent_project``. ``generation`` is stale once the watchdog gave the load up."""
         self._report_startup(60, "Reading project metadata…")
         self.mw.project_manager = ProjectManager()
 
         success = self.mw.project_manager.load(project_path)
+        self._close_font_editor_of_old_project()
 
-        if success:
-            project = self.mw.project_manager.project
-            log_info(f"Recent project '{project.name}' metadata loaded. Required plugin: '{project.plugin_name}'")
+        if not success:
+            self._project_open_failed(project_path, tr("The project file could not be read."))
+            return
 
-            # 1. Update global path tracking
-            self.mw.last_opened_path = project_path
-            if hasattr(self.mw, 'settings_manager'):
-                self.mw.settings_manager.add_recent_project(project_path)
-                self.mw.settings_manager.save_settings(save_project_settings=False)
-                self._update_recent_projects_menu()
+        project = self.mw.project_manager.project
+        log_info(f"Recent project '{project.name}' metadata loaded. Required plugin: '{project.plugin_name}'")
+        self._register_opened(project_path)   # a failed open undoes it (_project_open_failed)
+
+        # 1. FORCE correct plugin to load BEFORE any data parsing happens
+        # Even if it's the same plugin, we reload it to ensure a clean state for this project
+        target_plugin = project.plugin_name or self.mw.active_game_plugin
+        log_info(f"Initializing project plugin: '{target_plugin}' (previous: '{self.mw.active_game_plugin}')")
+        same_fresh_startup_plugin = (
+            getattr(self.mw, '_startup_splash', None) is not None
+            and target_plugin == self.mw.active_game_plugin
+            and self.mw.current_game_rules is not None
+        )
+        self.mw.active_game_plugin = target_plugin
+        if same_fresh_startup_plugin:
+            log_info(f"Reusing freshly loaded startup plugin: '{target_plugin}'")
+            # The glossary is the project's: the startup load ran before the project was open.
+            if getattr(self.mw, 'translation_handler', None):
+                self.mw.translation_handler.initialize_glossary_highlighting()
+        else:
+            self._report_startup(64, f"Loading {target_plugin} plugin…")
+            self.mw.load_game_plugin()  # SYNC CALL UPDATING current_game_rules
+        self.ui_updater.update_plugin_status_label()
+
+        # Load project-specific settings
+        if hasattr(self.mw, 'settings_manager'):
+            self.mw.settings_manager.plugin_settings.load(self.mw.settings_manager._settings)
+
+        # 2. Restore last viewed state (block/string indices) from project metadata BEFORE populating UI
+        self.mw.project_manager.load_settings_from_project(self.mw)
+        if hasattr(self.mw, 'ui_handler'):
+            self.mw.ui_handler.update_editor_rules_properties()
+        if hasattr(self.mw, 'settings_manager'):
+            self._report_startup(68, "Loading project fonts…")
+            self.mw.settings_manager.load_all_font_maps()
+        if hasattr(self.mw, 'string_settings_updater'):
+            self.mw.string_settings_updater.update_font_combobox()
+
+        # Fetch restored values for the timer
+        restored_block = getattr(self.mw, 'last_block_idx', 0)
+        restored_cat = getattr(self.mw, 'last_category_name', None)
+
+        # 3. Enable project-related UI elements
+        self._set_project_actions_enabled(True)
+
+        def on_recent_opened(state_restored):
+            if generation != self._open_generation:   # the watchdog gave this load up; a late finish changes nothing
+                return None
+            self._disarm_startup_watchdog()
+            if self._populate_failed:
+                self._project_open_failed(project_path, tr("The project files could not be read."))
+                return None
             self.note_project_opened(project_path)
+            self.record_project_counts()
+            if hasattr(self.mw, 'bookmark_handler'):
+                self.mw.bookmark_handler.update_bookmarks_menu()
 
-            # 2. FORCE correct plugin to load BEFORE any data parsing happens
-            # Even if it's the same plugin, we reload it to ensure a clean state for this project
-            target_plugin = project.plugin_name or self.mw.active_game_plugin
-            log_info(f"Initializing project plugin: '{target_plugin}' (previous: '{self.mw.active_game_plugin}')")
-            same_fresh_startup_plugin = (
-                getattr(self.mw, '_startup_splash', None) is not None
-                and target_plugin == self.mw.active_game_plugin
-                and self.mw.current_game_rules is not None
-            )
-            self.mw.active_game_plugin = target_plugin
-            if same_fresh_startup_plugin:
-                log_info(f"Reusing freshly loaded startup plugin: '{target_plugin}'")
-                # The glossary is the project's: the startup load ran before the project was open.
-                if getattr(self.mw, 'translation_handler', None):
-                    self.mw.translation_handler.initialize_glossary_highlighting()
-            else:
-                self._report_startup(64, f"Loading {target_plugin} plugin…")
-                self.mw.load_game_plugin() # SYNC CALL UPDATING current_game_rules
-            self.ui_updater.update_plugin_status_label()
+            log_info(f"Project '{project.name}' open sequence complete. Total data blocks: {len(self.mw.data_store.data)}")
+            try:
+                from core.companion_sync import smart_sync_in_background
+                smart_sync_in_background(self.mw)
+            except Exception as exc:
+                log_debug(f"Failed to auto-sync companion on recent open: {exc}")
 
-            # Load project-specific settings
-            if hasattr(self.mw, 'settings_manager'):
-                self.mw.settings_manager.plugin_settings.load(self.mw.settings_manager._settings)
+            if not state_restored:
+                log_info(f"Restoring UI state for block {restored_block}, category '{restored_cat}'")
+                self._pending_restore_block = restored_block
+                self._pending_restore_cat = restored_cat
+                self._finish_startup_after_restore_timer = (
+                    getattr(self.mw, '_startup_splash', None) is not None
+                )
+                self._restore_view_timer.start(150)
+                if self._finish_startup_after_restore_timer:
+                    return False
 
-            # 3. Restore last viewed state (block/string indices) from project metadata BEFORE populating UI
-            self.mw.project_manager.load_settings_from_project(self.mw)
-            if hasattr(self.mw, 'ui_handler'):
-                self.mw.ui_handler.update_editor_rules_properties()
-            if hasattr(self.mw, 'settings_manager'):
-                self._report_startup(68, "Loading project fonts…")
-                self.mw.settings_manager.load_all_font_maps()
-            if hasattr(self.mw, 'string_settings_updater'):
-                self.mw.string_settings_updater.update_font_combobox()
+            return True
 
-            # Fetch restored values for the timer
-            restored_block = getattr(self.mw, 'last_block_idx', 0)
-            restored_cat = getattr(self.mw, 'last_category_name', None)
-
-            # 4. Enable project-related UI elements
-            self._set_project_actions_enabled(True)
-
-            def on_recent_opened(state_restored):
-                self.record_project_counts()
-                if hasattr(self.mw, 'bookmark_handler'):
-                    self.mw.bookmark_handler.update_bookmarks_menu()
-
-                log_info(f"Project '{project.name}' open sequence complete. Total data blocks: {len(self.mw.data_store.data)}")
-                try:
-                    from core.companion_sync import smart_sync_in_background
-                    smart_sync_in_background(self.mw)
-                except Exception as exc:
-                    log_debug(f"Failed to auto-sync companion on recent open: {exc}")
-
-                if not state_restored:
-                    log_info(f"Restoring UI state for block {restored_block}, category '{restored_cat}'")
-                    self._pending_restore_block = restored_block
-                    self._pending_restore_cat = restored_cat
-                    self._finish_startup_after_restore_timer = (
-                        getattr(self.mw, '_startup_splash', None) is not None
-                    )
-                    self._restore_view_timer.start(150)
-                    if self._finish_startup_after_restore_timer:
-                        return False
-
-                return True
-
-            def open_synced():
-                # 6. Populate UI components with the new project data
+        def open_synced():
+            if generation != self._open_generation:   # given up while the files were synchronized
+                return
+            try:
+                # 5. Populate UI components with the new project data
                 self.ui_updater.update_title()
                 self._report_startup(75, "Restoring cached project data…")
                 self._populate_blocks_from_project(on_completed=on_recent_opened)
+            except Exception as exc:  # after the worker the guard in _open_recent_guarded no longer runs
+                log_error(f"Project {project_path} could not be opened: {exc}", exc_info=True)
+                self._project_open_failed(project_path, str(exc))
 
-            # 5. Sync project files (extract archives, discover new blocks), then 6.
-            self._report_startup(72, "Synchronizing project files…")
-            self._sync_project_files_then(open_synced)
-        else:
-            self._close_open_dialog()
-            QMessageBox.critical(
-                self.mw,
-                tr('Project Load Failed'),
-                f"Failed to load project from:\n{project_path}"
-            )
+        # 4. Sync project files (extract archives, discover new blocks), then 5.
+        self._report_startup(72, "Synchronizing project files…")
+        self._sync_project_files_then(open_synced)
+
+    def _project_open_failed(self, project_path: str, reason: str) -> None:
+        """A project did not open: it stops being the last one, the project is closed, the Project Manager opens
+        when the start-up splash is up. The reason is shown with the path."""
+        log_error(f"Project {project_path} did not open: {reason}")
+        self._close_open_dialog()
+        self._disarm_startup_watchdog()
+        self._open_generation += 1   # a late callback of this load is ignored
+        self._forget_opened(project_path)
+        settings = getattr(self.mw, 'settings_manager', None)
+        if settings is not None and not getattr(self.mw, 'last_opened_path', ''):
+            settings.set("last_opened_path", "")
+            settings.save_settings(save_project_settings=False)
+        self.mw.project_manager = ProjectManager()
+        self.mw._project_loading_pending = False
+        self._set_project_actions_enabled(False)
+        QMessageBox.critical(
+            self.mw,
+            tr('Project Load Failed'),
+            tr("Failed to load project from:\n{0}\n\n{1}", project_path, reason)
+        )
+        if getattr(self.mw, '_startup_splash', None) is not None:
+            self.open_project_manager_action()
+            self.mw.finish_startup_loading()
 
     def _on_restore_view_timer_timeout(self) -> None:
         """Handle deferred restore view safely."""

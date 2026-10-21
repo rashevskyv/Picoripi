@@ -1,7 +1,8 @@
 """Problem definitions and defaults of the 3DS electronic manual plugin.
 
 The generic text problems (tags, sublines, short lines) do not apply: the manual is wrapped by the viewer's pane
-model, which plugins/manual_3ds/layout.py reproduces. Only the problems below are detected, and none is autofixed.
+model, which plugins/manual_3ds/layout.py reproduces. Only the problems below are detected. Only NEWLINE is autofixed
+(a typed line break becomes the hard break {br}); the rest are reported for the translator to reword.
 """
 from PyQt6.QtGui import QColor
 
@@ -55,6 +56,11 @@ CUSTOM_PROBLEMS = {
         "description": "The text needs more text panes of one style (plain text or a highlighted phrase) than the "
                        "original paragraph has on the console.",
     },
+    "NEWLINE": {
+        "name": "Typed line break", "color": QColor(255, 165, 0, 150), "priority": 1,
+        "description": "A typed line break is a space on the console, not a new line. Use {br} for a hard break; "
+                       "the autofix does it.",
+    },
     "MARKUP": {
         "name": "Markup changed", "color": QColor(255, 165, 0, 150), "priority": 1,
         "description": "The icon and style markers ({i0}, {s1|...}, {br}) differ from the Russian original.",
@@ -75,4 +81,4 @@ PROBLEM_DEFINITIONS, _DETECTION, _AUTOFIX = generate_base_config(
 CUSTOM_IDS = tuple(f"{PLUGIN_PREFIX}_{key}" for key in CUSTOM_PROBLEMS)
 # Only the plugin's own problems are detected; the generic ones are switched off.
 DEFAULT_DETECTION_SETTINGS = {key: key in CUSTOM_IDS for key in _DETECTION}
-DEFAULT_AUTOFIX_SETTINGS = {key: False for key in _AUTOFIX}
+DEFAULT_AUTOFIX_SETTINGS = {key: key == f"{PLUGIN_PREFIX}_NEWLINE" for key in _AUTOFIX}

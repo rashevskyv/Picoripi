@@ -15,6 +15,16 @@ the line when it is done or moved into a plan.
 - Open: translation files outside `translation_path` are not packed; their paths are cleared. Example: the
   Twilight Princess fonts in `ISO/UA/root/res/Fontus` (`fonts_dir_path`).
 - Open: import takes an extracted game folder (or the one file); it does not unpack a game image as the wizard does.
+## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-bfd`)
+
+- Open: no speech subtitle table found. Text tables found: bank 0x1A (entries 0-4, catapult book) and bank 0x1C sub-tables 0-3 (menu options, pause menu, chapter names, credits). The compressed game data section (task names) is not opened yet.
+- Open: no link from the 453 bank-0x16 streams to events or text lines. The decompilation documents one loader call site ("the exact US caller", `docs/rzip-assets.md`); its table of event to stream index is not extracted. Proxy only, unverified: 220 streams with L: cues (speech-like) and 233 without (music or ambient-like).
+- Open: the text preview uses the decompiled metrics and is not checked in an emulator frame. The canvas (320x240), the box position and the icon widths are assumptions. An owner save state at the catapult book is needed (`owner_play_to_catapult_book.bat`). The preview widget is not wired into the app; only the width hook is.
+- Owner decision: commit 7a3765db holds real game sentences in its test file (since removed). A local squash of the unpushed branch would remove them from its history.
+- Open: the font has no Font Editor format yet; the 95 glyphs are PGM sources only.
+- Open: no ROM build. Text growth needs a budget model; a longer voice stream needs a bank 0x16 repack (the index holds start and length per entry).
+- Open: the port (CBFD-Recompiled) plays speech through the game's MP3 player and extracts its assets at build time from the ROM. No runtime audio override exists in its `host/src`: a new voice needs a patched ROM and a port rebuild (not yet built).
+- Open: the voice re-encode and cue re-splice are proven on a file (`voice.splice_cues`, 40 of 40 cues); the stream has not played in the game or in the port.
 
 ## Same text in manuals (`plugins/manual_3ds`, D46, 2026-10-18, branch `feat/manual-same-text`)
 
@@ -112,6 +122,15 @@ and_dec`) has all of them. A scratch tree was built from it with the owner's `to
 - The SWUK import copies `region_common/ui/StartUp.arc` and `jpn_heading.bffnt`, made for v1.1.0, over the 1.0.0 files. On 1.0.0 in LAS Recomp the Ukrainian title logo shows and nothing crashed up to the title screen; later screens are not checked.
 - A killed process or a power loss during an unpack leaves `.unpack-<id>` in the project folder (a cancel or an error removes it), now with the NCZ cache inside; nothing removes it later.
 - An `.nsz` needs Python 3.14: `core/containers/switch_nsz.py` takes the streaming decoder from `core/zstd_frame.stdlib()` (no `zstandard` fallback). NCZBLOCK blocks above 16 MiB (`MAX_BLOCK_EXP` 24) are refused; nsz writes 1 MiB by default.
+
+## 3DS manual preview UX (`manual_3ds`, 2026-10-18)
+
+- Done: a click selects the paragraph (`ManualPreviewPanel.select_at` -> `paragraph_at` -> `navigate_to_physical_string`); a drag scrolls; the selector draws the original beside the translation (`ru`: the stored console layout; `en`: the English field in the Russian panes); NEWLINE with its autofix and `Enter` -> `{br}`; the fit numbers in the status line and the problem details (`layout.fit_hint`, `_cell_hint`). Tests: `test_manual_ux.py`.
+- Done, measured (`home_menu_manual`, `small/Page_021_small`, offscreen): a click on 20 of 20 random drawn lines selects its own string on each canvas; the translation shows in 0.68 s with the selector on, 0.63 s with it off; a cached selection takes 1.5 ms.
+- Open, owner decision: the English side lays the `en` field into the Russian panes. The console's English slot (`EUR_en`, 103 small files, in `Manual.bcma`) is not drawn yet: its pane names differ from `EUR_ru`, so the click map needs its own flows.
+- Open, finding: the layout model breaks the Russian lines of `small/Page_021_small` differently from the stored console layout in 41 of 375 lines (for example a word left at the end of a line). The fit checks use the model, so this may hide or invent a line problem. Compare more pages before the model is trusted for Russian.
+- Open: Shift+Enter and Ctrl+Enter still type a newline (NEWLINE flags it). Only Enter types `{br}`, because those keys feed the text formatter's page break (`get_shift_enter_char`).
+- Open: the original selector is not kept between sessions. A click in a plugin virtual folder (Small text, Sections) selects the physical row and leaves the folder (the existing navigation route).
 
 ## 3DS manual simulator (`plugins/manual_3ds`, 2026-10-14)
 
@@ -1640,3 +1659,14 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - The owner's Wii key path is not stored: the Wii slot in `console_keys.json` is empty (the 3DS and Switch slots are
   set). Without it the Wii disc cannot be read, so `res/Fontus/fontres.arc` of the Wii disc is not compared with the GC
   original. Owner action: set the Wii key file in the console key settings.
+
+## Wizard: game images for plugins without an unpack (2026-10-18)
+
+- Done: the wizard refuses a game image that the chosen plugin cannot unpack (`build.run_unpack`), before anything is
+  created. Creation is all or nothing; a start-up project that fails or makes no progress for two minutes is given up.
+- Open: No More Heroes (`no_more_heroes`) and MadWorld (`madworld`) have no unpack. Their source is the converted
+  tree of the owner's `nmh.py` / `madworld.py` (GDLG text, STRIMAGE glyph atlases, fonts, GCT/TPL textures, main.dol,
+  `image/*_index.json`). Port size: about 1,900 lines of owner code. Not started.
+- Open: 16 other plugins with an owner game image have the same gap (3DS, Wii, PS1 games); each needs its own
+  unpacker for the owner's converted source. The baseline in `tests/test_architecture/test_wizard_hooks_declared.py`
+  lists them with a reason; a plugin leaves it when it gets a hook.

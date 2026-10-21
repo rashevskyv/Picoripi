@@ -1,5 +1,6 @@
 """ProjectActionHandler: project lifecycle, blocks, session, recent projects, tree."""
 from typing import Any, Optional
+from core.i18n import tr
 from core.project_manager import ProjectManager
 from handlers.base_handler import BaseHandler
 from handlers.project_action.lifecycle_mixin import LifecycleMixin
@@ -8,6 +9,10 @@ from handlers.project_action.session_mixin import SessionMixin
 from handlers.project_action.recent_mixin import RecentMixin
 from handlers.project_action.tree_mixin import TreeMixin
 from handlers.project_action.library_mixin import LibraryMixin
+from utils.thread_utils import safe_shutdown_thread
+
+
+STARTUP_STALL_MS = 120_000   # a start-up project load with no progress for this long is given up
 
 
 class ProjectActionHandler(
@@ -37,11 +42,40 @@ class ProjectActionHandler(
         self._finish_startup_after_restore_timer = False
         self._open_dialog = None  # the busy dialog of a project open (recent_mixin.py)
         self._active_sync_worker = None
+        # The start-up watchdog: a project load that makes no progress for STARTUP_STALL_MS is given up.
+        self._startup_watchdog = QTimer(timer_parent)
+        self._startup_watchdog.setSingleShot(True)
+        self._startup_watchdog.timeout.connect(self._on_startup_stalled)
+        self._startup_project = ""
+        self._open_generation = 0
+        self._added_to_recent: set = set()   # recent entries this session's open added (undone on failure)
 
     def _report_startup(self, value: int, message: str) -> None:
         reporter = getattr(self.mw, 'report_startup_progress', None)
         if callable(reporter):
             reporter(value, message)
+        if self._startup_project:
+            self._startup_watchdog.start(STARTUP_STALL_MS)   # progress: the load is alive
+
+    def _arm_startup_watchdog(self, project_path: str) -> None:
+        self._startup_project = project_path
+        self._startup_watchdog.start(STARTUP_STALL_MS)
+
+    def _disarm_startup_watchdog(self) -> None:
+        self._startup_project = ""
+        self._startup_watchdog.stop()
+
+    def _on_startup_stalled(self) -> None:
+        """No progress for STARTUP_STALL_MS: stop the load, forget the project as the last one, open the manager."""
+        path, self._startup_project = self._startup_project, ""
+        if not path or getattr(self.mw, '_startup_splash', None) is None:
+            return
+        self._open_generation += 1
+        worker = getattr(self, '_active_load_worker', None)
+        if worker is not None:
+            safe_shutdown_thread(worker, worker, timeout_ms=2000)
+        self._project_open_failed(path, tr("Loading stopped: no progress for {0} seconds.",
+                                             STARTUP_STALL_MS // 1000))
 
     def _set_project_actions_enabled(self, enabled: bool):
         """Enable or disable project-specific UI actions and update their tooltips."""

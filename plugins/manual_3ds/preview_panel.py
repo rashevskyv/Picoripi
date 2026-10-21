@@ -3,7 +3,10 @@
 The panel shows the top screen (400 x 240) and the bottom screen (320 x 240) one below the other, with the
 viewer's chrome (header with the page badge and title, scroll track, bottom bar). The page column runs through
 both screens: the wheel and a drag scroll it. The Y button (the bottom bar, or the footer button) switches Large
-and Small text.
+and Small text. A click (a press and release without a drag) on a paragraph selects its string in the editor.
+
+The footer selector adds the original beside the translation: the Russian (ru) or the English (en) text of the same
+page, drawn the same way, with the scroll, the large/small size and the selection shared by both canvases.
 
 The page is built the way the console build builds it: every paragraph's current text is laid out with the
 owner's tools (manual.layout_for, manual.to_edits) and written into the page's own BCLYT files
@@ -22,7 +25,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from PIL import Image
 from PyQt6.QtCore import QObject, QPointF, QRectF, QSize, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QColor, QImage, QPainter, QPen
-from PyQt6.QtWidgets import QFileDialog, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import (QComboBox, QFileDialog, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout,
+                             QWidget)
 
 from core.i18n import tr
 from plugins.manual_3ds import console_render as cr
@@ -41,9 +45,10 @@ BOTTOM_SIZE = ss.BOTTOM
 BOTTOM_X = ss.CARD_X          # the bottom screen is centred under the top screen
 SCROLL_STEP = 48.0            # pixels per wheel notch
 DEBOUNCE_MS = 120
-CACHE_SIZE = 8
+CACHE_SIZE = 16               # two canvases per selection: the translation and the original
 WORKER_STOP_MS = 3000
 Y_BUTTON_START = 180          # the Y label area of the bottom bar starts here (x, in card pixels)
+CLICK_SLOP = 4.0              # widget pixels a press may move and still be a click
 PAGE_NUMBER = re.compile(r"Page_(\d+)_(large|small)")
 DEFECT_RGBA = (255, 0, 0, 60)
 HIGHLIGHT_RGBA = (255, 200, 0, 70)   # the selected paragraph: a translucent fill ...
@@ -51,6 +56,9 @@ HIGHLIGHT_EDGE = (230, 120, 0)       # ... and an outline, both over the page co
 HIGHLIGHT_WIDTH = 2.0                # outline width in canvas units
 REVEAL_ROWS = 60                     # a paragraph scrolled into view starts a third of the way down the top screen
 MARKED_DEFECTS = ("over_edge", "wrapped", "over_picture", "over_frame", "covered", "over_cell", "text_overlap")
+TRANSLATION = "translation"   # the request's language of the translation, and the canvas that shows it
+ORIGINAL = "original"         # the canvas of the original (its requests carry the language "ru" or "en")
+NO_ORIGINAL = "none"          # the selector's value: one canvas, as before
 
 
 def _persist_folder(folder: str) -> None:
@@ -80,6 +88,26 @@ def key_rect(runs: List[cr.TextRun], owners: Dict[str, str], key: str) -> Option
     return rect
 
 
+def paragraph_at(runs: List[cr.TextRun], owners: Dict[str, str], x: float, y: float) -> Optional[str]:
+    """The string key of the drawn line under a point in content units (the inverse of key_rect), or None.
+
+    Two lines may share the point (a label drawn beside the next paragraph's text): the one whose middle is nearest the
+    point wins; at the same height the one drawn last is the one on top, and the one the user sees."""
+    best: Optional[str] = None
+    best_gap = float("inf")
+    best_order = -1
+    for run in runs:
+        key = owners.get(run.pane)
+        if key is None:
+            continue
+        top = -run.top
+        if run.ink_left <= x <= run.ink_right and top <= y <= top + run.height:
+            gap = abs(y - (top + run.height / 2))
+            if gap < best_gap or (gap == best_gap and run.order > best_order):
+                best, best_gap, best_order = key, gap, run.order
+    return best
+
+
 @dataclass
 class PagePreview:
     """What the worker hands the panel: the drawn column and chrome (as QImages), and what the render shows wrong."""
@@ -95,6 +123,7 @@ class PagePreview:
     missing_glyphs: List[str] = field(default_factory=list)
     runs: List[cr.TextRun] = field(default_factory=list)
     owners: Dict[str, str] = field(default_factory=dict)              # pane name -> string key (what drew the pane)
+    hints: Dict[str, str] = field(default_factory=dict)               # string key -> the fit numbers of its text
 
     @property
     def scroll_max(self) -> int:
@@ -109,17 +138,24 @@ def _no_budget(key: str) -> Optional[float]:
     return None
 
 
-class _Request:
-    """What a worker draws: the folder, the manual, the page group and the texts.
+def _no_hint(key: str, text: str) -> str:
+    return ""
 
-    ``block_name`` is the editor's name of the block (a project names it after the manual's file); when the tools
-    do not know it, ``name_of`` gives the manual the plugin matched by the file's keys. ``name_of`` and ``budget_of``
-    may read the plugin's geometry once, so the worker calls them, not the UI thread.
+
+class _Request:
+    """What a worker draws: the folder, the manual, the page group, the texts and the language drawn.
+
+    ``lang`` is TRANSLATION (the editor's texts) or "ru" / "en" (the original). ``block_name`` is the editor's name of
+    the block (a project names it after the manual's file); when the tools do not know it, ``name_of`` gives the manual
+    the plugin matched by the file's keys. ``name_of``, ``budget_of`` and ``hint_of`` may read the plugin's geometry
+    once, so the worker calls them, not the UI thread. An original's key leaves out its texts: they do not change
+    while the translation is edited, so the original is not drawn again for each edit.
     """
 
     def __init__(self, root: str, block_name: str, group: str, texts: Dict[str, str], title: str,
                  save_root: str = "", name_of: Callable[[], str] = _no_name,
-                 budget_of: Callable[[str], Optional[float]] = _no_budget):
+                 budget_of: Callable[[str], Optional[float]] = _no_budget,
+                 hint_of: Callable[[str, str], str] = _no_hint, lang: str = TRANSLATION):
         self.root = root
         self.block_name = block_name
         self.group = group
@@ -128,7 +164,11 @@ class _Request:
         self.save_root = save_root  # a folder the user just chose: the worker stores it before drawing
         self.name_of = name_of
         self.budget_of = budget_of
-        self.key = (root, block_name, group, hash(tuple(sorted(texts.items()))), title)
+        self.hint_of = hint_of
+        self.lang = lang
+        judged = lang == TRANSLATION
+        self.key = (lang, root, block_name, group, hash(tuple(sorted(texts.items()))) if judged else 0,
+                    title if judged else "")
 
 
 def _qimage(image: Image.Image) -> QImage:
@@ -161,20 +201,23 @@ def draw_request(request: _Request, should_stop: Any) -> PagePreview:
     column = rendered.column
     if should_stop():
         raise RenderCancelled()
-    defects = simulator.page_defects(rendered, textures, manual_name, index.number_of(page), f"Page_{page:03d}", part)
+    judged = request.lang == TRANSLATION   # the original is drawn for comparison: nothing of it is judged
+    defects = (simulator.page_defects(rendered, textures, manual_name, index.number_of(page), f"Page_{page:03d}", part)
+               if judged else [])
     defect_keys: Dict[str, List[str]] = {}
     for defect in defects:
         key = owners.get(defect.pane)
         if key is not None:
             defect_keys.setdefault(key, []).append(defect.kind)
-    title = request.title or index.title_of(page)
+    title = (request.title or index.title_of(page)) if judged else index.title_of(page)
     pages = cr.page_numbers(archive.read(f"{tools.manual.BASE_SLOT}_{part}"), part)
     info = ss.PageInfo(index.number_of(page), title, index.category_of(page), has_previous=page - 1 in pages,
                        has_next=page + 1 in pages, large=(part == "large"))
     chrome = ss.Chrome.load(user_plugin_dir(PLUGIN_NAME) / CHROME_DIR)
     overlay = ss.overlay(info, chrome, glyphs)
+    hints = {key: request.hint_of(key, text) for key, text in request.texts.items() if text} if judged else {}
     return PagePreview(_qimage(column), _qimage(overlay), column.height, info.number, title, defects, defect_keys, failed,
-                       rendered.missing, rendered.runs, owners)
+                       rendered.missing, rendered.runs, owners, hints)
 
 
 class PageRenderWorker(WorkerThread):
@@ -207,12 +250,18 @@ class PageRenderWorker(WorkerThread):
 
 
 class _Screens(QWidget):
-    """The painted canvas: both screens, 400 x 480 px in canvas units, scaled to the space the panel gets."""
+    """One painted canvas: both screens, 400 x 480 px in canvas units, scaled to the space the panel gets.
 
-    def __init__(self, owner: "ManualPreviewPanel"):
+    ``side`` is TRANSLATION or ORIGINAL: which result the owner paints here, and which one a click selects from."""
+
+    def __init__(self, owner: "ManualPreviewPanel", side: str):
         super().__init__(owner)
         self._owner = owner
+        self._side = side
+        self._press: Optional[QPointF] = None         # the widget point of a press that may become a click or a drag
+        self._press_canvas: Optional[QPointF] = None  # the same point on the canvas
         self._drag_y: Optional[float] = None
+        self._moved = False
         self.setMinimumSize(200, 240)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
@@ -242,7 +291,7 @@ class _Screens(QWidget):
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, scale * self.devicePixelRatioF() < 1.0)
             painter.translate(left, top)
             painter.scale(scale, scale)
-            self._owner.paint_screens(painter)
+            self._owner.paint_screens(painter, self._side)
         finally:
             painter.end()
 
@@ -257,17 +306,31 @@ class _Screens(QWidget):
         if point.y() >= ss.BOTTOM_BAR_ROW and point.x() >= BOTTOM_X + Y_BUTTON_START:
             self._owner.toggle_size()
             return
+        self._press = event.position()
+        self._press_canvas = point
         self._drag_y = point.y()
+        self._moved = False
 
     def mouseMoveEvent(self, event: Any) -> None:
-        if self._drag_y is None or not event.buttons() & Qt.MouseButton.LeftButton:
+        if self._press is None or not event.buttons() & Qt.MouseButton.LeftButton:
             return
+        if not self._moved:
+            if (event.position() - self._press).manhattanLength() <= CLICK_SLOP:
+                return   # still a click: the page does not move yet
+            self._moved = True
         point = self._to_canvas(event.position())
         self._owner.scroll_by(self._drag_y - point.y())
         self._drag_y = point.y()
 
     def mouseReleaseEvent(self, event: Any) -> None:
+        if event.button() != Qt.MouseButton.LeftButton or self._press is None:
+            return
+        if not self._moved and self._press_canvas is not None:
+            self._owner.select_at(self._side, self._press_canvas)
+        self._press = None
+        self._press_canvas = None
         self._drag_y = None
+        self._moved = False
 
 
 class ManualPreviewPanel(QWidget):
@@ -281,8 +344,10 @@ class ManualPreviewPanel(QWidget):
         self._save_pending = ""  # a folder the user chose; the next render worker stores it
         self._large = True
         self._scroll = 0.0
-        self._result: Optional[PagePreview] = None
+        self._result: Optional[PagePreview] = None        # the translation
+        self._original_result: Optional[PagePreview] = None
         self._message = ""
+        self._original_message = ""
         self._generation = 0
         self._cache: "OrderedDict[Any, PagePreview]" = OrderedDict()
         self._workers: List[PageRenderWorker] = []
@@ -291,15 +356,36 @@ class ManualPreviewPanel(QWidget):
         self._timer.timeout.connect(self._start_render)
         self._page_file = ""
         self._current_key = ""
-        self._highlight: Optional[QRectF] = None   # the selected paragraph's lines, in content units (key_rect)
+        self._block = -1                                  # the block of the page on the canvases (a click selects in it)
+        self._source = NO_ORIGINAL
+        self._highlight: Optional[QRectF] = None          # the selected paragraph's lines, in content units (key_rect)
+        self._original_highlight: Optional[QRectF] = None
+        self._deferred: List[_Request] = []               # the original's request, started when the translation is drawn
 
-        self._screens = _Screens(self)
+        self._screens = _Screens(self, TRANSLATION)
+        self._original_screens = _Screens(self, ORIGINAL)
+        self._original_screens.setVisible(False)
+        self._source_box = QComboBox(self)
+        self._source_box.addItem(tr("No original"), NO_ORIGINAL)
+        self._source_box.addItem(tr("Original: Russian (ru)"), "ru")
+        self._source_box.addItem(tr("Original: English (en)"), "en")
+        self._source_box.currentIndexChanged.connect(self._source_changed)
+        self._caption = QLabel(tr("Translation"), self)
+        self._caption.setVisible(False)
         self._size_button = QPushButton(self)
         self._size_button.clicked.connect(self.toggle_size)
         self._folder_button = QPushButton(tr("Choose folder..."), self)
         self._folder_button.clicked.connect(self._choose_folder)
         self._status = QLabel(self)
         self._status.setWordWrap(True)
+        selector = QHBoxLayout()
+        selector.addWidget(self._source_box)
+        selector.addStretch(1)
+        selector.addWidget(self._caption)
+        canvases = QHBoxLayout()
+        canvases.setSpacing(4)
+        canvases.addWidget(self._original_screens, 1)
+        canvases.addWidget(self._screens, 1)
         footer = QHBoxLayout()
         footer.addWidget(self._size_button)
         footer.addWidget(self._folder_button)
@@ -307,7 +393,8 @@ class ManualPreviewPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(2)
-        layout.addWidget(self._screens, 1)
+        layout.addLayout(selector)
+        layout.addLayout(canvases, 1)
         layout.addLayout(footer)
         self._update_buttons()
 
@@ -335,11 +422,11 @@ class ManualPreviewPanel(QWidget):
             safe_shutdown_thread(worker, worker, WORKER_STOP_MS)
         self._workers.clear()
 
-    # -- what the canvas shows ----------------------------------------------------------------
+    # -- what the canvases show ----------------------------------------------------------------
 
     def scroll_by(self, delta: float) -> None:
         self._scroll = self._clamped(self._scroll + delta)
-        self._screens.update()
+        self._refresh_canvases()
 
     def toggle_size(self) -> None:
         self._large = not self._large
@@ -347,25 +434,30 @@ class ManualPreviewPanel(QWidget):
         self._update_buttons()
         self.refresh()
 
-    def paint_screens(self, painter: QPainter) -> None:
+    def paint_screens(self, painter: QPainter, side: str = TRANSLATION) -> None:
+        original = side == ORIGINAL
+        result = self._original_result if original else self._result
+        highlight = self._original_highlight if original else self._highlight
+        message = self._original_message if original else self._message
         painter.fillRect(0, 0, TOP_SIZE[0], TOP_SIZE[1] + BOTTOM_SIZE[1], QColor(34, 34, 34))
         card = QRectF(BOTTOM_X, 0, BOTTOM_SIZE[0], TOP_SIZE[1] + BOTTOM_SIZE[1])
         painter.fillRect(card, QColor(255, 255, 255))
-        if self._result is None:
-            painter.setPen(QColor(60, 60, 60))
-            painter.drawText(QRectF(BOTTOM_X + 12, ss.PAGE_TOP + 12, BOTTOM_SIZE[0] - 24, ss.VISIBLE_ROWS - 24),
-                             Qt.AlignmentFlag.AlignCenter.value | Qt.TextFlag.TextWordWrap.value,
-                             self._message or tr("Select a string of a manual page."))
+        if result is None:
+            text = message or ("" if original else tr("Select a string of a manual page."))
+            if text:
+                painter.setPen(QColor(60, 60, 60))
+                painter.drawText(QRectF(BOTTOM_X + 12, ss.PAGE_TOP + 12, BOTTOM_SIZE[0] - 24, ss.VISIBLE_ROWS - 24),
+                                 Qt.AlignmentFlag.AlignCenter.value | Qt.TextFlag.TextWordWrap.value, text)
             return
-        result = self._result
         top = ss.PAGE_TOP - cr.TOP_MARGIN_ROWS - self._scroll
         painter.drawImage(QPointF(BOTTOM_X, top), result.column, QRectF(0, 0, cr.COLUMN_WIDTH, result.column.height()))
-        for defect in result.defects:
-            if defect.kind in MARKED_DEFECTS:
-                row = ss.PAGE_TOP - defect.page_y - self._scroll
-                painter.fillRect(QRectF(BOTTOM_X, row, BOTTOM_SIZE[0], 20), QColor(*DEFECT_RGBA))
-        if self._highlight is not None:
-            self._paint_highlight(painter, self._highlight)
+        if not original:
+            for defect in result.defects:
+                if defect.kind in MARKED_DEFECTS:
+                    row = ss.PAGE_TOP - defect.page_y - self._scroll
+                    painter.fillRect(QRectF(BOTTOM_X, row, BOTTOM_SIZE[0], 20), QColor(*DEFECT_RGBA))
+        if highlight is not None:
+            self._paint_highlight(painter, highlight)
         painter.drawImage(QPointF(0, 0), result.overlay)
         # Ink past the card's edge lies over the scroll track on the top screen, as on the console.
         strip_top = ss.HEADER_ROWS + len(ss.HEADER_SHADOW)
@@ -385,12 +477,27 @@ class ManualPreviewPanel(QWidget):
         painter.drawRect(canvas)
         painter.restore()
 
+    def select_at(self, side: str, point: QPointF) -> None:
+        """A click on a canvas: the paragraph under it becomes the selected string, through the main window's
+        selection (list_selection_handler.navigate_to_physical_string), so the history and the panels follow it.
+        A click on the header, the bottom bar or a blank part of the page selects nothing."""
+        result = self._original_result if side == ORIGINAL else self._result
+        if result is None or point.y() < ss.PAGE_TOP or point.y() >= ss.BOTTOM_BAR_ROW:
+            return
+        key = paragraph_at(result.runs, result.owners, point.x() - BOTTOM_X, point.y() - ss.PAGE_TOP + self._scroll)
+        index = self._rules.string_index_of(self._block, key) if key is not None else None
+        if index is None:
+            return
+        self._mw.list_selection_handler.navigate_to_physical_string(self._block, index)
+
     def _reveal(self) -> None:
         """Scroll the selected paragraph into view. A paragraph whose top is in view stays where it is (no jump while
-        the user edits it); a paragraph taller than the view is in view once its top is."""
-        if self._highlight is None:
+        the user edits it); a paragraph taller than the view is in view once its top is. The translation's outline
+        decides; the original's serves when the translation draws none."""
+        rect = self._highlight if self._highlight is not None else self._original_highlight
+        if rect is None:
             return
-        top, bottom = self._highlight.top(), self._highlight.bottom()
+        top, bottom = rect.top(), rect.bottom()
         top_in_view = self._scroll <= top < self._scroll + ss.VISIBLE_ROWS
         fits = bottom <= self._scroll + ss.VISIBLE_ROWS or bottom - top > ss.VISIBLE_ROWS
         if top_in_view and fits:
@@ -398,9 +505,14 @@ class ManualPreviewPanel(QWidget):
         self._scroll = self._clamped(top - REVEAL_ROWS)
 
     def _clamped(self, value: float) -> float:
-        if self._result is None:
+        sizes = [result.scroll_max for result in (self._result, self._original_result) if result is not None]
+        if not sizes:
             return 0.0
-        return min(max(0.0, value), float(self._result.scroll_max))
+        return min(max(0.0, value), float(max(sizes)))
+
+    def _refresh_canvases(self) -> None:
+        self._screens.update()
+        self._original_screens.update()
 
     def _update_buttons(self) -> None:
         self._size_button.setText(tr("Show small text") if self._large else tr("Show large text"))
@@ -409,6 +521,17 @@ class ManualPreviewPanel(QWidget):
         self._status.setText(text)
 
     # -- requests -------------------------------------------------------------------------------
+
+    def _source_changed(self, _index: int) -> None:
+        """The selector chose the original: its canvas shows or hides, and the page is drawn again."""
+        self._source = self._source_box.currentData() or NO_ORIGINAL
+        shown = self._source != NO_ORIGINAL
+        self._original_screens.setVisible(shown)
+        self._caption.setVisible(shown)
+        self._original_result = None
+        self._original_highlight = None
+        self._original_message = ""
+        self.refresh()
 
     def _start_render(self) -> None:
         self._generation += 1
@@ -441,28 +564,80 @@ class ManualPreviewPanel(QWidget):
         title = ""
         if title_index is not None:
             title = self._mw.data_processor.get_current_string_text(block, title_index)[0] or ""
-        request = _Request(self._root, str(ds.block_names.get(str(block), "")), group, texts, title, self._save_pending,
-                           partial(self._rules.manual_name, block), partial(self._rules.preview_budget, block))
+        block_name = str(ds.block_names.get(str(block), ""))
+        name_of = partial(self._rules.manual_name, block)
+        budget_of = partial(self._rules.preview_budget, block)
+        hint_of = partial(self._rules.fit_hint, block)
+        request = _Request(self._root, block_name, group, texts, title, self._save_pending, name_of, budget_of, hint_of)
         self._save_pending = ""
         self._page_file = page
         self._current_key = string_key or ""
-        if request.key in self._cache:
-            self._cache.move_to_end(request.key)
-            self._show_result(self._cache[request.key])
+        self._block = block
+        requests = [request]
+        if self._source == "ru":
+            # The console's own Russian, as the page's files hold it: no text is laid out, so the lines are the console's.
+            stored = {key: "" for key in indices}
+            requests.append(_Request(self._root, block_name, group, stored, "", "", name_of, budget_of, hint_of, lang="ru"))
+            self._original_message = ""
+        elif self._source == "en":
+            english = self._rules.english_texts(block, group)
+            if any(english.values()):
+                requests.append(_Request(self._root, block_name, group, english, "", "", name_of, budget_of, hint_of,
+                                         lang="en"))
+                self._original_message = ""
+            else:
+                self._original_result = None
+                self._original_highlight = None
+                self._original_message = tr("No English text on this page: it does not line up with the Russian.")
+                self._original_screens.update()
+        self._start_requests(requests)
+
+    def _start_requests(self, requests: List[_Request]) -> None:
+        """Show the cached requests now; start a worker for each other one (the running workers of an earlier
+        selection stop first). The translation is drawn first: the original waits for its result, so the two renders
+        do not share the processor and the translation shows as soon as it would alone."""
+        pending: List[_Request] = []
+        for request in requests:
+            if request.key in self._cache:
+                self._cache.move_to_end(request.key)
+                self._apply(request.lang, self._cache[request.key])
+            else:
+                pending.append(request)
+        self._deferred = []
+        if not pending:
             return
         for worker in self._workers:
             worker.cancel()
-        worker = PageRenderWorker(self._generation, request, None)  # no parent: see shutdown
-        worker.rendered.connect(self._on_rendered)
-        self._reap()  # before the append: the new worker does not run yet and would be dropped
-        self._workers.append(worker)
-        self._set_status(tr("Drawing the page..."))
-        worker.start()
+        translation = [request for request in pending if request.lang == TRANSLATION]
+        if translation:
+            self._deferred = [request for request in pending if request.lang != TRANSLATION]
+            self._launch(translation)
+            self._set_status(tr("Drawing the page..."))
+        else:
+            self._launch(pending)
+
+    def _launch(self, requests: List[_Request]) -> None:
+        for request in requests:
+            worker = PageRenderWorker(self._generation, request, None)  # no parent: see shutdown
+            worker.rendered.connect(self._on_rendered)
+            self._reap()  # before the append: the new worker does not run yet and would be dropped
+            self._workers.append(worker)
+            worker.start()
+
+    def _apply(self, lang: str, result: PagePreview) -> None:
+        if lang == TRANSLATION:
+            self._show_result(result)
+        else:
+            self._show_original(result)
 
     def _on_rendered(self, generation: int, key: Any, payload: Any) -> None:
         self._reap()
         if generation != self._generation:
             return
+        lang = key[0]
+        if lang == TRANSLATION and self._deferred:
+            deferred, self._deferred = self._deferred, []
+            self._launch(deferred)
         if isinstance(payload, str):
             if payload == repo_tools.NO_FOLDER:
                 payload = tr("Set the repo_manual folder to draw the page.")
@@ -471,12 +646,18 @@ class ManualPreviewPanel(QWidget):
                              payload[len(repo_tools.NO_MANUAL):])
             elif payload.startswith("missing:") or payload.startswith("not a folder:"):
                 payload = tr("Not a repo_manual folder: {0}", payload)
-            self._show_message(payload)
+            if lang == TRANSLATION:
+                self._show_message(payload)
+            else:
+                self._original_result = None
+                self._original_highlight = None
+                self._original_message = payload
+                self._original_screens.update()
             return
         self._cache[key] = payload
         while len(self._cache) > CACHE_SIZE:
             self._cache.popitem(last=False)
-        self._show_result(payload)
+        self._apply(lang, payload)
 
     def _reap(self) -> None:
         self._workers = [worker for worker in self._workers if worker.isRunning()]
@@ -484,9 +665,12 @@ class ManualPreviewPanel(QWidget):
     def _show_message(self, text: str) -> None:
         self._result = None
         self._highlight = None
+        self._original_result = None
+        self._original_highlight = None
+        self._original_message = ""
         self._message = text
         self._set_status(text)
-        self._screens.update()
+        self._refresh_canvases()
 
     def _show_result(self, result: PagePreview) -> None:
         self._result = result
@@ -505,11 +689,23 @@ class ManualPreviewPanel(QWidget):
             status += " " + tr("This paragraph: {0}.", ", ".join(sorted(set(own))))
         if drawn and self._highlight is None:
             status += " " + tr("This string draws no text on the page.")
+        hint = result.hints.get(self._current_key, "")
+        if hint:
+            status += " " + hint
         if result.failed_keys:
             status += " " + tr("{0} paragraph(s) kept the stored text (the layout refused the translation).",
                                len(result.failed_keys))
         self._set_status(status)
-        self._screens.update()
+        self._refresh_canvases()
+
+    def _show_original(self, result: PagePreview) -> None:
+        self._original_result = result
+        self._original_message = ""
+        self._scroll = self._clamped(self._scroll)
+        drawn = self._current_key.startswith(("large" if self._large else "small") + "/")
+        self._original_highlight = key_rect(result.runs, result.owners, self._current_key) if drawn else None
+        self._reveal()
+        self._refresh_canvases()
 
     def _choose_folder(self) -> None:
         chosen = QFileDialog.getExistingDirectory(self, tr("Choose the repo_manual folder"), self._root or "")

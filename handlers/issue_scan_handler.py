@@ -244,8 +244,11 @@ class IssueScanHandler(BaseHandler):
         """Start (or restart) an scan of all blocks, loading from cache if valid (unless force is True)."""
         self._scan_completion_callback = on_completed
         if not self.mw.data_store.data:
+            # Nothing to scan: the caller still waits for this scan to finish (a project with no blocks would hang).
             self.mw.data_store.problems_per_subline.clear()
             self._scan_completion_callback = None
+            if on_completed is not None:
+                on_completed()
             return
 
         # Cancel any in-progress scan

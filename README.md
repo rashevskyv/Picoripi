@@ -53,6 +53,8 @@ python -m venv .venv
 python tasks.py run
 ```
 
+If the start stops with `DLL load failed while importing QtCore`, install the Microsoft Visual C++ Redistributable 2015-2022 (x64), check with `where Qt6Core.dll` that no other program's Qt hides the right one, and run `setup.bat` again. The program prints these steps itself.
+
 Settings are under **File → Settings…** (`Ctrl+P`). The interface language is chosen in the **Language** menu;
 it lists every `locales/*.json` that has translations.
 

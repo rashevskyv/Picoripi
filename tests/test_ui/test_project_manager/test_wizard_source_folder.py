@@ -118,8 +118,8 @@ def test_yokai_image_failure_is_unsupported_plugin_not_missing_keys(tmp_path):
     with pytest.raises(ValueError) as caught:
         build.run_unpack(GameRules(), {"base": str(image)}, tmp_path / "project", lambda *_: None, lambda: False)
     assert str(caught.value) == (
-        "This game's plugin cannot unpack this image. Choose an already-extracted "
-        "game folder with its text tables unpacked from game archives.")
+        "This game cannot read the Nintendo 3DS image game.cia. Unpack the image into a folder first, "
+        "then add that folder.")
     assert not isinstance(caught.value, KeyFileError)
     assert list((tmp_path / "project").iterdir()) == []
 

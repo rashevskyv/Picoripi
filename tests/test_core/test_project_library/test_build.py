@@ -324,3 +324,15 @@ def test_an_emulator_starts_in_its_own_folder_and_a_bare_name_has_none(tmp_path)
     assert build.emulator_working_dir(["emu", "/x"]) == ""
     assert build.emulator_working_dir([str(tmp_path / "missing" / "emu.exe")]) == ""
     assert build.emulator_working_dir([]) == ""
+
+
+def test_a_disc_image_the_plugin_does_not_unpack_is_refused_and_nothing_is_created(tmp_path):
+    """A plugin with no unpack for a game image would use the disc as its source: the create stops with a reason."""
+    image = _gamecube_image(tmp_path / "disc.iso")
+    project = tmp_path / "project"
+
+    with pytest.raises(ValueError, match="cannot read the GameCube image disc.iso"):
+        build.run_unpack(BuildingRules(unpack_result=None), {"base": str(image)}, project, lambda p, t: None,
+                         _no_cancel)
+
+    assert list(project.iterdir()) == []

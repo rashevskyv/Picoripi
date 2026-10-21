@@ -176,6 +176,7 @@ def test_the_unpack_job_sees_the_key_file_of_its_console_only_while_it_runs(tmp_
                               key_provider=console_keys.path_for)
 
     assert Path(result, "text.txt").read_text(encoding="utf-8") == "Unpacked text"
+    assert result == str(folder / "unpacked")
     assert seen == [(str(key_file), None)]
     assert console_crypto.key_path("3ds") is None
 
