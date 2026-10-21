@@ -66,5 +66,22 @@
     "tlut_offset": "0x41640"
    }
   }
+ },
+ {
+  "label": "Caption letters Ї Є Ґ (prologue, ST0 table, 6 glyphs: placeholder shapes until redrawn)",
+  "format": "texture_grid",
+  "path": "ST/ST0/ST0.BIN",
+  "params": {
+   "texture": "glyph_bits",
+   "texture_params": {
+    "offset": "0x1B210",
+    "count": 6,
+    "width": 12,
+    "height": 16
+   },
+   "cell": [12, 16],
+   "columns": 6,
+   "chars": "ЇЄҐїєґ"
+  }
  }
 ]

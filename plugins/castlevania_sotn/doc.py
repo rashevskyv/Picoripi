@@ -202,7 +202,8 @@ def build(source: bytes, data: Sequence[Sequence[Optional[str]]], mapping: Optio
     out = bytearray(source)
     spare = script.Spare(entry.get("spare", ()))
     if "scroll" in entry:
-        spare.reserve(entry["scroll"]["cave"], scroll.CAVE_SIZE)   # the caption's lead-byte reader never moves
+        spare.reserve(scroll.CAVE_AT, scroll.CAVE_SIZE)            # the caption's reader and its scratch never move
+        spare.reserve(scroll.SCRATCH_AT, 96)
     if new_strings:
         _write_strings(out, source, entry, new_strings, doc.path, spare)
     for number, lines in new_script.items():
@@ -255,8 +256,15 @@ def _write_caption(out: bytearray, source: bytes, entry: dict, path: str, texts:
                               f"and {spare.room} free elsewhere in the file; shorten some lines")
         out[at:at + len(stream)] = stream
         scroll.point_at(out, source, entry["base"] + at)
-    if any(byte >= 0x80 for byte in stream):
-        scroll.install_cave(out, source, spec["cave"])
+    if any(byte >= 0x80 for byte in stream) or _has_private(texts):
+        # the reader and the default letter table; the table is not a text region, so a save keeps the owner's
+        # glyphs (the Font Editor's copy) when it merges into the translation copy
+        scroll.install_cave(out, source)
+        out[scroll.GLYPH_AT:scroll.GLYPH_AT + scroll.GLYPH_BYTES] = scroll.glyph_table()
+
+
+def _has_private(texts: List[str]) -> bool:
+    return any(char in codec.SJ_PRIVATE for text in texts for char in text)
 
 
 def _write_strings(out: bytearray, source: bytes, entry: dict, new: Dict[int, bytes], path: str,
