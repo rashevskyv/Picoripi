@@ -10,6 +10,16 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Black & White, openBlack Switch port (`plugins/black_and_white`, 2026-10-21, branch `feat/black-and-white`)
+
+- Open: the port draws no game text. `RUN_TEXT` plays voice only, `LOAD_LANGUAGE` throws "not implemented", and nothing reads `ADD_TEXT` (`src/CHLApi.cpp`, `src/LHScriptX/MapScriptCommands.cpp`). A translated line shows only after an openblack change: a text parser, a text display for `RUN_TEXT`, and a font with Cyrillic glyphs.
+- Open: no visible proof yet. The Switch console was on another game (Animal Well) and the port is not installed there; the Switch MCP timed out on connect. A Windows proof needs Visual Studio Build Tools and vcpkg; a Switch build needs devkitPro. Both are owner decisions.
+- Open: the port NSP holds three encrypted NCAs, so its binary cannot be read without keys. The keys are not used.
+- Open: the escape for a line break inside a text. The file keeps `\\n` (two backslashes and n) and a few bare line feeds; the game's reading of them is not checked.
+- Open: fonts (`Font0-0.bmp`, `Font0-1.bmp`, `HelpFont.bmp`, `*.fff`) and textures with text (`Front_end_buttons.raw` and others) are not in the plugin. The port loads neither, so their formats are not checked against it.
+- Open: the translation is empty: 0 of 6,974 lines are translated.
+- Owner: the reference files of the Russian overlay (`reference\ru_mod\`) are for format study only. Its text and voice are not used.
+
 ## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-bfd`)
 
 - Open: no speech subtitle table found. Text tables found: bank 0x1A (entries 0-4, catapult book) and bank 0x1C sub-tables 0-3 (menu options, pause menu, chapter names, credits). The compressed game data section (task names) is not opened yet.

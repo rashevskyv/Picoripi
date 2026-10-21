@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Black & White (openBlack Switch port) plugin (`plugins/black_and_white`): reads the 6,974 ADD_TEXT strings of `Scripts/InfoScript2.txt` with a byte-exact round trip (saving changes only the text literals); the build target `openblack_sd` writes that one file for the SD card; no fonts or textures yet; the port does not draw game text yet.
 - Conker's Bad Fur Day (N64, USA) plugin (`plugins/conker_bfd`, in progress): identifies the pinned US ROM; reads its asset banks and RZIP entries; opens the text tables of banks 0x1A and 0x1C (menu, chapters, credits) with a byte-exact round trip and `[@hh]` tags for inline codes; writes the 95-glyph font as PGM sources and the 453 voice streams as MP3 files with their L: cue index; gives the width of a text line from the decompiled glyph metrics (not yet checked in an emulator frame); the ROM build is not implemented.
 - Start: when Qt (PyQt6) cannot be imported (for example "DLL load failed while importing QtCore: The specified procedure could not be found" on Windows), `main.py` prints the steps to try (Visual C++ runtime, a Qt copy earlier in PATH, reinstall of the packages) before it fails (`utils/qt_import_hint.py`, test `tests/test_qt_import_hint.py`); README has the same note.
 - Project Manager wizard: a game image (ISO, RVZ, WIA, NDS, 3DS, Switch, GD-ROM, PS1 set) that the chosen game cannot unpack is refused with a message naming the platform; nothing is created.
