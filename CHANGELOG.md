@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Castlevania SotN (PS1): the selected 8x8 menu word (for example HP, Equip, Stereo) is drawn in its menu at its traced place, found through the `g_MenuStr` pointer table of `DRA.BIN` (110 entries, verified on the file); the big ATT and DEF letters are still not drawn (their texture is not identified).
 - Castlevania SotN (PS1): new `menu_screens.py` draws the menu screens at the positions of the decomp draw calls (equipment overview, status, system, command box with its highlight and border, sound popup); the info-bar line sits at its traced place (72, 201) on a menu panel in the preview. Per-kind fits on owner frames are in OPEN_ITEMS (Dice 0.47 to 0.97). Menu strings are not yet picked from the project's lines: the string-to-slot table is open.
 - Castlevania SotN (PS1): the preview of a Shift-JIS line (item description, message) draws its first line in the console's 12x16 font as the game lays it out (ink advance, 2-px byte grid); the BIOS file is read from the new Console keys slot "PlayStation BIOS" (no BIOS data shipped). On owner frames the description line fits at 2x (Dice 0.77) and the help line at 2x (Dice 0.76); the other menu screens are not drawn yet.
 - Castlevania SotN (PS1): the dialogue preview draws the two hearts digits of the Richter HUD on the prologue stage (ST0), from `richter_hud` in `ST0.BIN` with CLUT 0x103 of `F_GAME2.BIN`; fitted to `owner_02`, 7 of 240 cells differ; preview only.

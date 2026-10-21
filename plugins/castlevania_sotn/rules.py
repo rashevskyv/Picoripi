@@ -168,6 +168,16 @@ class GameRules(BaseGameRules):
             log_debug(f"castlevania_sotn: no line behind block {block_idx} string {string_idx}: {error}")
             return None
 
+    def get_menu_source_offset(self, block_idx: int, string_idx: int) -> Optional[int]:
+        """The file offset (DRA.BIN source) of a DRA string line, or None for any other line. Reads only."""
+        found = self._line(block_idx, string_idx)
+        if found is None:
+            return None
+        doc_, line = found
+        if doc_.path != "DRA.BIN" or not line.ref or line.ref[0] != "s":
+            return None
+        return int(docs.layout()["files"]["DRA.BIN"]["strings"][line.ref[1]]["at"])
+
     def get_message_attributes(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
         found = self._line(block_idx, string_idx)
         if found is None:

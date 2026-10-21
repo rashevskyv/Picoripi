@@ -225,3 +225,24 @@ def system_rows(canvas: Image.Image, glyphs: Glyphs, rows: Sequence[str]) -> Non
     """MenuSystemDraw: the rows at (0x20, 0x30 + 0x10 i)."""
     for i, text in enumerate(rows):
         draw_str(canvas, glyphs, text, SYSTEM_X, SYSTEM_Y + SYSTEM_PITCH * i)
+
+
+def draw_cells(canvas: Image.Image, glyphs: Glyphs, cells: Sequence[int], x: int, y: int,
+               color: Tuple[int, int, int, int] = (255, 255, 255, 255)) -> None:
+    """MenuDrawStr with cell numbers already known (a line of the editor text, encoded)."""
+    for k, cell in enumerate(cells):
+        blit_mask(canvas, glyphs.mask_of(cell), x + CELL * k, y, color)
+
+
+def command_frame(canvas: Image.Image, origin: Tuple[int, int], cursor: int, width: int = 60) -> None:
+    """The command window (border and the highlight of row ``cursor``) without its labels."""
+    x, y = origin
+    frame_lines(canvas, x - 2, y - 2, width + 4, 80 + 4)
+    highlight(canvas, cursor, x - 2, y - 2 + 4, width + 4, 12, 4)
+
+
+def popup_frame(canvas: Image.Image, origin: Tuple[int, int], mono: bool) -> None:
+    """The sound popup (border and the highlight of the chosen row) without its labels."""
+    x, y = origin
+    frame_lines(canvas, x, y, 60, 36)
+    highlight(canvas, 1 if mono else 0, x + 2, y + 2, 56, 12, 4)

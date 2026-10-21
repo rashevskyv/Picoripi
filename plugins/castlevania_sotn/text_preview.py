@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import QWidget
 from core import font_formats
 from core.i18n import tr
 from core.project_library import console_keys
-from plugins.castlevania_sotn import codec, hud, menu_screens, menu_text, text_window
+from plugins.castlevania_sotn import codec, hud, menu_screens, menu_strings, menu_text, text_window
 from plugins.castlevania_sotn.script import TAG_RE
 from plugins.common.switch_message_preview import source_folder
 from utils.logging_utils import log_debug
@@ -52,6 +52,14 @@ def read_font_sheet(project_dir: str) -> Optional[Image.Image]:
         path = translation / _FONT["path"]
     _metadata, sheets = font_formats.extract(_FONT["format"], path.read_bytes(), _FONT["params"])
     return sheets[0].convert("RGBA")
+
+
+def read_menu_table(project_dir: str) -> Optional[List[int]]:
+    """The g_MenuStr string offsets of the source DRA.BIN (menu_strings.read_table), or None."""
+    source, _translation = _project_folders(project_dir)
+    if source is None or not (source / "DRA.BIN").is_file():
+        return None
+    return menu_strings.read_table((source / "DRA.BIN").read_bytes())
 
 
 def read_bios() -> Optional[bytes]:
@@ -94,8 +102,13 @@ class FontLoader(WorkerThread):
         except OSError as error:
             log_debug(f"castlevania_sotn preview: the BIOS file cannot be read: {error}")
             bios = None
+        try:
+            table = read_menu_table(self._project_dir)
+        except OSError as error:
+            log_debug(f"castlevania_sotn preview: no DRA.BIN menu table: {error}")
+            table = None
         if not self._stop.is_set():
-            self.loaded.emit((self._project_dir, sheet, bios))
+            self.loaded.emit((self._project_dir, sheet, bios, table))
 
 
 def read_hud_sheet(project_dir: str) -> Optional[Image.Image]:
@@ -150,6 +163,7 @@ class SotnTextPreview(QWidget):
         self._hud: Optional[Image.Image] = None
         self._hud_loader: Optional[HudLoader] = None
         self._bios: Optional[bytes] = None
+        self._table: Optional[List[int]] = None
         self.setMinimumHeight(text_window.CANVAS[1] * ZOOM + 2 * _MARGIN)
         self._start_load()
 
@@ -186,10 +200,11 @@ class SotnTextPreview(QWidget):
         self._note = tr("Reading the game font...")
 
     def _on_loaded(self, payload: object) -> None:
-        project_dir, sheet, bios = payload
+        project_dir, sheet, bios, table = payload
         if project_dir != self._source:
             return
         self._bios = bios
+        self._table = table
         self._sheet = sheet
         if sheet is None:
             self._note = tr("The dialogue font is not in this project's unpacked game.")
@@ -254,7 +269,46 @@ class SotnTextPreview(QWidget):
         self._note = " ".join(notes)
         self.update()
 
+    def _menu_slot(self) -> Optional[int]:
+        """The g_MenuStr slot of the selected line (a DRA string in the pointer table), or None. Reads only."""
+        if self._table is None:
+            return None
+        rules = self._mw.current_game_rules
+        data = self._mw.data_store
+        at = rules.get_menu_source_offset(data.physical_block_idx, data.current_string_idx)
+        return None if at is None else menu_strings.slot_for_offset(self._table, at)
+
+    def _render_menu_word(self, slot: int) -> None:
+        """The selected 8x8 menu word at its traced place on its menu panel (menu_screens / menu_strings)."""
+        place = menu_strings.placement(slot)
+        if place is None or self._sheet is None:
+            self._image = None
+            self._note = tr("This menu word has no traced place yet.") if place is None else ""
+            self.update()
+            return
+        screen, x, y = place
+        panel = menu_screens.panel()
+        if screen == "command":
+            menu_screens.command_frame(panel, menu_strings.COMMAND_ORIGIN, slot - 92)
+        elif screen == "popup":
+            menu_screens.popup_frame(panel, menu_strings.POPUP_ORIGIN, slot == 34)
+        glyphs = menu_screens.Glyphs(mask_of=self._cell_mask, cell_of=codec.encode_cells)
+        first = TAG_RE.sub("", self._text).split("\n")[0]
+        menu_screens.draw_cells(panel, glyphs, list(codec.encode_cells(first)), x, y)
+        self._image = _to_qimage(text_window.scale_nearest(panel, ZOOM))
+        self._note = ""
+        self.update()
+
+    def _cell_mask(self, cell: int) -> Image.Image:
+        """The 8x8 alpha mask of a font cell (255 where the cell has ink)."""
+        alpha = text_window.cell_sheet_crop(self._sheet, cell).getchannel("A")
+        return alpha.point(lambda v: 255 if v else 0)
+
     def _render(self) -> None:
+        slot = self._menu_slot()
+        if slot is not None:
+            self._render_menu_word(slot)
+            return
         if self._is_menu_line():
             self._render_menu_line()
             return
