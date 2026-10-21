@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Conker's Bad Fur Day (N64, USA) talk bubbles (`plugins/conker_bfd/dialogue.py`): bank 0x06 (nested containers, text leaves split into bubble pages) is extracted as one JSON per entry (`conker-bfd-dialogue/1`) and rebuilt with growth; a shorter page keeps every offset.
 - Wiki website: `scripts/build_wiki_site.py` renders `docs/wiki` (EN and UK) into a static site and `.github/workflows/wiki-site.yml` publishes it with GitHub Pages on every push to `main`; the Getting Started page is page 0.
 - Docs: new wiki page `0_Getting_Started.md` (EN and UK) walks a newcomer from the GitHub download to a game open in the editor, with screenshots in `docs/wiki/img/getting_started/`; written from newcomer tests of five games (Yo-kai Watch Switch and 3DS, Twilight Princess GameCube, Wii and Wii U HD).
 - Project Manager wizard: the location step suggests `Documents\Picoripi\<project name>` when the folder is empty; the Twilight Princess plugin is named "Zelda: Twilight Princess" (without "BMG").
