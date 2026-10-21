@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Tests: the review-queue window tests (`tests/test_review/_rq_wp2_4_helpers.py`) no longer read the git-ignored `plugins/plain_text/fonts/`, so a local game font no longer changes how a translation is wrapped.
 - Project Manager: **Share project...** packs a project (project folder, translation files, linked series glossaries; no game files, sessions or caches) into one `.zip` with its paths made relative and outside paths cleared; **Import shared project...** unpacks such a zip into a folder the receiver chooses and points it at the receiver's own game files.
 - New Project wizard keeps game images that a plugin reads as they are, skips a malformed table while it checks an extracted folder, and says when that folder path is a file.
 

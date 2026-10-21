@@ -213,6 +213,7 @@ def open_window(qtbot, monkeypatch, project_file: Path, server: FakeAIServer, *,
     # The script lookup searches the working directory and a fixed path on the owner's disk for a game
     # script; what it finds there must not decide a test's speakers.
     monkeypatch.setattr(ScriptSpeakerFinder, "find_script_path", lambda self: None)
+    _hide_local_plugin_fonts(monkeypatch, project_file.parents[1] / "plugins")
     mw = MainWindow()
     mw.is_testing = True
     qtbot.addWidget(mw, before_close_func=settle)
@@ -224,6 +225,21 @@ def open_window(qtbot, monkeypatch, project_file: Path, server: FakeAIServer, *,
     mw.prompt_editor_enabled = False
     mw.log_ai_traffic = True
     return mw
+
+
+def _hide_local_plugin_fonts(monkeypatch, root: Path) -> None:
+    """Read plugin fonts from ``root``, which has only the shipped ``common/defaults``.
+
+    ``plugins/plain_text/fonts/`` is git-ignored: the owner keeps game fonts there, and the first one found
+    sets the line widths the typesetter wraps with.
+    """
+    import shutil
+
+    import core.settings.font_map_loader as font_map_loader
+
+    shutil.copytree(font_map_loader.plugins_root() / "common" / "defaults", root / "common" / "defaults",
+                    dirs_exist_ok=True)
+    monkeypatch.setattr(font_map_loader, "plugins_root", lambda: root)
 
 
 def settle(mw) -> None:
