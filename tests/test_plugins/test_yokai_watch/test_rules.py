@@ -146,6 +146,39 @@ def test_width_ignores_tags():
     assert rules.calculate_string_width_override("a{PNAME01}б[g_coin]", widths) == 17
 
 
+def test_every_game_has_measured_limits_under_language_free_keys():
+    # The Switch files end in _ja, Yo-kai Watch 2 in _engb: the same kinds of text as the 3DS _en files.
+    assert layout_key("data/res/text/menu/shopmenu_text_ja.cfg.bin", "TEXT_INFO", 2) == "shopmenu|TEXT_INFO|2"
+    assert layout_key("data/res/text/chara_text_engb.cfg.bin", "NOUN_INFO", 5) == "chara|NOUN_INFO|5"
+    # Yo-kai Watch 4++ / Academy Y: one group per text folder; the event and map folders are dialogue.
+    assert layout_key("data/common/text/ja/event/c01/ev_c01_010.cfg.bin", "TEXT_INFO", 2) == "dialogue|TEXT_INFO|2"
+    assert layout_key("data/common/text/ja/purpose/c01_purpose_text.cfg.bin", "TEXT_INFO", 2) == "objective|TEXT_INFO|2"
+    assert layout_key("data/common/text/ja/system_text.cfg.bin", "TEXT_INFO", 2) == "system_text|TEXT_INFO|2"
+    rules = load_rules("yokai_watch")
+    for game in ("yw1", "yw2", "yw3", "ywnx", "yw4", "yay"):   # every game speakers.game_of tells apart
+        dialogue = rules._layouts(game)["dialogue|TEXT_INFO|2"]
+        assert dialogue["lines"] == 2 and dialogue["max"] > 0, game
+    # measured with each game's own font: a Switch letter is about 23 pixels, a 3DS letter about 9
+    assert rules._layouts("ywnx")["dialogue|TEXT_INFO|2"]["max"] > 2 * rules._layouts("yw1")["dialogue|TEXT_INFO|2"]["max"]
+
+
+def test_a_letter_the_font_lacks_counts_as_the_fonts_average_letter():
+    rules = load_rules("yokai_watch")
+    switch = {c: {"width": 24} for c in "abcdefghijklmnopqrstuvwxyz"}
+    assert rules.calculate_string_width_override("aї", switch) == 48      # not 24 + 9: ї is not in the font
+    assert rules.calculate_string_width_override("ї", {}) == 9             # no letters at all: the 3DS default
+
+
+def test_the_fit_check_measures_with_the_main_font_the_limits_were_measured_with():
+    class Window:
+        font_map = {"a": {"width": 1}}                                       # another font chosen in the editor
+        all_font_maps = {"ywnx_ft_nrm.json": {"a": {"width": 30}}}
+    rules = load_rules("yokai_watch")
+    rules.mw = Window()
+    assert rules._main_font_map("ywnx") == {"a": {"width": 30}}
+    assert rules._main_font_map("yw1") == {"a": {"width": 1}}               # no map of that name: the editor's
+
+
 @pytest.mark.skipif(not SOURCE.is_dir(), reason="needs the Yo-kai Watch workspace under PICORIPI_ROMHACKING")
 def test_real_files_round_trip_byte_for_byte():
     files = sorted(SOURCE.rglob("*_en.cfg.bin"))

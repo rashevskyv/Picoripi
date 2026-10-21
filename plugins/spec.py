@@ -265,7 +265,7 @@ HOOK_NAMES = frozenset(hook.name for hook in HOOKS)
 MAIN_WINDOW_ATTRIBUTES = frozenset({
     # data
     "data_store", "data", "string_metadata", "block_to_project_file_map", "project_manager", "data_processor",
-    "current_game_rules", "settings_manager", "helper", "font_map", "icon_sequences",
+    "current_game_rules", "settings_manager", "helper", "font_map", "all_font_maps", "icon_sequences",
     # settings values
     "default_tag_mappings", "context_menu_tags", "display_name", "EDITOR_PLAYER_TAG", "ORIGINAL_PLAYER_TAG",
     "game_dialog_max_width_pixels", "line_width_warning_threshold_pixels", "lines_per_page",

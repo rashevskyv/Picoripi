@@ -450,6 +450,10 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      as UTF-8); the Font Editor opens
      `ft_nrm`, `ft_lrg`, `ft_sml` and `dbg` (Switch XF: A8 texture); the Textures window lists the menu,
      title, telop, help and caption images (IMGN, the Switch IMGC: RGBA8, RGBA4, LA8, A8, BC3).
+     Width limits: every Yo-kai game has them. They come from the game's English text, measured with the game's own
+     main font (`scripts/build_yokai_layouts.py`). So a line too wide for a Switch window is flagged as on the 3DS,
+     also when it is a translation from the other platform. A letter the font does not have counts as an average
+     letter of that font.
      Yo-kai Watch 4++ and Yo-kai Academy Y for Switch (Japanese games, workspaces `YO_KAI_WATCH_4_SWITCH`,
      `YO_KAI_ACADEMY_Y_SWITCH`) open with the same plugin: the source text is each game's English fan mod in
      the Japanese tables `data/common/text/ja` (2,316 tables, about 38,500 lines; 1,672 tables, about 19,600
