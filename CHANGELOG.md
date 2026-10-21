@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Okami (PS2, HD): the text codes are fixed (0x0001 is the period, not a space; a typed space is a string break; 0xA001 is a line break); a text row is one record; a record's first letter is no longer taken for a header; a grown record keeps the 4-byte record and 16-byte section alignment of the disc, and a grown PS2 line now boots and passes the Sakuya talk in PCSX2.
 - Wiki website: `scripts/build_wiki_site.py` renders `docs/wiki` (EN and UK) into a static site and `.github/workflows/wiki-site.yml` publishes it with GitHub Pages on every push to `main`; the Getting Started page is page 0.
 - Docs: new wiki page `0_Getting_Started.md` (EN and UK) walks a newcomer from the GitHub download to a game open in the editor, with screenshots in `docs/wiki/img/getting_started/`; written from newcomer tests of five games (Yo-kai Watch Switch and 3DS, Twilight Princess GameCube, Wii and Wii U HD).
 - Project Manager wizard: the location step suggests `Documents\Picoripi\<project name>` when the folder is empty; the Twilight Princess plugin is named "Zelda: Twilight Princess" (without "BMG").

@@ -1,4 +1,4 @@
-"""Okami HD message codes: the u16 units of the English MSD strings and the characters they show.
+"""Okami message codes: the u16 units of the MSD strings and the characters they show.
 
 The font atlas (``etc/core_30.bin``, texture at 0x93C0, 1200 x 1200, BC7) is a glyph sheet. Its cells, row-major
 with 16 columns, hold the characters in this order: digits 0-9 at cells 14-23, capitals A-V at 26-47, W-Z at 48-51,
@@ -7,9 +7,14 @@ lowercase a-z at 52-77. A letter's message code is its cell index minus 3. Verif
 English. The capitals are fixed by B, C, H, I, S, T, W, Y, which all decode correctly with this run. Digits sit at
 the same grid but are not checked against text yet.
 
-0x0001 is the space (the most common code after a letter). 0x000A is the apostrophe ("wasn't", "tryin'"). Every
-other unit is kept as a tag ``{xxxx}`` (hex, 4 digits), so no unit is lost. The periods and commas (0x0002-0x0004
-after words) and the control codes (0x80xx, 0xA0xx, 0xD0xx, ...) stay tags until they are checked on the screen.
+The punctuation codes are the atlas cell itself (no minus 3): 0x0001 is the period, 0x0002 the comma, 0x0003 the
+question mark, 0x0004 the exclamation mark (the font list ``font_sources.json`` names cells 1-4 so). Checked by the
+sentence ends: 0x0001 follows a word 49,880 times on the HD disc and never sits between two letters, so it is not a
+space. 0x0009 is the opening quote, 0x000A the apostrophe ("wasn't", "tryin'"), 0x00C6 the hyphen ("thick-headed").
+
+There is no space code. A space between two words is the string break of the message record: the engine puts a
+space between two strings of a record. A code 0xA001 is a hard line break; it shows as a newline here. Every other
+unit is kept as a tag ``{xxxx}`` (hex, 4 digits), so no unit is lost.
 
 ``decode`` and ``encode`` are exact inverses on any unit sequence: ``encode(decode(raw)) == raw``.
 """
@@ -19,10 +24,13 @@ import re
 import struct
 from typing import Dict
 
-SPACE = 0x0001
+LINE_BREAK = 0xA001            # shown as a newline in a text row
 APOSTROPHE = 0x000A
+PUNCTUATION = {                # code = atlas cell index (not minus 3)
+    0x0001: ".", 0x0002: ",", 0x0003: "?", 0x0004: "!", 0x0009: '"', APOSTROPHE: "'", 0x00C6: "-",
+}
 ATLAS_COLUMNS = 16
-ATLAS_CODE_OFFSET = 3          # code = atlas cell index - 3 (letters)
+ATLAS_CODE_OFFSET = 3          # code = atlas cell index - 3 (letters and digits)
 
 
 # Ukrainian letters: 66 atlas cells that the English strings never use (codes 0x5E-0xFC, checked on every English MSD
@@ -55,8 +63,8 @@ def _cell_chars() -> Dict[int, str]:
     for start, chars in runs:
         for offset, char in enumerate(chars):
             table[start + offset - ATLAS_CODE_OFFSET] = char
-    table[SPACE] = " "
-    table[APOSTROPHE] = "'"    # "wasn't", "tryin'" in the dialogue
+    table.update(PUNCTUATION)
+    table[LINE_BREAK] = "\n"
     for code, letter in zip(UK_SLOT_CODES, UKRAINIAN_LETTERS):
         table[code] = letter
     return table
