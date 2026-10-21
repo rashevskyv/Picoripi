@@ -26,7 +26,9 @@ from __future__ import annotations
 import struct
 from collections import Counter
 from dataclasses import dataclass, field
-from typing import List
+from typing import Dict, List
+
+from .base_container import BaseArchiveContainer
 
 GFAC_MAGIC = b"GFAC"
 GFCP_MAGIC = b"GFCP"
@@ -271,3 +273,40 @@ def write_gfac(archive: GfacArchive) -> bytes:
     body = bytes(head) + bytes(table) + bytes(names)
     body += b"\0" * (gfcp_offset - len(body))
     return body + payload
+
+
+class GfacContainer(BaseArchiveContainer):
+    """A GFAC pack as an archive: each entry is a file, so the texture and font sources can walk into it.
+
+    Edits are staged per entry; ``pack`` re-encodes the pack with the same header fields and entry checksums.
+    """
+
+    MAGIC = GFAC_MAGIC
+
+    @classmethod
+    def can_handle(cls, data: bytes) -> bool:
+        return bytes(data[:4]) == GFAC_MAGIC
+
+    def __init__(self, data: bytes) -> None:
+        self._archive = read_gfac(bytes(data))
+        self._entries = {entry.name: entry for entry in self._archive.entries}
+        self._overlay: Dict[str, bytes] = {}
+
+    def list_files(self) -> List[str]:
+        return list(self._entries)
+
+    def read_file(self, path: str) -> bytes:
+        if path in self._overlay:
+            return self._overlay[path]
+        return self._entries[path].data
+
+    def write_file(self, path: str, data: bytes) -> None:
+        if path not in self._entries:
+            raise KeyError(path)
+        self._overlay[path] = bytes(data)
+
+    def pack(self) -> bytes:
+        for entry in self._archive.entries:
+            if entry.name in self._overlay:
+                entry.data = self._overlay[entry.name]
+        return write_gfac(self._archive)

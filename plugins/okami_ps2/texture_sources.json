@@ -1,0 +1,20 @@
+[
+ {"label": "Picture with Japanese text (DATA0 entry 0022)", "kind": "menu_label", "format": "tim2", "path": "pictures/DATA0/0022.tm2"},
+ {"label": "Picture with Japanese text (DATA0 entry 0024)", "kind": "menu_label", "format": "tim2", "path": "pictures/DATA0/0024.tm2"},
+ {"label": "Picture with Japanese text (DATA0 entry 0025)", "kind": "menu_label", "format": "tim2", "path": "pictures/DATA0/0025.tm2"},
+ {"label": "Picture with Japanese text (DATA0 entry 0027)", "kind": "menu_label", "format": "tim2", "path": "pictures/DATA0/0027.tm2"},
+ {"label": "Picture with Japanese text (DATA0 entry 0029)", "kind": "menu_label", "format": "tim2", "path": "pictures/DATA0/0029.tm2"},
+ {"label": "Picture with Japanese text (DATA0 entry 0030)", "kind": "menu_label", "format": "tim2", "path": "pictures/DATA0/0030.tm2"},
+ {"label": "Picture with Japanese text (DATA0 entry 0031)", "kind": "menu_label", "format": "tim2", "path": "pictures/DATA0/0031.tm2"},
+ {"label": "Picture with Japanese text (DATA0 entry 0032)", "kind": "menu_label", "format": "tim2", "path": "pictures/DATA0/0032.tm2"},
+ {"label": "Picture with Japanese text (DATA0 entry 0033)", "kind": "menu_label", "format": "tim2", "path": "pictures/DATA0/0033.tm2"},
+ {"label": "Picture with Japanese text (DATA0 entry 0034)", "kind": "menu_label", "format": "tim2", "path": "pictures/DATA0/0034.tm2"},
+ {"label": "Picture with Japanese text (DATA0 entry 0035)", "kind": "menu_label", "format": "tim2", "path": "pictures/DATA0/0035.tm2"},
+ {"label": "Picture with Japanese text (DATA0 entry 0036)", "kind": "menu_label", "format": "tim2", "path": "pictures/DATA0/0036.tm2"},
+ {"label": "Picture with Japanese text (DATA0 entry 0037)", "kind": "menu_label", "format": "tim2", "path": "pictures/DATA0/0037.tm2"},
+ {"label": "Picture with Japanese text (DATA0 entry 0044)", "kind": "menu_label", "format": "tim2", "path": "pictures/DATA0/0044.tm2"},
+ {"label": "Picture with Japanese text (DATA0 entry 0045)", "kind": "menu_label", "format": "tim2", "path": "pictures/DATA0/0045.tm2"},
+ {"label": "Picture with Japanese text (DATA0 entry 0047)", "kind": "menu_label", "format": "tim2", "path": "pictures/DATA0/0047.tm2"},
+ {"label": "Picture with Japanese text (DATA0 entry 0053)", "kind": "menu_label", "format": "tim2", "path": "pictures/DATA0/0053.tm2"},
+ {"label": "Picture with Japanese text (DATA0 entry 0072)", "kind": "menu_label", "format": "tim2", "path": "pictures/DATA0/0072.tm2"}
+]

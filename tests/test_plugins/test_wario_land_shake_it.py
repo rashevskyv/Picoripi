@@ -136,3 +136,61 @@ def test_only_the_iso_target_is_declared():
     targets = GameRules().get_build_targets()
     assert [t["id"] for t in targets] == [build.ISO_TARGET]
     assert targets[0]["platforms"] == [unpack.WII]
+
+
+def test_gfac_container_lists_reads_and_repacks_entries():
+    from core.containers.gfac import GfacContainer
+
+    raw = make_pack([("common.arc", b"A" * 40), ("menu.arc", b"B" * 10)])
+    assert GfacContainer.can_handle(raw)
+    assert not GfacContainer.can_handle(b"U\xaa8-" + raw[4:])
+    container = GfacContainer(raw)
+    assert container.list_files() == ["common.arc", "menu.arc"]
+    container.write_file("menu.arc", b"C" * 70)
+    assert container.read_file("menu.arc") == b"C" * 70
+    assert container.has_pending_changes()
+    repacked = gfac.read_gfac(container.pack())
+    assert [(e.name, e.data) for e in repacked.entries] == [("common.arc", b"A" * 40), ("menu.arc", b"C" * 70)]
+    with pytest.raises(KeyError):
+        container.write_file("missing.arc", b"x")
+
+
+def test_changed_packs_returns_only_the_edited_font_and_picture_copies(tmp_path: Path):
+    font = "files/env/Common/Common/__PACK__.gfa"
+    picture = "files/env/English_USA/ResultResource/__PACK__.gfa"
+    source = tmp_path / "source" / "versions" / "wii"
+    translation = tmp_path / "translation" / "versions" / "wii"
+    for root in (source, translation):
+        (root / picture).parent.mkdir(parents=True, exist_ok=True)
+        (root / font).parent.mkdir(parents=True, exist_ok=True)
+    (source / font).write_bytes(make_pack([("common.arc", b"A" * 8)]))
+    (source / picture).write_bytes(make_pack([("result.arc", b"R" * 8)]))
+    (translation / font).write_bytes(make_pack([("common.arc", b"E" * 8)]))
+    (translation / picture).write_bytes((source / picture).read_bytes())
+    (translation / unpack.PACK_REL).parent.mkdir(parents=True, exist_ok=True)
+    (translation / unpack.PACK_REL).write_bytes(b"GFAC")
+    changed = build.changed_packs(tmp_path / "source", tmp_path / "translation")
+    assert changed == {font: (translation / font).read_bytes()}
+
+
+def test_unpack_takes_the_font_and_the_text_packs_only():
+    assert unpack._select(unpack.PACK_REL)
+    assert unpack._select(unpack.FONT_PACK_REL)
+    assert unpack._select("files/env/English_USA/ResultResource/__PACK__.gfa")
+    assert not unpack._select("files/env/English_USA/Game_A1S1L1/__PACK__.gfa")
+
+
+def test_font_and_texture_descriptors_point_at_extracted_packs():
+    plugin = Path(build.__file__).parent
+    fonts = json.loads((plugin / "font_sources.json").read_text(encoding="utf-8"))
+    textures = json.loads((plugin / "texture_sources.json").read_text(encoding="utf-8"))
+    labels = {font["label"] for font in fonts}
+    for font in fonts:
+        assert font["format"] == "brfnt"
+        assert font["path"] in {"versions/wii/" + rel for rel in unpack.FONT_PACK_RELS}
+        assert font.get("sync_glyphs_with", font["label"]) in labels
+    packs = {"versions/wii/" + rel for rel in (*unpack.TEXTURE_PACK_RELS, *unpack.FONT_PACK_RELS)}
+    for texture in textures:
+        assert texture["format"] == "tpl"
+        assert texture["path"] in packs
+        assert texture["member"].endswith(".tpl")

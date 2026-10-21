@@ -1,0 +1,23 @@
+[
+ {"label": "Result labels: Coins, Time, Treasure (letter pictures)", "kind": "menu_label", "format": "tpl",
+  "path": "versions/wii/files/env/English_USA/ResultResource/__PACK__.gfa",
+  "member": "*.arc/arc/timg/result_clear_parts01_*.tpl"},
+ {"label": "Result buttons: Buy, Don't Buy", "kind": "menu_label", "format": "tpl",
+  "path": "versions/wii/files/env/English_USA/ResultResource/__PACK__.gfa",
+  "member": "*.arc/arc/timg/result_clear_resulticon_0{2,3,4}*.tpl"},
+ {"label": "Missions and New Record! banners", "kind": "menu_label", "format": "tpl",
+  "path": "versions/wii/files/env/Common/PadGuide/__PACK__.gfa",
+  "member": "*.arc/arc/timg/playdemo_cont_0{3_02,3_a,4_01,4_02,4_a}.tpl"},
+ {"label": "Shop buttons: Goods, Exit Shop, Stage Select", "kind": "menu_label", "format": "tpl",
+  "path": "versions/wii/files/env/English_USA/ShopResource/__PACK__.gfa",
+  "member": "*.arc/arc/timg/shop_buyicon_0{1_01,1_02,2_02,2_03}.tpl"},
+ {"label": "Shop headers: Treasure List", "kind": "menu_label", "format": "tpl",
+  "path": "versions/wii/files/env/English_USA/ShopResource/__PACK__.gfa",
+  "member": "*.arc/arc/timg/shop_info_0{1,2,3}*.tpl"},
+ {"label": "Save data header: Save Data1", "kind": "menu_label", "format": "tpl",
+  "path": "versions/wii/files/env/English_USA/FileSelectResource/__PACK__.gfa",
+  "member": "*.arc/arc/timg/saveloard_dataframe_01.tpl"},
+ {"label": "Wii Remote tip: Hold the Wii Remote sideways", "kind": "help_text", "format": "tpl",
+  "path": "versions/wii/files/env/Common/Common/__PACK__.gfa",
+  "member": "hp_gauge_window.arc/arc/timg/heartgauge_01.tpl"}
+]

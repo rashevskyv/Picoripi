@@ -14,7 +14,7 @@ from core.containers.image_files import ImageError
 from core.i18n import tr
 from plugins.common import romfs_mod
 from plugins.okami_ps2 import afs, iso
-from plugins.okami_ps2.unpack import ARCHIVES, REF_NAME
+from plugins.okami_ps2.unpack import ARCHIVES, PICTURE_SUFFIX, PICTURES, REF_NAME
 from utils.logging_utils import log_warning
 
 COPY_CHUNK = 8 * 1024 * 1024
@@ -27,11 +27,13 @@ def read_changes(source_dir: str, translation_dir: str) -> Dict[str, Dict[int, b
     out: Dict[str, Dict[int, bytes]] = {}
     for rel, data in romfs_mod.changed_files(source_dir, translation_dir).items():
         parts = rel.split("/")
-        archive = f"_{parts[1]}.AFS" if len(parts) == 3 and parts[0] == "afs" else ""
-        if archive not in ARCHIVES or not parts[2].endswith(".bin") or not parts[2][:-4].isdigit():
-            log_warning(f"okami_ps2: {rel} is not a message entry of the disc; it is not written")
+        archive = f"_{parts[1]}.AFS" if len(parts) == 3 else ""
+        kind = parts[0] if len(parts) == 3 else ""
+        suffix = {"afs": ".bin", PICTURES: PICTURE_SUFFIX}.get(kind, "")
+        if archive not in ARCHIVES or not suffix or not parts[2].endswith(suffix) or not parts[2][:-len(suffix)].isdigit():
+            log_warning(f"okami_ps2: {rel} is not an entry of the disc; it is not written")
             continue
-        out.setdefault(archive, {})[int(parts[2][:-4])] = data
+        out.setdefault(archive, {})[int(parts[2][:-len(suffix)])] = data
     return out
 
 

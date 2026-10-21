@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Tuple
 
+from core.containers import ContainerManager, gfac
 from core.formats import FileFormat
 from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
@@ -26,6 +27,7 @@ class GameRules(BaseGameRules):
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
         self._doc: Optional[Dict[str, Any]] = None
+        ContainerManager.register(gfac.GfacContainer)   # the packs hold the font and the pictures (Font / Textures)
 
     def get_display_name(self) -> str:
         return "Wario Land: Shake It!"

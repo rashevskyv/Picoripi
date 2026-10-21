@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Callable, List
+from typing import Callable, Dict, List
 
 from core.containers import gfac, wii_disc, wii_writer
 from core.i18n import tr
@@ -52,6 +52,27 @@ def rebuilt_pack(source_root: Path, translation_dir: Path) -> bytes:
     return gfac.write_gfac(archive)
 
 
+def changed_packs(source_root: Path, translation_dir: Path) -> Dict[str, bytes]:
+    """The font and picture packs whose translation copy differs from the source (disc path -> bytes).
+
+    The font and the picture packs are edited in the translation folder (``versions/wii/files/env/...``), so their
+    edited copy is what the disc gets. The message pack is rebuilt from the documents (``rebuilt_pack``).
+    """
+    out: Dict[str, bytes] = {}
+    copy_root = translation_dir / unpack.VERSIONS / unpack.WII
+    if not copy_root.is_dir():
+        return out
+    for copy in sorted(copy_root.joinpath("files").rglob("*.gfa")):
+        rel = copy.relative_to(copy_root).as_posix()
+        if rel == unpack.PACK_REL:
+            continue
+        data = copy.read_bytes()
+        source = source_root / unpack.VERSIONS / unpack.WII / rel
+        if not source.is_file() or source.read_bytes() != data:
+            out[rel] = data
+    return out
+
+
 def build_iso(source_dir: str, translation_dir: str, output_dir: str,
               progress: Progress, is_cancelled: Cancelled) -> str:
     """Write the translated disc image into ``output_dir`` and return its path."""
@@ -70,8 +91,9 @@ def build_iso(source_dir: str, translation_dir: str, output_dir: str,
         if not wii_writer.copy_as_iso(str(image), str(tmp), common, progress, is_cancelled):
             raise Cancel()
         progress(96, "")
+        changes = {unpack.PACK_REL: pack, **changed_packs(source_root, trans)}
         with open(tmp, "r+b") as stream:
-            wii_writer.write_changes(stream, common, {unpack.PACK_REL: pack})
+            wii_writer.write_changes(stream, common, changes)
         os.replace(tmp, target)
     except BaseException:
         tmp.unlink(missing_ok=True)

@@ -987,8 +987,10 @@ omase.nds`, made by the unpack) with the edited banks and files put in; no `zt`
      document per message file (`MessageData\*.json`). **Source:** one block per BMG file: 575 messages in six files
      (area, demo, error, game, stage, treasure); a `{esc:FF:00000100}` in the text is a game code and stays as it is.
      **Build:** "Wii disc image (ISO, English)" writes a plain ISO with the English pack replaced; the build needs the
-     Wii key file in console keys. **Not yet:** fonts (the game's font has no Ukrainian glyphs), textures with text,
-     other languages as reference columns.
+     Wii key file in console keys. **Fonts:** three game fonts are Font Editor sources (menus, story subtitles, staff
+     roll); Ukrainian letters go into spare cells that you draw in the Font Editor. **Textures:** the English pictures
+     with words (result labels, shop buttons, save header, Wii Remote tip) are Textures sources. **Not yet:** other
+     languages as reference columns.
    - `xenoblade_wii` — Xenoblade Chronicles (Wii, USA) and Xenoblade Chronicles 3D (New 3DS, EUR): one plugin,
      one translation. **Source:** the workspace's `source` folder (`1_unpack.bat`), at the same paths on both
      platforms: the English BDAT table files `bdat\bdat_common.bin` (120 tables: menus, items, arts, skills,
