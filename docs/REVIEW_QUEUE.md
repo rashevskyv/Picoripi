@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: owner decisions and live checks
-tokens: 2.5k
+tokens: 2.4k
 purpose: What is left for the owner after the audit: decisions with evidence, live runs, environment
 ---
 # Review queue — decisions, live runs, environment

@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-13
 owns: ui/, components/, dialogs/
-tokens: 71.9k
+tokens: 75.9k
 ---
 # Посібник: інтерфейс
 
