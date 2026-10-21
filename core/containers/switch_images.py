@@ -20,6 +20,7 @@ from core.containers.image_files import ImageError, ImageFile, ImageReader, chec
 from core.containers.switch_bktr import PatchedRomFs, PatchSection
 from core.containers.switch_crypto import HEADER_SIZE, NcaHeader, SwitchKeys, content_key, open_section
 from core.containers.switch_nsz import NCA_HEADER_SIZE, decompress_ncz, read_ncz
+from core.containers.switch_sparse import is_empty_sparse, is_sparse, open_sparse_section
 
 PFS0_MAGIC = b"PFS0"
 XCI_MAGIC = b"HEAD"          # at 0x100 of a cartridge image
@@ -235,7 +236,7 @@ class SwitchImage(ImageReader):
         paths (``/bin/...``). Raises ImageError when this package's RomFS is not a patch or a package is not read.
         """
         self.entries()
-        base.entries()
+        base._ensure_program()
         if not self.romfs_is_patch or self._program is None or base._program is None:
             raise ImageError(tr("this package has no RomFS patch to apply to the base RomFS"))
         body, header, key = self._program
@@ -248,8 +249,10 @@ class SwitchImage(ImageReader):
         romfs = PatchedRomFs(base_view, patch, fsh, level + data_size)
         return _romfs_files(RangeView(romfs, level, data_size))
 
-    def _entries(self) -> List[ImageFile]:
-        self.romfs_is_patch = False
+    def _ensure_program(self) -> bool:
+        """Open the program NCA (its keys and section table) without listing any files. False when cancelled."""
+        if self._program is not None:
+            return True
         magic = self.read_at(0, 4) if self.size >= 4 else b""
         if magic != PFS0_MAGIC:
             if self.size >= 0x104 and self.read_at(0x100, 4) == XCI_MAGIC:
@@ -276,8 +279,33 @@ class SwitchImage(ImageReader):
         key = content_key(header, self._keys, tickets)
         body = self._program_body(item)
         if body is None:   # cancelled while the .ncz was decompressed
-            return []
+            return False
         self._program = (body, header, key)
+        return True
+
+    def _entries(self) -> List[ImageFile]:
+        self.romfs_is_patch = False
+        if not self._ensure_program():
+            return []
+        body, header, key = self._program
+        entries: List[ImageFile] = []
+        if header.sections[0] is not None and not is_empty_sparse(header.sections[0][2]):
+            entries = self._exefs_entries(body, header, key)   # an empty sparse ExeFS holds no files: the update supplies them
+        if header.sections[1] is None:
+            return entries
+        if header.sections[1][2][4] == BKTR:
+            self.romfs_is_patch = True
+            return entries
+        romfs_view, fsh = self._section(body, header, key, 1)
+        if fsh[2] != 0:
+            raise ImageError(tr("section 1 of the program NCA is not a RomFS"))
+        level = struct.unpack_from("<Q", fsh, 0x90)[0]
+        if level >= romfs_view.size:
+            raise ImageError(tr("the RomFS starts past its section"))
+        return entries + _romfs_files(RangeView(romfs_view, level, romfs_view.size - level))
+
+    def _exefs_entries(self, body: _Body, header: NcaHeader, key: bytes) -> List[ImageFile]:
+        """The files of the ExeFS (section 0) of the program NCA."""
         exefs_view, fsh = self._section(body, header, key, 0)
         if fsh[2] != 1:
             raise ImageError(tr("section 0 of the program NCA is not an ExeFS"))
@@ -292,18 +320,7 @@ class SwitchImage(ImageReader):
         for file in _pfs0_files(exefs_reader):
             _inside(file, exefs.size)
             entries.append(ImageFile(f"exefs/{file['name']}", file["offset"], file["size"], None, exefs))
-        if header.sections[1] is None:
-            return entries
-        if header.sections[1][2][4] == BKTR:
-            self.romfs_is_patch = True
-            return entries
-        romfs_view, fsh = self._section(body, header, key, 1)
-        if fsh[2] != 0:
-            raise ImageError(tr("section 1 of the program NCA is not a RomFS"))
-        level = struct.unpack_from("<Q", fsh, 0x90)[0]
-        if level >= romfs_view.size:
-            raise ImageError(tr("the RomFS starts past its section"))
-        return entries + _romfs_files(RangeView(romfs_view, level, romfs_view.size - level))
+        return entries
 
     def _program_body(self, item: Dict[str, Any]) -> Optional[_Body]:
         """The program NCA: the .nca in the package, or for an .ncz its decompressed copy. None when cancelled."""
@@ -337,10 +354,12 @@ class SwitchImage(ImageReader):
         if spec is None:
             raise ImageError(tr("the program NCA has no section {0}", index))
         start, end, fsh = spec
-        if end > body.size:
-            raise ImageError(tr("a section ends past its NCA"))
         if struct.unpack_from("<Q", fsh, 0x180)[0]:
             raise ImageError(tr("compressed sections are not read"))
+        if is_sparse(fsh) and not body.plain:   # the logical size may exceed the NCA: the sparse map gives the bytes
+            return open_sparse_section(body.stream, body.base, spec, key, body.size), fsh
+        if end > body.size:
+            raise ImageError(tr("a section ends past its NCA"))
         if not body.plain:
             return open_section(body.stream, body.base, spec, key), fsh
         if fsh[4] not in (1, 3, 4) or start < NCA_HEADER_SIZE:
