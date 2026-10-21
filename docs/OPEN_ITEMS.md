@@ -1963,3 +1963,14 @@ Facts from the USA decomp (`port/sotn-decomp`) and the disc files in `source/`. 
 - Open: the clip start to first line offset is not measured in game frames. DuckStation has no audio dump, so the speech onset in emulated time is not read. The line starts are relative to op 0x0053; the XA buffering delay (Setloc to first sector) is not modelled.
 - Open: the 8 line texts are translator work. `zt/lunar.py` (outside this repo) needs no change: it reads the saved TEXT001 from the translation folder.
 - Open: `{F8:nn}` as frames at 60 Hz comes from the proof, not from a full disassembly of the pause control.
+
+## Lunar SSSC subtitle timing (`subtitle_timing.py`, `subtitle_timing_dialog.py`, 2026-10-21, branch `feat/lunar-subtitle-timing`)
+
+- Done: cue times are whole frames (start, end, pauses are the gaps; box closed in the gap); a clip offset in frames; the file `translation\voice\subtitle_timing.json` (missing file = built-in timing). Editor: Tools → Voice subtitles timing... (waveform blocks with drag, table, Play with a game-like box, ±1 frame and ±0.1 s nudges, split and merge, reset to speech spans, save).
+- Done: build of the messages: each pause after `{close}` inside the previous message, so the box is shut in the gap. Verified in a private DuckStation copy (muted): intro cues show in order, box closed between cues, Nall's portrait box after the monologue (screenshots kept local; they show game and FAQ text).
+- Done: English source lines of the monologue written into the workspace source TEXT001 (8 lines, from the GameFAQs FMV Transcript by Opylex, faqs/48349); "*sigh*" written as "(sigh)" because the game's table has no "*". Credit in the workspace README_UA.txt.
+- Open: the default cue split and text are judged by the reading-speed check only (20 characters a second). The last default cue (8) has 140 characters in 4.75 s and is flagged; the owner decides whether to split it (the timing editor's split adds a row, the translator then writes the second half).
+- Open: timing problems are shown in the editor's dialog only; they are not yet listed in the main window's problem list (needs a problem definition and an issue scan hook).
+- Open: the build step (`zt/lunar.py`, outside this repo) does not apply the translated voice WAV (`apply_voice_clips`) yet; the subtitle lines do work without it.
+- Open: the timing file is saved with the project's translation folder; a change needs a project save before the build (the editor says so). The timing dialog's audio playback uses Qt Multimedia; no sound check on the owner's PC yet.
+- Open: the emulator arrow-key input in `_shared/scripts/emulator_proof/run_duckstation_hidden_desktop.py` sends arrow keys without the extended-key bit (menus ignore Up and Down). A patched copy is in the scratch folder only; the shared script is not changed.
