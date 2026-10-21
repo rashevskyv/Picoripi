@@ -117,19 +117,41 @@ def test_face_picture_uses_the_colour_table_and_falls_back_to_the_palette():
     assert picture.getpixel((0, 0)) == (0, 0, 0, 0)          # index 0 stays transparent
 
 
-def test_script_writes_the_colour_file_into_the_project_folder(tmp_path):
-    project = tmp_path / "project"
-    source = tmp_path / "source" / "LUNADATA"
-    source.mkdir(parents=True)
-    project.mkdir()
-    (project / "project.uiproj").write_text(json.dumps({"metadata": {"source_path": "../source"}}), encoding="utf-8")
+def test_script_writes_the_colour_table_to_the_given_file(tmp_path):
+    source = tmp_path / "LUNADATA"
+    source.mkdir()
     frames = [_frame(n) for n in range(5)]
     (source / "FACE_T.TIZ").write_bytes(_member(frames))
     sheet_path = tmp_path / "sheet.png"
     Image.fromarray(np.concatenate([_sheet_with(frames[0], 10, 20), _sheet_with(frames[1], 80, 20)], axis=1)).save(sheet_path)
+    output = tmp_path / "out" / "face_palettes.json"
     spec = importlib.util.spec_from_file_location("lunar_portrait_colours", REPO / "scripts" / "lunar_portrait_colours.py")
     script = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(script)
-    assert script.main([str(project), str(sheet_path)]) == 0
-    written = pc.read_colours(project / pc.COLOURS_FILE)
+    assert script.main([str(source), str(sheet_path), str(output)]) == 0
+    written = pc.read_colours(output)
     assert written["FACE_T.TIZ"][1] == pc.screen_rgb(_sheet_colour(1))
+
+
+def test_the_shipped_table_has_the_expected_shape():
+    table = dp.load_colour_table(REPO / "plugins" / "lunar_sssc" / "face_palettes.json")
+    assert table
+    for name, colours in table.items():
+        assert name.startswith("FACE_") and name.endswith(".TIZ")
+        assert all(0 < value < 256 for value in colours)
+        assert all(len(rgb) == 3 and all(0 <= c <= 255 for c in rgb) for rgb in colours.values())
+
+
+def test_the_plugin_table_is_the_default_and_a_project_table_overrides_it(monkeypatch):
+    frames = [_frame(0)] * 5
+    files = {"FACE_T.TIZ": _member(frames)}
+    index = dp.index_faces(files)
+    palette = [(v, v, v) for v in range(256)]
+    monkeypatch.setattr(dp, "FACE_COLOURS", {"FACE_T.TIZ": {1: (9, 9, 9), 2: (8, 8, 8)}})
+    default = dp.face_picture(files, index, 0x6A, palette)
+    assert default.getpixel((4, 4)) == (9, 9, 9, 255)
+    assert default.getpixel((4 + 13, 4)) == (8, 8, 8, 255)
+    override = dp.face_picture(files, index, 0x6A, palette, {"FACE_T.TIZ": {1: (1, 2, 3)}})
+    assert override.getpixel((4, 4)) == (1, 2, 3, 255)        # the project's colour wins
+    assert override.getpixel((4 + 13, 4)) == (8, 8, 8, 255)   # the plugin's colour stays for the other index
+    assert override.getpixel((4 + 26, 4))[:3] == (3, 3, 3)    # neither table: the palette

@@ -1161,3 +1161,16 @@ followers are checked. The speaker resolver
 runs per place; a test with two blocks and the same two-word text gives one key, so no speaker depends on the block.
 **Rejected.** A `part` field in the key (keeps most folds apart, the fit check already covers size). Changing the
 manual's AI prompt (it stays as it is).
+
+## D47. The portrait colour table of Lunar SSSC ships in the plugin (2026-10-21, owner)
+
+**Context.** The FACE portraits are palette indices; the console colours are not in the game files that Picoripi
+reads. A reference sprite sheet has the colours, but a table built from it stays in each owner's folder and must be
+rebuilt per project.
+**Decision.** The owner allowed the portrait colour table in the plugin: `plugins/lunar_sssc/face_palettes.json`
+(index -> colour per `FACE_*.TIZ` member). The preview loads it by default. A project's `portrait_colours.json`, if
+present, overrides it per index. `scripts/lunar_portrait_colours.py` rebuilds the table from a sheet. This is the one
+exception to the rule that game colours and palettes stay out of the repository; the sheet image and the portrait
+images stay out.
+**Cost.** The repository carries game-derived colour data (about 50 KB). A change of the sheet or the matching needs a
+rebuild and a commit.

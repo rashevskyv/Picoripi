@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: module map
-tokens: 0.9k
+tokens: 1.0k
 ---
 # Карта коду (для супроводу)
 
@@ -63,3 +63,8 @@ tokens: 0.9k
 
 Як писати плагін: [3](3_Plugin_Developer_Guide.md).
 Як користуватися Picoripi Companion: [12](12_Picoripi_Companion.md).
+
+<!-- wiki-nav -->
+---
+
+**Назад:** [Посібник розробника плагінів](3_Plugin_Developer_Guide.md) · [До змісту вікі](README.md) · **Далі:** [Як вести цю вікі](7_Maintaining_This_Wiki.md)

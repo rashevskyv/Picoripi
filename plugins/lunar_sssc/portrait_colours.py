@@ -2,8 +2,8 @@
 
 A TIZ frame keeps its palette indices; the sheet keeps the colours. Each frame is matched to the sheet cell whose
 opaque pixels agree with the frame's non-zero indices, and whose colour is the same for every pixel with one index.
-Matched frames of one TIZ file vote an index -> RGB table. The table is written to the project folder
-(``portrait_colours.json``), never to the repository. Indices without a vote keep the palette fallback.
+Matched frames of one TIZ file vote an index -> screen RGB table. The shipped table is
+``face_palettes.json``, built by ``scripts/lunar_portrait_colours.py``. Indices without a vote keep the palette fallback.
 """
 from __future__ import annotations
 
@@ -147,7 +147,7 @@ def write_colours(path: Path, colours: Colours) -> None:
     fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=path.name + ".", suffix=".tmp")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            json.dump(data, handle, indent=1)
+            json.dump(data, handle, separators=(",", ":"))
             handle.write("\n")
         os.replace(tmp, path)
     except BaseException:
@@ -158,11 +158,4 @@ def write_colours(path: Path, colours: Colours) -> None:
 
 def read_colours(path: Path) -> Colours:
     """The colour table written by ``write_colours``; empty when the file is absent."""
-    if not path.is_file():
-        return {}
-    raw = json.loads(path.read_text(encoding="utf-8"))
-    return {name: {int(value): _hex_rgb(text) for value, text in table.items()} for name, table in raw.items()}
-
-
-def _hex_rgb(text: str) -> Tuple[int, int, int]:
-    return int(text[1:3], 16), int(text[3:5], 16), int(text[5:7], 16)
+    return dp.load_colour_table(path)

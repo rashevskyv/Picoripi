@@ -1,8 +1,8 @@
 """The dialogue window preview of Lunar (GameRules.get_custom_preview_widget): the game's window, portrait and font.
 
 The program's font and the portrait files are read in a worker thread; the widget only draws what the pure
-logic in ``dialogue_preview`` returns. Portrait colours come from the project's ``portrait_colours.json`` when it
-exists; other indices use ``PEO.PAL``.
+logic in ``dialogue_preview`` returns. Portrait colours come from the plugin's ``face_palettes.json``; the
+project's ``portrait_colours.json``, when it exists, overrides them.
 """
 from __future__ import annotations
 
@@ -71,7 +71,7 @@ class LunarDialoguePreview(QWidget):
         self._source_key = ""
         self._picture = QLabel(self)
         self._picture.setMinimumSize(320 * ZOOM, 240 * ZOOM)
-        self._picture.setToolTip(tr("Portrait colours come from portrait_colours.json when the project has it; other indices use PEO.PAL."))
+        self._picture.setToolTip(tr("Portrait colours come from the plugin table; the project's portrait_colours.json overrides it."))
         self._prev = QPushButton(tr("Previous page"), self)
         self._next = QPushButton(tr("Next page"), self)
         self._prev.clicked.connect(lambda: self._turn(-1))

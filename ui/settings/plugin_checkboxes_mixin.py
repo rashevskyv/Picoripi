@@ -61,7 +61,7 @@ class PluginCheckboxesMixin:
 
     def _setup_detection_subtab(self, tab):
         """Internal helper to setup detection subtab."""
-        self._populate_checkbox_subtab(tab, self.detection_checkboxes, "Enable/disable problem detection:")
+        self._populate_checkbox_subtab(tab, self.detection_checkboxes, tr("Enable/disable problem detection:"))
 
     def _setup_autofix_subtab(self, tab):
         """Internal helper to setup autofix subtab."""
@@ -82,6 +82,6 @@ class PluginCheckboxesMixin:
         layout.addWidget(general_group)
         
         sub_widget = QWidget(tab)
-        self._populate_checkbox_subtab(sub_widget, self.autofix_checkboxes, "Enable/disable auto-fix for specific problems:")
+        self._populate_checkbox_subtab(sub_widget, self.autofix_checkboxes, tr("Enable/disable auto-fix for specific problems:"))
         layout.addWidget(sub_widget)
         layout.addStretch(1)

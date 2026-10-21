@@ -6,6 +6,7 @@ The project's source folder is the ``source`` folder the workspace's unpack step
 ``SLUS_006.28`` (the font, Tools -> Font Editor) and the TIM pictures (Tools -> Textures). Saving
 writes the same files into the translation folder; the build step puts them back on both discs.
 """
+import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -14,9 +15,12 @@ from utils.logging_utils import log_debug, log_warning
 from core.i18n import tr
 from utils.utils import clean_spaces
 
-from . import doc, voice
+from . import doc, subtitle_timing, voice
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
+from .subtitle_timing import Timing
 from .tag_manager import TagManager
+
+SUBTITLE_SCRIPT = "LUNADATA/TEXT001.DAT"    # the event script that holds the opening monologue's subtitles
 
 TAG_TIPS = {
     "{wait}": "Wait for a button, then go on on the same page.",
@@ -66,7 +70,7 @@ class GameRules(BaseGameRules):
         data = bytes(json_obj)
         self._last_loaded = data
         try:
-            blocks, names = self.text_doc.read(data)
+            blocks, names = self.text_doc.read(data, **self._timing_kwargs())
         except (ValueError, IndexError) as error:       # the script errors are ValueErrors
             log_debug(f"{self.problem_prefix}: not a Lunar text file ({error})")
             return [[]], {}
@@ -83,7 +87,7 @@ class GameRules(BaseGameRules):
         if source is None:
             return super().save_data_to_json_obj(data, block_names)
         missing: Set[str] = set()
-        out = self.text_doc.write(source, data or [], missing)
+        out = self.text_doc.write(source, data or [], missing, **self._timing_kwargs())
         if missing:
             log_warning(f"{self.problem_prefix}: {self._save_name or 'file'}: characters the game cannot write were saved "
                         f"as '?': {''.join(sorted(missing))}")
@@ -133,7 +137,7 @@ class GameRules(BaseGameRules):
         return sum(1 for clip in voice.CLIPS if voice.apply_translation(build_disc_path, clip, voice_dir))
 
     def get_plugin_actions(self) -> List[Dict[str, Any]]:
-        return [{
+        actions = [{
             "name": "lunar_voice_clips",
             "text": tr("Voice clips..."),
             "tooltip": tr("Export the opening monologue, import a translated WAV, play it"),
@@ -141,6 +145,93 @@ class GameRules(BaseGameRules):
             "handler": self._open_voice_clips,
             "menu": "Tools",
         }]
+        if self.text_doc is doc:
+            actions.append({
+                "name": "lunar_subtitle_timing",
+                "text": tr("Voice subtitles timing..."),
+                "tooltip": tr("Time the subtitle lines of the opening monologue against its voice"),
+                "shortcut": None,
+                "handler": self._open_subtitle_timing,
+                "menu": "Tools",
+            })
+        return actions
+
+    # -- subtitle timing (Tools -> Voice subtitles timing) --------------------------
+    # The timing is a plugin file in the translation's voice folder. Saving the project writes the
+    # subtitle messages of TEXT001 with it, so the editor asks for a save after a change.
+
+    def _project_dir(self) -> Optional[str]:
+        return getattr(getattr(getattr(self, "mw", None), "project_manager", None), "project_dir", None) or None
+
+    def _timing_kwargs(self) -> Dict[str, Any]:
+        """The timing argument of the text module; Lunar 2 (its own module) takes none."""
+        if self.text_doc is not doc:
+            return {}
+        return {"timing": self.timing_for(self._project_dir() or "")}
+
+    def _timing_file(self, project_dir: str) -> Path:
+        return self._workspace(project_dir) / "translation" / "voice" / subtitle_timing.TIMING_FILE
+
+    def timing_for(self, project_dir: str) -> Timing:
+        """The saved timing of the project; the built-in one when there is no file or it is unreadable."""
+        if not project_dir:
+            return subtitle_timing.defaults()
+        try:
+            timing = subtitle_timing.read_file(self._timing_file(project_dir))
+        except ValueError as error:
+            log_warning(f"{self.problem_prefix}: {error}; the built-in timing is used")
+            return subtitle_timing.defaults()
+        return timing or subtitle_timing.defaults()
+
+    def save_subtitle_timing(self, project_dir: str, timing: Timing) -> str:
+        path = self._timing_file(project_dir)
+        subtitle_timing.write_file(path, timing)
+        return str(path)
+
+    def subtitle_audio(self, project_dir: str) -> Tuple[List[int], int]:
+        """The opening monologue as samples: the translated WAV when there is one, else the original."""
+        clip = voice.OPENING_MONOLOGUE
+        wav = self._workspace(project_dir) / "translation" / "voice" / f"{clip.id}.wav"
+        if wav.is_file():
+            return voice.read_wav(wav, clip.rate), clip.rate
+        disc = self.get_voice_clips(project_dir)[0]["disc"]
+        return voice.original_samples(disc, clip), clip.rate
+
+    def subtitle_play_file(self, project_dir: str) -> str:
+        """A WAV of the monologue that the editor can play (in the temporary folder, not the project)."""
+        samples, rate = self.subtitle_audio(project_dir)
+        path = Path(tempfile.gettempdir()) / "picoripi_lunar_subtitles" / f"{voice.OPENING_MONOLOGUE.id}.wav"
+        voice.write_wav(path, samples, rate)
+        return str(path)
+
+    def subtitle_state(self, project_dir: str) -> Dict[str, Any]:
+        """Everything the timing editor shows, read in a worker: the timing, the cue texts of the source and
+        the translation, the waveform peaks, the clip length and the speech spans of its audio."""
+        timing = self.timing_for(project_dir)
+        workspace = self._workspace(project_dir)
+        samples, rate = self.subtitle_audio(project_dir)
+        return {
+            "timing": timing,
+            "source": self._cue_texts(workspace / "source", timing),
+            "translation": self._cue_texts(workspace / "translation", timing),
+            "peaks": voice.peaks(samples),
+            "duration": len(samples) / rate,
+            "spans": voice.speech_spans(samples, rate),
+        }
+
+    def _cue_texts(self, folder: Path, timing: Timing) -> List[str]:
+        path = folder / SUBTITLE_SCRIPT
+        if not path.is_file():
+            return []
+        blocks, _names = doc.read(path.read_bytes(), timing)
+        return blocks[1] if len(blocks) > 1 else []
+
+    def _open_subtitle_timing(self) -> None:
+        from .subtitle_timing_dialog import SubtitleTimingDialog
+        project_dir = self._project_dir()
+        if not project_dir:
+            return
+        SubtitleTimingDialog(self, project_dir, self.mw).exec()
 
     def _open_voice_clips(self) -> None:
         from .voice_dialog import VoiceClipsDialog

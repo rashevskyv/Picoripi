@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/settings
-tokens: 3.1k
+tokens: 3.2k
 ---
 # Налаштування
 
@@ -144,3 +144,8 @@ flowchart TD
 - Не ставте в прикладах вікі чи README абсолютні шляхи машини.
 
 Щоб заповнити український каталог (або пізніше інші мови): запустіть Gemini Web2API, потім `tools/i18n-translate/run.bat`. У вікні оберіть мови; **Ukrainian увімкнений типово**. Коли в каталозі вже є переклад, мова з’являється в **Language**; назва — з `@language_name` у тому JSON. Відсутні рядки лишаються англійськими.
+
+<!-- wiki-nav -->
+---
+
+**Назад:** [Picoripi Companion (мобільний PWA та синхронізація)](12_Picoripi_Companion.md) · [До змісту вікі](README.md) · **Далі:** [Посібник розробника плагінів](3_Plugin_Developer_Guide.md)

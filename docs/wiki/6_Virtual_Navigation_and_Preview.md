@@ -88,3 +88,8 @@ Above Editable: **Window:**, **Chapter:**, **Speaker:**, Font / Max-width. Same 
 - `None` in Speaker clears the assignment.
 
 **Do not** invent speakers for empty padding slots; those rows are not in Speakers.
+
+<!-- wiki-nav -->
+---
+
+**Previous:** [Gemini Web2API (WebTOP)](5_Gemini_Web2API.md) · [Back to the wiki index](README.md) · **Next:** [Script Markup Studio](9_Script_Markup.md)

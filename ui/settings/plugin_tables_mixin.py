@@ -29,7 +29,7 @@ class PluginTablesMixin:
         single_group = QGroupBox(tr('Single Tags (RMB without selection)'), self)
         single_layout = QVBoxLayout(single_group)
         self.single_tags_table = QTableWidget(0, 2, self)
-        self.single_tags_table.setHorizontalHeaderLabels(["Display (Emoji/Hex)", "Tag"])
+        self.single_tags_table.setHorizontalHeaderLabels([tr("Display (Emoji/Hex)"), tr("Tag")])
         
         header = self.single_tags_table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -58,7 +58,7 @@ class PluginTablesMixin:
         wrap_group = QGroupBox(tr('Wrap Tags (RMB with selection)'), self)
         wrap_layout = QVBoxLayout(wrap_group)
         self.wrap_tags_table = QTableWidget(0, 3, self)
-        self.wrap_tags_table.setHorizontalHeaderLabels(["Display (Emoji/Hex)", "Opening Tag", "Closing Tag"])
+        self.wrap_tags_table.setHorizontalHeaderLabels([tr("Display (Emoji/Hex)"), tr("Opening Tag"), tr("Closing Tag")])
         
         header_wrap = self.wrap_tags_table.horizontalHeader()
         header_wrap.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)

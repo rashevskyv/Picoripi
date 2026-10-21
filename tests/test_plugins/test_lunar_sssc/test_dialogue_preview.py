@@ -62,7 +62,8 @@ def test_index_faces_maps_each_id_to_its_frame():
     assert index[0x6E] == ("FACE_022.TIZ", 4)
 
 
-def test_face_picture_uses_the_frame_and_keeps_index_zero_transparent():
+def test_face_picture_uses_the_frame_and_keeps_index_zero_transparent(monkeypatch):
+    monkeypatch.setattr(dp, "FACE_COLOURS", {})     # the palette path only; the plugin table has its own tests
     files = {"FACE_022.TIZ": _face_member([0x6A, 0x6B, 0x6C, 0x6D, 0x6E], fill=1)}
     palette = dp.palette_from_file(_palette())
     picture = dp.face_picture(files, dp.index_faces(files), 0x6A, palette)

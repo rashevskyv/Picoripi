@@ -64,3 +64,8 @@ This is not a generated dump of every method. It points at the modules that impl
 
 How-to for writing a plugin: [3](3_Plugin_Developer_Guide.md).
 How-to for Picoripi Companion: [12](12_Picoripi_Companion.md).
+
+<!-- wiki-nav -->
+---
+
+**Previous:** [Plugin Developer Guide](3_Plugin_Developer_Guide.md) · [Back to the wiki index](README.md) · **Next:** [Maintaining this wiki](7_Maintaining_This_Wiki.md)

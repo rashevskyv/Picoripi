@@ -26,7 +26,7 @@ class PluginAliasesMixin:
         
         # Table
         self.aliases_table = QTableWidget(0, 2, tab)
-        self.aliases_table.setHorizontalHeaderLabels(["Alias (e.g. {F:Link})", "Original Tag (e.g. {escape:0:0000})"])
+        self.aliases_table.setHorizontalHeaderLabels([tr("Alias (e.g. {F:Link})"), tr("Original Tag (e.g. {escape:0:0000})")])
         self.aliases_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.aliases_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.aliases_table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
