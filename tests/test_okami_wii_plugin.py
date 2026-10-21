@@ -108,3 +108,34 @@ def test_rules_use_the_big_endian_codec_and_declare_the_wii_platform():
     assert [p["id"] for p in rules.get_platforms()] == ["wii"]
     lines, names = rules.load_data_from_json_obj(be_container([charset.CHAR_TO_CODE["H"]]))
     assert lines == [["H"]] and names == {"0": "messages"}
+
+
+def test_changed_entries_map_to_the_disc_archives(tmp_path):
+    translation = tmp_path / "translation"
+    (translation / "afs" / "DATA0").mkdir(parents=True)
+    (translation / "afs" / "DATA1").mkdir(parents=True)
+    (translation / "afs" / "DATA0" / "0005.bin").write_bytes(b"text")
+    (translation / "afs" / "DATA1" / "0002.bin").write_bytes(b"more")
+    changes = build.read_changes(str(tmp_path / "source"), str(translation))
+    assert changes == {"files/_data0.afs": {5: b"text"}, "files/_data1.afs": {2: b"more"}}
+
+
+def test_the_disc_target_is_declared_next_to_the_file_target():
+    ids = [target["id"] for target in GameRules().get_build_targets()]
+    assert ids == [build.ISO_TARGET, build.TARGET_ID]
+
+
+def test_disc_build_needs_the_unpacked_folder_and_the_key_file(tmp_path, monkeypatch):
+    import pytest
+
+    with pytest.raises(ValueError, match="unpack the disc again"):
+        build.build_iso(str(tmp_path), str(tmp_path), str(tmp_path / "out"), lambda d, t: None, lambda: False)
+    (tmp_path / build.REF_NAME).write_text('{"image": "%s"}' % (tmp_path / "missing.iso").as_posix(), encoding="utf-8")
+    with pytest.raises(ValueError, match="not on disk"):
+        build.build_iso(str(tmp_path), str(tmp_path), str(tmp_path / "out"), lambda d, t: None, lambda: False)
+    image = tmp_path / "disc.iso"
+    image.write_bytes(b"")
+    (tmp_path / build.REF_NAME).write_text('{"image": "%s"}' % image.as_posix(), encoding="utf-8")
+    monkeypatch.setattr(build.console_keys, "path_for", lambda console: None)
+    with pytest.raises(ValueError, match="Wii key file"):
+        build.build_iso(str(tmp_path), str(tmp_path), str(tmp_path / "out"), lambda d, t: None, lambda: False)
