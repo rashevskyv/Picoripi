@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Callable, Dict, Any, Tuple, Set, Optional, List
 from collections import OrderedDict
 from plugins.base_game_rules import BaseGameRules
-from plugins.common import name_seeds
+from core.i18n import tr
+from plugins.common import name_seeds, pokemon_recomp
 from plugins.common.block_loader import ReadThrough, rescan_block, source_of
 from plugins.common.series_tags import TagMap, body_kind
 from .config import (
@@ -462,13 +463,19 @@ class GameRules(BaseGameRules):
         return rom_project.unpack(rom, target_dir, progress, is_cancelled)
 
     def get_build_targets(self) -> List[Dict[str, Any]]:
-        return [{"id": "rom", "label": "Patched ROM", "platforms": ["gba"], "kind": "patch"}]
+        return [{"id": "rom", "label": "Patched ROM", "platforms": ["gba"], "kind": "patch"},
+                {"id": pokemon_recomp.TARGET_ID, "label": tr("Recomp package (EmeraldRecomp, FireRedLeafGreenRecomp)"),
+                 "platforms": ["gba"], "kind": "files"}]
 
     def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
                      progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> str:
-        if target_id != "rom":
-            raise ValueError(f"Unknown build target: {target_id}")
-        return rom_project.build(source_dir, translation_dir, output_dir, progress, is_cancelled)
+        if target_id == "rom":
+            return rom_project.build(source_dir, translation_dir, output_dir, progress, is_cancelled)
+        if target_id == pokemon_recomp.TARGET_ID:
+            return pokemon_recomp.build_packages(
+                source_dir, translation_dir, output_dir,
+                lambda s, t, o: rom_project.build(s, t, o, progress, is_cancelled), progress, is_cancelled)
+        raise ValueError(f"Unknown build target: {target_id}")
 
     def _budgets_of(self, block_idx: int) -> Optional[Tuple[Dict[str, int], Any]]:
         """The budgets of a block's text folder, from memory. Read off the UI thread once per block (an old project's

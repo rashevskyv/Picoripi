@@ -77,6 +77,12 @@ def decode_rzip(blob: bytes) -> Tuple[bytes, int]:
     return payload, consumed
 
 
+def encode_rzip(payload: bytes, level: int = 9) -> bytes:
+    """One RZIP entry: big-endian u32 decoded length, then a raw deflate stream (zlib, RFC 1951)."""
+    deflater = zlib.compressobj(level, zlib.DEFLATED, -15)
+    return struct.pack(">I", len(payload)) + deflater.compress(payload) + deflater.flush()
+
+
 @dataclass(frozen=True)
 class AssetBank:
     index: int

@@ -1,7 +1,8 @@
 """A Lunar text file as Picoripi blocks, and the file again from edited blocks.
 
-Two kinds of file: an event script (``LUNADATA/TEXTnnn.DAT``, one block: its messages and the two
-answers of each yes/no choice, in file order) and the name and menu tables
+Two kinds of file: an event script (``LUNADATA/TEXTnnn.DAT``: one block with its messages and the two
+answers of each yes/no choice, in file order; the opening script also has a block "Voice subtitles" with one
+line per speech segment, see ``voice_subtitles``) and the name and menu tables
 (``LUNADATA/SYSTEM.DAT/00_0001.bin``, one block per table that is not empty). A text that comes back
 unchanged keeps its original bytes, so an unedited file is rebuilt byte for byte.
 """
@@ -9,9 +10,10 @@ from __future__ import annotations
 
 from typing import Dict, List, Set, Tuple
 
-from . import codec, script, strings
+from . import codec, script, strings, voice_subtitles
 
 Blocks = List[List[str]]
+SUBTITLE_BLOCK = "Voice subtitles"
 
 
 def kind(data: bytes) -> str:
@@ -39,12 +41,19 @@ def read(data: bytes) -> Tuple[Blocks, Dict[str, str]]:
             names[str(len(blocks))] = strings.NAMES[t]
             blocks.append([codec.decode(data, offset, data.index(b"\xff", offset) + 1) for _slot, offset in tables[t]])
         return blocks, names
+    if voice_subtitles.present(data):
+        lines = _script_lines(voice_subtitles.without(data))
+        return [lines, voice_subtitles.lines_of(data)], {"1": SUBTITLE_BLOCK}
+    return [_script_lines(data)], {}
+
+
+def _script_lines(data: bytes) -> List[str]:
     lines: List[str] = []
     for text in script.parse(data):
         for start, end in text.strings:
             lines.append(codec.decode_message(data, start, end) if text.kind == script.MESSAGE
                          else codec.decode(data, start, end))
-    return [lines], {}
+    return lines
 
 
 def write(source: bytes, blocks: Blocks, missing: Set[str]) -> bytes:
@@ -64,26 +73,32 @@ def write(source: bytes, blocks: Blocks, missing: Set[str]) -> bytes:
     lines = blocks[0] if blocks else []
     replaced: Dict[int, bytes] = {}
     index = 0
-    for text in script.parse(source):
+    subtitled = voice_subtitles.present(source)
+    base = voice_subtitles.without(source) if subtitled else source
+    for text in script.parse(base):
         parts = []
         changed = False
         for start, end in text.strings:
-            old = (codec.decode_message(source, start, end) if text.kind == script.MESSAGE
-                   else codec.decode(source, start, end))
+            old = (codec.decode_message(base, start, end) if text.kind == script.MESSAGE
+                   else codec.decode(base, start, end))
             new_text = lines[index] if index < len(lines) else old
             index += 1
             if new_text != old:
                 changed = True
-            parts.append((new_text, old, source[start:end]))
+            parts.append((new_text, old, base[start:end]))
         if not changed:
             continue
         if text.kind == script.MESSAGE:
             new_text, _old, _raw = parts[0]
             body = encoder.message(new_text)
-            head = source[text.start:text.start + 2]
+            head = base[text.start:text.start + 2]
         else:
             body = b"".join(encoder.string(t) if t != o else raw for t, o, raw in parts)
-            head = source[text.start:text.start + 6]
+            head = base[text.start:text.start + 6]
         replaced[text.start] = head + script.pad(body, text.size, len(head), body[-1], codec.filler(body[-1]))
     missing |= encoder.missing
-    return script.rebuild(source, replaced)
+    out = script.rebuild(base, replaced)
+    if subtitled:
+        subs = blocks[1] if len(blocks) > 1 else voice_subtitles.lines_of(source)
+        out = voice_subtitles.with_lines(out, subs)
+    return out

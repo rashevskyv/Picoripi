@@ -1396,7 +1396,11 @@ class ProjectManagerDialog(QDialog):
         elif mode == "export":
             self._set_action_text(key, tr("Exported to {0}", path))
         else:
-            self._set_action_text(key, tr("Built: {0}", path))
+            warnings = build.read_warnings(path)
+            if warnings:
+                self._set_action_text(key, tr("Built: {0} ({1} warnings: {2})", path, len(warnings), warnings[0]))
+            else:
+                self._set_action_text(key, tr("Built: {0}", path))
 
     def _on_action_ended(self, key: str, text: str) -> None:
         self._action_jobs.pop(key, None)

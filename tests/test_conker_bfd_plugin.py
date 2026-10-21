@@ -6,7 +6,7 @@ import pytest
 
 from plugins.conker_bfd import font, n64_archive as na, preview, text_blocks, voice
 from plugins.conker_bfd.config import PROBLEM_CHARACTER, PROBLEM_LENGTH
-from plugins.conker_bfd.rules import FORMAT_ID, GameRules
+from plugins.conker_bfd.rules import LEGACY_FORMAT_ID, GameRules
 
 
 def rzip(payload: bytes) -> bytes:
@@ -190,7 +190,7 @@ def synthetic_text_table(texts):
     for text in texts:
         segments.append({"kind": "bin", "hex": "0001"})
         segments.append({"kind": "text", "text": text})
-    return {"format": FORMAT_ID, "source": "bank_1A/entry_0000", "bytes": 0,
+    return {"format": LEGACY_FORMAT_ID, "source": "bank_1A/entry_0000", "bytes": 0,
             "segments": segments, "font": font_block}
 
 

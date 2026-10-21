@@ -1,6 +1,6 @@
 [
   {"label": "Main text font (font_ja)", "format": "g4font", "path": "data/common/font/font/font_ja/font.cfg.bin",
-   "companion": "data/nx/font/font_ja/font.g4tx", "params": {"font": 0}},
+   "companion": "data/nx/font/font_ja/font.g4tx", "params": {"font": 0}, "font_map": "font_ja.json", "preview": true},
   {"label": "Furigana font (font_ja, small)", "format": "g4font", "path": "data/common/font/font/font_ja/font.cfg.bin",
    "companion": "data/nx/font/font_ja/font.g4tx", "params": {"font": 1}},
   {"label": "Default font (font_def)", "format": "g4font", "path": "data/common/font/font/font_def/font.cfg.bin",

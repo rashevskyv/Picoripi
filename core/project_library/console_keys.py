@@ -14,7 +14,8 @@ from typing import Dict, Optional, Tuple
 
 from utils import constants
 
-CONSOLES = ("3ds", "switch", "wii", "oodle")   # "oodle": the Oodle core library (a DLL path), not a key file
+CONSOLES = ("3ds", "switch", "wii", "oodle", "psx_bios")   # "oodle": the Oodle core library (a DLL path), not a key file;
+# "psx_bios": the PlayStation BIOS file (its font table is read for the menu lines; no BIOS data is shipped)
 STORE_NAME = "console_keys.json"
 
 

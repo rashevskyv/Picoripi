@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-14
 owns: decisions and their reasons
-tokens: 28.4k
+tokens: 28.3k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -935,7 +935,7 @@ the loose FST at boot and ignores the manifest for it (measured). The ported gly
 **Context.** The owner's New 3DS screenshots (`shots_r19`, 114 pairs dated 2011-01-01 by the console clock) showed
 table labels cut at the cell edge, captions running into each other and lines past the card edge. A first match
 against rounds 17–19 gave a median text difference of 7.5 / 255 where the older pairs gave 1.3: 103 of the 113 pairs
-were shot with the card copy `D:\RomHacking_tmp\calib\nd000_card_1653.bin` (also `calib\nd000`), a build no tmp folder
+were shot with the card copy nd000_card_1653.bin (also `calib\nd000`), a build no tmp folder
 holds; matched to it the median is 1.1. The "AABBB CCC DDD" and lone "I" / "J" texts on two pairs are the owner's own
 width-calibration probes (`calib_v2`-era builds), not viewer panes; those two pairs and 34 more in `shots_r19_new`
 are byte-identical copies of `shots_new` and `shots_r17b`.

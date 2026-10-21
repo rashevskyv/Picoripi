@@ -9,7 +9,10 @@ from utils.logging_utils import log_debug, log_warning
 
 from . import codec
 from . import doc as docs
+from . import scroll
+from . import text_window
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
+from .problem_analyzer import ProblemAnalyzer
 from .tag_manager import TAG_PATTERN, TagManager
 
 _PLUGIN_DIR = Path(__file__).resolve().parent
@@ -30,6 +33,10 @@ _ROLES = {
                                       "line and 4 lines a page; tags such as {WAIT 30} or {SPEED 02} time the "
                                       "text and must stay."),
     "credits": ("Staff roll", "One staff roll line; the leading tag ({ENTRY 10}) holds its kind and position."),
+    "caption": ("Prologue caption", "One line of the prologue scroll in the console's 12 x 16 font: 12 px a letter, "
+                                    "8 px a space; the line must fit the 512 px panel right of its x offset. "
+                                    "{PAGE} at the end of a line ends the page; keep it. Ї Є Ґ (and lowercase) are "
+                                    "drawn from the caption's own letter table."),
 }
 
 
@@ -46,6 +53,7 @@ class GameRules(BaseGameRules):
 
     problem_prefix = PLUGIN_PREFIX
     problem_definitions = PROBLEM_DEFINITIONS
+    problem_analyzer_class = ProblemAnalyzer
     tag_manager_class = TagManager
     tag_style = "curly"
 
@@ -167,18 +175,82 @@ class GameRules(BaseGameRules):
             log_debug(f"castlevania_sotn: no line behind block {block_idx} string {string_idx}: {error}")
             return None
 
+    def get_menu_source_offset(self, block_idx: int, string_idx: int) -> Optional[int]:
+        """The file offset (DRA.BIN source) of a DRA string line, or None for any other line. Reads only."""
+        found = self._line(block_idx, string_idx)
+        if found is None:
+            return None
+        doc_, line = found
+        if doc_.path != "DRA.BIN" or not line.ref or line.ref[0] != "s":
+            return None
+        return int(docs.layout()["files"]["DRA.BIN"]["strings"][line.ref[1]]["at"])
+
     def get_message_attributes(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
         found = self._line(block_idx, string_idx)
         if found is None:
             return None
         _doc, line = found
         attributes: Dict[str, Any] = {"kind": line.kind, "where": line.where,
-                                      "font": "bios" if line.enc == "sj" else "8x8"}
+                                      "font": "bios" if line.enc in ("sj", "sc") else "8x8"}
         if line.room:
             attributes["bytes_available"] = line.room - (2 if line.enc == "s8" else 1)
         if line.speaker:
             attributes["speaker"] = line.speaker
         return attributes
+
+    def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
+        """Cutscene dialogue is drawn in the 8x8 font in a strip of ``text_window.TEXT_WIDTH`` pixels. Other lines
+        keep the global widths: their fonts (the console's 12x16 font) have no widths on the disc."""
+        found = self._line(block_idx, string_idx)
+        if found is None or found[1].kind != "dialogue":
+            return None
+        return {"max_width": text_window.TEXT_WIDTH, "warn_width": text_window.TEXT_WIDTH}
+
+    def get_dialogue_place(self, block_idx: int, string_idx: int) -> Optional[Tuple[int, int]]:
+        """The window place (startX, startY) that the cutscene line's POS command sets, or None."""
+        found = self._line(block_idx, string_idx)
+        return tuple(found[1].place) if found is not None and found[1].place else None
+
+    def get_caption_page(self, block_idx: int, string_idx: int) -> Optional[Tuple[List[Tuple[int, bytes]], int]]:
+        """The page of the prologue caption that holds the line: ((x, text bytes) per line, the line's index in
+        the page), or None for any other line. Reads only; the preview draws the page on the caption panel."""
+        found = self._line(block_idx, string_idx)
+        if found is None or found[1].enc != "sc":
+            return None
+        parsed, line = found
+        block = next((b for b in parsed.blocks if any(item is line for item in b)), None)
+        if block is None:
+            return None
+        index = next(i for i, item in enumerate(block) if item is line)
+        first = index
+        while first > 0 and not block[first - 1].plain.endswith(scroll.PAGE_TAG):
+            first -= 1
+        last = index
+        while last + 1 < len(block) and not block[last].plain.endswith(scroll.PAGE_TAG):
+            last += 1
+        return [(item.x, item.raw) for item in block[first:last + 1]], index - first
+
+    def caption_too_wide(self, block_idx: int, string_idx: int, text: str) -> Optional[bool]:
+        """Whether a prologue caption line (its editor text) is wider than the panel right of its x offset:
+        True or False for a caption line, None for any other line. Reads only."""
+        found = self._line(block_idx, string_idx)
+        if found is None or found[1].enc != "sc":
+            return None
+        try:
+            raw, _brk = scroll.from_editor(text, last=False)
+        except scroll.ScrollError:
+            return False          # a misplaced {PAGE} is another problem; the width is not judged
+        return scroll.line_too_wide(raw, found[1].x)
+
+    def get_stage_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
+        """The stage code of the line's script file (``ST0`` for the prologue), or None."""
+        found = self._line(block_idx, string_idx)
+        return docs.stage_code(found[0].path) if found is not None else None
+
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """The cutscene window with the 8x8 font (text_preview.py)."""
+        from plugins.castlevania_sotn.text_preview import SotnTextPreview
+        return SotnTextPreview(main_window)
 
     def get_translation_context_for_string(self, block_idx: int, string_idx: int) -> Dict[str, Any]:
         found = self._line(block_idx, string_idx)
@@ -202,7 +274,11 @@ class GameRules(BaseGameRules):
 
     def get_ai_flow_group_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
         found = self._line(block_idx, string_idx)
-        if found is None or found[1].enc != "cs":
+        if found is None:
+            return None
+        if found[1].enc == "sc":
+            return f"{found[0].path}#caption"
+        if found[1].enc != "cs":
             return None
         return f"{found[0].path}#cutscene{found[1].ref[1]}"
 

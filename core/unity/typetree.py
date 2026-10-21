@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import struct
 from dataclasses import dataclass, field
-from typing import Any, List
+from typing import Any, Callable, Dict, List, Optional
 
 from core.unity.binary import Reader, Writer
 from core.unity.common_strings import COMMON_STRINGS
@@ -58,8 +58,8 @@ def _string(buffer: bytes, value: int) -> str:
 
 
 def parse_blob(reader: Reader, version: int) -> Node:
-    """The type tree at the reader's position (version 10 and 12 to 21 layout); the reader moves past it."""
-    if version < 10 or version == 11 or version >= 22:
+    """The type tree at the reader's position (version 10 and 12 to 22 layout); the reader moves past it."""
+    if version < 10 or version == 11 or version >= 23:
         raise TypeTreeError(f"type tree version {version} is not supported")
     count = reader.unpack("i")
     buffer_size = reader.unpack("i")
@@ -114,33 +114,52 @@ def _is_vector(node: Node) -> bool:
     return bool(node.children) and node.children[0].type == "Array"
 
 
-def read_value(node: Node, reader: Reader) -> Any:
+Resolver = Callable[[Dict[str, Any]], Optional[Node]]
+
+
+def read_value(node: Node, reader: Reader, refs: Optional[Resolver] = None) -> Any:
+    """The value at the reader's position. ``refs`` maps a managed reference (its ``type`` dict) to the type tree of
+    its data (None for a null reference); without it a managed reference is refused."""
     align = _aligned(node)
     if _is_primitive(node):
         value = _primitive(reader, node)
     elif node.type == "ReferencedObject":
-        raise TypeTreeError(f"{node.type} is not supported")
+        value = _read_referenced(node, reader, refs)
     elif _is_vector(node):
         if _aligned(node.children[0]):
             align = True
         size = reader.unpack("i")
         if size < 0:
             raise TypeTreeError("negative array length")
-        value = _read_array(node.children[0].children[1], reader, size)
+        value = _read_array(node.children[0].children[1], reader, size, refs)
     else:
         value = {}
         for child in node.children:
-            if child.type == "ManagedReferencesRegistry":
-                raise TypeTreeError("managed references are not supported")
-            value[child.name] = read_value(child, reader)
+            value[child.name] = read_value(child, reader, refs)
     if align:
         reader.align()
     return value
 
 
-def _read_array(subtype: Node, reader: Reader, size: int) -> List[Any]:
+def _read_referenced(node: Node, reader: Reader, refs: Optional[Resolver]) -> Dict[str, Any]:
+    """A managed reference: its id and type are read first; its data is read with the type tree the type names."""
+    value: Dict[str, Any] = {}
+    for child in node.children:
+        if child.type == "ReferencedObjectData":
+            if refs is None:
+                raise TypeTreeError("managed references need the file's reference types")
+            target = refs(value)
+            if target is None:
+                continue
+            value[child.name] = read_value(target, reader, refs)
+        else:
+            value[child.name] = read_value(child, reader, refs)
+    return value
+
+
+def _read_array(subtype: Node, reader: Reader, size: int, refs: Optional[Resolver] = None) -> List[Any]:
     if not _aligned(subtype):
-        return [read_value(subtype, reader) for _ in range(size)]
+        return [read_value(subtype, reader, refs) for _ in range(size)]
     if subtype.type in _PRIMITIVE:
         fmt = _PRIMITIVE[subtype.type]
         raw = reader.bytes(struct.calcsize(fmt) * size)
@@ -148,35 +167,47 @@ def _read_array(subtype: Node, reader: Reader, size: int) -> List[Any]:
     elif subtype.type == "string":
         values = [reader.aligned_str() for _ in range(size)]
     else:
-        values = [read_value(subtype, reader) for _ in range(size)]
+        values = [read_value(subtype, reader, refs) for _ in range(size)]
     reader.align()
     return values
 
 
-def write_value(node: Node, value: Any, writer: Writer) -> None:
+def write_value(node: Node, value: Any, writer: Writer, refs: Optional[Resolver] = None) -> None:
+    """Write ``value`` as ``read_value`` reads it; ``refs`` resolves managed references as it does."""
     align = _aligned(node)
     if _is_primitive(node):
         _write_primitive(writer, node, value)
     elif node.type == "ReferencedObject":
-        raise TypeTreeError(f"{node.type} is not supported")
+        _write_referenced(node, value, writer, refs)
     elif _is_vector(node):
         if _aligned(node.children[0]):
             align = True
         writer.pack("i", len(value))
-        _write_array(node.children[0].children[1], value, writer)
+        _write_array(node.children[0].children[1], value, writer, refs)
     else:
         for child in node.children:
-            if child.type == "ManagedReferencesRegistry":
-                raise TypeTreeError("managed references are not supported")
-            write_value(child, value[child.name], writer)
+            write_value(child, value[child.name], writer, refs)
     if align:
         writer.align()
 
 
-def _write_array(subtype: Node, values: List[Any], writer: Writer) -> None:
+def _write_referenced(node: Node, value: Dict[str, Any], writer: Writer, refs: Optional[Resolver]) -> None:
+    for child in node.children:
+        if child.type == "ReferencedObjectData":
+            if refs is None:
+                raise TypeTreeError("managed references need the file's reference types")
+            target = refs(value)
+            if target is None:
+                continue
+            write_value(target, value[child.name], writer, refs)
+        else:
+            write_value(child, value[child.name], writer, refs)
+
+
+def _write_array(subtype: Node, values: List[Any], writer: Writer, refs: Optional[Resolver] = None) -> None:
     if not _aligned(subtype):
         for item in values:
-            write_value(subtype, item, writer)
+            write_value(subtype, item, writer, refs)
         return
     if subtype.type in _PRIMITIVE:
         fmt = _PRIMITIVE[subtype.type]
@@ -186,5 +217,5 @@ def _write_array(subtype: Node, values: List[Any], writer: Writer) -> None:
             writer.aligned_str(item)
     else:
         for item in values:
-            write_value(subtype, item, writer)
+            write_value(subtype, item, writer, refs)
     writer.align()

@@ -471,6 +471,8 @@ UI не вигадуємо: у програмі вже є інфраструкт
 
 Not a capability: `get_series_tag_map()` returns a `TagMap` (`plugins/common/series_tags.py`) that lets a translation carry across the games of a series when the games share tag kinds. Without the hook only identical text matches across games.
 
+Not a capability: `session_data_layout()` returns the version of a game's message rows in the session; `migrate_session_snapshot(snapshot)` maps a session with another version. The default is no version and no migration, so the sessions of other games are unchanged.
+
 Плагін, що не заявив нічого, бачить шість кроків замість семи, і жоден із них не
 падає на півдорозі. Розмітка скрипта не потребує здібності, але потребує самого
 скрипта: якщо його немає, крок каже `no script found for this game`, а не тягне

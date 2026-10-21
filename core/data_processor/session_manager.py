@@ -74,8 +74,17 @@ class SessionManager:
                 pass
             return False
 
+    def _session_layout(self) -> Optional[int]:
+        """The message-row layout the active plugin declares, or None when it declares none."""
+        hook = getattr(getattr(self.mw, "current_game_rules", None), "session_data_layout", None)
+        layout = hook() if callable(hook) else None
+        return layout if isinstance(layout, int) and not isinstance(layout, bool) else None
+
     def _attach_runtime_session_state(self, snapshot: dict) -> dict:
         """Add runtime-only state that lives outside AppDataStore."""
+        layout = self._session_layout()
+        if layout is not None:
+            snapshot["data_layout"] = layout
         ui_updater = getattr(self.mw, "ui_updater", None)
         get_tree_state = getattr(ui_updater, "get_tree_state", None)
         if callable(get_tree_state):
@@ -278,6 +287,8 @@ class SessionManager:
             "plugin_runtime_state": self._to_json_safe_value(snapshot.get("plugin_runtime_state")),
             "ui_tree_state": self._to_json_safe_value(snapshot.get("ui_tree_state", {})),
         }
+        if "data_layout" in snapshot:
+            json_snapshot["data_layout"] = snapshot["data_layout"]
         return json_snapshot
 
     def deserialize_session_from_json(self, json_data: dict) -> dict:
@@ -355,6 +366,8 @@ class SessionManager:
             "plugin_runtime_state": self._from_json_safe_value(json_data.get("plugin_runtime_state")),
             "ui_tree_state": self._from_json_safe_value(json_data.get("ui_tree_state", {})),
         }
+        if "data_layout" in json_data:
+            snapshot["data_layout"] = json_data["data_layout"]
         return snapshot
 
     def schedule_autosave(self) -> None:
@@ -446,6 +459,21 @@ class SessionManager:
                 except Exception as exc:
                     log_debug(f"session_manager.SessionManager._save_durable_session_json: ignored {exc!r}")
             return False
+
+    def _upgrade_session_layout(self, snapshot: dict) -> Optional[dict]:
+        """A session whose layout differs from the active plugin's goes through its migrate_session_snapshot. The
+        plugin returns it stamped with the current layout, or without a stamp: then it is not restored (None), and the
+        project opens from its files. A plugin that declares no layout never migrates."""
+        layout = self._session_layout()
+        if layout is None or snapshot.get("data_layout") == layout:
+            return snapshot
+        migrated = self.mw.current_game_rules.migrate_session_snapshot(snapshot)
+        if isinstance(migrated, dict) and migrated.get("data_layout") == layout:
+            log_info("DSP: the session's message rows were migrated to the current table layout")
+            return migrated
+        log_warning("DSP: the session holds rows of another message layout and cannot be migrated; it is not "
+                    "restored. The project opens from its files.")
+        return None
 
     def load_session_file(self) -> bool:
         """Load entire project state from a JSON file (preferred) or a pickle file (fallback)."""
@@ -610,6 +638,8 @@ class SessionManager:
             needs_durable_sync = True
             log_info(f"DSP: Loaded session from Pickle fallback {session_path}")
 
+        if snapshot:
+            snapshot = self._upgrade_session_layout(snapshot)
         if not snapshot:
             return False
 

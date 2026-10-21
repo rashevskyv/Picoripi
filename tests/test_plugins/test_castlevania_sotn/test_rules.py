@@ -13,7 +13,7 @@ from PIL import Image
 
 from core import font_formats, texture_formats
 from core.texture_formats import sotn as sotn_pictures
-from plugins.castlevania_sotn import codec, doc, script
+from plugins.castlevania_sotn import codec, doc, scroll, script
 from plugins.castlevania_sotn.rules import GameRules
 from plugins.testing import check_loads, check_validator
 
@@ -156,6 +156,32 @@ def test_every_program_file_reads_and_saves_back_byte_for_byte():
 
 
 @needs_data
+def test_a_longer_caption_line_moves_the_script_and_reads_back():
+    data = (SOURCE / "ST" / "ST0" / "ST0.BIN").read_bytes()
+    texts = doc.parse(data).texts()
+    texts[-1][0] = "Граф Дракула повернувся, з допомогою темного жерця Шафта, щоб знову загрожувати людству."
+    out = doc.build(data, texts)
+    assert len(out) == len(data)
+    assert scroll.script_start(out) != scroll.script_start(data)          # the pointer moved into a spare range
+    assert doc.parse(out).texts()[-1][0] == texts[-1][0]
+    assert doc.parse(out).texts()[-1][1:] == doc.parse(data).texts()[-1][1:]   # the other lines are unchanged
+
+
+@needs_data
+def test_a_private_letter_installs_the_reader_and_the_letter_table_and_a_save_keeps_the_owners_letters():
+    data = (SOURCE / "ST" / "ST0" / "ST0.BIN").read_bytes()
+    texts = doc.parse(data).texts()
+    texts[-1][12] = "Їжак, Єнот, Ґанок."
+    out = doc.build(data, texts)
+    assert out[scroll.CAVE_AT:scroll.CAVE_AT + 4] == scroll.CAVE[:4]
+    assert out[scroll.GLYPH_AT:scroll.GLYPH_AT + scroll.GLYPH_BYTES] == scroll.glyph_table()
+    assert doc.parse(out).texts()[-1][12] == "Їжак, Єнот, Ґанок."
+    edited = bytearray(out)
+    edited[scroll.GLYPH_AT] ^= 0xFF                              # the owner's letter, drawn in the Font Editor
+    assert doc.merge(bytes(edited), out)[scroll.GLYPH_AT] == edited[scroll.GLYPH_AT]
+
+
+@needs_data
 def test_a_longer_item_name_is_moved_and_read_back():
     data = (SOURCE / "DRA.BIN").read_bytes()
     parsed = doc.parse(data)
@@ -192,10 +218,26 @@ def test_every_picture_and_the_font_write_back_unchanged():
         data = (SOURCE / entry["path"]).read_bytes()
         image = texture_formats.read(entry["format"], data, entry["params"])[0].image
         assert texture_formats.write(entry["format"], data, {0: image}, entry["params"]) == data, entry["label"]
-    font = _sources("font_sources.json")[0]
-    data = (SOURCE / font["path"]).read_bytes()
-    metadata, sheets = font_formats.extract(font["format"], data, font["params"])
-    assert font_formats.pack(font["format"], metadata, sheets, data, font["params"]) == data
+    for font in _sources("font_sources.json"):
+        data = (SOURCE / font["path"]).read_bytes()
+        metadata, sheets = font_formats.extract(font["format"], data, font["params"])
+        assert font_formats.pack(font["format"], metadata, sheets, data, font["params"]) == data, font["label"]
+
+
+def test_every_font_source_round_trips_on_a_blank_page():
+    # Synthetic: a blank 0x42000-byte F_GAME-shaped page; no game data.
+    for font in _sources("font_sources.json"):
+        data = bytes(0x42000)
+        metadata, sheets = font_formats.extract(font["format"], data, font["params"])
+        assert font_formats.pack(font["format"], metadata, sheets, data, font["params"]) == data, font["label"]
+
+
+def test_the_damage_font_maps_its_digit_row_and_leaves_the_word_rows_free():
+    damage = next(font for font in _sources("font_sources.json") if "Damage" in font["label"])
+    chars = damage["params"]["chars"]
+    assert len(chars) == damage["params"]["columns"] * len(damage["params"]["rows_at"]) == 96
+    assert chars[:10] == list("1234567890")
+    assert all(char == "" for char in chars[10:])
 
 
 @needs_data

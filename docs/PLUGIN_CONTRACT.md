@@ -27,6 +27,8 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | `export_runtime_state` | What the plugin learned while loading and needs again to save (plain JSON data). |  |
 | `restore_runtime_state` | Take back what export_runtime_state returned. |  |
 | `reset_runtime_state` | Forget the loading state before a new file or project is loaded. |  |
+| `session_data_layout` | Version of the message rows the session holds, or None for no versioning. A session stamped with another version, or none, goes through migrate_session_snapshot before restore. |  |
+| `migrate_session_snapshot` | Map a session saved with another layout to the current rows: return it stamped with session_data_layout(), or without the stamp to refuse it. Default: unchanged. |  |
 | `set_load_role` | "translation" while the host parses a translation file, "source" after: a source file that also holds the translation returns the right language. |  |
 | `prepare_save_context` | Called before save_data_to_json_obj for each project file, with a core.formats.SaveContext. |  |
 | `get_text_representation_for_editor` | Stored text of one subline as shown in the editor (tags to aliases). |  |
@@ -74,6 +76,10 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | `save_custom_context_tags` | Store the context-menu tags. |  |
 | `get_context_menu_actions` | Extra editor context-menu actions. |  |
 | `get_plugin_actions` | Menu actions the plugin adds: dicts with name, text, handler, menu. |  |
+| `get_voice_clips` | Voice clips the plugin exports and replaces: dicts with id, title, disc (the .bin the original clip is read from). Empty: the game has none. |  |
+| `export_voice_clip` | Write one original voice clip to a WAV; returns its length in seconds. |  |
+| `import_voice_clip` | Check a translated WAV against the clip's sectors and keep it in voice_dir; returns its length in seconds. |  |
+| `apply_voice_clips` | Write every translated clip of voice_dir into a build .bin; returns how many. |  |
 | `get_base_game_rules_class` | The base rules class (kept for old plugins). |  |
 
 ## Context for AI workflows
@@ -166,7 +172,7 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 `self.mw` is the main window. These are the attributes plugin code relies on today; the validator
 warns about any other.
 
-`align_sentences_to_original_pages`, `autofix_enabled`, `block_list_widget`, `block_to_project_file_map`, `context_menu_tags`, `current_game_rules`, `data`, `data_processor`, `data_store`, `default_tag_mappings`, `detection_enabled`, `display_name`, `edited_text_edit`, `EDITOR_PLAYER_TAG`, `font_map`, `game_dialog_max_width_pixels`, `game_dump_root`, `helper`, `icon_sequences`, `issue_scan_handler`, `line_width_warning_threshold_pixels`, `lines_per_page`, `list_selection_handler`, `newline_bold`, `newline_color_rgba`, `newline_display_symbol`, `newline_italic`, `newline_underline`, `ORIGINAL_PLAYER_TAG`, `original_text_edit`, `plugin_handler`, `prevent_empty_lines_in_autofix`, `preview_text_edit`, `project_manager`, `settings_manager`, `show_multiple_spaces_as_dots`, `string_metadata`, `tag_bold`, `tag_color_rgba`, `tag_italic`, `tag_underline`, `translation_handler`, `use_per_window_layouts`, `zelda_game_root`
+`align_sentences_to_original_pages`, `all_font_maps`, `autofix_enabled`, `block_list_widget`, `block_to_project_file_map`, `context_menu_tags`, `current_game_rules`, `data`, `data_processor`, `data_store`, `default_tag_mappings`, `detection_enabled`, `display_name`, `edited_text_edit`, `EDITOR_PLAYER_TAG`, `font_map`, `game_dialog_max_width_pixels`, `game_dump_root`, `helper`, `icon_sequences`, `issue_scan_handler`, `line_width_warning_threshold_pixels`, `lines_per_page`, `list_selection_handler`, `newline_bold`, `newline_color_rgba`, `newline_display_symbol`, `newline_italic`, `newline_underline`, `ORIGINAL_PLAYER_TAG`, `original_text_edit`, `plugin_handler`, `prevent_empty_lines_in_autofix`, `preview_text_edit`, `project_manager`, `settings_manager`, `show_multiple_spaces_as_dots`, `string_metadata`, `tag_bold`, `tag_color_rgba`, `tag_italic`, `tag_underline`, `translation_handler`, `use_per_window_layouts`, `zelda_game_root`
 
 ## Keys of `config.json`
 

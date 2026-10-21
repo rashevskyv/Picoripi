@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-20
 owns: unfinished work
-tokens: 49.6k
+tokens: 64.2k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -15,15 +15,125 @@ the line when it is done or moved into a plan.
 - Open: translation files outside `translation_path` are not packed; their paths are cleared. Example: the
   Twilight Princess fonts in `ISO/UA/root/res/Fontus` (`fonts_dir_path`).
 - Open: import takes an extracted game folder (or the one file); it does not unpack a game image as the wizard does.
-## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-bfd`)
+## Silent Hill 2 sh23ds 3DS and the message table (`plugins/silent_hill2_switch`, `plugins/silent_hill2_pc`, 2026-10-20, branch `feat/port-sh2-3ds`)
 
+- Blocked for the pack gate: the packer (`pack.py`) requires the Director's Cut `sh2pc.exe`, MD5 `f3f5360298b6d0f6f2e09cf24a0925d1`. Checked 2026-10-20, no copy of that exe exists on disk: the EE installer, the EE folder and the sh2-nx package keep no original exe (no embedded PE with that hash).
+- Found 2026-10-20: the Ukrainian DC patch installer `silent_hill_2_dc_ukr_patch.exe` (Inno Setup, extracted with innoextract to a private scratch folder) holds `app\sh2pc.exe` (6,238,208 B, MD5 `b5c07aa4`). It is not the gate exe, but it has the DC layout: all 174 stage-table pointers of the packer (58 stages, addr/ev_list/ev_pos) are in it, the font table sits at the packer's address `0x806480`, and `events.py` on it gives 58 stages and 2,078 events (the documented DC count). The EE exe gives unmapped addresses in the same run.
+- Done 2026-10-21: the full pack is built in WSL (`PACK_EXIT 0`, 5,750 files, 1.4 GB) from a private DC-layout game folder with the gate bypassed (`SH23DS_BYPASS_MD5=1` in the scratch copy only). The Ukrainian `events` and `font` overlay is copied over it. The port builds (`make`, devkitARM) and `makerom -f ncch` packs a plain CXI.
+- Open 2026-10-21: the CXI boots in a private Azahar copy (preview NAND, sdmc and nand pointed at the private copy; the shared tool's config had pointed at the shared folder). The Silent Hill 2 and Konami logos show. The game process then exits about 34 s after launch, with no fatal line in `azahar_log.txt`. Blocker: the exit reason is not known yet; the log shows repeated `svc=0x32 ... description=1015` errors.
+- Done 2026-10-21: the private Azahar copy points its NAND and SD at its own folders. The port's `debug.txt` (`logos 0`, `newgame 1`) starts a new game: the restroom (stage 2, `er01`) runs with the in-game HUD, and the game keeps running past 34 s. The earlier exit came from the shared-folder SD path, not from the homebrew.
+- Open 2026-10-21: no Ukrainian line on screen. A-press runs (examine the mirror) and `itemget 1` showed no message; `itemget 1` ended on the start-up screens. Next: use `pt` playtest lines (`ev <n>`) from `port/source/playtest.c` to trigger a stage message, and check `ptlog.txt` on the private SD.
+- Open: no Ukrainian line is on screen yet (not reached yet).
+- Open: the packer's MD5 gate still refuses this exe. A scratch copy with the gate removed is the next test, but a full pack also needs tex3ds (devkitPro), ffmpeg (Bink movies) and texture encoding in WSL. None is installed on Windows; WSL has gcc.
+- Reference: the patch's Ukrainian data files are byte-identical to our Switch translation (109 files). Its font differs in one glyph (cell 122, the Ї cell) and two width entries (cells 61 and 173). Treat the patch as a reference for the Ї glyph; the translator decides.
+- Done 2026-10-20: stage 1 is `Stg_tgs_trial` (`s01.msg` from `stage_tgs_trial_msg_e.mes`). The Switch translation has no file for it, so nothing is written until the file is translated.
+- Open: the stage 0 message file (`stage_sample_msg_e.mes`) has no stage. The packer's stage table (`sh2-3ds-port-kit/data/dc/stage_table.json`, ids 1..58) has no stage 0 (`Stg_null`). No exe on disk holds the stage names (only the PS2 debug enum in the packer's table).
+- Open: full-width codes (0xE0 and up: the results-screen star and the Latin letters) have no glyph in the Ukrainian font, so they are not drawn. The port cuts each line at 128 characters.
+- Open: the 3DS font comes only from the Switch Ukrainian atlas, scaled. The capital Ї is the spare cell 122 (Ъ shape) until the translator draws it.
+- Open: the sh23ds packer writes 7 kinds of `.msg`. The 8 translated files it does not read (`config_pc`, `item_msg_e`, `letter_*`, `m_card_msg_e`, `memo_msg_e`) are not in `3ds/sh23ds`.
+- Done 2026-10-20: the session restore calls the plugin's `migrate_session_snapshot` when a session's `data_layout` differs from the plugin's `session_data_layout()` (`core/data_processor/session_manager.py`; the PC plugin declares layout 2 in `plugins/silent_hill2_pc/rules.py`). The PC plugin maps the rows and the edits with `mes_legacy.migrate_block`; a merged-row edit whose length changed is dropped with a log line. The Switch plugin does not migrate (its rows are message bodies without the head and tail bytes): such a session is not restored and the project opens from its files, which are unchanged. The user's unsaved edits in that session are lost. Save before upgrading.
+- Font: the base is our Switch font (`EE\sh2e\font`, with our capital-Ї work). The Ukrainian patch differs in cell 122 (its Ї) and in the width entries 61 and 173. Not adopted.
+- Open: the sh23ds packer does not need a patch for the messages or the font. Copy the output over the packer's `3ds` folder.
+
+## Wario Land: Shake It! (Wii, USA, `RWLE01`; workspace in a private folder, 2026-10-20)
+
+- Done: the RVZ is copied from `_new\Wario Land - Shake It (USA) (EnFrEs).zip` to `Wii\source\` (the zip stays). The RVZ is read with `core/containers/wia.py` (no key). Partition 1 is the game (`RWLE01`); partition 0 is `RELSAB`. The FST offsets and sizes are shifted by 2 (Wii).
+- Open: no plugin yet. Needed: `wario_land_shake_it` with unpack (RVZ, partition 1), text, fonts (`.breft`/`.breff`), textures, and a Dolphin/Riivolution mod build. The visible-edit proof in a private muted Dolphin copy is not done.
+- Done 2026-10-20: the game partition is extracted to `Wii\ISO\files` (2,341 files, 3.5 GB) and `Wii\ISO\sys` (boot.bin, bi2.bin, fst.bin); the listing is `Wii\ISO\_listing.txt`. Formats by magic: `GFAC` packs (`.gfa`, 2,225 files; the packs hold `BRRES` graphics, `TPL` textures and the messages), `RSTM` (`.brstm`), `THP` (movies), `RSAR` (`wario.brsar`), `REFT`/`REFF` (effects), `U\xaa8-` (`.arc` sound archives), a UTF-16BE `home.csv`.
+- Open: the text is `message_english_USA_*.bmg` (BMG, `MESGbmg1` with INF1 and DAT1) inside `env\Message\<language>\__PACK__.gfa`. The BMG magic is in clear, but the section bytes after it are not a plain BMG. The GFAC/GFCP payload is compressed or encrypted: not decoded yet. Next: find the GFCP entry table and test the Nintendo LZ and the other codecs in `core/containers`.
+- Open: `plugins/zelda_bmg/bmg_tool.py` cannot read these BMG bytes yet (encoding ID error), so the reader needs the decoded payload first.
+- Open: no UA translation exists. This is a new translation project.
+- Open: the Switch recomp of this game has no public repo. A search on GitHub (`gh search repos`) found none; the Reddit post was not reachable.
+
+## Black & White (openblack, Switch) and Black & White PC
+
+- Handed to another agent (2026-10-20). Not worked on in this branch.
+- Open: openblack has no string-table or font loader, and `LOAD_LANGUAGE` throws. A local text path in openblack may come later (licence ignored for internal use; code never committed).
+## Okami HD Switch (`plugins/okami_hd`, 2026-10-21, branch `feat/okami`)
+- Two MSD records are not yet known: a 0x0002-0x0004 code after a word (punctuation) and the 0xA0xx / 0x80xx / 0xD0xx control codes. Shown as tags until checked on the screen.
+- Text growth: a longer record moves the container's section offsets and the RUNOFS64 section starts (rewritten in `msd.serialize_container`); unchanged files keep their bytes. Every changed record is a translator-visible warning until the game proves it. Emulator proof of a +40 % line: not run (see the next item).
+- Emulator proof: the private Eden route needs a `prod.keys` file in the private copy, which the rules do not allow. The real Switch MCP (`switch_mcp.py frame`) did not answer. Built test mod: `atmosphere/contents/0100276009872000/romfs/data/st1/r101.bin` (+12 bytes, one line grown by 40 %).
+- Eleven small MSD sections (`r011`, `r030`, `r031`-`r034`, `rd02`-`rd06`): no dialogue; their only printable runs are block names (`MessR031`) and two resource names (`hm29`); the rest is big-endian u32 values. Kept as raw bytes, never changed.
+- Ukrainian glyphs: 66 atlas cells are assigned to the Ukrainian letters (codes 0x5E-0xE2, cell = code + 3), chosen among codes the English strings never use. Their glyphs are blank or Latin-1 accents today; the owner draws them in the Font Editor (`font_sources.json`, texture `etc/core_30.bin` at 0x93C0, `texture_grid` with the DDS backend). Packing an unedited atlas returns the original bytes (checked).
+- Textures with text: sixteen English pictures (`data/illust/help_*.dds` DXT3, `control_*.dds` BC7) are listed in `texture_sources.json`; the DDS backend (`core/texture_formats/dds.py`) reads them and writes changed blocks only. Not yet opened in the Texture window by a person, not checked in the game.
+- PC version (Okami HD, PC): the owner asked for a clean installed copy; the SKIDROW ISO is at 95.3 % and the Catalyst repack at 1.2 %.
+- PS2 (`plugins/okami_ps2`, USA disc, SLUS_211.15): the build writes a new disc image. Proved on the owner's disc: a rebuild that rewrites all 345 `_DATA0.AFS` entries with their own bytes gives the identical ISO (SHA-256 equal); a +26 byte edit of entry 14 reads back exactly and keeps the archive in place. An archive that grows past the free sectors moves to the image end (synthetic test only; the owner's disc has about 289 free sectors after `_DATA0.AFS`). `_DATA1.AFS` has no message entries.
+- PS2 emulator proof (PCSX2): not run. No PS2 BIOS (4 MB `scph*`) is on the allowed disks, and no PCSX2 install. The BIOS files on disk are 512 KB PS1 images. Needed from the owner: a PS2 BIOS, or the path to one. Then the proof is: copy the built ISO, start PCSX2 portable hidden, check one edited line on the screen.
+- Wii (`ROWP08`, Ready at Dawn port, encrypted image): `plugins/okami_wii` reads the 1034 message containers of `files/_data0.afs` (streamed) and the two archives' entries through `WiiImage`. The containers are big-endian (AFS table is little-endian); the codec takes `endian`. Round trip: 1034 of 1034 unchanged. Build writes only the changed entries as files (`afs/DATA0/NNNN.bin`); a Wii disc image needs the Wii writer (`feat/wii-writer`, not on main).
+- Wii text: 474,945 strings; about 1/3 of strings hold a `{xxxx}` tag, and 81 % of the 16-bit units are known letters or control codes (PS2: 86 %). The unknown units that look like ASCII (`Mess`, `Info`) sit in records the table layout may misread; check on the screen before the translator relies on them.
+- Wii: no emulator run (Dolphin is not used here). Growth of a Wii entry is untested in the game; the build does not write the disc.
+## Pokémon recomp packages (`plugins/common/pokemon_recomp.py`, 2026-10-21, branch `feat/port-pokemon-recomps`)
+
+- Done: a clean pret build of the Emerald decomp (WSL) gives the original USA SHA-1 `f3ae08…`. The owner's `Emerald\build\pokeemerald.gba` has the same SHA-1.
+- Done: a pret build with a same-length message change runs in EmeraldRecomp v0.1.2 (SHA-1 `7c3ab2…`, the same bytes as an in-place patch).
+- Done: a pret build with a longer message (+27 bytes) moves the code. The release shows a blank screen (frame 1500, final PC `0x082e0642`, 2,577 unmapped accesses).
+- Done: the re-recompile route for that ROM. `plugins/common/recomp_templates/emerald_resym.sh` (copied into the package as `recompile_UA.sh`) imports the build's ELF with the port's importer, derives a base config for the new SHA-1, runs `gba_recompile`, and builds the port. Built in WSL with the pinned gbarecomp (215da74). The +27 port shows the longer line at frame 1060 (`shots\resym_longer_1060.png`). Coverage is NOT_STATIC: 3 dispatch misses go through the interpreter, and three self-heal gcc compiles fail under WSL (`native_calls` 2115, `failed` 3).
+- Open: the re-recompile was proven on the +27 Emerald ROM only. A FireRed or LeafGreen changed pret build is refused until its route is built and run. Gen 2 changed pret builds are refused: the importer reads the original addresses.
+- Open: the recompile step takes a long time and needs WSL, cmake, ninja, SDL2 dev and the port's submodules. On the Windows mount the configure stalled (cmake waits in the 9P transport, and the Windows `PATH` entries make every `find_program` slow). The script resets `PATH`, and its build tree should sit on the WSL disk.
+- Open: the FireRed CONTROLS overlay is game content (`gText_HelpSystemControls`), not a launcher page. A visible edit on it works headless: "The TESTING buttons will be explained…" (frame 1600, `shots\frlg_overlay_1600.png`). Passing it with key messages into the unfocused window did not work reliably (the window runs slowly without focus; `PostMessage` and `SendMessage` both tried).
+- Open: a pret workspace with several dumps packages one folder per dump (FireRed and LeafGreen, Gold and Silver, Crystal 1.0 and 1.1). The Gen 2 packages carry `set_gen2_gate_UA.py`, tested on a fresh Gold checkout only.
+- Owner decision: the package ships no GBA BIOS and no LÖVE runtime. Both come from the owner's own copies.
+- Owner decision: the Gen2 importer keys its cache on the canonical SHA-1 (`RomImporter.lua`). A translated import in the default save folder can replace an official import. Portable mode (`portable.txt`) keeps them apart; the package README says so.
+## Castlevania: Belmont's Curse (Switch, `plugins/castlevania_belmonts_curse`, 2026-10-21, branch `feat/castlevania-new`)
+
+- Open: the English string tables are translated (SWUK, 2 698 of 2 751 strings changed; 53 lines stay English: debug texts, names, resolutions; 18 empty originals). Owner decision: keep those 53 English, or translate them too.
+- Open: the mod is not checked on a console. NX-MCP (`nxmcp.py`, 192.168.50.69:57331) answered with a screenshot: the Homebrew menu, the game not running, so the mod has not loaded. A run needs the owner's go-ahead and the console lease (`console_lock`). Verified without a console: the rebuilt bundles are uncompressed with the flags of the SWUK bundles (0x240); the catalog is the game's catalog with `m_BundleSize` set to the new file size for the two rebuilt bundles and nothing else (all 3 051 records have `m_Crc` 0 and size equal to the file, so `m_Crc` stays 0).
+- Open: the SWUK catalog differs from the game's catalog as a whole (prefix-compressed internal ids `0#/`, `m_RedirectLimit` 255) and keeps the old sizes (104 012 and 427 304). Ours keeps the game's layout; SWUK's localization and font bundles are 344 276 and 3 319 672 bytes.
+- Open: the rebuilt localization bundle is 558 468 bytes (the 2 698 changed tables are appended after the data, so the old copies stay in the file). The SWUK file is 344 276. Size only; no load check yet.
+- Open: the SWUK font has no `{`, `}`, `ê`, U+200B or `№` (5 characters the translation uses; they stay English). Owner decision: keep, or add glyphs.
+- Open: 7 628 interface and room texts (29 `ui-*` and `room-*` bundles, `source\ui\`) are in the project and write back, but the translation copy is still English. The build writes no interface bundle until a text differs.
+- Open: room text (`room-*`) without shown text (`New Text` placeholders, locale-key sprites) is not in the project.
+- Open: TextMesh Pro objects that do not read (managed references of unknown types) are skipped in the 29 interface bundles; their number was not counted for those bundles.
+- Open: 1 841 objects of 4 958 156 do not read (about 0.04 %): 1 824 are MonoBehaviours with managed references (SerializeReference) in narration, projectiles and mob-data bundles. The narration bundle holds dialogue (for example "All is silent except for the breath of a light wind…"). Separate follow-up task: find the managed-reference layout error in `core/unity/typetree.py` (the reader runs past the data, or a managed type name is missing from the file's reference table).
+- Open: the Unity format 22 reader is verified on the 3 051 bundles of the base and update (all bundles and plain serialized files parse; unchanged files round-trip byte for byte). Raw `.resS` and `.resource` streams are not parsed (they are not serialized files).
+- Done: `picoripi\project.uiproj` is made by `run_unpack` and `ProjectManager.create_new_project` (the wizard's calls, headless); it loads with 74 blocks (45 tables, 29 interface) and 10 379 strings. The GUI wizard click path was not exercised.
+- Owner decision: DLC (the 106 KB stub and the add-on NSP) is out of scope.
+## Wario Land: Shake It! Wii (`plugins/wario_land_shake_it`, 2026-10-21, branch `feat/wario-land`)
+
+- Done: GFAC + GFCP (BPE) codec in `core/containers/gfac.py`; 2225 packs parse; the English pack round-trips; the entry checksum is a function of the name and is kept as stored.
+- Done: the English BMG files (575 messages) load and re-save byte for byte.
+- Done: the build "Wii disc image (ISO, English)" writes a plain ISO with the English pack replaced (`wii_writer.copy_as_iso` + `write_changes`). Needs the Wii key file (`console_keys`).
+- Done (proof): the ISO boots in a private Dolphin copy; a test edit in a story subtitle shows on screen (scratch build only, not in the project). Input: a Wii Remote timer expression for 2, A and + (`Device = DInput/0/Keyboard Mouse`, `Extension = None`) and BackgroundInput.
+- Done: the wizard path creates the project in `picoripi\` (unpack through `build.run_unpack`, project file through `ProjectManager`).
+- Removed: the Riivolution patch and Dolphin descriptor target (the loading was never shown in Dolphin).
+- Open: the checksum hash function is unknown, so a new file name cannot be added to a pack yet. Only edits to existing entries are supported.
+- Open: the font (BRFNT/RFNT) is not edited. Cyrillic needs glyphs in the game's font.
+- Open: textures with text are not in the plugin.
+- Open: other languages (`English_EUR`, `French_USA`, ...) are not reference columns yet.
+- Open: no text-fit problems (no length limit is known for the BMG strings).
+- Open: the build takes about 13 to 17 minutes (the writer seals every cluster in Python).
+- Open: the Emu Radar report is a status page only (no game screenshots, no game text).
+- Owner check: `D:\git\dev\Picoripi\data\console_keys.json` (the main checkout) was written twice by a helper that imported the main checkout; the `wii` entry is the owner's `keys.bin` path. The previous value is not known.
+## Black & White, openBlack Switch port (`plugins/black_and_white`, 2026-10-21, branch `feat/black-and-white`)
+
+- Open: the port draws no game text. `RUN_TEXT` plays voice only, `LOAD_LANGUAGE` throws "not implemented", and nothing reads `ADD_TEXT` (`src/CHLApi.cpp`, `src/LHScriptX/MapScriptCommands.cpp`). A translated line shows only after an openblack change: a text parser, a text display for `RUN_TEXT`, and a font with Cyrillic glyphs.
+- Open: no visible proof yet. The Switch console was on another game (Animal Well) and the port is not installed there; the Switch MCP timed out on connect. A Windows proof needs Visual Studio Build Tools and vcpkg; a Switch build needs devkitPro. Both are owner decisions.
+- Open: the port NSP holds three encrypted NCAs, so its binary cannot be read without keys. The keys are not used.
+- Open: the escape for a line break inside a text. The file keeps `\\n` (two backslashes and n) and a few bare line feeds; the game's reading of them is not checked.
+- Open: fonts (`Font0-0.bmp`, `Font0-1.bmp`, `HelpFont.bmp`, `*.fff`) and textures with text (`Front_end_buttons.raw` and others) are not in the plugin. The port loads neither, so their formats are not checked against it.
+- Open: the translation is empty: 0 of 6,974 lines are translated.
+- Owner: the reference files of the Russian overlay (`reference\ru_mod\`) are for format study only. Its text and voice are not used.
+
+## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-bfd`)
+## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-grow`)
+
+- Boot (2026-10-21): a grown code archive boots on BizHawk Mupen64Plus when the header checksum is recomputed. Proven: the original ROM, a single moved chunk with its header CRC recomputed (C1), and the multi-chunk grown build (`grown_archive_test_crcfix.z64`) all reach the Rare credits at 600 frames. Without the recomputed header the same builds stay black: the game checks the header words after copying the first 1 MB to RAM. The header checksum is CIC-6105 (CRC1, CRC2), implemented in `plugins/conker_bfd/header_crc.py`.
+- Open (font, 2026-10-21): the font relocation and Ukrainian cells are not in the ROM. Facts from the decomp: the font range is in data at `D_80082F80` (ROM `0x40F10`, `0x42450`); the loader `func_15015920` walks records by size into a 10 KB buffer (room to grow); each glyph's pixels are a fixed `u8[224]` (`D_80085990`); the metrics are `D_80085994[glyph * 4]`, whose array size is not in the decomp; the lookup `func_15042C40` scans the 95-byte map `D_80085930[0x5F]` (data `0x2E10`). Two glyph slots (83, 91) are shadowed by duplicate map codes. Eight cells need more glyph slots: the count 95 in the lookup, the metrics and pixel arrays must grow first.
+- Open: on BizHawk Ares64 (the core that enforces the checksum at boot) the CRC-fixed variant B and the CRC-fixed grown build did not finish: CPU-bound with no frame output for about 20 minutes. Not explained. Real-hardware and Ares64 boot are not proven.
+- Open: no game-play proof yet (no input route, no changed text on screen). The code archive is not yet written by the build path (`build_target` relays text banks only).
+
+- Open: the recompiled port's data checkout pins the US ROM SHA-1 in `SHA1SUMS`. The build script that reads the ROM lives in CBFD-Recompiled, which is not on this machine; whether it rejects a patched ROM is unknown.
 - Open: no speech subtitle table found. Text tables found: bank 0x1A (entries 0-4, catapult book) and bank 0x1C sub-tables 0-3 (menu options, pause menu, chapter names, credits). The compressed game data section (task names) is not opened yet.
 - Open: no link from the 453 bank-0x16 streams to events or text lines. The decompilation documents one loader call site ("the exact US caller", `docs/rzip-assets.md`); its table of event to stream index is not extracted. Proxy only, unverified: 220 streams with L: cues (speech-like) and 233 without (music or ambient-like).
 - Open: the text preview uses the decompiled metrics and is not checked in an emulator frame. The canvas (320x240), the box position and the icon widths are assumptions. An owner save state at the catapult book is needed (`owner_play_to_catapult_book.bat`). The preview widget is not wired into the app; only the width hook is.
 - Owner decision: commit 7a3765db holds real game sentences in its test file (since removed). A local squash of the unpushed branch would remove them from its history.
 - Open: the font has no Font Editor format yet; the 95 glyphs are PGM sources only.
-- Open: no ROM build. Text growth needs a budget model; a longer voice stream needs a bank 0x16 repack (the index holds start and length per entry).
+- Open: no ROM proof of the text growth. The patched ROM is built and reads back (synthetic and real ROM tests), and the plugin build writes a ROM and a BPS. The emulator frame is not captured: a private ares copy runs the original and the patched ROM at 60 VPS, but the window shows black in every capture (PrintWindow, screen copy, OpenGL and Direct3D 11). Needs a capture route that shows the game picture.
+- Open: the text box is not enlarged. The line buffer (80 bytes, `func_1516C934`), the lines per page and the display-list budget (`D_800BEBA4`) are the ceilings; the box constants are in game code stored in RZIP code chunks (XOR table). Patching them needs the chunk pipeline and a frame measure.
+- Open: no Ukrainian glyphs. The font is a fixed 95-record table at ROM 0x40F10 with 13 bytes of slack; the glyph map sits in the RZIP game data. New glyphs need a relocated font and a patched address in code.
+- Open: a longer voice stream needs a bank 0x16 repack (the index holds start and length per entry).
 - Open: the port (CBFD-Recompiled) plays speech through the game's MP3 player and extracts its assets at build time from the ROM. No runtime audio override exists in its `host/src`: a new voice needs a patched ROM and a port rebuild (not yet built).
+- Open: the Spanish fan reference (beta, `_reference\ES\conker_esp_v1.1beta.z64` in the workspace) is a patched ROM. Its tables `bank_1C/sub_0002` (110 US strings, 94 in the fan) and `bank_1C/sub_0003` (196 vs 200) are skipped; no content-based alignment yet. Patch files (xdelta, BPS) are not applied: give the patched ROM.
 - Open: the voice re-encode and cue re-splice are proven on a file (`voice.splice_cues`, 40 of 40 cues); the stream has not played in the game or in the port.
 
 ## Same text in manuals (`plugins/manual_3ds`, D46, 2026-10-18, branch `feat/manual-same-text`)
@@ -40,18 +150,37 @@ the line when it is done or moved into a plan.
   `images.identify`). The input is two RAR archives: Picoripi has no RAR reader, so one extract step runs outside it
   until the owner decides otherwise.
 - Grandia PS1 text: field dialogue (`FIELD/*.MDP`) and battle strings (`BATLE/B*.BBG`, `FIELD/WINDT.BIN`) open as
-  editor text (`plugins/grandia/psx_text.py`). The writer is bounded: a text keeps its original byte count, and a longer
-  text is refused. Growing a text is not done. Found: the dialogue section (`script_section`, entry 0x60), the RAM copy
-  of each script, and absolute 6-byte records (`psx_text` docstring). Open: the message opcode and reader, the meaning
-  of the absolute addresses, and the rule that moves offsets when a section grows.
+  editor text (`plugins/grandia/psx_text.py`). The writer uses a pooled byte budget per script: a longer text is paid
+  for by the shorter blocks that follow it, the file keeps its length, and a growth nothing pays for is refused. The
+  build refuses a translated script whose length changed. Proven in a frame: one pair of messages in FIELD/2000.MDP
+  (one extra "!" in one message, one fewer in the next). Not proven: references into a moved region. The section's
+  6-byte RAM address records and the message opcode are not decoded (`psx_text` docstring).
+- Grandia PS1 budget rule (`GR2_BYTE_BUDGET`, `psx_text.write_report`): until relocation is proven, every longer line is
+  over budget (`psx_text.POOLED_GROWTH = False`): a longer line shifts the bytes after it. The pooled net-zero pair
+  (FIELD/2000.MDP, one frame) stays behind the switch. An over-budget line is flagged in the editor and saved as typed;
+  the build refuses the script with "over its script budget by N bytes" (no partial write). The save base is the source
+  file, not the last translation (`prepare_save_context`).
+- Grandia PS1 per-message budget (2026-10-21): growth is allowed inside one message when the message total stays the same (`psx_text._plan_messages`). In-game proof done: DuckStation, RAM copy of FIELD/BA38.MDP, the two-line box at 0x9D2 ("We assigned an elite battallion / of our Forces to this excavation site."), the scene continues. Screenshots in reports\proof\ (not in git). Limit found: the budget counts bytes, not box width. A line that is already full clips at the box edge ("battallion now" showed as "battallion n"). Growth must also fit the box width; the editor does not check pixel width yet.
+- Grandia PS1 reference scan (2026-10-20, FIELD_2000.MDP, not conclusive): 343 words in 0x80000000..0x801FFFFF, 167
+  distinct. The best RAM base for the file (0x80000000) puts 83 of 167 values inside the file; a random base gives about
+  a third. No base maps the section to its own offsets, so no absolute-pointer table is shown. Relative operands: no
+  branch rule found (earlier 13-of-13 check). Opcode decoding is still open; growth stays unproven for other scripts.
 - Grandia PS1 disc writer: `psx_disc.write_file` rewrites one file in place with the same length and regenerates EDC and
-  P/Q parity; the parity code matches the disc's own sectors. Not wired into the plugin build target yet.
-- Grandia PS1 emulator proof (2026-10-18): DuckStation (private portable copy, muted, hidden desktop) loads the owner's
-  save state with a same-length edit in the RAM copy of a script; the edited text shows on screen. A fresh boot of a
-  patched disc copy did not reach the dialogue: key input stopped at the title and the memory card screen.
+  P/Q parity. The plugin target `psx_disc_set` copies the cue set (`psx_disc.write_set`) and writes the edited files into
+  the copy. Run on a copy of the owner's disc 1 (original read only): the two edited files change, the rest is equal, and
+  the build boots and shows the edited text in the game.
+- Grandia PS1 emulator state trap (2026-10-18): a DuckStation save state stores the disc path. When the state loads,
+  DuckStation boots that path, not the path on the command line. A proof disc must sit at the path in the state header,
+  or the state header must be patched to the proof folder (same length). Earlier "fresh boot" and "disc" runs in this
+  work ran the clean disc for this reason.
+- Grandia PS1 emulator proof (2026-10-18): DuckStation (private portable copy, muted, hidden desktop) shows an edit
+  from disc: every message of FIELD/2000.MDP starts with a same-length marker, and the message box shows it after the
+  scene loads from disc. The owner's save state (first dialogue) is the start; the route is a fixed key list. A fresh
+  boot still does not reach the dialogue (key input stops at the title and the memory card screen).
 - Grandia PS1 font: not located. Checked: the TIM headers of FIELD, BATLE, BIN and the boot executable; two TIM images
   match VRAM in the save state (a star field and a battle ground, not text). AKLZ: no AKLZ file among the extracted
-  files. `FIELD/FWIN.BIN` is a text table with pointers; `BIN/WIN.BIN` is compressed (format not identified).
+  files. `BIN/WIN.BIN` (7094 bytes) starts with a bit-packed stream and no Game Arts header; `FIELD/FWIN.BIN` is a text
+  table with pointers. The VRAM glyph page was not searched in the disc files.
 - Grandia HD Remaster (PC, scene release): the game data is inside `skidrow.bin`, an installer payload with no known
   format. Owner question: a copy of the installed game folder.
 - Grandia II HD Remaster (PC, scene release): the image is UDF, not ISO 9660; Picoripi has no UDF reader.
@@ -140,7 +269,7 @@ and_dec`) has all of them. A scratch tree was built from it with the owner's `to
 - The real-data screenshot test (`tests/test_plugins/test_manual_3ds/test_simulator.py`) needs `PICORIPI_3DS_CALIB` (the folder that holds `shots_r17b`) besides `PICORIPI_ROMHACKING`; the chrome crops come from `<data>/plugins/manual_3ds/chrome` (git-ignored, cut from console screenshots).
 - One layout truth (chosen 2026-10-14): the plugin's problems take the lines from the owner's model (that is where the build puts them: `layout.layout_for`, since round 19 the console's own measure: `fontSize / 25`, each pane's charSpace, the card edge, the ink overhangs) and judge each stored line with the console's measure (`layout.console_problems`: `console_render.FONT_WIDTH`, `WRAP_SLACK`, `COLUMN_WIDTH`, `FRAME_INNER`, `SUB_PIXEL`): WRAP (the viewer breaks the line inside its pane), WIDTH (ink past the card edge), BESIDE (past a picture's edge or a box frame's inner edge; the clearance before a picture is the owner layout's job, so Nintendo's own "/" panes are no defect). The preview runs the real render (`simulator.defects_of`) on the worker; the scan does not render (the per-line measure is the same arithmetic). The owner's column-budget WIDTH rule is gone from the plugin; the gate-comparison test compares the gate's text and pane failures only.
 - Done (owner round 19, 848d04b): the owner's model measures as the console draws (`fontSize / 25`, `charSpace`, ink overhangs, frame widths from the textures), so the 329 cand_r18 lines past the card edge belong to the past builds; the next build's render decides.
-- New 3DS screenshots (2026-10-15, D40): `shots_r19` holds 150 pairs; 36 are the old `shots_r17b` and `shots_new` pairs (byte-identical), 114 are new (console clock 2011-01-01), 113 of them viewer pairs. Classified by machine (`E:\Emulators\RomHacking\_shared\reports\manual_sim_fidelity_2026-10-15\shots_r19_0101.json`). The 9 pairs of the 21:00 batch are cand_r19; the 103 pairs of the 03:06–04:24 batch were shot with the card copy `nd000_card_1653.bin` (`calib\nd000`), a build no tmp folder holds; one pair matches `nd000_card_1621.bin`. The report folder has the per-pair sheets and the categorised list. `shots_r19_new` (36 pairs) is `shots_r17b` plus `shots_new`, byte-identical, not a new batch.
+- New 3DS screenshots (2026-10-15, D40): `shots_r19` holds 150 pairs; 36 are the old `shots_r17b` and `shots_new` pairs (byte-identical), 114 are new (console clock 2011-01-01), 113 of them viewer pairs. Classified by machine (shots_r19_0101.json). The 9 pairs of the 21:00 batch are cand_r19; the 103 pairs of the 03:06–04:24 batch were shot with the card copy `nd000_card_1653.bin` (`calib\nd000`), a build no tmp folder holds; one pair matches `nd000_card_1621.bin`. The report folder has the per-pair sheets and the categorised list. `shots_r19_new` (36 pairs) is `shots_r17b` plus `shots_new`, byte-identical, not a new batch.
 - Done (2026-10-15): the editor scan reports the render-only defects (`M3D_CELL`, `M3D_OVERLAP`, `M3D_COVERED`) by building and drawing the string's page with the owner's tools (`page_build.page_kinds`), and `geometry.json` carries the painted frame widths, so BESIDE agrees with the render. Open: the whole-project scan runs on the UI thread (`IssueScanHandler._perform_issues_scan_for_block`), so there the page render goes to one background `WorkerThread` at a time (texts read on the UI thread, interrupted between pages by the preview panel's shutdown on window close or plugin switch, results of a replaced manual dropped) and the block is rescanned when it is done (`rules._ScanRender` -> `_render_done` -> `rescan_issues_for_single_block`; audit r33); a project of 18 manuals renders 352 pages once after load (about 0.5 s a page, in the background). Without the owner's folder (`<data>/plugins/manual_3ds/preview.json`) the three kinds are not reported; the layout kinds are.
 - Chrome from the viewer's own romfs (title 0004003000009B02, 87 files: `layout/*.arc` LZ10 darc with BCLYT, BCLAN and BCLIM; `message/*/ebird.msbt`): the header, badge, scroll indicator, arrows and bottom-bar textures are there (`BtnHeadLineTxt`, `PageNum`, `ScrollIndicator`, `SideScrollArw`, `BtnBack00`, `BtnClose00`, `BtnTextSize00`, `PageShdw00`), but their stored positions are moved by the applet's code and animations (the badge sits at x −120 in the layout and at canvas x 54 on the console), so the screenshot crops stay. No New 3DS variant of the viewer exists in the NAND dump (`00040030` has no `2000xxxx` title). A page's own structure needs no code: `__AREA__` blocks of 480 px, `HorizonG` rows, `wnd1` cells, `txt1` lines of one stored line each (Nintendo ends a continued line with `\n`).
 - Done (2026-10-15, `fix/manual-preview-pm-search`): a project of many manual files keeps one manual per block (`rules._Manual`; before, only the file parsed last, and nothing after a restored session, so every string was looked up in the wrong manual and the preview said "The index is not drawn here"). The session carries the manuals without `ua` (`export_runtime_state`, about 1.4 MB for the 18 manuals, exported at each autosave); a session written before (the owner's has no plugin state) is completed once by a state-only read of the project files on a worker (`SessionMixin._read_missing_plugin_state`), then the issues are scanned again. While that read runs, the plugin may be asked from both threads; the geometry of a block is resolved on the thread that asks first. Checked offscreen on a copy of the owner's project: one page paragraph of each of the 18 blocks draws its Ukrainian text, except `browser` (no `Manual.bcma` on the owner's disk: the panel says so).
@@ -591,7 +720,7 @@ Open:
 - Not encoded yet: BC6H; ASTC block sizes other than 4x4, 8x8, 10x10 and 12x12 (ASTC encoding writes one RGBA line per
   block with a 4x4 weight grid, BC1-like). TotK layout archives are copied into `source/UI/LayoutArchive` by hand: `zt/nx.py`
   `TOTK_PARTS` does not unpack them yet. Textures inside models (TP title logo in `titlelogo_r.bmd`, WW subtitle in two BDLs, WW HD `Tlogo.bfres`), the Wii channel banner (`opening.bnr`: IMET > U8 > LZ77 > U8 > TPL, LZ77 not handled).
-- No container yet: TPHD TMPK/GTX (needs a decrypted dump), MGS `stage.dat` (zlib folders > tex13 packs > TPL: 449 textures; the TPL itself is handled — needs the stage.dat container or loose packs from the workspace unpack), 3DS BCH and SPBD particles (TFH boss cards). Drafts: `E:\Emulators\RomHacking\_shared\textures\drafts`.
+- No container yet: TPHD TMPK/GTX (needs a decrypted dump), MGS `stage.dat` (zlib folders > tex13 packs > TPL: 449 textures; the TPL itself is handled — needs the stage.dat container or loose packs from the workspace unpack), 3DS BCH and SPBD particles (TFH boss cards). Drafts: a private folder.
 - 3DS games have no plugin: their textures open with File → Open (BFLIM, CTPK, CTXB; SARC/SZS, ZAR/GAR, LzS archives) and are edited in place; a plugin with `texture_sources.json` (drafts `zelda_albw`, `zelda_tfh`, `zelda_oot3d`, `zelda_mm3d`) would list them. OoT3D title logo letters are in a CMB model (not handled).
 - Majora's Mask `yar` archives have no room to grow in the ROM: an edit that compresses worse than the original is fitted by recompressing every block of the archive optimally; if even that does not fit, the save is refused with the file's size.
 - An archive around an edited texture is laid out anew by its container code (SARC, RARC); Revert restores the texture file byte for byte, not necessarily the archive.
@@ -709,6 +838,29 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 - Text in textures (HUD sheet in `SYSTEM.DAT`, title menu, GIM cards, DIS screens, help pictures) is not
   edited by the plugin: catalogued in `ZELDA\_textures\drafts\vagrant_story.json`.
 - No speaker data: a balloon points at a character on screen; scene context gives area and room only.
+- Preview: `preview_panel.py` draws the page of the selected string with VSFONT glyphs and the game's window
+  places (`windows.py`, decomp `BATTLE/BATTLE.PRG/5BF94.c`). Checked against a real in-game balloon: the same
+  line breaks (`MAP213.MPD`, "We need no pretext!" block). The window frame art is not drawn (the game's texture
+  files); the text places are.
+- Menu windows (decomp): the information box is 24 characters a line (298 px), text at +16, 4 lines by default;
+  a menu item row is one line of regular text at +6 (+22 with an icon), no wrap in code; its width `w` is the
+  row's own. The editor shows MENU strings as rows; it cannot tell an information-box message from a row, and
+  help pages and room names have no window of their own in the preview. In-game check of a row or box: not done.
+- Fit checks in the editor: `VGS_LINES_EXCEEDED` (dialogue page above its balloon, `{page}` resets) and
+  `VGS_BYTES_EXCEEDED` (in-place name or staff-roll line above its place); refused in repeated and memory
+  translations. Table text has no byte budget check here.
+- Staff roll: the English credits draw 65 byte values. 48 cells in 0x20-0x8F are never drawn (not "no free cell").
+  46 letters need cells (Ukrainian without a Latin look-alike, both cases, Ї and ї, У): `credits_map.json` gives
+  39 non-digit bytes and 7 digit bytes (1, 3-8); spare 9 and q. Owner decision: keep the digits, or drop letters
+  (for example Ї, ї) or move the staff roll font. The credits font shows ASCII labels in the Font Editor: draw the
+  glyph in the cell named by `credits_map.json`.
+- Staff roll look-alikes (А В Е І К М Н О Р С Т Х, a e i o p c y x) keep their Latin cells and read back as Latin.
+- Staff roll digits: the English credits print only 0 and 2. The reserved digits 1 and 3-8 collide with nothing
+  in English; a translator cannot type them in credits (`VGS_CREDITS_RESERVED` flags them with the reason).
+- In-game proof (DuckStation, a private DuckStation copy, test disc built from a private
+  workspace; owner files untouched): the test disc builds with `{page}` edits to `EVENT/0004.EVT` and
+  `EVENT/0005.EVT` and an item name edit. The game boots and shows real balloons. The test text was not reached
+  in the session (the scene order was not known); the menu edit was not reached either. Still open.
 ## Metal Gear Solid, PlayStation (2026-10-07)
 
 - The font `font.res` has only the 96 ASCII glyphs (no free cell): no Ukrainian letter yet. The game draws codes
@@ -893,6 +1045,12 @@ omfs`) could be
 - Dawn of Sorrow: the free-space overlay holds 48 KB; if a translation moves more than that out of the old string
   area, the build stops with a message.
 - The fonts advance by a fixed step (8 px); the width check uses that step.
+- Done (2026-10-21, owner decision: the release ROM is final): the translation is the UA ROM text. A build of each game equals its release ROM in every string and every NitroFS file (checked after the build). The UA CSV project is the reference column "UA CSV"; 46 (DoS), 107 (PoR) and 78 (OoE) strings differ from the release and stay as reference only.
+- Open: the UA CSV reference has a capital Ь (code 40) in 9 strings (DoS 2, PoR 3, OoE 4). The release has no letter at those places: it drops the capital soft sign, and it has no lowercase ь there either. The owner decides if the release text should get the letter (that needs a new release).
+- Open: the release fonts draw the English signs `^` (code 3E), `` ` `` (code 40) and `´` (code 68) in cells 3E, 40 and 68. The Ukrainian letters Ґ, ґ and Ь have no glyph of their own yet; no text uses these cells. The owner draws them in the Font Editor when a translation needs them. The earlier placeholder fonts are kept as `.bak` files next to the translation fonts of each workspace.
+- Open: the layout gives Latin letters the codes of Cyrillic look-alikes (byte 0x21 is `А` and `A`). Typing a Latin `n` in a Ukrainian translation shows `п`.
+- Open: on-screen proof. DeSmuME 0.9.13 (private copy, hidden desktop, Quick Screenshot) shows Portrait of Ruin's Ukrainian save-warning box. Dawn of Sorrow shows its title and intro; Order of Ecclesia shows its language screen (touch works). No Ukrainian dialogue of DoS or OoE is captured yet. Keyboard input does not reach a DS emulator this way (DirectInput), and the Lua dashboard's Run does not start the script on this build. Font check: `reports\proof\*_ua_font_glyphs.png`.
+- Open: the Font Editor shows the English font only; the translation's UA fonts (`translation\<game>\font\`) are not editable in the app yet.
 
 ## Final Fantasy XII: Revenant Wings plugin (`plugins/ff12rw`, 2026-10-09)
 
@@ -1048,7 +1206,7 @@ omfs`) could be
 - UI command "Create plugin from template" (copy `plugins/default_plugin`, rename, open the prompt file).
   WP5.4 delivers the generator (`tools/new_plugin.py`); the menu entry is still unplanned.
 
-## Found during WP8 (the proxy, `D:\git\dev\gemini-web2api`)
+## Found during WP8 (the proxy, gemini-web2api)
 
 - **Nothing in proxy 1.4.0 has met Google.** Tests stub Gemini. Unverified against the real service: the
   `f.req` body with raw UTF-8 instead of escaped text (it is what a browser sends, but it was not tried),
@@ -1068,7 +1226,7 @@ omfs`) could be
 
 - **WP8 is NOT in the proxy's working directory.** That directory had 16 modified, uncommitted files (the
   v1.3.1-1.3.3 work) and the proxy is a live service, so nothing there was touched. WP8 lives on the branch
-  `audit/wp8`, checked out as a separate git worktree in `D:\git\dev\gemini-web2api-wp8`. Its first commit is a
+  `audit/wp8`, checked out as a separate git worktree in gemini-web2api-wp8. Its first commit is a
   snapshot of the uncommitted work (so that WP8 commits can be told apart); the rest are the WP8 tasks.
   Nothing is pushed. To use it: commit your own work on `main`, then `git merge audit/wp8` (the snapshot commit
   holds the same content, so the merge is clean) and delete the worktree with
@@ -1214,7 +1372,7 @@ omfs`) could be
   (`components/project_dialogs.py:240,260,594,617`, `ui/settings/path_picker_mixin.py:73`,
   `handlers/list_selection/physical_selection_mixin.py:384`). A plugin's own format is reachable through
   "All Files"; the single-file open/save dialogs already use `core.formats.dialog_filter`.
-- **Test leftovers under `C:\Temp\project`** (`.extracted/translation/bmgres.arc/zel_unit.bmg`, …): written by
+- **Test leftovers under a private temp folder** (`.extracted/translation/bmgres.arc/zel_unit.bmg`, …): written by
   `tests/test_core/test_data_state_processor_native_packing.py` before WP5.5 (it mocked `Path` but not the
   file writer). The tests no longer write there; the folder can be deleted.
 - **Watch: `tests/test_ui/test_bfn_preview_widget.py::test_preview_initial_scale_with_background_fits_viewport_proportionally`**
@@ -1264,7 +1422,7 @@ omfs`) could be
   the `"profile"` settings key cover it. Add a combo in `ui/settings/ai_mixin.py` if users need it.
 - **A test file depends on this machine's data.** `tests/test_handlers/test_ai_prompt_composer.py` builds
   the composer on a bare `MagicMock` main window; the story-context code then finds and parses the real
-  script at `E:\Emulators\RomHacking\Zelda\Twilight Princess\GC + Wii\zelda_tp_script.txt` and queries MemPalace (the file takes
+  script at zelda_tp_script.txt and queries MemPalace (the file takes
   ~20 s and its "Story Context" sections come from that script). Stub `composer.story_context` in the fixture.
 - **Leftovers of the removed translation-session path.** `AIWorker.run` still has `session_info` /
   `session_state` branches that can no longer be reached for translation tasks, the composers still accept
@@ -1274,7 +1432,7 @@ omfs`) could be
   text it also turns `{PLAYER}`-style escapes into names in neighbour rows and reference lines, which is
   useful. Applying it per section instead of to the final string would be the tidy version.
 - **`max_reference_languages` has no settings-dialog control** (translation config key; default every language, 0 none).
-- **Holding folder to delete**: `D:\git\dev\Picoripi_local_cleanup_2026-10-01` (562 MB: `gemini/`, `.grok/`,
+- **Holding folder to delete**: Picoripi_local_cleanup_2026-10-01 (562 MB: `gemini/`, `.grok/`,
   `.tmp_audit/`, 35 `graphify-out` snapshots, `stderr_output.log`, `image.png`, `settings.json.migrated`).
   Task 0.9 moved these out of the workspace instead of deleting them.
 - Root `CHANGELOG.md` is ~38 KB after archiving: the last 14 days hold 17 verbose release entries. New
@@ -1322,7 +1480,7 @@ omfs`) could be
 - Speaker names are decomp descriptions ("Clock Town - Gate-Blocking Soldier", OoT actor names like `En_Go2`
   where no description exists); a curated name table would read better. Cutscene-only lines, ids computed at
   run time and Bombers' Notebook entries without a placed actor get no speaker. Report:
-  `E:\Emulators\RomHacking\Zelda\Majoras Mask\N64\reports\context_report.md`.
+  context_report.md.
 
 ## The Wind Waker HD plugin (`plugins/zelda_ww`, Wii U)
 
@@ -1437,7 +1595,7 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 
 ## Unpack in Picoripi (phase 1, 2026-10-13)
 - Phase 2: the console key file (D30 has the owner's rule). Wii, Wii U, 3DS and Switch images need it. Wii discs need a partition reader too.
-- Wii WIA and RVZ images, and NKit images of other kinds, are not read; the zt scripts still convert them with DolphinTool or wit. The wizard says so and asks for an ISO. GameCube WIA and RVZ are read natively since D33 (`core/containers/wia.py`). NKit GameCube discs are read as they are (D30 addendum).
+- Wii WIA and RVZ images are read as their decrypted discs; a build from one writes a plain ISO first (`core/containers/wii_writer.py`, 2026-10-21). NKit images of other kinds are not read; the zt scripts still convert them with DolphinTool or wit. GameCube WIA and RVZ are read natively since D33 (`core/containers/wia.py`). NKit GameCube discs are read as they are (D30 addendum).
 - Phase 2a is wired (D30 addendum). Recorded differences, not fixed (the workspaces are not regenerated):
   - Curious Village (Layton DS): the unpack writes 65 more `.gds` scripts than the workspace has (465 text files against 400 blocks). The plugin gives rows for them, and the current zt agrees.
   - SoulSilver (Gen 4): `a/1/3/3` differs from the HeartGold-based workspace. The HeartGold output matches it.
@@ -1453,7 +1611,7 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 
 ## Unpack in Picoripi (phase 2b, 2026-10-13, partial)
 - BLOCKED: decryption of 3DS, Switch and Wii content. `pycryptodome==3.23.0` is pinned in `requirements-dev.txt` but not installed in the project venv: the install was denied by the auto-mode permission check, and the brief forbids a pure-Python AES. Every encrypted read raises `encrypted_error` (`core/containers/console_crypto.py`). Owner runs `install_picoripi_crypto.bat` (in the owner's `_shared\scripts` folder; it installs the pin into the project venv), then phase 2c fills the decrypt bodies at that seam: NCCH CTR and keyscrambler (3DS), NCA XTS and CTR with `prod.keys` (Switch), the common key CBC per sector (Wii).
-- Owner step after 2c: `scripts\verify_unpack_keys.py` and its `.bat` (not written here; it has nothing to run until the decrypt bodies exist). It takes the key file path as an argument, unpacks the given images to `D:\RomHacking_tmp\unpack_check\`, and prints counts and hash equality per game only.
+- Owner step after 2c: `scripts\verify_unpack_keys.py` and its `.bat` (not written here; it has nothing to run until the decrypt bodies exist). It takes the key file path as an argument, unpacks the given images to the unpack_check folder, and prints counts and hash equality per game only.
 - Key file formats the store will hold, not read yet: 3DS `aes_keys.txt` (boot9 next to it is used by the workspace tool), Switch `prod.keys`, Wii `keys.bin` (0x400 bytes, common key at 0x114; 0x158 is the NAND AES key that `tools/wii_nand` reads).
 - The pin is not in `requirements.txt`. When the decrypt bodies land, decide whether it joins the app's requirements.
 - ExeFS `code.bin` is decoded from BLZ when the exheader says so (`nitro.blz_decompress`). Verified against the Update CIA. The base Majora's Mask 3D code differs from the workspace, because the workspace ExeFS is the Update build (D30 addendum). Copy of Princess (text in `code.bin`) is not wired yet.
@@ -1481,7 +1639,7 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
   - 3DS, Miracle Mask CIA (`00040000000A8600_..._CTR_P_AKKP.cia`) against `Professor Layton\Miracle Mask`: 719 workspace files, 718 equal sha256, 0 missing. Decryption of RomFS and ExeFS is verified. The one difference is `exheader.bin`, 510 bytes: byte `0x0D` (`0x02` SDApplication; the CIA build has it, the cartridge build does not) and `0x400`-`0x5FF` (the RSA-2048 AccessDesc signature and the NCCH public key, which the CIA and cartridge builds sign differently). The workspace came from the decrypted Europe `.cci`, whose exheader equals the workspace copy. Bit `0x01` (CompressExefsCode) is set in both, and the workspace `code.bin` is decoded, as ours is. So our exheader keeps bit `0x01`; no reader change was needed.
   - Switch, Skyward Sword HD base NSP against `Zelda\Skyward Sword\HD - Switch` (`romfs` only): 162 workspace files in `exefs` and `romfs`, 161 equal sha256. The one difference is `romfs\EU\Object\nl_NL\5-CenterField.arc`: workspace 234554 bytes (dated 2026-10-04), ours 234522, which is the size in the RomFS table. The workspace file is most likely edited; not confirmed. The unpack has 720 files the workspace does not hold (the workspace is a subset).
   - Wii: first real-disc run 2026-10-18 (the owner's RZDE01 disc, key file in the console key store). The reader read the common key at 0x158 (the NAND key), so every decrypt failed. Fixed to 0x114. Then the H0 hash test of the first cluster passed 31 of 31, and the disc's `fontres.arc` equals the GC original. Only the first cluster was hash-checked; the rest of the disc is not.
-- Built, synthetic tests only before that run: decryption for 3DS (NCCH sections, CIA title key), Switch (NSP: NCA header, key area, CTR sections, ticket title key) and Wii (data partition, cluster IV). Run `E:\Emulators\RomHacking\_shared\scripts\verify_unpack_keys.bat` per image (`--image`, `--source` = the workspace `source` folder, and the key file argument of its console). It prints counts and equality only and unpacks into `D:\RomHacking_tmp\unpack_check\`.
+- Built, synthetic tests only before that run: decryption for 3DS (NCCH sections, CIA title key), Switch (NSP: NCA header, key area, CTR sections, ticket title key) and Wii (data partition, cluster IV). Run verify_unpack_keys.bat per image (`--image`, `--source` = the workspace `source` folder, and the key file argument of its console). It prints counts and equality only and unpacks into the unpack_check folder.
 - Still not verified on real data: the NCCH version 1 counter (3dbrew; no owner title checked); the NCCH 0x20 "new keyY generator" flag (the reader tries the signature KeyY and reports a wrong key if the tables do not parse); fixed-key and seed titles (refused). The Switch key-area and titlekek derivation (`switch_crypto.py`, from the spec, not from `nsz`, which is not on this PC) and the 3DS keyscrambler are now verified for the titles of the 2026-10-14 run only.
 - Refused with a message: 3DS fixed-key titles (flag 0x01); Wii Korean and vWii common keys (key index 1 and 2); Switch XCI images; Switch NCA0 and NCA2 headers; Switch XTS sections; Switch compressed sections; Switch personalised tickets; several program NCAs in one package; any other 3DS or Switch crypto method.
 - Partly read: a Switch update whose RomFS is a patch (BKTR). `SwitchImage.romfs_is_patch` is True and no RomFS entries are returned; the ExeFS is read. Sparse sections are read as plain: not checked (the sparse-info offset is not confirmed).
@@ -1664,9 +1822,114 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 
 - Done: the wizard refuses a game image that the chosen plugin cannot unpack (`build.run_unpack`), before anything is
   created. Creation is all or nothing; a start-up project that fails or makes no progress for two minutes is given up.
-- Open: No More Heroes (`no_more_heroes`) and MadWorld (`madworld`) have no unpack. Their source is the converted
-  tree of the owner's `nmh.py` / `madworld.py` (GDLG text, STRIMAGE glyph atlases, fonts, GCT/TPL textures, main.dol,
-  `image/*_index.json`). Port size: about 1,900 lines of owner code. Not started.
+- Done: No More Heroes (`no_more_heroes`, branch `feat/nmh-unpack`) unpacks its Europe disc image (ISO or RVZ) in the
+  wizard into `source/` (the owner's `nmh.py` layout, byte for byte) and builds a plain ISO (`wii_iso`). The build
+  output matched the owner's script build byte for byte for a visible title edit.
+- Done (2026-10-21, `feat/wii-writer`): an RVZ or WIA source builds too. `core/containers/wii_writer.py` writes the
+  plain ISO: it copies the raw areas, then seals each partition (hashes H0-H3, the last group's missing clusters as zero
+  data, re-encryption with the ticket key); the TMD changes only when H3 changes. Both plugins use this one writer.
+  Proof: the MadWorld RVZ, unpacked and built with no edit, gives the owner's original ISO byte for byte.
+- Open: a build from an RVZ or WIA takes about 8 minutes (Python hashing and AES of every cluster). Faster sealing only if
+  the owner needs quicker builds.
 - Open: 16 other plugins with an owner game image have the same gap (3DS, Wii, PS1 games); each needs its own
+- Done (2026-10-20, `feat/madworld-unpack`): MadWorld (`madworld`) unpacks in the wizard and builds a Wii ISO copy.
+  The owner's `zt/madworld.py` is ported into `plugins/madworld/`. The unpack of the owner's ISO and RVZ matches the
+  script's `source\` tree byte for byte (235 files). An unchanged build gives the original ISO byte for byte. A
+  visible test edit shows in a private Dolphin copy. Done (2026-10-21): an `.rvz` base builds (see the Wii writer item
+  above); the English health-and-safety pictures `strap_*_us.tpl` are unpacked and packed.
+- Done (2026-10-21): build warnings (a letter with no picture in the font) are written to `BUILD_WARNINGS.txt` beside
+  the result and the Project Manager status line names the first one. Open: a problem-list entry per string.
+- Open: other plugins with an owner game image have the same gap (3DS, Wii, PS1 games); each needs its own
   unpacker for the owner's converted source. The baseline in `tests/test_architecture/test_wizard_hooks_declared.py`
   lists them with a reason; a plugin leaves it when it gets a hook.
+## Castlevania SotN PS1 fonts (`plugins/castlevania_sotn`, 2026-10-18)
+
+Facts from the USA decomp (`port/sotn-decomp`) and the disc files in `source/`. Offsets are file offsets. No game text.
+
+| Font | File and offset | Format | CLUT (file offset) | VRAM | Drawn by | Editor status |
+|---|---|---|---|---|---|---|
+| 8x8 menu, names, dialogue | `BIN/F_GAME.BIN` 0x30000 (same bytes in `F_GAME2`, `F_TITLE1`) | CI4 128x128, 16x16 cells | 0x412C0 (index 150) | tpage 0x1E (896,256) | `MenuDrawStr`, cutscene dialogue (`st/cen/cutscene.c`), `BottomCornerText` | registered, round trip exact |
+| Damage numbers and words (red) | `BIN/F_GAME.BIN` 0x10000, cells x 32-127, y 64-127 (same bytes in `F_GAME2`) | CI4 128x128, 8x8 cells, 12 x 8 | 0x41640 (index 178) | tpage 0x1A | damage numbers (`dra/7879C.c`) | registered: digit row mapped, word rows free |
+| HUD digits (hearts, ST0) | `ST/ST0/ST0.BIN` 0x14448 (cmpgfx `richter_hud`, 128 x 128 4bpp) | CI4, 8x8 cells, u = digit x 8, v 96 | CLUT 0x103 = `BIN/F_GAME2.BIN` 0x40060 | tpage 0x1B | `dra/5F60C.c` `DrawRichterHud`: prims at native (14, 8) and (22, 8) in the fit | preview only (`hud.py`); not editable: a save needs a cmpgfx compressor |
+| 12x16 description font (BIOS KROM2) | not on disc: PS1 BIOS ROM at 0xBFC66000 | 1bpp 16x15 source, expanded to 4bpp 12x16 by `func_80106A28` | BIOS data | `LoadTPage` per glyph | item descriptions (`dra/menu.c` `func_800F99B8`), `st/blit_char.h` (pick-up and messages), `st/sel/318CC.c` | not editable; widths need BIOS data |
+| 16x16 name entry and file select | `ST/SEL/F_SEL.BIN.pic` (blocks 0 and 16) | 4bpp VRAM blocks | 0x200 | tpage 12 | `DrawString16x16`, UV table `D_8018046C` (`st/sel/318CC.c`) | Textures window only (a picture, not a font) |
+| Fallback glyphs (1bpp) | `DRA.BIN` 0xC910 (codes) and 0xC914 (pointers) | 1bpp 16x15 | none | none | `func_80106A28` when the BIOS has no glyph | not registered; glyph data not traced |
+| Debug font | `SLUS_000.67` 0x1C218 (128x32 CI4) and `kanjiclut` 0x1C018 | CI4 | 0x1C018 | tpage from `FntLoad(0x380, 0x100)` | `FntPrint` on a CD error only | not in the editor (debug) |
+| `font_eu` | PSP and EU builds only (`dra/692E8.c`, `maria/pl_main.c`, `ric/d_18568.c`) | GFX | none | none | not in the USA build | not in the USA build |
+
+- Cutscene bytes are cell + 0x20 (`CS_OFFSET` in `codec.py`); menu bytes are cell numbers. The 8x8 font's chars list is in cell order.
+- Copies: 0x30000 is byte-identical in `F_GAME`, `F_GAME2` and `F_TITLE1`. The build (`2_build.bat`, owner-owned) copies the 8x8 font to the other two. The damage page (0x10000) is identical in `F_GAME2` but nothing copies it. Owner decision: copy it or not; verify in game.
+- Free room: the 8x8 font has 256 cells, each with a character entry. The 68 `translation_map.json` entries reuse katakana cells (0x66-0x93); those are free only if the US text never draws them (not checked by machine).
+- Width checks: the plugin sets no per-line font (`get_string_layout` is not implemented). Lines with the BIOS font are measured with the global map. A fix needs widths from BIOS data, which is not on disc.
+- Open: map the damage word rows (string tables); trace the HUD digit `v` table; decide the widths for BIOS-font lines.
+- Done (2026-10-18, second round): `copies` writes the 0x30000 font block into F_GAME2 and F_TITLE1, and the 0x10000 damage block into F_GAME2, when the font is saved (`core/font_formats/sources.py`). The owner's `zt/sotn.py` copies only the 0x30000 block; the translation copy carries the damage block to the disc.
+- Done: the dialogue window preview (`text_window.py`, `text_preview.py`): 8x8 font, 192 px strip, 12 px line pitch, start x+4 and y+20, four lines, whole-number zoom. Not checked against the game screen.
+- Done (third round): each cutscene line records the window place of the last `POS x y` (op 7, `CSOP_SET_POS`) before it (`script.place_before`, `doc.Line.place`). The preview reads the selected line through `main_window.data_store` and the rules (`get_dialogue_place`). Default place (60, 28) is the POS of `ST/CEN/CEN.BIN`.
+- Done (sixth round): the ST0 hearts digits are fitted and drawn in the preview (see the HUD row above). The `F_GAME.BIN` 0x38000 row was the Alucard HUD guess, not the ST0 sheet.
+- Done (fourth round): the dialogue origin is fitted to `owner_02_dracula_dialog.png` (ST0 line, POS 60, 36): body x = startX + 12, y = startY + 5, 12 px lines. The decomp rule (startX + 4, startY + 20) does not fit that frame. One frame only: confirm with a second dialogue frame. Mismatch on the body region at display scale: 3,476 of 73,500 px (4.73 %: 787 owner-only, 2,689 preview-only; part of the preview-only count is the capture's soft scaling).
+- Done (fifth round): the speaker name is drawn in the same 8x8 font. The decomp fixes its x at 0x38 (`src/st/cutscene_actor_name.h`); the fit gives x 56 and y = startY - 12 (decomp: startY + 6). Mismatch on the speaker region: 417 of 7,350 px (5.67 %: 62 owner-only, 355 preview-only).
+- Open: the menus. The equip frame (`owner_04`) has 8x8 item names and stats, a console-font description line at the bottom, and large ATT and DEF letters. The system frame (`owner_05`) and status frame (`owner_06`) are similar. Not drawn; no fit yet.
+- Done (sixth round): owner_02 shows hearts 30 in the box, not HP. The earlier fit against `F_GAME.BIN` was the wrong sheet. Fit now: `richter_hud` in ST0, 7 of 240 cells differ (2.9 %). The hearts start value is not traced: the preview shows 30.
+- Open (sixth round, prologue pictures): both files are `sotn_blocks` 8bpp: 0x2000-byte blocks of 64 x 128, block `i` at column `(i // 4) * 2 + i % 2` and row `(i // 2) % 2` of a 1024 x 256 sheet (`core/texture_formats/sotn.py`). `F_PROLO0.BIN` = VRAM rows 0-255 (castle, moon, CASTLEVANIA letters); `F_PROLO1.BIN` = VRAM rows 256-511 (the bridge; the caption quads read pages 0x98-0x9E there). The CD read at LBA 0x62D6 (0x80000 bytes) is F_PROLO0 then F_PROLO1 (LBA 0x6356). The caption glyphs are not in either file: no glyph of the owner's frame was found in the decoded sheets. Scroll reached in a private DuckStation copy: New Game, name, then `g_GameState = 7` (Game_PrologueEnd) with `g_GameStep = 0` in a save state runs `PrologueScroll` (RAM 0x8003C734, 0x80073060). Not editable yet; the unpack (`zt/sotn.py` `PICTURES`) still lacks `F_PROLO1.BIN`.
+- Done (eighth round, caption text source): the scroll text is ST0 data, not pixels. `ST/ST0/ST0.BIN` 0x2C58 holds the English script (the decomp's `prologue_script_en`): ASCII; `01 xx` = line break with an x offset; `02 xx` = page break; `00` = end. `src/st/st0/3101C_psx.c` (`func_801B1298`) draws each glyph with `func_80106A28` (the console BIOS 12x16 font, full-width Latin codes) into VRAM at (startY, nextLineX * 16), so the glyphs are not on the disc and the Font Editor cannot edit them (same as the BIOS font of the menus: `psx_bios` console key). Editable path: a text kind for ST0 `prologue_script_en` in the plugin (same length per line; the BIOS font for the preview). Proof: the scroll state's RAM copy of the text was edited from `Richter mysteriously vanished.` to uppercase (same length); the scroll shows the uppercase line (reports/proof). No disc change, no PICTURES change needed (ST0 is unpacked).
+- Open: BIOS widths: not measured. The console font glyphs exist only in the BIOS ROM, not on the disc, so the widths cannot be read from the disc. A measurement needs one screenshot per glyph.
+- Out of scope: the prologue text (`owner_03_intro_text_512.png`) is picture text in the 512 mode; the menu frames (`owner_04` to `06`) use the 8x8 names and the console font for the help line. The preview draws no menu yet.
+- Not editable: the US build has one fallback glyph (code `'鬱'`, `dra/66590.c` `D_800AC910`, one 30-byte bitmap in code data). The other nine entries are built only for non-US versions.
+- Open: DuckStation comparison not done. A private DuckStation copy reaches the Richter opening stage and the pause menu; walking right with a held key did not move Richter. The throne-room dialogue (owner's proof shot) was not reached.
+- Open: BIOS-font widths (descriptions, messages) are not measured. Those lines keep the global widths; no screenshot of an item description yet.
+- Open: the Alucard HUD digits (`DrawHud`, tpage 0x1F, `DrawHudSubweapon` u = digit x 8 + 0x20) are not registered; no Alucard HUD frame checked yet.
+- Done (sixth round): the Shift-JIS menu line (item description, help line) in the 12x16 BIOS font. The KROM2 table starts at BIOS file offset 0x66000 (BFC66000) for the range 0x8140-0x84BF; the glyph index follows the PSP port's index mapper (checked on full-width 'A' and 'a'). `plugins/castlevania_sotn/menu_text.py` ports `func_80106A28` (expansion) and `func_800F99B8` (ink advance: leading empty byte columns trimmed, last ink byte column, +1 for a high-nibble pixel, +1 when under six columns; a byte is two pixels). The BIOS file comes from the Console keys slot `psx_bios`; no BIOS data is shipped.
+- Fit at 2x on owner frames (Dice = 2 x overlap / (template + frame ink), 1 is equal): `owner_04` description "Black cape for vampires" at (180, 565): Dice 0.77, 1,019 of 2,273 template ink pixels differ. `owner_05` help line "Sound settings" at (171, 567): Dice 0.76, 727 of 1,594 differ. Ablation on owner_04: without the high-nibble rule Dice 0.50; without the minimum-one rule Dice 0.54; nibble order swapped Dice 0.56. The mismatch counts include the frames' soft scaling.
+- Open: the BIOS ranges 0x8540-0x8796 and 0x889F-0x9872 are not in the port (their tables are at other BIOS offsets, not traced). Those codes draw blank and are counted in the preview note.
+- Open: the menu screens are not drawn: the equip list, STR / CON / INT / LCK and the large ATT / DEF letters (`owner_04`), the system and popup menus (`owner_05`), the status labels and command box (`owner_06`). Positions come from `menu.c` (`func_800FAD34`, `ShowText` row 2); the on-screen origin of the line is fitted, not traced from the draw call.
+- Done (seventh round): `plugins/castlevania_sotn/menu_screens.py` holds the menu layout as the draw calls give it (`MenuDrawStats` for the equipment overview and the status, `MenuSystemDraw`, `MenuSoundConfigDraw`, the US `func_800F8754` command box, `func_800F5AE4` info bar, `func_800F5E68` highlight, `MenuDrawLine` border). The preview draws the first line of a BIOS-font line at its traced place on a menu panel.
+- Fit on owner frames (sx 2.000, sy 2.50 on owner_04 and owner_06, sy 2.49 on owner_05; the same display mapping on all three). Each kind scored on its own offset: Dice sharp / blurred / NCC soft, differing pixels (sharp) of template ink. owner_04 equipment overview: stats 0.747 / 0.790 / 0.794 (868 of 1,900); names 0.896 / 0.960 / 0.980 (933 of 4,884); ATT/DEF numbers 0.898 / 0.930 / 0.981 (88 of 472); info bar 0.880 / 0.879 / 0.965 (627 of 2,882). owner_06 status: stats 0.875 / 0.910 / 0.973 (355 of 1,582); ATT/DEF numbers 0.882 / 0.922 / 0.982 (100 of 472); command box 0.580 / 0.612 / 0.625 (1,460 of 2,464, border and highlight not yet fitted); status labels 0.467 / 0.471 / 0.514 (its box also holds the unrendered big letters, command box and portrait edge, so not a clean number). owner_05 system rows 0.782 / 0.823 / 0.817 (989 of 2,470); sound popup 0.881 / 0.958 / 0.969 (165 of 770); info bar 0.868 / 0.868 / 0.962 (454 of 2,042).
+- Description Dice: the earlier 0.77 used a vertical scale of 2.0; the line's ink span (35 px for 14 native rows) fits 2.5. Blur does not change the info bar (0.880 to 0.879); it does change the 8x8 text (stats 0.747 to 0.790, system rows 0.782 to 0.823).
+- Done (eighth round): the `g_MenuStr` table is `DRA.BIN` file offset 0x8258 (address 0x800A8258; DRA load address 0x800A0000): 110 little-endian pointers. Every pointer equals a layout string offset (110 of 110), and the decoded names match the draw calls (0 ALUCARD, 1 STR, 12 HP, 85-90 the category labels with leading spaces, 92 Equip to 96 Familiars). `menu_strings.py` reads the table from the source DRA.BIN; the preview keys the selected DRA line by its layout offset to its slot and draws the word at the traced place (status, system rows, the popup and command windows with their fitted origins). The preview shows one word on its panel; the other words of a screen are not drawn with the project's text yet.
+- Open: the big 12x16 ATT and DEF letters (`func_800F66BC`). Facts: the US strings are `_S2("ＡＴＴ")` and `_S2("ＤＥＦ")` (codes 0,1,1 and 2,3,4); each letter is a 12 x 16 cell at u = (code & 0xF) x 12, v = (code >> 5) x 16 in texture page 6 or 7 (code bit 4), CLUT 0x1A1, drawn with colour 0x40. The texture that holds them is not identified: it is not one of the 8x8 font sheets (`font_sources.json`), so it is not registered. Next: find the VRAM upload of tpage 6/7 for the menu (the same page as the info bar).
+- Open: the sound popup origin is fitted (cursor about (170, 114)); the popup's own scoring gave Dice 0.88 sharp, 0.96 blurred, but a joint fit with the system rows scored it only 0.16 and was discarded in favour of the per-kind placement. The popup and command box origins depend on the window state (`ctx->cursorX` and the animated `w`/`h`); they are fitted, not traced.
+- Open: the command box highlight width and the window size are fitted (the decomp uses the animated window `cursorW`/`cursorH`).
+- Open: BIOS ranges 0x8540-0x9872. The English menu lines use only 0x8140-0x84BF; one line of the file-select block uses 16 kanji from 0x8ABB to 0x97CD. Range 0x8540 is unused. Not traced.
+- Done (ninth round, prologue caption): the caption is the last block of `ST/ST0/ST0.BIN` (`prologue_script_en`, PSX branch, script at 0x2C58 to the end byte at 0x3120). `plugins/castlevania_sotn/scroll.py` reads the lines (text, `01 xx` / `02 xx` breaks, `00` end); each editor line keeps its break's x offset (`Line.x`, kept on save); `{PAGE}` at a line end is a page break. The script pointer is read from the draw code (`lui $a0, 0x8018` / `addiu $a0, $a0, 0x2C58` at file 0x312FC), so `parse` follows it. A script that fits the old 1228 bytes is written in place; a longer one moves to the spare range 0x10C30 and the pointer is rewritten. Byte-exact round trip on the real file (test in `test_rules.py`, real-data).
+- Done: the lead-byte reader. `func_801B11E8` (file 0x311E8) maps one byte to a Shift-JIS code and is called from both draw loops (0x31380, 0x31640); its first word is replaced by `j` to a 96-byte cave at file 0x1AB30 (spare; the build reserves it). The cave reads a second byte for a lead byte 0x81-0x9F or 0xE0-0xEF from `g_Dialogue.scriptCur` (RAM 0x801C24CC) and tail-calls the BIOS glyph function. Written only when the caption holds a Shift-JIS code. Assembled with keystone (`.set noreorder`), decoded with capstone; the cave bytes are in `scroll.py` (`CAVE_HEX`).
+- Done: Ukrainian in the caption. Drawn by the BIOS KROM2 table: all Russian Cyrillic in cp932 (А-Я, а-я), Latin for І and і (`codec.SJ_LATIN`), ASCII. Not drawn: Ї, Є, Ґ (no glyph in the BIOS table; written as `?` with a missing-character warning). The draw spacing is fixed (12 px a glyph, 8 px a space), so Cyrillic and Latin advance the same.
+- Done: caption preview (`text_preview.py` `_render_caption`, `scroll.render_page`): the page of the selected line on a 512-pixel panel, the BIOS 12x16 glyphs at 4 px a halfword, a 22 px line pitch, a sprite offset of 32 px, and the game's wrap rule (no glyph starts in [224, 256) px; the cursor moves to 256). Fit to `owner_03_intro_text_512.png` (page 1, seven lines): screen = 32 + 1.4316 x panel x, 93 + 2.5 x panel y, normalised correlation 0.49 (blur 1.0) over the game area; the centred lines and the 22 px pitch match by eye.
+- Done (proof, private): the disc build (`zt.py build` on a private workspace with the plugin's `translation/ST/ST0/ST0.BIN`) writes the file; a private DuckStation state (`SLUS-00067_1`, mid-scroll at line 9) was given the new ST0 bytes in RAM (only the changed bytes, the cave and the moved pointer), its `scriptCur` moved to the relocated line 9, and the header's frame size updated. Loading it shows three Ukrainian lines drawn by the game's own routine. Not a cold boot: a normal New Game run plays the flyover and gameplay without the caption text in this session's sampling (every 4 to 6 s).
+- Open: `scriptCur` in a save state points into the old script; a state from a different scroll position needs the same mapping (line index, then the new line's offset). Not automated.
+- Done (tenth round): Ї Є Ґ ї є ґ in the caption. Six private Shift-JIS codes `0xF040`-`0xF045` (`codec.SJ_PRIVATE`, user area) stand for the letters; the reader (`CAVE`, 228 bytes at file 0x1AB30) takes a lead byte 0xF0-0xF9 too, and for the six codes expands a glyph of the table at file 0x1B210 (6 x 32 bytes, 1 bit a pixel, 16 rows of 16-bit words) into a 96-byte scratch at 0x1A930 in the BIOS 4-bit format, and returns that. The table is not a text region: a save keeps the owner's glyphs when it merges into the translation copy. The default glyphs are placeholders: И, Е and Г with marks (Ї two dots, Є a hook, Ґ a tick); the owner redraws them.
+- Done: Font Editor source "Caption letters Ї Є Ґ" (`font_sources.json`, `texture_grid` over `ST/ST0/ST0.BIN` with the texture format `glyph_bits`, cells 12 x 16, chars `ЇЄҐїєґ`).
+- Done: width check `SOTN_CAPTION_WIDTH` (`problem_analyzer.py`, rules `caption_too_wide`): a caption line of `advance_px` (12 a glyph, 8 a space) wider than 512 - 4 x its x offset is flagged; a caption line gets only this check (the generic checks use the 8x8 widths). Not checked: the game's wrap rule (a glyph cannot start in [224, 256) px) and the line's place on screen.
+- Open: the preview draws the placeholder letters, not the table of the project's file; the owner's redrawn glyphs appear in the game, not yet in the preview.
+- Done (proof, private): the state patch of the previous proof, with the line `Їжак, Єнот, Ґанок.` (line 13 of the caption) rebuilt through the shared disc build: the frame shows the three words with the placeholder glyphs (И, Е, Г shapes with the marks).
+- Open: the first caption line's x offset (0x16, `func_801B101C`) is in code, not in the script; the translator cannot move it.
+
+## Lunar SSSC voice clips and opening subtitles (`plugins/lunar_sssc/voice.py`, `xa.py`, 2026-10-20, branch `feat/lunar-audio`)
+
+- Done: the opening monologue is XA audio on disc 1 (`_AUDIO.XA` file 1, channel 8, track sectors 18116 to 22516, 276 slots, 29.44 s budget). The game starts it at New Game (`Setmode 0xC8`, `Setfilter File=1 Channel=8`, `ReadS 04:03:33`). No text on screen during the cliff scene (private DuckStation run).
+- Done: codec (`xa.py`, filter 0 only, mono 37.8 kHz), slot fit (shorter padded, longer refused with the seconds over), in-place sector write (only slot sectors change), round trip on a disc copy with a synthetic tone.
+- Open: the script op or handler that starts the monologue is not identified. `TEXT000.DAT` (boot script, not unpacked) is the first candidate; the interpreter opcodes need a disassembly of the handler at SLUS_006.28.
+- Open: subtitles. No subtitle op exists yet. Plan: a message op with `{end}` (no wait) placed at the trigger, one message per clip, or a timed text box if the interpreter has a wait op. Blocked on the trigger op above.
+- Done: the voice hooks (`get_voice_clips`, `export_voice_clip`, `import_voice_clip`, `apply_voice_clips`) in `BaseGameRules` and `plugins/spec.py`, the Tools action "Voice clips..." (`voice_dialog.py`, jobs in a `WorkerThread`), the Ukrainian strings, the wiki paragraph (EN, UK). Not yet run in the app window (only the offscreen dialog test).
+- Open: the build step does not call `apply_voice_clips` yet: `zt/lunar.py` (outside this repo) must call it on each build .bin.
+- Open: `docs/PIPELINE_ROADMAP.md` and the AI plugin prompt Q8 do not mention the voice hooks yet (checklist item 4).
+- Open: quality. Filter 0 gives about 1 024 units of error on a 6 000 peak. Release voices need psxavenc (external, official source) or filters 1 to 4.
+- Open: Eternal Blue (`V.XA`) and Silver Star Harmony (loose AT3) are not mapped.
+
+## Lunar audio, next steps (2026-10-21, branch `feat/lunar-audio`)
+
+- Open: the start op of the monologue (file 1, channel 8) is not found. PCSX-Redux (official dev build from distrib.app, sha1 checked) does not start in this environment: the process runs, opens no window, runs no Lua and writes no log. Needs another way: a fixed build or machine, or a static MIPS trace of `SLUS_006.28` (CD command write to 0x1F801801, then the callers that reach the script interpreter).
+- Open: per-line subtitles depend on that start op. Not built.
+- Open: Eternal Blue `V.XA` channel map (which op or table selects channel and offset) not found. The clip model already carries a rate (18900 Hz for `V.XA`).
+- Open: Silver Star Harmony AT3 voices: decode only. FFmpeg's ATRAC3plus decoder can read the 401 files (RIFF, format tag 0xFFFE, ATRAC3plus GUID). No open ATRAC3plus encoder is confirmed; the atracdenc sources disagree, so it is not relied on. Leaked Sony tools are not used.
+- Known failing test, not from this branch: `tests/test_ui/test_project_manager/test_dialog.py::test_registry_projects_appear_with_last_opened_first` fails on base commit fb1ed707 too.
+- Open (2026-10-21, PCSX-Redux CLI): `pcsx-redux.main -cli -portable -debugger -interpreter` (the dynarec CPU never fires breakpoints; `-debugger` alone does not) runs Lua, Exec and Write breakpoints fire, at about 30 fps. The boot reaches the game (CD read at frame 472, `SLUS_006.28` runs) and then spins in a loop at 0x80094B90 that waits for flag 0x800B7970 (BIOS writes it once, frame 1050). Pad overrides (START/UP/CROSS, 10 and 40 frames, from frame 1700 to 6000) do not move the game past that loop, and no further CD command is written. BIOS scph5501 and scph1001 give the same result. The static scan finds no direct store to 0x1F801800-03 in `SLUS_006.28`: the CD registers are reached through a pointer table at file offsets 0xA5AB0 onward.
+- Open (2026-10-21, DuckStation GDB, private copy): the GDB stub works (`[Debug] EnableGDBServer = true`, `GDBServerPort = 2345`): `Z0`, `Z2` and `c` answer; stop replies `S05`/`T05watch:1f801801`; `g` gives 73 little-endian words (sp = word 29, ra = 31, pc = 37). The CD command store is at RAM 0x800916C4 (`sb s1`, base r2): it writes command bytes 01, 0A, 0C, 13, 14, 02, 0E, 06, 09, 15, 0B, 1B. Setfilter (0x0D) is not hit yet: with a breakpoint on that store the game stalls after 40 to 60 s (frequent stops during the title poll pause the pad input, so the key presses are lost). Without breakpoints the New Game path runs. Keys: arrow keys need the extended bit; the keys start after the "System booted" line.
+
+## Lunar SSSC opening subtitles (`plugins/lunar_sssc/voice_subtitles.py`, 2026-10-21, branch `feat/lunar-audio`)
+
+- Done: the clip start is script op 0x0053 at TEXT001.DAT offset 0x444E (RAM 0x801DCB80 + 0x444E). The first Setfilter (file 1, channel 8) of a New Game run fires inside that op, with the script cursor at 0x4450 and the clip id 0x3E in gp+0x8AE. The op after it is 0x0052 (argument 0x3F); the voice wait is op 0x0054.
+- Done: block "Voice subtitles" (8 lines, one per speech segment). Times in `voice_subtitles.SEGMENTS` come from `voice.speech_spans` on the decoded clip (0.05 s RMS windows, 0.05 fraction, silences under 0.4 s joined, spans under 0.5 s dropped), in 60 Hz frames. Each line is a message with pause controls `{F8:nn}` and `{close}{end}` (no button wait), placed between the clip-start op and op 0x0052. Empty lines add nothing; an unedited file is rebuilt byte for byte. Synthetic tests: `tests/test_plugins/test_lunar_sssc/test_voice_subtitles.py`.
+- Done: cold boot of a disc built by the shared `zt.py build` (private workspace copy, same steps as `2_build.bat`). The unchanged control disc reaches the menu and New Game. The disc with the subtitle TEXT001 shows the test lines in order during the cliff monologue, with no RAM patch. Lines appear about 18 s after New Game (the trace shows the clip start inside that window).
+- Open: the clip start to first line offset is not measured in game frames. DuckStation has no audio dump, so the speech onset in emulated time is not read. The line starts are relative to op 0x0053; the XA buffering delay (Setloc to first sector) is not modelled.
+- Open: the 8 line texts are translator work. `zt/lunar.py` (outside this repo) needs no change: it reads the saved TEXT001 from the translation folder.
+- Open: `{F8:nn}` as frames at 60 Hz comes from the proof, not from a full disassembly of the pause control.

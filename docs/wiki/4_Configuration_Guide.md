@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/settings
-tokens: 2.3k
+tokens: 2.4k
 purpose: Settings files, project files, where data is stored
 ---
 # Configuration
@@ -77,7 +77,7 @@ Connection to the mobile review backend. See [12. Picoripi Companion](12_Picorip
 
 ### Console keys
 
-The key file of each console: 3DS, Switch, Wii and the Oodle library. Picoripi keeps only the path of each file. It never shows, logs or copies the key contents. **Browse...** sets a path and **Clear** forgets it. The state line shows whether the stored file still exists. The Project Manager wizard asks for a missing key file and stores it here. Changes apply at once.
+The key file of each console: 3DS, Switch, Wii, the Oodle library and the PlayStation BIOS. The BIOS row gives the font table that Castlevania: Symphony of the Night draws its Shift-JIS menu lines with; Picoripi reads it and ships no BIOS data. Picoripi keeps only the path of each file. It never shows, logs or copies the key contents. **Browse...** sets a path and **Clear** forgets it. The state line shows whether the stored file still exists. The Project Manager wizard asks for a missing key file and stores it here. Changes apply at once.
 
 ### Logging
 

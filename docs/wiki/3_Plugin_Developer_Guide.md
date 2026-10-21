@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: plugins/
-tokens: 14.2k
+tokens: 14.4k
 purpose: The one plugin guide: files, hooks, capabilities, tests
 ---
 # Plugin Developer Guide
@@ -58,6 +58,8 @@ If the import fails, the user gets **Plugin Load Error** and the application fal
 **Force aliases and names drawn in colour:** an alias whose name starts with `F:` (`"{F:Link}": "{Player}"`) reaches the model as the plain word, which it declines; the translation keeps that word and not the tag, so a renamed hero still reads «Лінк». If the game itself draws that name in a colour, return the colour tags from `get_force_alias_wrapping()` (`{"{F:Link}": ("{Color:Green}", "{Color:White}")}` in Minish Cap): the word is sent wrapped and the declined form comes back in the same colour; the tag warning does not count those tags as extra. Find out per game whether the engine colours the name — Twilight Princess, The Wind Waker and Tears of the Kingdom do not (TotK: none of the 76–99 `{playerName}` tags per language has a colour tag around it; English writes "Link" as plain text; Wind Waker HD: 326 of 359 `[Name]` tags stand in no colour at all; Skyward Sword HD: 626 of 631 `{heroName}`), Minish Cap does.
 
 **Menu actions:** `get_plugin_actions()` may add `QAction`s (`name`, `text`, `tooltip`, `shortcut`, `handler`, `menu`, `toolbar`). The AI translate actions belong to the application and are present for every game.
+
+**Voice clips:** `get_voice_clips(project_dir)` lists the clips (`id`, `title`, `disc`: the .bin the original is read from, `voice_dir`: where a translated WAV is kept). `export_voice_clip`, `import_voice_clip` and `apply_voice_clips` do the work; a plugin's own Tools action opens the dialog, and every export, import or apply runs in a worker. A game without voice clips keeps the defaults (an empty list).
 
 ---
 
@@ -119,6 +121,8 @@ With these the base class builds the tag manager, the problem analyzer and the t
 Inside the application the text is `List[List[str]]` — blocks of strings — plus block names. `load_data_from_json_obj` returns `(blocks, block_names)`; `save_data_to_json_obj(blocks, block_names)` returns what goes back to the file. Unknown fields of the format must survive the round trip.
 
 If saving needs something the strings do not carry (table keys, the parsed binary file), keep it in the plugin and implement `export_runtime_state()` / `restore_runtime_state(state)` / `reset_runtime_state()` — plain JSON data that the host keeps across reloads, reverts and sessions — and `prepare_save_context(context)`, called before each project file is built (`context.block_indices`, `context.runtime_state`, `context.existing_versions()` yields the file's current bytes, translation first). A session written before the plugin kept any state restores none: the host then reads the project files once on a worker for the state only (the restored strings and edits stay) and scans the issues again. The host never reads plugin attributes. Examples: `plugins/pokemon_fr/rules.py` (keys), `plugins/manual_3ds/rules.py` (one manual per block), `plugins/zelda_bmg/rules.py` (a binary file patched on save).
+
+A session holds the message rows, so a game whose rows change meaning declares a version: `session_data_layout()` returns a number, and the session manager stamps it on each saved session. A session stamped with another number, or with none, goes through `migrate_session_snapshot(snapshot)`. The hook maps the rows and returns the snapshot with the new stamp; without the stamp the session is refused and the project opens from its files. The default (None) adds no stamp and no migration.
 
 The host parses a source file and a translation file with the same `load_data_from_json_obj`. When one file can hold both the original and the translation (several languages in one file, read in place), implement `set_load_role(role)`: the host calls it with `"translation"` before it parses a translation file (the project load, the changes file, the re-parse after a save or a revert, the Project Manager's counts) and with `"source"` after. Example: `plugins/manual_3ds/rules.py` (`en` for the original, `ua` for the translation).
 

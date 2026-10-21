@@ -170,7 +170,7 @@
 - [x] Виправлення `baby bass` (мальок гайрульського окуня, маленький гайрульський окунь).
 - [x] Виправлення `The Legend of the Hylian Loach`, `HYLIAN SOLDIER #5`, `HYLIAN GUARD #2`, `HYLIAN GUARD #4`, `HYLIAN WOMAN #1`, `eastern Hyrule`.
 - [x] Валідація збереження 1 267 записів та повної відсутності залишкових форм (0 знайдено).
-- [x] Оновлення документації проєкту в `E:\Emulators\RomHacking\ZELDA\TP_UA` (`task.md`, `plan.md`, `walkthrough.md`).
+- [x] Оновлення документації проєкту в TP_UA (`task.md`, `plan.md`, `walkthrough.md`).
 
 ## Етап 39: Кнопка Retry в AI Chat (v0.3.120-dev)
 - [x] Додавання кнопки `self.retry_button` («Retry» / «Повторити») у блок кнопок поруч із полем вводу `input_edit` у `components/ai_chat_dialog.py`.

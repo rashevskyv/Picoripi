@@ -24,6 +24,7 @@ Cancelled = Callable[[], bool]
 
 UNPACKED_NAME = "unpacked"
 BUILD_DIR_NAME = "build"
+WARNINGS_FILE = "BUILD_WARNINGS.txt"   # the warnings of a build, beside its result
 PLACEHOLDER = "{path}"
 MB = 1024 * 1024
 MIN_MARGIN = 256 * MB   # the room an unpack needs beyond the image: 10 % of its size or this, whichever is larger
@@ -300,3 +301,23 @@ def emulator_argv(template: str, path: str, posix: Optional[bool] = None) -> Lis
     if not any(PLACEHOLDER in word for word in words):
         argv.append(path)
     return argv
+
+
+def write_warnings(folder: str | os.PathLike, lines: List[str]) -> None:
+    """Write a build's warnings into its result folder, one per line, atomically. Writes nothing for no warning."""
+    if not lines:
+        return
+    path = Path(folder) / WARNINGS_FILE
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def read_warnings(result: str | os.PathLike) -> List[str]:
+    """The warnings of the build that wrote ``result`` (a file in the build folder, or the folder itself)."""
+    path = Path(result)
+    try:
+        text = ((path if path.is_dir() else path.parent) / WARNINGS_FILE).read_text(encoding="utf-8")
+    except OSError:
+        return []
+    return [line for line in text.splitlines() if line.strip()]

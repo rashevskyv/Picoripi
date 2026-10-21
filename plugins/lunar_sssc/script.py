@@ -214,6 +214,31 @@ def rebuild(data: bytes, replaced: Dict[int, bytes]) -> bytes:
     return bytes(out)
 
 
+def splice(data: bytes, start: int, end: int, new: bytes) -> bytes:
+    """``data`` with the whole instructions in ``[start, end)`` replaced by ``new``.
+
+    Labels at or after ``end`` move with the code; no label may point inside the replaced range. ``new``
+    must keep the file's 4-byte alignment: its length minus ``end - start`` is a multiple of 4.
+    """
+    if not HEADER <= start <= end <= len(data):
+        raise ScriptError(f"splice range 0x{start:X}-0x{end:X} is outside the code")
+    if (len(new) - (end - start)) % 4:
+        raise ScriptError("splice changes the length by a number that is not a multiple of 4")
+    table = labels(data)
+    for index, value in enumerate(table):
+        if value and start < value * 2 < end:
+            raise ScriptError(f"label {index} points inside the replaced code at 0x{start:X}")
+    delta = len(new) - (end - start)
+    out = bytearray(data[:start]) + bytearray(new) + bytearray(data[end:])
+    for index, value in enumerate(table):
+        if value and value * 2 >= end:
+            moved = value * 2 + delta
+            if moved // 2 > 0xFFFF:
+                raise ScriptError("script grew past 128 KB")
+            struct.pack_into("<H", out, index * 2, moved // 2)
+    return bytes(out)
+
+
 def find(texts: List[Text], start: int) -> Optional[Text]:
     for text in texts:
         if text.start == start:

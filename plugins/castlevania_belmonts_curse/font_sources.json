@@ -1,0 +1,14 @@
+[
+  {
+    "label": "NotoSans_Latin (TextMesh Pro)",
+    "format": "tmp_sdf",
+    "path": "font/fonts-latin/NotoSans_Latin.tmpfont",
+    "companion": "font/fonts-latin/NotoSans_Latin.png"
+  },
+  {
+    "label": "LatinFont (TextMesh Pro)",
+    "format": "tmp_sdf",
+    "path": "font/fonts-latin/LatinFont.tmpfont",
+    "companion": "font/fonts-latin/LatinFont.png"
+  }
+]

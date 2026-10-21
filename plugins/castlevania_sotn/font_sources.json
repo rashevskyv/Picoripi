@@ -4,6 +4,10 @@
   "format": "texture_grid",
   "path": "BIN/F_GAME.BIN.pic",
   "font_map": "castlevania_sotn_font.json",
+  "copies": [
+   {"path": "BIN/F_GAME2.BIN.pic", "offset": "0x30000", "size": "0x2000"},
+   {"path": "BIN/F_TITLE1.BIN.pic", "offset": "0x30000", "size": "0x2000"}
+  ],
   "params": {
    "texture": "raw",
    "cell": [
@@ -18,6 +22,66 @@
     "offset": "0x30000",
     "tlut_offset": "0x412C0"
    }
+  }
+ },
+ {
+  "label": "Damage numbers and status words (red 8x8 in F_GAME.BIN page 0x10000; row 1 = digits 1-0; the word rows are not mapped yet)",
+  "format": "texture_grid",
+  "path": "BIN/F_GAME.BIN.pic",
+  "copies": [
+   {"path": "BIN/F_GAME2.BIN.pic", "offset": "0x10000", "size": "0x2000"}
+  ],
+  "params": {
+   "texture": "raw",
+   "cell": [
+    8,
+    8
+   ],
+   "columns": 12,
+   "rows_at": [
+    [32, 64],
+    [32, 72],
+    [32, 80],
+    [32, 88],
+    [32, 96],
+    [32, 104],
+    [32, 112],
+    [32, 120]
+   ],
+   "chars": [
+    "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "", "",
+    "", "", "", "", "", "", "", "", "", "", "", "",
+    "", "", "", "", "", "", "", "", "", "", "", "",
+    "", "", "", "", "", "", "", "", "", "", "", "",
+    "", "", "", "", "", "", "", "", "", "", "", "",
+    "", "", "", "", "", "", "", "", "", "", "", "",
+    "", "", "", "", "", "", "", "", "", "", "", "",
+    "", "", "", "", "", "", "", "", "", "", "", ""
+   ],
+   "texture_params": {
+    "pixel_format": "psx:CI4",
+    "width": 128,
+    "height": 128,
+    "offset": "0x10000",
+    "tlut_offset": "0x41640"
+   }
+  }
+ },
+ {
+  "label": "Caption letters Ї Є Ґ (prologue, ST0 table, 6 glyphs: placeholder shapes until redrawn)",
+  "format": "texture_grid",
+  "path": "ST/ST0/ST0.BIN",
+  "params": {
+   "texture": "glyph_bits",
+   "texture_params": {
+    "offset": "0x1B210",
+    "count": 6,
+    "width": 12,
+    "height": 16
+   },
+   "cell": [12, 16],
+   "columns": 6,
+   "chars": "ЇЄҐїєґ"
   }
  }
 ]

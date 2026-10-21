@@ -59,6 +59,12 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
              call=()),
         Hook("restore_runtime_state", "Take back what export_runtime_state returned.", call=(None,)),
         Hook("reset_runtime_state", "Forget the loading state before a new file or project is loaded.", call=()),
+        Hook("session_data_layout", "Version of the message rows the session holds, or None for no versioning. A "
+             "session stamped with another version, or none, goes through migrate_session_snapshot before restore.",
+             call=(), returns=int, optional=True),
+        Hook("migrate_session_snapshot", "Map a session saved with another layout to the current rows: return it "
+             "stamped with session_data_layout(), or without the stamp to refuse it. Default: unchanged.", call=None,
+             returns=dict),
         Hook("set_load_role", "\"translation\" while the host parses a translation file, \"source\" after: a source "
              "file that also holds the translation returns the right language.", call=("source",)),
         Hook("prepare_save_context", "Called before save_data_to_json_obj for each project file, with a "
@@ -129,6 +135,14 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
         Hook("save_custom_context_tags", "Store the context-menu tags."),
         Hook("get_context_menu_actions", "Extra editor context-menu actions.", call=(None, None), returns=list),
         Hook("get_plugin_actions", "Menu actions the plugin adds: dicts with name, text, handler, menu."),
+        Hook("get_voice_clips", "Voice clips the plugin exports and replaces: dicts with id, title, disc (the .bin the "
+             "original clip is read from). Empty: the game has none.", call=("project_dir",), returns=list),
+        Hook("export_voice_clip", "Write one original voice clip to a WAV; returns its length in seconds.",
+             returns=float),
+        Hook("import_voice_clip", "Check a translated WAV against the clip's sectors and keep it in voice_dir; "
+             "returns its length in seconds.", returns=float),
+        Hook("apply_voice_clips", "Write every translated clip of voice_dir into a build .bin; returns how many.",
+             returns=int),
         Hook("get_base_game_rules_class", "The base rules class (kept for old plugins).", call=()),
     )),
     ('Context for AI workflows', (
@@ -262,7 +276,7 @@ HOOK_NAMES = frozenset(hook.name for hook in HOOKS)
 MAIN_WINDOW_ATTRIBUTES = frozenset({
     # data
     "data_store", "data", "string_metadata", "block_to_project_file_map", "project_manager", "data_processor",
-    "current_game_rules", "settings_manager", "helper", "font_map", "icon_sequences",
+    "current_game_rules", "settings_manager", "helper", "font_map", "all_font_maps", "icon_sequences",
     # settings values
     "default_tag_mappings", "context_menu_tags", "display_name", "EDITOR_PLAYER_TAG", "ORIGINAL_PLAYER_TAG",
     "game_dialog_max_width_pixels", "line_width_warning_threshold_pixels", "lines_per_page",

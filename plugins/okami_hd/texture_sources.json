@@ -1,0 +1,98 @@
+[
+ {
+  "label": "Okami HD control picture: control_00_japan.dds (English text is in the picture)",
+  "kind": "menu_label",
+  "format": "dds",
+  "path": "data/illust/control_00_japan.dds"
+ },
+ {
+  "label": "Okami HD control picture: control_00_other.dds (English text is in the picture)",
+  "kind": "menu_label",
+  "format": "dds",
+  "path": "data/illust/control_00_other.dds"
+ },
+ {
+  "label": "Okami HD control picture: control_01_japan.dds (English text is in the picture)",
+  "kind": "menu_label",
+  "format": "dds",
+  "path": "data/illust/control_01_japan.dds"
+ },
+ {
+  "label": "Okami HD control picture: control_01_other.dds (English text is in the picture)",
+  "kind": "menu_label",
+  "format": "dds",
+  "path": "data/illust/control_01_other.dds"
+ },
+ {
+  "label": "Okami HD control picture: control_02_japan.dds (English text is in the picture)",
+  "kind": "menu_label",
+  "format": "dds",
+  "path": "data/illust/control_02_japan.dds"
+ },
+ {
+  "label": "Okami HD control picture: control_02_other.dds (English text is in the picture)",
+  "kind": "menu_label",
+  "format": "dds",
+  "path": "data/illust/control_02_other.dds"
+ },
+ {
+  "label": "Okami HD control picture: control_03.dds (English text is in the picture)",
+  "kind": "menu_label",
+  "format": "dds",
+  "path": "data/illust/control_03.dds"
+ },
+ {
+  "label": "Okami HD control picture: control_04.dds (English text is in the picture)",
+  "kind": "menu_label",
+  "format": "dds",
+  "path": "data/illust/control_04.dds"
+ },
+ {
+  "label": "Okami HD help screen: help_00.dds (English text is in the picture)",
+  "kind": "menu_label",
+  "format": "dds",
+  "path": "data/illust/help_00.dds"
+ },
+ {
+  "label": "Okami HD help screen: help_01.dds (English text is in the picture)",
+  "kind": "menu_label",
+  "format": "dds",
+  "path": "data/illust/help_01.dds"
+ },
+ {
+  "label": "Okami HD help screen: help_02.dds (English text is in the picture)",
+  "kind": "menu_label",
+  "format": "dds",
+  "path": "data/illust/help_02.dds"
+ },
+ {
+  "label": "Okami HD help screen: help_03.dds (English text is in the picture)",
+  "kind": "menu_label",
+  "format": "dds",
+  "path": "data/illust/help_03.dds"
+ },
+ {
+  "label": "Okami HD help screen: help_04.dds (English text is in the picture)",
+  "kind": "menu_label",
+  "format": "dds",
+  "path": "data/illust/help_04.dds"
+ },
+ {
+  "label": "Okami HD help screen: help_05.dds (English text is in the picture)",
+  "kind": "menu_label",
+  "format": "dds",
+  "path": "data/illust/help_05.dds"
+ },
+ {
+  "label": "Okami HD help screen: help_06.dds (English text is in the picture)",
+  "kind": "menu_label",
+  "format": "dds",
+  "path": "data/illust/help_06.dds"
+ },
+ {
+  "label": "Okami HD help screen: help_07.dds (English text is in the picture)",
+  "kind": "menu_label",
+  "format": "dds",
+  "path": "data/illust/help_07.dds"
+ }
+]

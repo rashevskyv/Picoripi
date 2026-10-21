@@ -200,6 +200,24 @@ class BaseGameRules:
     def reset_runtime_state(self) -> None:
         """Forget the loading state: a new file or project is about to be loaded."""
 
+    def session_data_layout(self) -> Optional[int]:
+        """The version of the message rows this game's session holds, or None (default) for no versioning.
+
+        A game that changes what a row holds bumps the number. The session manager stamps the version on every
+        session it saves. A session stamped with another version, or with none, goes through
+        ``migrate_session_snapshot`` before it is restored.
+        """
+        return None
+
+    def migrate_session_snapshot(self, snapshot: dict) -> dict:
+        """Map a session saved with another layout to the current rows.
+
+        Return the snapshot with ``data_layout`` set to ``session_data_layout()`` when the rows can be used. Return
+        it without that key to refuse it: the project then opens from its files. Default: unchanged, which refuses
+        a session that has no matching layout.
+        """
+        return snapshot
+
     def set_load_role(self, role: str) -> None:
         """``"translation"`` while the host parses a translation file with ``load_data_from_json_obj`` (the project
         load, the changes file, the re-parse after a save or a revert, the Project Manager's counts), ``"source"``
@@ -583,6 +601,23 @@ class BaseGameRules:
     def get_plugin_actions(self) -> List[Dict[str, Any]]:
         """Get the plugin actions."""
         return []
+
+    def get_voice_clips(self, project_dir: str) -> List[Dict[str, Any]]:
+        """Voice clips the plugin exports, replaces and plays: dicts with ``id``, ``title`` and ``disc`` (the
+        .bin the original clip is read from). Empty: the game has no voice clips."""
+        return []
+
+    def export_voice_clip(self, clip_id: str, disc_path: str, wav_path: str) -> float:
+        """Write the original clip to a WAV; returns its length in seconds."""
+        raise NotImplementedError
+
+    def import_voice_clip(self, clip_id: str, disc_path: str, wav_path: str, voice_dir: str) -> float:
+        """Check a translated WAV against the clip's sectors on the disc and keep it in ``voice_dir``."""
+        raise NotImplementedError
+
+    def apply_voice_clips(self, build_disc_path: str, voice_dir: str) -> int:
+        """Write every translated clip of ``voice_dir`` into a build .bin; returns how many were written."""
+        return 0
 
     def get_text_representation_for_editor(self, data_string_subline: str) -> str:
         """Get the text representation for editor."""

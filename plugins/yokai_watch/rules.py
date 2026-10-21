@@ -78,9 +78,27 @@ def layout_key(rel_path: str, kind: str, param: int) -> str:
         group = "movie"
     elif rel.startswith("data/res/text/phs/"):
         group = "phase"
+    elif rel.startswith("data/common/text/") and rel.count("/") >= 5:
+        # Yo-kai Watch 4++ / Academy Y: data/common/text/<language>/<folder>/<file>, one group per folder
+        folder = rel.split("/")[4]
+        group = {"event": "dialogue", "map": "dialogue", "purpose": "objective"}.get(folder, folder)
     else:
-        group = re.sub(r"_text_en\.cfg\.bin$|\.cfg\.bin$", "", name)
+        group = re.sub(r"_text_[a-z]+\.cfg\.bin$|\.cfg\.bin$", "", name)  # _en, _engb, _ja: one group per kind
     return f"{group}|{kind}|{param}"
+
+
+def main_font_file(game: str) -> str:
+    """The width map name of a game's main text font (``get_font_sources``): ``layout.json`` is measured with it."""
+    if game in ("yw4", "yay"):
+        return "font_ja.json"
+    return "ft_nrm.json" if game == "yw1" else f"{game}_ft_nrm.json"
+
+
+def _letter_width(font_map: dict, fallback: int) -> int:
+    """The average width of the font's lowercase Latin letters (``fallback`` for a map without them)."""
+    widths = [entry["width"] for entry in (font_map.get(c) for c in "abcdefghijklmnopqrstuvwxyz")
+              if isinstance(entry, dict) and isinstance(entry.get("width"), int)]
+    return round(sum(widths) / len(widths)) if widths else fallback
 
 
 class GameRules(BaseGameRules):
@@ -400,15 +418,14 @@ class GameRules(BaseGameRules):
 
         if measured and measured.get("max"):
             max_width = measured["max"]
-            font_map = getattr(self.mw, "font_map", None) or {}
+            font_map = self._main_font_map(game)
             for subline in text.replace("{PAGE}", "\n").split("\n"):
                 if self._width(subline, font_map) > max_width:
                     problems.append("WIDTH")
                     break
         elif not measured:
-            # Layout measurements are absent for this game/kind (e.g. Switch ywnx).
-            # We cannot verify pixel width fit, so return UNVERIFIED_LAYOUT to represent
-            # missing measurements honestly and prevent silent unsafe auto-reuse.
+            # A kind of text with no English row to measure (scripts/build_yokai_layouts.py): the width cannot be
+            # checked, so it is reported and a reused text is not applied without a person.
             problems.append("UNVERIFIED_LAYOUT")
 
         return problems
@@ -484,18 +501,25 @@ class GameRules(BaseGameRules):
         measured = self._layouts(game).get(layout_key(rel, row.kind, row.param))
         if not measured:
             return None
-        result = {"warn_width": measured["warn"], "max_width": measured["max"],
-                  "font_file": "ft_nrm.json" if game == "yw1" else f"{game}_ft_nrm.json"}
+        result = {"warn_width": measured["warn"], "max_width": measured["max"], "font_file": main_font_file(game)}
         if measured.get("lines"):
             result["lines_per_page"] = measured["lines"]
         return result
 
+    def _main_font_map(self, game: str) -> dict:
+        """The width map of the game's main text font, the one ``layout.json`` was measured with."""
+        maps = getattr(self.mw, "all_font_maps", None) or {}
+        return maps.get(main_font_file(game)) or getattr(self.mw, "font_map", None) or {}
+
     @staticmethod
     def _width(text: str, font_map: dict, default_char_width: int = 9) -> int:
+        """Pixels of ``text``. A letter the font lacks (the original fonts have no ґ є і ї) counts as the font's
+        average letter: 9 pixels is a 3DS letter, a Switch letter is about 23."""
+        missing = _letter_width(font_map, default_char_width)
         total = 0
         for char in tags.TAG_RE.sub("", text):
             entry = font_map.get(char)
-            total += entry.get("width", default_char_width) if isinstance(entry, dict) else default_char_width
+            total += entry.get("width", missing) if isinstance(entry, dict) else missing
         return total
 
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 9) -> Optional[int]:

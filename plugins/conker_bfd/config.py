@@ -13,7 +13,7 @@ custom_problems = {
         "name": "Longer Than The Original",
         "color": QColor(255, 80, 80, 140),
         "priority": 1,
-        "description": "The translation takes more bytes than the original text. The game's table has no room for it.",
+        "description": "The text is longer than a fixed table allows. Instruction-book pages and menu tables grow; only the legacy conker-bfd-text/2 files keep fixed tables.",
     },
     PROBLEM_CHARACTER: {
         "name": "Character Not In Text Form",
