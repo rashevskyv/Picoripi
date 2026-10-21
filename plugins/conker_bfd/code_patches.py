@@ -24,6 +24,32 @@ class CodePatch:
 PATCHES: Tuple[CodePatch, ...] = ()
 
 
+@dataclass(frozen=True)
+class RomPatch:
+    """A patch of raw ROM bytes (boot code outside the compressed archive), checked before the write."""
+    offset: int
+    expected: bytes
+    new: bytes
+    note: str
+
+
+def apply_raw(rom: bytes, patches: Tuple[RomPatch, ...]) -> bytes:
+    """Return the ROM with the raw patches applied. The same object comes back when there are none."""
+    if not patches:
+        return rom
+    out = bytearray(rom)
+    for patch in patches:
+        if len(patch.expected) != len(patch.new):
+            raise na.RomError(f"raw patch at {patch.offset:#x} changes its length")
+        end = patch.offset + len(patch.expected)
+        if end > len(out):
+            raise na.RomError(f"raw patch at {patch.offset:#x} lies outside the ROM")
+        if bytes(out[patch.offset:end]) != patch.expected:
+            raise na.RomError(f"raw patch at {patch.offset:#x}: bytes differ ({patch.note})")
+        out[patch.offset:end] = patch.new
+    return bytes(out)
+
+
 def apply_to_archive(archive: ca.Archive, patches: Tuple[CodePatch, ...] = PATCHES) -> int:
     """Apply the patches to the archive's decoded chunks. Raises ``RomError`` when expected bytes differ."""
     applied = 0

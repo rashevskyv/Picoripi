@@ -24,7 +24,7 @@ from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_warning
 
-from . import book_text, bps, code_patches, font, header_crc, n64_archive, preview, rom_layout, text_blocks, voice
+from . import book_text, bps, box_scale, code_patches, font, header_crc, n64_archive, preview, rom_layout, text_blocks, voice
 from .config import PROBLEM_CHARACTER, PROBLEM_DEFINITIONS, PROBLEM_LENGTH
 
 ROLE_ROM = "rom"
@@ -181,7 +181,8 @@ class GameRules(BaseGameRules):
         if is_cancelled():
             return output_dir
         progress(30, tr("Rebuilding the text banks"))
-        patched = code_patches.apply_to_rom(rom)  # data-driven code changes; the same object when there are none
+        raw = code_patches.apply_raw(rom, box_scale.scale_patches(box_scale.DEFAULT_SCALE))
+        patched = code_patches.apply_to_rom(raw)  # data-driven changes; the same object when there are none
         changed = book_text.rebuild(rom, tables)
         new_rom = rom_layout.relayout_banks(patched, changed) if changed else patched
         if new_rom is not rom:
