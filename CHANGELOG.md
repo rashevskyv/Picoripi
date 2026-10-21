@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Conker: Live & Reloaded (Xbox, USA): the strings come from the LSBL table, not from a text scan, and the block index's units move with a grown string; the scan had read the index as text and overwrote it, which froze the multiplayer menu (MPDuel alone reproduced it in a private Eden copy).
 - Conker: Live & Reloaded (Xbox, USA): new plugin `conker_lr` unpacks the XISO and writes the English CAFF dialogue of each text file as JSON; the build writes the changed `default.bin` files in place (a string must fit its slot, no growth yet); the UI table `UIFrontend` and the fonts are not decoded yet.
 - Docs: Getting Started is now a full manual (Project Manager, editor, line width and where to set it, tags, warnings, find and replace, saving, AI, glossary, a map of every setting, build and emulator), and every wiki page ends with Previous/Next links; Settings labels for width, font size, tags and font map are translated (`tr()` plus `locales/uk.json`), and two Ukrainian typos in menu strings are fixed.
 - Docs: the Getting Started page (EN, UK) now covers the first translation (blocks, strings, editor, saving) and what comes next (AI, glossary, building the mod, working together) with real editor screenshots; the Ukrainian text was rewritten in natural Ukrainian.

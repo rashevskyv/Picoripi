@@ -15,13 +15,18 @@ FOLDER_REL = "dvddata/aid/text/English/Frontend/default.bin"
 
 
 def _caff(texts, extra=b""):
-    """A minimal CAFF text file: one LSBL block that counts ``texts``, then the strings, then a key to skip."""
+    """A minimal CAFF text file: an LSBL block with its table (one entry per text, then a key to skip), the strings."""
     head = bytearray(b"CAFF".ljust(0x40, b"\x00"))
-    lsbl = bytearray(b"LSBL" + b"\x00" * 44)
-    struct.pack_into("<I", lsbl, 32, len(texts))
-    body = b"".join(t.encode("utf-16le") + b"\x00\x00" for t in texts)
-    key = "cutscene_TEST_1".encode("utf-16le") + b"\x00\x00"
-    return bytes(head + lsbl + body + key + extra)
+    entries = list(texts) + ["cutscene_TEST_1"]
+    raws = [t.encode("utf-16le") + b"\x00\x00" for t in entries]
+    records, pos = [], 0
+    for index, raw in enumerate(raws):
+        records.append(struct.pack("<HI", index, pos // 2))
+        pos += len(raw)
+    records.append(struct.pack("<HI", 0xFFFF, pos // 2))
+    lsbl = bytearray(b"LSBL" + b"\x00" * 32)
+    struct.pack_into("<I", lsbl, 32, len(entries))
+    return bytes(bytearray(head) + bytearray(lsbl) + b"".join(records) + b"".join(raws) + extra)
 
 
 def test_the_plugin_loads():

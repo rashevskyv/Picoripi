@@ -132,7 +132,9 @@ the line when it is done or moved into a plan.
 ## Conker: Live & Reloaded (Xbox, USA) (`plugins/conker_lr`, 2026-10-21, branch `feat/conker-lr`)
 
 - Open: the subtitle box is not yet sized for a longer line (the box size is in the game's code or layout data; not found yet).
-- Done (growth): a longer line rebuilds the blob and moves the table, header pointers and section sizes (`caff_text.write_slots`); 67 of 68 English files pass identity and growth checks on the disc; the on-screen check is still open.
+- Done (growth): a longer line rebuilds the blob and moves the table, the block index, header pointers and section sizes (`caff_text.write_slots`); all 69 English files pass identity and growth checks on the disc. Found on 2026-10-22: the strings are read from the LSBL table (the old text scan read the index as text and overwrote it); with this, MPDuel marked alone runs past the multiplayer menu in a private Eden copy.
+- Open (2026-10-22): MPFortress marked alone still freezes at about 20-30 s in the multiplayer menu (guest loop on `FE0000E8`/`FE0000F0`); every dialogue file marked also freezes. Next: test MPFortress with the index units left unrelocated, then same-length substitution.
+- Open: the LSBL fields at +0x14/+0x18/+0x1C point at structures the writer does not decode (`+0x1C` often lands inside a string). They are moved as positions only.
 - Open: `UIFrontend/default.bin` (key and position table, 219 entries) does not match the block count; `UIPause/default.bin` has a second table after its end record (its count is the table length); the plugin leaves both out.
 - Open: `chapters_text` has a second text blob after its LSBL block (`Options`, `Chapters`, `Game 1`...); the plugin reads only the LSBL strings. Labels like `Game 1` on the title screen are pictures, not text.
 - Open: other languages (Japanese, French, German, Spanish, Italian) use the same container; the scanner reads Latin-1 text only, so Japanese needs a wider scan. Only the English slot is in scope.
