@@ -3141,5 +3141,11 @@
   "Writing the result": "Запис результату",
   "{0} uses the old text format: unpack the disc again.": "{0} має старий формат тексту: розпакуйте ROM знову.",
   "Spanish (ES, fan)": "Іспанська (ES, фан-переклад)",
-  "Give the patched ROM (.z64). Patch files are not applied yet: {0}": "Вкажіть пропатчений ROM (.z64). Файли патчів поки не застосовуються: {0}"
+  "Give the patched ROM (.z64). Patch files are not applied yet: {0}": "Вкажіть пропатчений ROM (.z64). Файли патчів поки не застосовуються: {0}",
+  "Portrait colours are approximate: the portrait palette is not measured yet.": "Кольори портрета приблизні: палітра портрета ще не виміряна.",
+  "Open a game project to see the message window.": "Відкрийте проєкт гри, щоб побачити вікно повідомлення.",
+  "Reading the game font and portraits...": "Читання шрифта гри та портретів...",
+  "The game's font or portrait files are not in this project: {0}": "Шрифт гри або файли портретів не є в проєкті: {0}",
+  "The portrait palette file is missing; portraits are drawn in grey.": "Файл палітри портретів відсутній; портрети малюються сірими.",
+  "The text has no line to draw.": "У тексті немає рядка для малювання."
 }

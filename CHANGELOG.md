@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Lunar: Silver Star Story Complete (PS1): the dialogue window preview (`plugins/lunar_sssc/dialogue_preview.py`, `dialogue_panel.py`) draws the message window at the measured place (rows 160-223), the text in the game font from `SLUS_006.28`, the portrait of `{FA:xx}` from the `FACE_nnn.TIZ` files (palette `PEO.PAL`, colours approximate), pages and layout problems; speaker names only where checked on screen (`{FA:6E}` = Nall).
 - Wiki website: `scripts/build_wiki_site.py` renders `docs/wiki` (EN and UK) into a static site and `.github/workflows/wiki-site.yml` publishes it with GitHub Pages on every push to `main`; the Getting Started page is page 0.
 - Docs: new wiki page `0_Getting_Started.md` (EN and UK) walks a newcomer from the GitHub download to a game open in the editor, with screenshots in `docs/wiki/img/getting_started/`; written from newcomer tests of five games (Yo-kai Watch Switch and 3DS, Twilight Princess GameCube, Wii and Wii U HD).
 - Project Manager wizard: the location step suggests `Documents\Picoripi\<project name>` when the folder is empty; the Twilight Princess plugin is named "Zelda: Twilight Princess" (without "BMG").
