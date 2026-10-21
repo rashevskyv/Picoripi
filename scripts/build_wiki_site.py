@@ -15,6 +15,7 @@ import markdown
 
 WIKI = Path(__file__).resolve().parents[1] / "docs" / "wiki"
 REPO_URL = "https://github.com/rashevskyv/Picoripi/blob/main"
+DOMAIN = "picoripi.customfw.xyz"   # the custom domain GitHub Pages serves the site on
 MERMAID = "https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.esm.min.mjs"
 STYLE = """
 :root{--bg:#fff;--fg:#1d2330;--mut:#5b6577;--line:#d9deea;--acc:#2456d6;--code:#f3f5fa}
@@ -78,6 +79,7 @@ def build(output: Path) -> int:
     if (WIKI / "img").is_dir():
         shutil.copytree(WIKI / "img", output / "img")
     (output / ".nojekyll").write_text("", encoding="utf-8")
+    (output / "CNAME").write_text(DOMAIN + "\n", encoding="utf-8")
     return count
 
 

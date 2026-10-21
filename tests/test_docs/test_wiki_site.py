@@ -23,3 +23,8 @@ def test_the_getting_started_page_is_the_first_page_and_draws_its_diagram(tmp_pa
     assert '<pre class="mermaid">' in html and 'src="img/getting_started/01_first_start.png"' in html
     index = (tmp_path / "site" / "index.html").read_text(encoding="utf-8")
     assert index.index("0_Getting_Started.html") < index.index("1_User_Guide_and_Workflow_Pipeline.html")
+
+
+def test_the_site_names_its_domain(tmp_path):
+    build_wiki_site.build(tmp_path / "site")
+    assert (tmp_path / "site" / "CNAME").read_text(encoding="utf-8").strip() == "picoripi.customfw.xyz"
