@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
-from PIL import Image, ImageDraw
+from PIL import Image
 
 HERE = Path(__file__).resolve().parent
 WINDOW_X, WINDOW_Y, WINDOW_W, WINDOW_H = 0, 160, 320, 64
@@ -29,6 +29,8 @@ TEXT_X, TEXT_Y, LINE_PITCH = 80, 168, 16
 TEXT_RIGHT = 316
 LINES_PER_PAGE = 3
 PICTURE_W, PICTURE_H = 320, 240
+BACKDROP = (96, 96, 96, 255)     # the preview has no game scene behind the band
+BAND = (0, 0, 0, 128)            # the game's band: black at about half opacity (estimated, see render_page)
 SPACE_WIDTH = 5
 FACE_HEADER = 0x20
 FRAME_BYTES = PORTRAIT * PORTRAIT
@@ -172,10 +174,15 @@ def face_picture(files: Dict[str, bytes], index: Dict[int, Tuple[str, int]], fac
 
 
 def render_page(page: Sequence[Line], glyphs: Dict[str, List[int]], portrait: Optional[Image.Image]) -> Image.Image:
-    """The 320x240 picture of one page: the window, the portrait and the text, at the measured places."""
-    canvas = Image.new("RGBA", (PICTURE_W, PICTURE_H), (0, 0, 0, 255))
-    draw = ImageDraw.Draw(canvas, "RGBA")
-    draw.rectangle([WINDOW_X, WINDOW_Y, WINDOW_X + WINDOW_W - 1, WINDOW_Y + WINDOW_H - 1], fill=(0, 0, 40, 200))
+    """The 320x240 picture of one page: the window, the portrait and the text, at the measured places.
+
+    The game's band is a translucent dark strip over the scene: about half the scene's brightness (row means of
+    the native capture: about 155 above the band, about 75 inside). The preview has no scene, so the band is
+    black at alpha 128 over a neutral grey backdrop.
+    """
+    canvas = Image.new("RGBA", (PICTURE_W, PICTURE_H), BACKDROP)
+    band = Image.new("RGBA", (WINDOW_W, WINDOW_H), BAND)
+    canvas.alpha_composite(band, (WINDOW_X, WINDOW_Y))
     if portrait is not None:
         canvas.alpha_composite(portrait, (PORTRAIT_X, PORTRAIT_Y))
     for row, line in enumerate(page[:LINES_PER_PAGE]):
