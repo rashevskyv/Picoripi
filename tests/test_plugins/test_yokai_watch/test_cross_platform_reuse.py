@@ -68,6 +68,7 @@ def _setup_yokai_project(tmp_path: Path, game: str = "ywnx", shared_glossary: Pa
 
     mw = SimpleNamespace()
     mw.current_game_rules = rules
+    rules.mw = mw   # as the app wires them: the fit check reads the window's width maps
     mw.project_manager = pm
     mw.block_to_project_file_map = {0: 0}
     mw.translation_config = {
@@ -95,7 +96,8 @@ def _setup_yokai_project(tmp_path: Path, game: str = "ywnx", shared_glossary: Pa
     )
     mw.string_metadata = {}
     mw.default_font_file = "ft_nrm.json"
-    mw.font_map = {"a": {"width": 8}}
+    # A letter is about 9 pixels in the 3DS font and about 24 in the Switch font (layout.json is measured with each).
+    mw.font_map = {"a": {"width": 8 if game == "yw1" else 24}}
     mw.all_font_maps = {"ft_nrm.json": mw.font_map}
     mw.all_bfn_fonts = {}
     mw.ui_updater = MagicMock()
@@ -177,9 +179,9 @@ def test_two_project_registration_and_candidate_loading(tmp_path):
     assert candidate["project"] == "Yo-kai Watch (3DS)"
     assert candidate["applicable"] is True
 
-    # Switch layout is unverified -> safe is False, reason flags unverified layout (not 'too long')
-    assert candidate["safe"] is False
-    assert "unverified" in candidate["reason"].lower() or "не перевірена" in candidate["reason"].lower()
+    # The Switch message window is measured (layout.json "ywnx"): the 3DS sentence fits it, so it is safe
+    assert candidate["safe"] is True, candidate["reason"]
+    assert candidate["reason"] == ""
 
 
 def test_explicit_confirmed_candidate_applies_without_ai_provider(tmp_path):
@@ -353,18 +355,28 @@ def test_safety_barriers_speaker_tags_and_lines_remain_blocking(tmp_path):
     f2_text, _ = mw.data_processor.get_current_string_text(0, 2)
     assert f2_text != three_line_trans  # Follower was NOT applied due to line overflow!
 
-    # 5. Unknown Switch measurements never become silent safe approval
+    # 5. On the Switch a 3DS text is measured with the Switch font: a line wider than the Switch window is refused
     p_sw = p_dir / "sw"
     p_sw.mkdir()
-    mw_switch, _, _ = _setup_yokai_project(p_sw, game="ywnx")
+    mw_switch, rules_sw, _ = _setup_yokai_project(p_sw, game="ywnx")
     mgr_sw = mw_switch.saved_translations_manager
-    mgr_sw.series_memory = mgr.series_memory
+    wide = "Я Віспер, твій вірний дворецький-йокай, і я з тобою!"      # 52 letters x 24 px > 923 px
+    mgr_sw.series_memory = {source_hash(SENTENCE_WHISPER): [dict(mgr.series_memory[source_hash(SENTENCE_WHISPER)][0],
+                                                                 translation=wide)]}
     mgr_sw.configure_series_reuse(enabled=True, min_words=2, safe_ticked=False)
     _, sw_series = mgr_sw.acceptable_rows(0, 0, SENTENCE_WHISPER)
-    assert len(sw_series) >= 1
-    assert sw_series[0]["safe"] is False
-    assert sw_series[0]["applicable"] is True
-    assert "unverified" in sw_series[0]["reason"].lower() or "не перевірена" in sw_series[0]["reason"].lower()
+    assert "WIDTH" in rules_sw.get_text_fit_problems_for_string(0, 0, wide)
+    assert sw_series[0]["safe"] is False and sw_series[0]["applicable"] is True, sw_series
+    assert not AIBatchTranslator._series_row_passes_checks(mw_switch, SENTENCE_WHISPER, wide, 0, 0)
+
+    # 6. A kind of text with nothing measured still never becomes a silent safe approval
+    rules_sw._row = lambda b, s: ("data/res/text/unmeasured_text_ja.cfg.bin",
+                                  SimpleNamespace(kind="TEXT_INFO", param=2, text=""), None)
+    assert rules_sw.get_text_fit_problems_for_string(0, 0, TRANSLATION_3DS) == ["UNVERIFIED_LAYOUT"]
+    mgr_sw.series_memory = mgr.series_memory
+    _, unmeasured = mgr_sw.acceptable_rows(0, 0, SENTENCE_WHISPER)
+    assert unmeasured[0]["safe"] is False
+    assert "unverified" in unmeasured[0]["reason"].lower() or "не перевірена" in unmeasured[0]["reason"].lower()
 
 
 def test_local_conflicting_translations_are_preserved(tmp_path):
