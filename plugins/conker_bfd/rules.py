@@ -24,7 +24,7 @@ from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_warning
 
-from . import book_text, bps, font, n64_archive, preview, rom_layout, text_blocks, voice
+from . import book_text, bps, font, header_crc, n64_archive, preview, rom_layout, text_blocks, voice
 from .config import PROBLEM_CHARACTER, PROBLEM_DEFINITIONS, PROBLEM_LENGTH
 
 ROLE_ROM = "rom"
@@ -183,6 +183,8 @@ class GameRules(BaseGameRules):
         progress(30, tr("Rebuilding the text banks"))
         changed = book_text.rebuild(rom, tables)
         new_rom = rom_layout.relayout_banks(rom, changed) if changed else rom
+        if new_rom is not rom:
+            new_rom = header_crc.fix(new_rom)     # the header checksum must match the edited ROM
         if is_cancelled():
             return output_dir
         progress(70, tr("Writing the result"))
