@@ -224,3 +224,8 @@ You can still open every tool from **Tools** without the wizard.
 - Do not set Parallel Requests above the number of Active proxy accounts.
 - Do not treat “N / M rows translated” as a QA score; identical-correct lines look untranslated.
 - Do not document or wait for items that exist only in `docs/PIPELINE_ROADMAP.md` — that file is planned work, not this wizard.
+
+<!-- wiki-nav -->
+---
+
+**Previous:** [User Guide: Interface](1_User_Guide_and_Workflow_Pipeline.md) · [Back to the wiki index](README.md) · **Next:** [AI Translation](11_AI_Translation.md)

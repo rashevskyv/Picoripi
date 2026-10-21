@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-13
 owns: ui/, components/, dialogs/
-tokens: 59.3k
+tokens: 59.4k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -1491,3 +1491,8 @@ Theme change and plugin change each show a restart required dialog.
 - Do not set Parallel Requests higher than Active accounts on the local proxy dashboard.
 - Do not run glossary / merge / bulk translate with no provider configured.
 - Do not treat empty BMG slots as unbound dialogue — they stay in the physical file only.
+
+<!-- wiki-nav -->
+---
+
+**Previous:** [Getting Started](0_Getting_Started.md) · [Back to the wiki index](README.md) · **Next:** [Localization Pipeline](8_Localization_Pipeline.md)

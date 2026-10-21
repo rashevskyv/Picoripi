@@ -2,7 +2,7 @@
 status: current
 updated: 2026-09-02
 owns: core/script_markup, ui/script_markup
-tokens: 1.8k
+tokens: 1.9k
 purpose: Script Markup Studio
 ---
 # Script Markup Studio
@@ -141,3 +141,8 @@ Blank source lines are not “markable”. A stray empty line will not hold the 
 **Do not** export and then edit the Markdown by hand if you still expect Studio to own the project — keep working in Studio and re-export.
 
 **Do not** skip markup and expect Merge Speakers or glossary character seeds to be complete.
+
+<!-- wiki-nav -->
+---
+
+**Previous:** [Virtual Navigation and Preview](6_Virtual_Navigation_and_Preview.md) · [Back to the wiki index](README.md) · **Next:** [Working Together and Progress](13_Working_Together.md)

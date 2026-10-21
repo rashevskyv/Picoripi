@@ -22,10 +22,10 @@ class SettingsGeneralSpellingMixin:
         self.populate_plugin_list()
         layout.addRow(QLabel(tr('Active Game Plugin:')), self.plugin_combo)
         
-        self.font_size_spinbox = LabeledSpinBox("Application Font Size:", 6, 24, 10, parent=self)
+        self.font_size_spinbox = LabeledSpinBox(tr("Application Font Size:"), 6, 24, 10, parent=self)
         layout.addRow(self.font_size_spinbox)
         
-        self.tooltip_font_size_spinbox = LabeledSpinBox("Tooltip Font Size:", 6, 32, 11, parent=self)
+        self.tooltip_font_size_spinbox = LabeledSpinBox(tr("Tooltip Font Size:"), 6, 32, 11, parent=self)
         layout.addRow(self.tooltip_font_size_spinbox)
         
         self.external_script_path_edit = QLineEdit(self)
@@ -78,7 +78,7 @@ class SettingsGeneralSpellingMixin:
         self.show_archive_size_warnings_checkbox = QCheckBox(tr('Show archive size warnings'), self)
         layout.addRow(self.show_archive_size_warnings_checkbox)
 
-        self.auto_sleep_idle_delay_spinbox = LabeledSpinBox("Auto-Sleep Idle Delay (minutes):", 1, 60, 5, parent=self)
+        self.auto_sleep_idle_delay_spinbox = LabeledSpinBox(tr("Auto-Sleep Idle Delay (minutes):"), 1, 60, 5, parent=self)
         self.auto_sleep_idle_delay_spinbox.setToolTip(tr('Duration of continuous user inactivity required before putting computer to sleep after task completion.'))
         layout.addRow(self.auto_sleep_idle_delay_spinbox)
 

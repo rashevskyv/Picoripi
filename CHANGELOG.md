@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Docs: Getting Started is now a full manual (Project Manager, editor, line width and where to set it, tags, warnings, find and replace, saving, AI, glossary, a map of every setting, build and emulator), and every wiki page ends with Previous/Next links; Settings labels for width, font size, tags and font map are translated (`tr()` plus `locales/uk.json`), and two Ukrainian typos in menu strings are fixed.
 ﻿- Docs: the Getting Started page (EN, UK) now covers the first translation (blocks, strings, editor, saving) and what comes next (AI, glossary, building the mod, working together) with real editor screenshots; the Ukrainian text was rewritten in natural Ukrainian.
 - Wiki website: `scripts/build_wiki_site.py` renders `docs/wiki` (EN and UK) into a static site and `.github/workflows/wiki-site.yml` publishes it with GitHub Pages on every push to `main`; the Getting Started page is page 0.
 - Docs: new wiki page `0_Getting_Started.md` (EN and UK) walks a newcomer from the GitHub download to a game open in the editor, with screenshots in `docs/wiki/img/getting_started/`; written from newcomer tests of five games (Yo-kai Watch Switch and 3DS, Twilight Princess GameCube, Wii and Wii U HD).

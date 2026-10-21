@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/companion_sync.py, companion/
-tokens: 1.8k
+tokens: 1.9k
 purpose: Companion server and glossary sync
 ---
 # Picoripi Companion (Mobile PWA & Sync)
@@ -109,3 +109,8 @@ The companion backend runs on Python 3.10+ (FastAPI + Uvicorn) and stores projec
 - Do not expose the Companion server to the public internet with the default token `picoripi`. Set a custom `PICORIPI_COMPANION_TOKEN`.
 - Do not edit the same term simultaneously on desktop and mobile without syncing first.
 - Do not disable `companion_auto_sync` if you frequently review terms on your phone while keeping Picoripi open on desktop.
+
+<!-- wiki-nav -->
+---
+
+**Previous:** [Working Together and Progress](13_Working_Together.md) · [Back to the wiki index](README.md) · **Next:** [Configuration](4_Configuration_Guide.md)

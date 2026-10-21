@@ -2,7 +2,7 @@
 status: current
 updated: 2026-09-26
 owns: ui/updaters/block_list
-tokens: 1.9k
+tokens: 2.0k
 ---
 # Віртуальна навігація і прев’ю
 
@@ -87,3 +87,8 @@ tokens: 1.9k
 - `None` у Speaker знімає призначення.
 
 **Не** вигадуйте спікерів для порожніх слотів паддингу; цих рядків немає в Speakers.
+
+<!-- wiki-nav -->
+---
+
+**Назад:** [Gemini Web2API (WebTOP)](5_Gemini_Web2API.md) · [До змісту вікі](README.md) · **Далі:** [Script Markup Studio](9_Script_Markup.md)

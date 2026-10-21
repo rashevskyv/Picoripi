@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/translation/providers.py
-tokens: 2.1k
+tokens: 2.2k
 purpose: The local Gemini proxy: start, settings, errors
 ---
 # Gemini Web2API (WebTOP)
@@ -155,3 +155,8 @@ and that a firewall does not block the port.
 - Settings UI: `ui/settings/ai_mixin.py` (`Parallel Requests`, Gemini Base URL placeholder `http://127.0.0.1:8081/v1`)
 - HTTP client: `core/translation/providers.py`; error classification, retry policy and circuit breaker: `core/translation/transport.py`
 - Glossary timeout floor: `handlers/translation/glossary_pipeline_handler.py`
+
+<!-- wiki-nav -->
+---
+
+**Previous:** [AI Translation](11_AI_Translation.md) · [Back to the wiki index](README.md) · **Next:** [Virtual Navigation and Preview](6_Virtual_Navigation_and_Preview.md)

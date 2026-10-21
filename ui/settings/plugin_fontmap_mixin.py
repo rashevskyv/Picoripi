@@ -29,7 +29,7 @@ class PluginFontmapMixin:
         
         # Table
         self.font_map_table = QTableWidget(0, 2, tab)
-        self.font_map_table.setHorizontalHeaderLabels(["Character / Sequence", "Width (pixels)"])
+        self.font_map_table.setHorizontalHeaderLabels([tr("Character / Sequence"), tr("Width (pixels)")])
         self.font_map_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.font_map_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.font_map_table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)

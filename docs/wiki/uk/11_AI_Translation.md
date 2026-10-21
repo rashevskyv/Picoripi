@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: handlers/translation, core/translation
-tokens: 8.2k
+tokens: 8.3k
 ---
 # AI-переклад
 
@@ -190,3 +190,8 @@ Picoripi розмовляє з LLM через **Settings → AI Translation**. �
 - Не запускайте другий Translate, поки **AI Busy**.
 - Не кладіть ключі API чи cookies у вікі, README чи коміти. Settings або `.env`.
 - Не ставте Parallel Requests набагато вище за Active-акаунти; зайві воркери чекають кулдаун.
+
+<!-- wiki-nav -->
+---
+
+**Назад:** [Пайплайн локалізації](8_Localization_Pipeline.md) · [До змісту вікі](README.md) · **Далі:** [Gemini Web2API (WebTOP)](5_Gemini_Web2API.md)

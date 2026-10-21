@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: plugins/
-tokens: 14.4k
+tokens: 14.5k
 purpose: The one plugin guide: files, hooks, capabilities, tests
 ---
 # Plugin Developer Guide
@@ -217,3 +217,8 @@ The generated test file is the start. Add, with real data: a sample that parses 
 - Do not drop or reorder unknown fields of the file format on save.
 - Do not copy `zelda_bmg` tables into another game's plugin.
 - Do not forget `config.json` — without it the plugin never appears.
+
+<!-- wiki-nav -->
+---
+
+**Previous:** [Configuration](4_Configuration_Guide.md) · [Back to the wiki index](README.md) · **Next:** [Code map (maintainers)](2_API_Reference.md)
