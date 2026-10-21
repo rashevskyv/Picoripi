@@ -19,6 +19,8 @@ from typing import BinaryIO, Callable, List, Sequence
 
 from . import xa
 
+RAW = xa.RAW                    # raw CD sector size of the .bin files
+
 
 class VoiceError(ValueError):
     """A clip that cannot be read, fitted or written."""
@@ -107,3 +109,61 @@ def write_clip(disc: BinaryIO, raw_size: int, lbas: Sequence[int], samples: Sequ
         raw = disc.read(raw_size)
         disc.seek(lba * raw_size)
         disc.write(xa.write_sector(raw, blob))
+
+
+# ---------------------------------------------------------------- disc and translation folder
+
+def _read_raw_from(disc_path: str | Path):
+    """Open a .bin and return (file, read_raw); the caller closes the file."""
+    f = open(disc_path, "rb")
+
+    def read_raw(lba: int) -> bytes:
+        f.seek(lba * RAW)
+        return f.read(RAW)
+    return f, read_raw
+
+
+def export_original(disc_path: str | Path, clip: Clip, wav_path: str | Path) -> float:
+    """Decode the clip of the original disc to a WAV; returns its length in seconds."""
+    f, read_raw = _read_raw_from(disc_path)
+    with f:
+        lbas = slots(read_raw, clip)
+        if not lbas:
+            raise VoiceError(f"{clip.title}: no sectors of file {clip.file} channel {clip.channel} on this disc")
+        samples = decode_clip(read_raw, lbas)
+    write_wav(wav_path, samples)
+    return len(samples) / xa.RATE
+
+
+def import_translation(disc_path: str | Path, clip: Clip, wav_path: str | Path, voice_dir: str | Path) -> float:
+    """Check a translated WAV against the clip's slots and keep it in ``voice_dir``; returns its length."""
+    f, read_raw = _read_raw_from(disc_path)
+    with f:
+        lbas = slots(read_raw, clip)
+    samples = read_wav(wav_path)
+    fit(samples, len(lbas))                       # refuses a clip that is too long
+    Path(voice_dir).mkdir(parents=True, exist_ok=True)
+    write_wav(Path(voice_dir) / f"{clip.id}.wav", samples)
+    return len(samples) / xa.RATE
+
+
+def apply_translation(build_disc_path: str | Path, clip: Clip, voice_dir: str | Path) -> bool:
+    """Write the clip's translated WAV (``voice_dir/<id>.wav``) into a build .bin. False: no translation."""
+    wav = Path(voice_dir) / f"{clip.id}.wav"
+    if not wav.is_file():
+        return False
+    samples = read_wav(wav)
+    f, read_raw = _read_raw_from(build_disc_path)
+    with f:
+        lbas = slots(read_raw, clip)
+    with open(build_disc_path, "r+b") as out:
+        write_clip(out, RAW, lbas, samples)
+    return True
+
+
+def clip_by_id(clip_id: str) -> Clip:
+    """The clip with this id; VoiceError for an unknown one."""
+    for clip in CLIPS:
+        if clip.id == clip_id:
+            return clip
+    raise VoiceError(f"no voice clip {clip_id!r}")

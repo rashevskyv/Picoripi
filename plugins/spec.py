@@ -129,6 +129,14 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
         Hook("save_custom_context_tags", "Store the context-menu tags."),
         Hook("get_context_menu_actions", "Extra editor context-menu actions.", call=(None, None), returns=list),
         Hook("get_plugin_actions", "Menu actions the plugin adds: dicts with name, text, handler, menu."),
+        Hook("get_voice_clips", "Voice clips the plugin exports and replaces: dicts with id, title, disc (the .bin the "
+             "original clip is read from). Empty: the game has none.", call=("project_dir",), returns=list),
+        Hook("export_voice_clip", "Write one original voice clip to a WAV; returns its length in seconds.",
+             returns=float),
+        Hook("import_voice_clip", "Check a translated WAV against the clip's sectors and keep it in voice_dir; "
+             "returns its length in seconds.", returns=float),
+        Hook("apply_voice_clips", "Write every translated clip of voice_dir into a build .bin; returns how many.",
+             returns=int),
         Hook("get_base_game_rules_class", "The base rules class (kept for old plugins).", call=()),
     )),
     ('Context for AI workflows', (

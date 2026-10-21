@@ -2949,5 +2949,18 @@
     "Original: Russian (ru)": "Оригінал: російська (ru)",
     "Original: English (en)": "Оригінал: англійська (en)",
     "No English text on this page: it does not line up with the Russian.": "На цій сторінці немає англійського тексту: він не збігається з російським.",
-    "No original text on this page.": "На цій сторінці немає оригінального тексту."
+    "No original text on this page.": "На цій сторінці немає оригінального тексту.",
+  "Voice clips": "Голосові фрагменти",
+  "Voice clips...": "Голосові фрагменти...",
+  "Export the opening monologue, import a translated WAV, play it": "Експорт вступного монологу, імпорт перекладеного WAV, відтворення",
+  "This game has no voice clips.": "У цій грі немає голосових фрагментів.",
+  "Export original WAV...": "Експорт оригіналу в WAV...",
+  "Import translated WAV...": "Імпорт перекладу з WAV...",
+  "Play": "Відтворити",
+  "Exported {0:.2f} s to {1}": "Експортовано {0:.2f} с до {1}",
+  "Export original WAV": "Експорт оригіналу в WAV",
+  "Import translated WAV": "Імпорт перекладу з WAV",
+  "Imported {0:.2f} s": "Імпортовано {0:.2f} с",
+  "No translated WAV yet: export the original, translate it, then import.": "Перекладу ще немає: експортуйте оригінал, перекладіть його і імпортуйте.",
+  "Playing {0}": "Відтворюється {0}"
 }

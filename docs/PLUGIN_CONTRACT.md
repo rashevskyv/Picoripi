@@ -74,6 +74,10 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | `save_custom_context_tags` | Store the context-menu tags. |  |
 | `get_context_menu_actions` | Extra editor context-menu actions. |  |
 | `get_plugin_actions` | Menu actions the plugin adds: dicts with name, text, handler, menu. |  |
+| `get_voice_clips` | Voice clips the plugin exports and replaces: dicts with id, title, disc (the .bin the original clip is read from). Empty: the game has none. |  |
+| `export_voice_clip` | Write one original voice clip to a WAV; returns its length in seconds. |  |
+| `import_voice_clip` | Check a translated WAV against the clip's sectors and keep it in voice_dir; returns its length in seconds. |  |
+| `apply_voice_clips` | Write every translated clip of voice_dir into a build .bin; returns how many. |  |
 | `get_base_game_rules_class` | The base rules class (kept for old plugins). |  |
 
 ## Context for AI workflows

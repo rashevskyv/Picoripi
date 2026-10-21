@@ -59,6 +59,8 @@ If the import fails, the user gets **Plugin Load Error** and the application fal
 
 **Menu actions:** `get_plugin_actions()` may add `QAction`s (`name`, `text`, `tooltip`, `shortcut`, `handler`, `menu`, `toolbar`). The AI translate actions belong to the application and are present for every game.
 
+**Voice clips:** `get_voice_clips(project_dir)` lists the clips (`id`, `title`, `disc`: the .bin the original is read from, `voice_dir`: where a translated WAV is kept). `export_voice_clip`, `import_voice_clip` and `apply_voice_clips` do the work; a plugin's own Tools action opens the dialog, and every export, import or apply runs in a worker. A game without voice clips keeps the defaults (an empty list).
+
 ---
 
 ## Files of a plugin

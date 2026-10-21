@@ -58,6 +58,8 @@ $env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto tests/test_pl
 
 **Дії меню:** `get_plugin_actions()` може додавати `QAction` (`name`, `text`, `tooltip`, `shortcut`, `handler`, `menu`, `toolbar`). Дії AI-перекладу належать застосунку і є для кожної гри.
 
+**Голосові фрагменти:** `get_voice_clips(project_dir)` повертає фрагменти (`id`, `title`, `disc`: .bin, з якого читається оригінал, `voice_dir`: де зберігається перекладений WAV). `export_voice_clip`, `import_voice_clip` і `apply_voice_clips` виконують роботу; дія меню плагіна відкриває діалог, а кожен експорт, імпорт або запис іде у воркері. Гра без голосових фрагментів лишає типові значення (порожній список).
+
 ---
 
 ## Файли плагіна

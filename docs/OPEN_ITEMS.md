@@ -1672,6 +1672,8 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - Done: codec (`xa.py`, filter 0 only, mono 37.8 kHz), slot fit (shorter padded, longer refused with the seconds over), in-place sector write (only slot sectors change), round trip on a disc copy with a synthetic tone.
 - Open: the script op or handler that starts the monologue is not identified. `TEXT000.DAT` (boot script, not unpacked) is the first candidate; the interpreter opcodes need a disassembly of the handler at SLUS_006.28.
 - Open: subtitles. No subtitle op exists yet. Plan: a message op with `{end}` (no wait) placed at the trigger, one message per clip, or a timed text box if the interpreter has a wait op. Blocked on the trigger op above.
-- Open: the generic voice resource mechanism (BaseGameRules hook, UI list, WAV import in Picoripi, build step in `zt/lunar.py`) is not built. The clip list is a Python tuple in `voice.py` for now.
+- Done: the voice hooks (`get_voice_clips`, `export_voice_clip`, `import_voice_clip`, `apply_voice_clips`) in `BaseGameRules` and `plugins/spec.py`, the Tools action "Voice clips..." (`voice_dialog.py`, jobs in a `WorkerThread`), the Ukrainian strings, the wiki paragraph (EN, UK). Not yet run in the app window (only the offscreen dialog test).
+- Open: the build step does not call `apply_voice_clips` yet: `zt/lunar.py` (outside this repo) must call it on each build .bin.
+- Open: `docs/PIPELINE_ROADMAP.md` and the AI plugin prompt Q8 do not mention the voice hooks yet (checklist item 4).
 - Open: quality. Filter 0 gives about 1 024 units of error on a 6 000 peak. Release voices need psxavenc (external, official source) or filters 1 to 4.
 - Open: Eternal Blue (`V.XA`) and Silver Star Harmony (loose AT3) are not mapped.
