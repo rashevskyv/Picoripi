@@ -42,8 +42,8 @@ def shown(text: Optional[str], name: str = "", japanese: bool = False) -> bool:
 class TextFile:
     """A parsed text file: ``rows`` in file order."""
 
-    def __init__(self, raw: bytes, name: str = "", japanese: bool = False):
-        self.table = CfgBin(raw)
+    def __init__(self, raw: bytes, name: str = "", japanese: bool = False, table: Optional[CfgBin] = None):
+        self.table = table or CfgBin(raw)   # a parsed table can be shared: it is not changed after parsing
         self.name = name
         self.rows: List[Row] = []
         for e, p, text in self.table.strings():
