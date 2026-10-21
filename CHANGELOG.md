@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Conker's Bad Fur Day (N64, USA) code patches (`plugins/conker_bfd/code_patches.py`): data-driven `(chunk, offset, expected, new)` patches, checked before writing, applied in `build_target` through the game archive builder; the list is empty until the box patch lands.
 - Conker's Bad Fur Day (N64, USA) header checksum (`plugins/conker_bfd/header_crc.py`): the CIC-6105 CRC1 and CRC2 are computed and written by every ROM build; both words match the US header (the 6105 boot-table term is `t1 += word(0x750 + (addr & 0xFF)) ^ d`).
 - Conker's Bad Fur Day (N64, USA) game archive (`plugins/conker_bfd/code_archive.py`): parse and rebuild the XOR-indexed code chunks and the data section. An unchanged archive is rebuilt byte for byte, gap bytes included; a re-encoded chunk keeps its slot when it fits, else pads to an even length so every chunk start stays even (odd starts were not the boot cause; a grown archive boots on Mupen64Plus once the header checksum is recomputed); the data section must end before the loader's fixed end `0x19EA88`. A stored size over 4096 bytes is refused.
 - Conker's Bad Fur Day (N64, USA) reference column: a finished translation ROM (.z64) is read as "Spanish (ES, fan)" (`reference_worker_rules`, `load_multi_reference`); strings align by position only where the count equals the US table (bank 0x1A entry 0, bank 0x1C sub 0), other tables are skipped with a log line. Patch files (.xdelta, .bps) are refused for now.
