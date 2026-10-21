@@ -169,4 +169,3 @@ def replace(raw: bytes, path: str, new: bytes) -> bytes:
             u8.files[member] = replace(u8.files[member], rest, new) if rest else new
             return wrap(u8.build())
     raise ValueError(f"{path}: no such file in the archive")
-

@@ -3052,7 +3052,6 @@
   "characters with no code in the game (written as '?'): {0}": "символи без коду в грі (записано як «?»): {0}",
   "letters with no picture in the font (not seen in the game; draw them in the Font Editor): {0}": "літери без малюнка в шрифті (у грі не видно; намалюйте їх у Font Editor): {0}",
   "{0} is not a file of the disc (new files are not supported)": "{0} немає на диску (нові файли не підтримуються)",
-  "Copying the disc image": "Копіюю образ диска",
   "The build needs the game as a plain ISO. Convert the {0} image to ISO first.": "Збирання потребує гру як звичайний ISO. Спершу перетворіть образ {0} на ISO.",
   "Set the Wii key file in the console keys first.": "Спершу вкажіть файл ключа Wii у ключах консолей.",
   "not a TPL picture": "це не картинка TPL",

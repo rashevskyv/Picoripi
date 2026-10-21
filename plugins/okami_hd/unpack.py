@@ -66,5 +66,3 @@ def unpack(sources: Dict[str, str], target_dir: str, progress: Callable[[int, st
         if not images.write_entries(reader, wanted, target_dir, progress, is_cancelled):
             return None
     return target_dir
-
-

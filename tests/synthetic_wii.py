@@ -105,5 +105,3 @@ def read_disc(path: str, common: bytes = COMMON) -> dict:
         reader = wii_disc.WiiImage(stream, common)
         entries = {e.path[len("files/"):]: e for e in reader.entries() if e.path.startswith("files/")}
         return {rel: reader.read(entry) for rel, entry in entries.items()}
-
-
