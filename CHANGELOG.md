@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Grandia PlayStation budget per message: a line may grow inside one message (from a 0x0F yield to its 0E 00) when the other lines of that message give up the same bytes; the message keeps its length, and shorter text is padded inside its printable run (`psx_text.write_report`, `psx_text._plan_messages`). In-game proof pending (RAM patch of the two-line box at 0x91B of FIELD/BA38.MDP).
 - Grandia PlayStation budget: a longer line is over budget until its script's references are relocated (`psx_text.POOLED_GROWTH = False`); it is flagged (`GR2_BYTE_BUDGET`, `plugins/grandia/problem_analyzer.py`), saved as typed, and the build refuses that script with the bytes over budget (`psx_text.write_report`); the save base is the source file.
 - Grandia PlayStation: build target `psx_disc_set` copies the disc set and writes the edited text files into the copy (`psx_disc.write_set`, same length, EDC and ECC rebuilt); the source set is not changed.
 - Grandia PlayStation dialogue: a longer text is allowed when the shorter blocks of the same script give up the bytes (pooled net-zero budget, `psx_text.write`); a growth nothing pays for is refused, and the build refuses a translated script whose length changed.

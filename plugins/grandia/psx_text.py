@@ -50,6 +50,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 # lines. Until the script's references are relocated and checked in a DuckStation frame, it is off: every longer
 # line is over budget. Set to True only in tests of the pool itself.
 POOLED_GROWTH = False
+MESSAGE_END = b"\x0e\x00"   # the end of a message: its lines are one budget (see _message_groups)
 MIN_CHAIN = 12           # records in a battle string chain (a real table has 30 or more)
 MAX_RECORD = 80          # longest battle string record in bytes
 MIN_RUN = 4              # shortest dialogue run in bytes
@@ -198,13 +199,12 @@ def blocks(data: bytes) -> Tuple[List[str], dict]:
 
 
 def write(data: bytes, texts: Sequence[str]) -> Tuple[bytes, List[int]]:
-    """The file with the new texts, with a pooled byte budget per script (net-zero growth).
+    """The file with the new texts, with a byte budget per message (net-zero growth inside one message).
 
-    A text may be longer than its block when shorter blocks later in the same script give up the bytes: the
-    first-come growth is paid by the next shrunk blocks (FIFO). The lender block keeps its size minus the bytes it
-    gives, padded with spaces. Only the bytes between a growing block and the block that pays move; the file keeps
-    its length, so nothing after the last payer moves. A growth no later block can pay is refused and the block keeps
-    its original text; the other blocks of the script are written. Without growth a shorter text is padded in place.
+    A message runs from its 0x0F yield to its 0E 00. A line may be longer than its block when the other lines of the
+    same message are shorter, so the message total stays the same. The file keeps its length and no op byte moves. A
+    growth the message cannot pay is refused and the block keeps its original text; the other messages are written.
+    A shorter line is padded with spaces at the end of its printable run.
 
     Returns (new bytes, refused block indices). A block with no entry in ``texts`` keeps its original bytes.
     Relocation of references inside the script is not checked: one growing pair is proven in a frame, see the
@@ -223,9 +223,9 @@ def write_report(data: bytes, texts: Sequence[str], keep_over_budget: bool = Fal
     """Like ``write``, reporting the two kinds of refusal apart: (new bytes, unparsed indices, over-budget indices).
 
     ``unparsed``: a text with a character the game cannot show; the block keeps its original bytes.
-    ``over``: growth no later block pays. Without ``keep_over_budget`` the block keeps its original bytes and the file
-    keeps its length. With it the block takes its typed text, so the file grows by the unpaid bytes; the build then
-    refuses the file (its length changed), and the editor flags the line.
+    ``over``: growth the message cannot pay (see ``_plan_messages``). Without ``keep_over_budget`` the block keeps its
+    original bytes and the file keeps its length. With it the block takes its typed text, so the file grows by the
+    unpaid bytes; the build then refuses the file (its length changed), and the editor flags the line.
     """
     _kind, found = entries(data)
     want: Dict[int, bytes] = {}
@@ -238,18 +238,16 @@ def write_report(data: bytes, texts: Sequence[str], keep_over_budget: bool = Fal
             want[index] = new
     typed = dict(want)
     over: List[int] = []
-    if not POOLED_GROWTH:   # no relocation proven: a longer line shifts code, so it is over budget
-        for index, (_offset, original) in enumerate(found):
-            if index in want and len(want[index]) > len(original):
+    if POOLED_GROWTH:   # cross-message pool, not proven in the game: a growth no later block pays is refused
+        while True:
+            sizes, finals, unpaid = _plan(found, want)
+            if not unpaid:
+                break
+            for index in unpaid:
                 del want[index]
                 over.append(index)
-    while True:
-        sizes, finals, unpaid = _plan(found, want)
-        if not unpaid:
-            break
-        for index in unpaid:
-            del want[index]
-            over.append(index)
+    else:
+        sizes, finals, over = _plan_messages(found, want)
     if keep_over_budget:
         for index in over:
             finals[index] = typed[index]
@@ -257,14 +255,88 @@ def write_report(data: bytes, texts: Sequence[str], keep_over_budget: bool = Fal
     out = bytearray()
     at = 0
     for index, (offset, original) in enumerate(found):
+        region = finals.get(index, original)
         out += data[at:offset]
-        out += finals.get(index, original)
-        out += b" " * (sizes[index] - len(finals.get(index, original)))
+        out += _pad(region, sizes[index] - len(region))
         at = offset + len(original)
     out += data[at:]
     if not keep_over_budget:
-        assert len(out) == len(data), "pooled write must keep the script length"
+        assert len(out) == len(data), "message-budget write must keep the script length"
     return bytes(out), sorted(unparsed), sorted(over)
+
+
+def _message_groups(found: List[Tuple[int, bytes]]) -> List[List[int]]:
+    """Block indices grouped by message: consecutive contiguous blocks, closed by a block that holds the end 0E 00.
+
+    A message is one 0x0F yield to its 0E 00. Its lines (runs split by 01) lie in one contiguous region, so the total
+    length of the region is the message budget: growth can be paid inside the message and moves no op byte.
+    """
+    groups: List[List[int]] = []
+    current: List[int] = []
+    end = None
+    for index, (offset, block) in enumerate(found):
+        if current and offset != end:
+            groups.append(current)
+            current = []
+        current.append(index)
+        end = offset + len(block)
+        if MESSAGE_END in block:
+            groups.append(current)
+            current, end = [], None
+    if current:
+        groups.append(current)
+    return groups
+
+
+def _plan_messages(found: List[Tuple[int, bytes]], want: Dict[int, bytes]) -> Tuple[Dict[int, int], Dict[int, bytes], List[int]]:
+    """Per message: growth is allowed when the message total stays the same (shorter lines pay for longer ones).
+
+    Returns (sizes of every block, final bytes of the edited blocks, refused growing block indices). A message whose
+    new total is longer than its original total refuses all its growing lines; its shorter lines are still written,
+    padded. The padding is inserted at the end of a printable run, so no op byte moves.
+    """
+    sizes = {index: len(original) for index, (_, original) in enumerate(found)}
+    finals: Dict[int, bytes] = {}
+    over: List[int] = []
+    for group in _message_groups(found):
+        originals = sum(len(found[i][1]) for i in group)
+        grow = [i for i in group if i in want and len(want[i]) > len(found[i][1])]
+        while sum(len(want.get(i, found[i][1])) for i in group) > originals and grow:
+            index = grow.pop()
+            del want[index]
+            over.append(index)
+        current = {i: len(want.get(i, found[i][1])) for i in group}
+        spare = originals - sum(current.values())
+        if spare > 0:
+            # Pad inside the last printable run of the message. A message without one keeps its original bytes.
+            host = next((i for i in reversed(group) if _run_end(want.get(i, found[i][1])) > 0), None)
+            if host is None:
+                for i in group:
+                    want.pop(i, None)
+                current = {i: len(found[i][1]) for i in group}
+            else:
+                current[host] += spare
+        for i in group:
+            sizes[i] = current[i]
+            if i in want:
+                finals[i] = want[i]
+    return sizes, finals, sorted(over)
+
+
+def _run_end(block: bytes) -> int:
+    """Length of the printable run at the start of a block (0 when it starts with a control byte)."""
+    end = 0
+    while end < len(block) and 0x20 <= block[end] <= 0x7E:
+        end += 1
+    return end
+
+
+def _pad(region: bytes, count: int) -> bytes:
+    """``region`` with ``count`` spaces at the end of its first printable run (appended when it has none)."""
+    if count <= 0:
+        return region
+    at = _run_end(region)
+    return region[:at] + b" " * count + region[at:]
 
 
 def _plan(found: List[Tuple[int, bytes]], want: Dict[int, bytes]) -> Tuple[Dict[int, int], Dict[int, bytes], List[int]]:
