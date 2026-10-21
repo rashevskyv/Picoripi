@@ -1,13 +1,14 @@
 """Recomp packages of the Pokemon ROM projects: one folder per dump with the ROM, a manifest and a README per PC port.
 
-The ports read the cartridge at run time. EmeraldRecomp and FireRedLeafGreenRecomp take the ROM and its SHA-1 on the
-command line. Gen2Recomp imports the ROM once into its own cache, and its gate lists the accepted dumps. This module
-writes files only: it copies no port code and patches no runtime.
+The ports read the cartridge at run time. EmeraldRecomp, FireRedLeafGreenRecomp and LeafGreenRecomp take the ROM and
+its SHA-1 on the command line. Gen2Recomp imports the ROM once into its own cache, and its gate lists the accepted
+dumps. This module writes files only: it copies no port code and patches no runtime.
 
-A translated ROM can change code addresses. Emerald then needs its port re-recompiled: the package copies
-``recomp_templates/emerald_resym.sh``, which runs the port's own importer and ``gba_recompile`` on this ROM and the
-new build's ELF (WSL). A Gen 2 package copies ``recomp_templates/gen2_gate.py``, which adds the ROM's SHA-1 to the
-gate of the user's Gen2Recomp checkout.
+A translated ROM can move code. A GBA port then needs its own re-recompile: the package copies
+``recomp_templates/gba_resym.sh``, which runs the port's importer and ``gba_recompile`` on this ROM and the new build's
+ELF (WSL) and builds the port. A Gen 2 package copies ``recomp_templates/gen2_gate.py`` and the pret build's ``.sym``:
+the gate script writes a manifest with those symbol addresses and adds the ROM's SHA-1 to the gate of the user's
+Gen2Recomp checkout.
 
 Two kinds of project: a ROM-mode project (``rom\\base.*`` beside the source; the ROM is written by Picoripi) and a
 pret workspace (``ISO\\`` holds the dumps; each ROM is the one ``2_build.bat`` wrote into ``build\\``).
@@ -29,29 +30,38 @@ Cancelled = Callable[[], bool]
 MakeRom = Callable[[str, str, str], str]          # (source_dir, translation_dir, output_dir) -> ROM path
 ROM_SUFFIXES = (".gba", ".gbc")
 TEMPLATES = Path(__file__).with_name("recomp_templates")
-EMERALD_RESYM = "emerald_resym.sh"
+GBA_RESYM = "gba_resym.sh"
 GEN2_GATE = "gen2_gate.py"
 
 GBA_RELEASE = "https://github.com/mstan/{repo}/releases/tag/v{version}"
 # Base ROM SHA-1 -> the port that runs a translated copy of it. Only the dumps each port accepts.
 # "built" is the ROM the pret workspace's 2_build.bat writes into build\; "canonical" is the Gen2Recomp block's own
 # sha1 line (the gate script adds the ROM beside it); "zip" is the official release asset.
+# GBA ports: "variant" is the port's variants\ folder, "target" its CMake target, "code" the game code, "name" the
+# importer's program name, "tree" and "elf" the pret build's folder and ELF in WSL (~\pk\work), and "rf_old" the
+# ROM address of the ReadFlash1 stack copy in the port's base config ("" when the port has none).
 PORTS_BY_BASE_SHA1: Dict[str, Dict[str, str]] = {
     "f3ae088181bf583e55daf962a92bb46f4f1d07b7": {
         "id": "emerald", "kind": "gba", "folder": "EmeraldRecomp", "exe": "EmeraldRecomp.exe",
         "game": "Pokemon Emerald (USA)", "built": "pokeemerald.gba", "code": "BPEE",
         "zip": "EmeraldRecomp-windows-x64-v0.1.2.zip", "version": "0.1.2",
-        "release": GBA_RELEASE.format(repo="EmeraldRecomp", version="0.1.2")},
+        "release": GBA_RELEASE.format(repo="EmeraldRecomp", version="0.1.2"),
+        "variant": "emerald", "target": "EmeraldRecomp", "name": "Pokemon Emerald Version (USA)",
+        "tree": "pokeemerald", "elf": "pokeemerald.elf", "rf_old": ""},
     "41cb23d8dccc8ebd7c649cd8fbb58eeace6e2fdc": {
         "id": "firered", "kind": "gba", "folder": "FireRedLeafGreenRecomp", "exe": "FireRedRecomp.exe",
         "game": "Pokemon FireRed v1.0 (USA)", "built": "pokefirered.gba",
         "zip": "FireRedRecomp-windows-x64-v0.0.4.zip", "version": "0.0.4",
-        "release": GBA_RELEASE.format(repo="FireRedLeafGreenRecomp", version="0.0.4")},
+        "release": GBA_RELEASE.format(repo="FireRedLeafGreenRecomp", version="0.0.4"),
+        "variant": "firered", "target": "FireRedRecomp", "name": "Pokemon FireRed Version (USA)", "code": "BPRE",
+        "tree": "pokefirered", "elf": "pokefirered.elf", "rf_old": "0x081DEA30"},
     "574fa542ffebb14be69902d1d36f1ec0a4afd71e": {
         "id": "leafgreen", "kind": "gba", "folder": "FireRedLeafGreenRecomp", "exe": "LeafGreenRecomp.exe",
         "game": "Pokemon LeafGreen (USA)", "built": "pokeleafgreen.gba",
         "zip": "LeafGreenRecomp-windows-x64-v0.0.4.zip", "version": "0.0.4",
-        "release": GBA_RELEASE.format(repo="FireRedLeafGreenRecomp", version="0.0.4")},
+        "release": GBA_RELEASE.format(repo="FireRedLeafGreenRecomp", version="0.0.4"),
+        "variant": "leafgreen", "target": "LeafGreenRecomp", "name": "Pokemon LeafGreen (USA)", "code": "BPGE",
+        "tree": "pokefirered", "elf": "pokeleafgreen.elf", "rf_old": "0x081DEA0C"},
     "d8b8a3600a465308c9953dfa04f0081c05bdcb94": {
         "id": "gold", "kind": "gen2", "folder": "Gen2Recomped", "game": "Pokemon Gold (USA)",
         "built": "pokegold.gbc", "block": "gold", "canonical": "d8b8a3600a465308c9953dfa04f0081c05bdcb94"},
@@ -82,40 +92,52 @@ GBA_README = """{game}: українська збірка для {exe_family}
   run_UA.bat    запускає {exe} з цим ROM
 {resym_line}
 Кроки
-  1. Завантажте {zip} з офіційного релізу {release}.
-     Розпакуйте архів у цю папку.
-  2. Покладіть свій дамп GBA BIOS у цю папку під назвою gba_bios.bin
-     (SHA-1 300c20df6731a33952ded8c436f7f186d25d3492).
-{resym_steps}  3. Запустіть run_UA.bat. Порт перевіряє SHA-1 з командного рядка (--rom-sha1).
+{steps}  Запустіть run_UA.bat. Порт перевіряє SHA-1 з командного рядка (--rom-sha1).
 
 Обмеження
   Порт виконує ROM через статичну рекомпіляцію. Якщо збірка змінила розкладку коду, порт потребує
   нової рекомпіляції (recompile_UA.sh). Перевірте текст на тих екранах, які ви використовуєте.
 """
 
-RESYM_LINE = "  recompile_UA.sh  перерекомпіляція порту під цей ROM (WSL, див. нижче)\n"
-RESYM_STEPS = """  Якщо цей ROM відрізняється від оригіналу (зміна тексту в pret-збірці), виконайте один раз у WSL:
-     bash recompile_UA.sh <ELF> <папка EmeraldRecomp> <папка gbarecomp> <gba_recompile> <папка збірки>
-     <ELF>  pokeemerald.elf з 2_build.bat (WSL: ~/pk/work/pokeemerald/pokeemerald.elf)
-     <gba_recompile>  зібраний з gbarecomp (WSL-шлях до бінарника)
-     Скрипт імпортує символи, знову рекомпілює ROM у generated\\ порту і збирає EmeraldRecomp.
-     Перед ним зберіть gba_recompile з gbarecomp (cmake --build <папка> --target gba_recompile).
+GBA_STEPS_ZIP = """  1. Завантажте {zip} з офіційного релізу {release}.
+     Розпакуйте архів у цю папку.
+  2. Покладіть свій дамп GBA BIOS у цю папку під назвою gba_bios.bin
+     (SHA-1 300c20df6731a33952ded8c436f7f186d25d3492).
 """
 
-GEN2_README = """{game}: українська збірка для Gen2Recomp (LÖVE2D, джерело)
+GBA_STEPS_RESYM = """  1. Цей ROM змінив розкладку коду, тож архів релізу {zip} його не запустить. Виконайте один раз у WSL
+     recompile_UA.sh (нижче) і скопіюйте {exe} зі збірки в цю папку.
+  2. Покладіть свій дамп GBA BIOS у цю папку під назвою gba_bios.bin
+     (SHA-1 300c20df6731a33952ded8c436f7f186d25d3492).
+"""
+
+RESYM_LINE = "  recompile_UA.sh  перерекомпіляція порту під цей ROM (WSL, див. нижче)\n"
+RESYM_STEPS = """
+  Перерекомпіляція (WSL, один раз). Потрібні gbarecomp, який закріплює порт, і зібраний gba_recompile:
+     bash recompile_UA.sh <ELF> <папка порту> <папка gbarecomp> <gba_recompile> <папка збірки>
+     <ELF>  {elf} з 2_build.bat (WSL: ~/pk/work/{tree}/{elf})
+     <папка порту>  копія {folder} (WSL-шлях); її variants/{variant}/ перезаписується
+     <gba_recompile>  зібраний з gbarecomp (WSL-шлях до бінарника)
+     <папка збірки>  робоча папка для логів і збірки порту (WSL-шлях, краще на диску WSL)
+     Скрипт імпортує символи з ELF, знову рекомпілює ROM у variants/{variant}/generated і збирає {target}.
+     Готовий файл: <папка збірки>/port/{exe}. Перед ним зберіть gba_recompile:
+     cmake --build <папка gbarecomp>/build --target gba_recompile.
+"""
+
+GEN2_README = """{game}: українська збірка для Gen2Recomped (LÖVE2D, джерело)
 
 Що є в цій папці
   {rom}         перекладений ROM (SHA-1 {rom_sha1})
   recomp.json   маніфест: SHA-1 перекладеного ROM, розмір
-  set_gen2_gate_UA.py  додає SHA-1 цього ROM до перевірки в копії Gen2Recomp
-
+  set_gen2_gate_UA.py  додає SHA-1 цього ROM і його символи до перевірки в копії Gen2Recomp
+{sym_line}
 Кроки
   1. Завантажте Gen2Recomped-0.8.41.love з офіційного релізу UNDERdecoded/Gen2Recomped (тег v0.8.41).
      Розпакуйте його в нову папку, наприклад Gen2Recomped-src. Виконуваний .exe цю зміну не прийме.
   2. Завантажте середовище LÖVE 11.5 з love2d.org. Запускайте папку гри цим середовищем.
-  3. Запустіть: python -I set_gen2_gate_UA.py "<папка Gen2Recomped-src>" {block} {canonical} {rom_sha1}
-     Скрипт додає SHA-1 до sha1Alt у блоці "{block}" файлу src\\core\\GameVersion.lua і
-     зберігає резервну копію GameVersion.lua.bak. Повторний запуск нічого не змінює.
+  3. Запустіть: python -I set_gen2_gate_UA.py "<папка Gen2Recomped-src>" {block} {canonical} {rom_sha1}{sym_arg}
+     Скрипт додає SHA-1 до sha1Alt у блоці "{block}" файлу src\\core\\GameVersion.lua і зберігає резервну копію.
+     {sym_note}Повторний запуск нічого не змінює.
   4. У папці гри створіть порожній файл portable.txt (тоді кеш лежить у самій папці).
   5. Скопіюйте {rom} у папку гри й один раз імпортуйте його з командного рядка:
          set POKEPORT_VERSION={block}
@@ -125,9 +147,11 @@ GEN2_README = """{game}: українська збірка для Gen2Recomp (L�
   6. Запустіть гру без POKEPORT_IMPORT_ONLY: "<папка LÖVE 11.5>\\love.exe" .
 
 Обмеження
-  Імпортер читає ROM за адресами оригінальної збірки. Пакет створено для ROM проєкту (rom\\base.*), у якому
-  розкладка не змінюється. Перевірте текст на тих екранах, які ви використовуєте.
+  Імпортер читає ROM за адресами символів збірки. Для зміненого ROM скрипт записує нову таблицю символів
+  із символів збірки pret. Перевірте текст на тих екранах, які ви використовуєте.
 """
+
+GEN2_SYM_NOTE = "Для зміненого ROM додайте шлях до {sym} останнім аргументом (символи збірки pret).\n     "
 
 
 def _sha1(path: Path) -> str:
@@ -183,36 +207,46 @@ def _built_rom(ws: Path, port: Dict[str, str]) -> Path:
     return path
 
 
+def _built_sym(ws: Path, port: Dict[str, str]) -> Path:
+    """The symbol map rgblink wrote for the built ROM (``build\\decomp\\<built name>.sym``)."""
+    path = ws / "build" / "decomp" / (port["built"].rsplit(".", 1)[0] + ".sym")
+    if not path.is_file():
+        raise ValueError(tr("The pret build has no symbol map yet: run 2_build.bat in the project first "
+                            "({0} is missing).", str(path)))
+    return path
+
+
 def _write_gba(folder: Path, port: Dict[str, str], rom: str, rom_sha1: str, resym: bool) -> None:
     fields = {"game": port["game"], "exe_family": port["folder"], "rom": rom, "rom_sha1": rom_sha1,
               "exe": port["exe"], "zip": port["zip"], "release": port["release"]}
+    steps = (GBA_STEPS_RESYM if resym else GBA_STEPS_ZIP).format(**fields)
+    if resym:
+        steps += RESYM_STEPS.format(elf=port["elf"], tree=port["tree"], folder=port["folder"],
+                                    variant=port["variant"], target=port["target"], exe=port["exe"])
     _atomic_write(folder / "run_UA.bat", RUN_BAT.format(exe=port["exe"], rom=rom, rom_sha1=rom_sha1).encode("ascii"))
     _atomic_write(folder / "README_UA.txt", GBA_README.format(
-        resym_line=RESYM_LINE if resym else "", resym_steps=RESYM_STEPS if resym else "", **fields).encode("utf-8"))
+        resym_line=RESYM_LINE if resym else "", steps=steps, **fields).encode("utf-8"))
     if resym:
-        script = (TEMPLATES / EMERALD_RESYM).read_text(encoding="utf-8")
-        script = script.replace("__ROM__", rom).replace("__CODE__", port["code"]).replace("__SHA1__", rom_sha1)
+        script = (TEMPLATES / GBA_RESYM).read_text(encoding="utf-8")
+        for key, value in {"__ROM__": rom, "__CODE__": port["code"], "__SHA1__": rom_sha1,
+                           "__OLD_SHA1__": port["base_sha1"], "__VARIANT__": port["variant"],
+                           "__TARGET__": port["target"], "__NAME__": port["name"],
+                           "__RF_OLD__": port["rf_old"]}.items():
+            script = script.replace(key, value)
         _atomic_write(folder / "recompile_UA.sh", script.encode("utf-8"))
 
 
-def _write_gen2(folder: Path, port: Dict[str, str], rom: str, rom_sha1: str) -> None:
+def _write_gen2(folder: Path, port: Dict[str, str], rom: str, rom_sha1: str, sym: Optional[str]) -> None:
     shutil.copyfile(TEMPLATES / GEN2_GATE, folder / "set_gen2_gate_UA.py")
-    _atomic_write(folder / "README_UA.txt", GEN2_README.format(
-        game=port["game"], rom=rom, rom_sha1=rom_sha1, block=port["block"],
-        canonical=port["canonical"]).encode("utf-8"))
-
-
-def _check_changed_build(port: Dict[str, str], rom_sha1: str, base_sha1: str) -> bool:
-    """Whether this pret build needs the Emerald re-recompile. Refuses the routes that are not built or verified."""
-    if rom_sha1 == base_sha1:
-        return False
-    if port["id"] == "emerald":
-        return True
-    if port["kind"] == "gen2":
-        raise ValueError(tr("The pret build of {0} changed the ROM. The Gen 2 importer reads the original "
-                            "addresses, so package a ROM project for it.", port["game"]))
-    raise ValueError(tr("The pret build of {0} changed the ROM. Its re-recompilation is not built yet; "
-                        "package a ROM project for it.", port["game"]))
+    fields = {"game": port["game"], "rom": rom, "rom_sha1": rom_sha1, "block": port["block"],
+              "canonical": port["canonical"]}
+    if sym:
+        fields.update(sym_line="  %s         символи збірки pret для зміненого ROM (rgblink)\n" % sym,
+                      sym_arg=' "%s"' % sym, sym=sym,
+                      sym_note=GEN2_SYM_NOTE.format(sym=sym))
+    else:
+        fields.update(sym_line="", sym_arg="", sym="", sym_note="")
+    _atomic_write(folder / "README_UA.txt", GEN2_README.format(**fields).encode("utf-8"))
 
 
 def build_package(source_dir: str, translation_dir: str, output_dir: str, make_rom: MakeRom,
@@ -226,13 +260,15 @@ def build_package(source_dir: str, translation_dir: str, output_dir: str, make_r
     ws = Path(source_dir).parent
     port = port or port_for_source(source_dir)
     work = Path(output_dir) / "_rom"
-    resym = False
+    resym, sym = False, None
     if _is_rom_mode(ws):
         progress(10, tr("Building the translated ROM"))
         rom = Path(make_rom(source_dir, translation_dir, str(work)))
     else:
         rom = _built_rom(ws, port)
-        resym = _check_changed_build(port, _sha1(rom), port["base_sha1"])
+        resym = _sha1(rom) != port["base_sha1"]
+        if resym and port["kind"] == "gen2":
+            sym = _built_sym(ws, port)
     if is_cancelled():
         return ""
     folder = Path(output_dir) / port["folder"] / port["id"]
@@ -240,11 +276,13 @@ def build_package(source_dir: str, translation_dir: str, output_dir: str, make_r
     rom_sha1, rom_bytes = _sha1(rom), rom.stat().st_size
     shutil.copyfile(rom, folder / rom.name)
     shutil.rmtree(work, ignore_errors=True)
+    if sym is not None:
+        shutil.copyfile(sym, folder / sym.name)
     manifest = {"port": port["id"], "game": port["game"], "rom": rom.name, "rom_sha1": rom_sha1,
                 "rom_bytes": rom_bytes, "base_sha1": port["base_sha1"], "re_recompile": resym}
     _atomic_write(folder / "recomp.json", (json.dumps(manifest, indent=2) + "\n").encode("utf-8"))
     if port["kind"] == "gen2":
-        _write_gen2(folder, port, rom.name, rom_sha1)
+        _write_gen2(folder, port, rom.name, rom_sha1, sym.name if sym is not None else None)
     else:
         _write_gba(folder, port, rom.name, rom_sha1, resym)
     progress(100, tr("Done"))
