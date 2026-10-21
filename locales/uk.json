@@ -1,7 +1,8 @@
 {
   " ── ": " ── ",
   "Building the translated ROM": "Збираю перекладений ROM",
-  "The pret build changed the ROM, and the port would show a blank screen. Package a ROM project (rom\\base.*) instead.": "Збірка pret змінила ROM, і порт показав би порожній екран. Натомість зберіть пакет із проєкту ROM (rom\\base.*).",
+  "The pret build of {0} changed the ROM. The Gen 2 importer reads the original addresses, so package a ROM project for it.": "Збірка pret для {0} змінила ROM. Імпортер Gen 2 читає оригінальні адреси, тож зберіть пакет із проєкту ROM.",
+  "The pret build of {0} changed the ROM. Its re-recompilation is not built yet; package a ROM project for it.": "Збірка pret для {0} змінила ROM. Її перерекомпіляція ще не збудована; зберіть пакет із проєкту ROM.",
   "The ROM is not built yet: run 2_build.bat in the project first ({0} is missing).": "ROM ще не зібрано: спершу запустіть 2_build.bat у проєкті (немає {0}).",
   "No recomp port runs this ROM: {0}": "Жоден порт рекомпіляції не запускає цей ROM: {0}",
   "Recomp package (EmeraldRecomp, FireRedLeafGreenRecomp)": "Пакет рекомпіляції (EmeraldRecomp, FireRedLeafGreenRecomp)",
