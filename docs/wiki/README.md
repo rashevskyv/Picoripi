@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-01
 owns: docs/wiki
-tokens: 0.6k
+tokens: 0.7k
 purpose: Wiki index and reading order
 ---
 # Picoripi Wiki
@@ -15,6 +15,7 @@ When product behaviour changes, update the **owning** page in [7](7_Maintaining_
 
 | Page | What it covers |
 |------|----------------|
+| [0. Getting started](0_Getting_Started.md) | From the GitHub page to a game in the editor: install, language and data folder, the new-project wizard, with screenshots |
 | [1. Interface](1_User_Guide_and_Workflow_Pipeline.md) | Main window, every menu/toolbar/filter, Settings tabs, hotkeys |
 | [2. Code map](2_API_Reference.md) | Which Python modules implement that UI |
 | [3. Plugins](3_Plugin_Developer_Guide.md) | Discovery, `BaseGameRules`, capabilities, template |

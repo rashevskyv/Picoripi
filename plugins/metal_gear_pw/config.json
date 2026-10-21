@@ -1,5 +1,6 @@
 {
     "display_name": "Metal Gear Solid: Peace Walker (Master Collection)",
+    "platforms": ["switch", "pc"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

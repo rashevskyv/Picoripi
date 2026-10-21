@@ -1,5 +1,6 @@
 {
     "display_name": "Xenoblade Chronicles: Definitive Edition (Switch)",
+    "platforms": ["switch"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

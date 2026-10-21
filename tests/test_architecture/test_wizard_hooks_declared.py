@@ -109,7 +109,6 @@ BASELINE = {
     "xenoblade_de": "owner source is not a disc image (folders); the user prepares the folder or files",
     "xenoblade_wii": "owner source is not a disc image (folders); the user prepares the folder or files",
     "xenoblade_x_de": "owner source is not a disc image (folders); the user prepares the folder or files",
-    "yokai_watch": "owner source is not a disc image (folders); the user prepares the folder or files",
     "zelda_albw": "owner source is not a disc image (folders); the user prepares the folder or files",
     "zelda_aoc": "owner source is not a disc image (folders); the user prepares the folder or files",
     "zelda_coh": "owner source is not a disc image (folders); the user prepares the folder or files",

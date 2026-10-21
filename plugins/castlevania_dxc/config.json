@@ -1,5 +1,6 @@
 {
     "display_name": "Castlevania: The Dracula X Chronicles (PSP)",
+    "platforms": ["psp"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

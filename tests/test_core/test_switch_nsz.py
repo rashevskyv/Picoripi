@@ -20,3 +20,12 @@ def test_a_block_size_above_16_mib_is_refused_and_16_mib_is_read():
     assert read_ncz(_ncz(24)).block_exp == 24
     with pytest.raises(ImageError, match="block size is out of range"):
         read_ncz(_ncz(32))                     # a hostile header asking for 4 GiB blocks
+
+
+def test_an_update_with_more_than_four_contiguous_sections_is_read():
+    """nsz writes one section entry per AES-CTR-EX subsection of an update's patch (17 in Yo-kai Watch 1's update)."""
+    entries = b"".join(struct.pack("<3Q", NCA_HEADER_SIZE + 0x100 * index, 0x100, 3).ljust(0x40, b"\0")
+                       for index in range(17))
+    table = b"NCZSECTN" + struct.pack("<Q", 17) + entries
+    ncz = read_ncz(ImageReader(io.BytesIO(bytes(NCA_HEADER_SIZE) + table + bytes(17 * 0x100))))
+    assert len(ncz.sections) == 17 and ncz.body_size == 17 * 0x100

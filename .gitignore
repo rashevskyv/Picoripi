@@ -73,3 +73,5 @@ pytest-of-Administrator/
 # User data folder (portable default, chosen at first start) and the pointer file that remembers the choice
 /data/
 /picoripi_home.json
+
+/_site/

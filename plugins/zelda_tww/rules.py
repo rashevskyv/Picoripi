@@ -123,6 +123,9 @@ class GameRules(TwilightPrincessRules):
         """The whole disc is the source (the Twilight Princess base class names a subfolder)."""
         return None
 
+    def unpack_key_consoles(self) -> List[str]:
+        return []   # a GameCube disc only; the Twilight Princess base class reads the Wii key
+
     def get_build_targets(self) -> List[Dict[str, Any]]:
         """The Dolphin disc (translated main.dol) and the BlueWake disc (original main.dol: BlueWake checks its SHA-1).
 

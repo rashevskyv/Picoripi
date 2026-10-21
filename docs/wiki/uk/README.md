@@ -2,7 +2,7 @@
 status: current
 updated: 2026-09-27
 owns: docs/wiki
-tokens: 0.6k
+tokens: 0.7k
 ---
 # Вікі Picoripi (українською)
 
@@ -14,6 +14,7 @@ tokens: 0.6k
 
 | Сторінка | Про що |
 |----------|--------|
+| [0. Перший запуск](0_Getting_Started.md) | Від сторінки GitHub до гри в редакторі: встановлення, мова і тека даних, майстер нового проєкту, зі скріншотами |
 | [1. Інтерфейс](1_User_Guide_and_Workflow_Pipeline.md) | Головне вікно, меню, тулбар, фільтри, Settings, гарячі клавіші |
 | [2. Карта коду](2_API_Reference.md) | Які модулі Python реалізують цей UI |
 | [3. Плагіни](3_Plugin_Developer_Guide.md) | Discovery, `BaseGameRules`, capabilities, шаблон |

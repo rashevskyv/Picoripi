@@ -1,5 +1,6 @@
 {
     "display_name": "Castlevania: Harmony of Dissonance / Aria of Sorrow (GBA)",
+    "platforms": ["gba"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

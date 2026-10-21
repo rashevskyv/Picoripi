@@ -1,5 +1,6 @@
 {
     "display_name": "Dragon Quest Builders 1 + 2 (Switch)",
+    "platforms": ["switch"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

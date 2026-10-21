@@ -220,19 +220,22 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
              "reference path, or None to use the path as it is.", call=None, returns=str, optional=True),
     )),
     ('Project Manager (worker thread: no widgets, no self.mw)', (
-        Hook("get_source_roles", "Roles the project's source files can have: [{id, label}]. The first is the default.",
+        Hook("get_source_roles", "Roles the project's source files can have: [{id, label}]. The first is the default. "
+             "The host adds Base game, Update and DLC after them; DLC may repeat (dlc, dlc_2, ...).",
              call=(), returns=list),
         Hook("identify_source", "Recognise a file the user added, by its content: {role, platform} or None. "
              "An optional 'libraries': [\"oodle\"] lists the stored library paths its unpack loads.",
              call=None, returns=dict, optional=True),
-        Hook("get_platforms", "Platforms the game ships on: [{id, label}].", call=(), returns=list),
+        Hook("get_platforms", "Platforms the game ships on: [{id, label}]. Default: the ids under \"platforms\" in "
+             "config.json, named from plugin_facts.PLATFORM_LABELS.", call=(), returns=list),
         Hook("unpack_sources", "Unpack the role files into an empty folder: progress(percent, text) and "
              "is_cancelled() are passed in. Returns the folder, or None to use the files as they are; a "
              "recognised game image is then used only when get_file_formats claims its extension.",
              call=None, returns=str, optional=True),
         Hook("get_source_subfolder", "Folder of the unpacked tree that is the project's source root, e.g. "
-             "files/res/Msgus (slash path). Default: None, the whole unpacked folder.",
-             call=(), returns=str, optional=True),
+             "files/res/Msgus (slash path), or a list of such paths: the first that exists. Default: None, the whole "
+             "unpacked folder.",
+             call=(), returns=(str, list), optional=True),
         Hook("unpack_key_consoles", "Consoles whose key file the unpack reads: any of 3ds, switch, wii, oodle "
              "(the Oodle library path). The wizard "
              "asks for a key file only for an encrypted file of a listed console. Default: none.",
@@ -301,7 +304,7 @@ SESSION_KEYS = frozenset({
 
 # Keys a plugin's ``config.json`` may set (defaults for a new project).
 KNOWN_CONFIG_KEYS = frozenset({
-    "display_name", "default_tag_mappings", "block_names", "block_color_markers", "context_menu_tags",
+    "display_name", "platforms", "default_tag_mappings", "block_names", "block_color_markers", "context_menu_tags",
     "default_font_file", "fonts_dir_path", "orig_fonts_dir_path",
     "game_dialog_max_width_pixels", "line_width_warning_threshold_pixels", "lines_per_page",
     "use_per_window_layouts", "is_directory_mode", "auto_generate_translation_path",

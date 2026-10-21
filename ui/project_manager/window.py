@@ -454,8 +454,9 @@ class ProjectManagerDialog(QDialog):
         layout = QVBoxLayout(self)
         bar = QHBoxLayout()
         self._add_button = QToolButton()
-        self._add_button.setText("+")
+        self._add_button.setText(tr("+ Add project"))
         self._add_button.setToolTip(tr("Add a project"))
+        self._add_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
         self._add_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         menu = QMenu(self._add_button)
         menu.addAction(tr("New project..."), self._new_project_clicked)
@@ -567,7 +568,7 @@ class ProjectManagerDialog(QDialog):
         self._grid_page.setStretchFactor(0, 3)
         self._grid_page.setStretchFactor(1, 2)
 
-        self._empty = _message_page(tr("No projects yet. Press + to add a project."))
+        self._empty = _message_page(tr("No projects yet. Press \"+ Add project\" to add a game."))
         self._no_match = _message_page(tr("No project matches this search."))
 
         self._stack = QStackedWidget()
@@ -623,6 +624,7 @@ class ProjectManagerDialog(QDialog):
         if not targets:
             self._scan_active = False
             self._strip.hide()
+            self._status.setText("")   # nothing to load: the empty list says what to do
             return
         self._scan.shutdown()
         self._scan_active = True
@@ -1731,7 +1733,13 @@ class ProjectManagerDialog(QDialog):
 
     # ----- adding projects -----
     def _new_project_clicked(self) -> None:
-        self._new_project()
+        if not self._new_project():   # the wizard made no project
+            return
+        self._closing_for_project = True  # the new project opens in the main window: close without quitting
+        try:
+            self.close()
+        finally:
+            self._closing_for_project = False
 
     def _add_existing_clicked(self) -> None:
         path, _filter = QFileDialog.getOpenFileName(self, tr("Add existing project"), str(Path.home()),

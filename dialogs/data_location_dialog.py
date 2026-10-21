@@ -3,26 +3,29 @@
 The user always confirms the folder. The suggested folder is pre-filled, never used silently.
 Copying an old folder runs in a QThread worker with cancel; the pointer file is written only
 after the choice is complete, so a cancelled start asks again next time.
+At first start the dialog also asks for the interface language and saves it into the chosen folder.
 """
 from __future__ import annotations
 
+import json
 import sys
 import uuid
 from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtCore import QUrl, pyqtSignal
+from PyQt6.QtCore import QLocale, Qt, QUrl, pyqtSignal
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
-    QApplication, QCheckBox, QDialog, QFileDialog, QHBoxLayout, QLabel, QLineEdit,
-    QMessageBox, QProgressBar, QPushButton, QRadioButton, QVBoxLayout, QButtonGroup,
+    QApplication, QCheckBox, QComboBox, QDialog, QFileDialog, QHBoxLayout, QLabel, QLineEdit,
+    QMessageBox, QProgressBar, QPushButton, QRadioButton, QVBoxLayout, QButtonGroup, QWidget,
 )
 
 from core.data_location_choice import (
     OPTION_CUSTOM, OPTION_LEGACY, OPTION_PORTABLE, PROBLEM_INSIDE_SOURCE,
     PROBLEM_NOT_WRITABLE, CopyResult, DataLocationChoice, DataLocationModel, copy_missing,
 )
-from core.i18n import tr
+from core.i18n import available_languages, current_language, language_names, set_language, tr
+from utils.atomic_io import atomic_write_json
 from utils.thread_utils import WorkerThread
 from utils import app_mode
 from utils.data_folder_git import (
@@ -43,6 +46,30 @@ def _write_test(folder: Path) -> bool:
         return True
     except OSError:
         return False
+
+
+def system_language() -> str:
+    """The system's interface language when a catalog exists for it, else English."""
+    code = QLocale.system().name().split("_")[0]
+    return code if code in available_languages() else "en"
+
+
+def save_ui_language(folder: Path, code: str, keep_existing: bool = False) -> None:
+    """Put the chosen interface language into ``settings.json`` of the data folder; other keys stay.
+
+    ``keep_existing``: a language already saved there (copied old settings) wins over an untouched default.
+    """
+    path = folder / "settings.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        data = {}
+    except (OSError, ValueError):
+        return      # an unreadable settings file is left alone; the Language menu still works
+    if not isinstance(data, dict) or (keep_existing and data.get("ui_language")):
+        return
+    data["ui_language"] = code
+    atomic_write_json(path, data, ensure_ascii=False, indent=4)
 
 
 def _format_bytes(value: Optional[int]) -> str:
@@ -96,10 +123,17 @@ class DataLocationDialog(QDialog):
     def __init__(self, root: Path, current: Optional[Path] = None, legacy: Optional[Path] = None,
                  first_start: bool = True, notice: str = "", parent=None):
         super().__init__(parent)
-        self.setWindowTitle(tr("Where Picoripi keeps your data") if first_start else tr("Data folder"))
         self.setMinimumWidth(520)
         self._root = root
         self._first_start = first_start
+        self._current, self._legacy, self._notice = current, legacy, notice
+        self._outer = QVBoxLayout(self)
+        self._body: Optional[QWidget] = None
+        self._language_label: Optional[QLabel] = None
+        self._language_combo: Optional[QComboBox] = None
+        self._language_picked = False      # True once the user changes the language list
+        if first_start:
+            self._build_language_row()
         # In Settings the old folder is the current one; at first start it is the legacy profile folder.
         self._model = DataLocationModel(root, legacy=current if not first_start else legacy)
         self._worker: Optional[CopyWorker] = None
@@ -109,13 +143,48 @@ class DataLocationDialog(QDialog):
         self._gitignore_no: Optional[QPushButton] = None
         self._choice: Optional[DataLocationChoice] = None
         self.result_folder: Optional[Path] = None
-        self._build(current, legacy, notice)
+        self._build()
         self._refresh()
 
     # Layout -----------------------------------------------------------------
-    def _build(self, current: Optional[Path], legacy: Optional[Path], notice: str) -> None:
-        layout = QVBoxLayout(self)
-        intro = (tr("Picoripi stores your projects, settings and glossaries in one folder. "
+    def _build_language_row(self) -> None:
+        row = QHBoxLayout()
+        self._language_label = QLabel(self)
+        self._language_combo = QComboBox(self)
+        for code, name in language_names().items():
+            self._language_combo.addItem(name, code)
+        self._language_combo.setCurrentIndex(max(0, self._language_combo.findData(current_language())))
+        self._language_combo.currentIndexChanged.connect(self._language_changed)
+        row.addWidget(self._language_label)
+        row.addWidget(self._language_combo)
+        row.addStretch(1)
+        self._outer.addLayout(row)
+
+    def _language_changed(self, _index: int) -> None:
+        """Switch the interface language and rebuild the texts; the user's choices so far stay."""
+        set_language(self._language_combo.currentData())
+        self._language_picked = True
+        option, folder, copy = self._selected_option(), self._folder_edit.text(), self._copy_check.isChecked()
+        self._build()
+        self._radios.get(option, self._radios[OPTION_PORTABLE]).setChecked(True)
+        self._folder_edit.setText(folder)
+        self._copy_check.setChecked(copy)
+        self._refresh()
+
+    def _build(self) -> None:
+        """(Re)create every translated widget below the language row."""
+        current, legacy, notice = self._current, self._legacy, self._notice
+        self.setWindowTitle(tr("Where Picoripi keeps your data") if self._first_start else tr("Data folder"))
+        if self._language_label is not None:
+            self._language_label.setText(tr("Language") + ":")
+        if self._body is not None:
+            self._outer.removeWidget(self._body)
+            self._body.deleteLater()
+        self._body = QWidget(self)
+        self._outer.addWidget(self._body)
+        layout = QVBoxLayout(self._body)
+        layout.setContentsMargins(0, 0, 0, 0)
+        intro =(tr("Picoripi stores your projects, settings and glossaries in one folder. "
                     "Choose it now. You can change it later in Settings.") if self._first_start
                  else tr("Choose the folder for your data. The current data is copied there; the old folder stays unchanged."))
         layout.addWidget(self._label(intro))
@@ -124,7 +193,7 @@ class DataLocationDialog(QDialog):
         if not self._first_start and current is not None:
             layout.addWidget(self._label(tr("Current folder:") + " " + str(current)))
 
-        self._group = QButtonGroup(self)
+        self._group = QButtonGroup(self._body)
         self._radios = {}
         labels = {
             OPTION_PORTABLE: tr("Next to the program, in the data folder (portable, suggested)"),
@@ -150,7 +219,7 @@ class DataLocationDialog(QDialog):
         layout.addLayout(folder_row)
 
         self._copy_check = QCheckBox(tr("Copy existing data here (the old folder stays unchanged)"), self)
-        self._copy_check.setChecked(legacy is not None or not self._first_start)
+        self._copy_check.setChecked(not self._first_start)   # an old profile is never imported unless the user ticks it
         self._copy_check.toggled.connect(self._refresh)
         self._copy_check.setVisible(bool(legacy) or not self._first_start)
         layout.addWidget(self._copy_check)
@@ -226,7 +295,10 @@ class DataLocationDialog(QDialog):
         if self._first_start and self._model.legacy is not None and option != OPTION_LEGACY:
             lines.append(tr("The old profile folder ~/.picoripi is kept. Nothing is deleted."))
         self._info.setText("\n".join(lines))
-        self._ok_button.setEnabled(self._worker is None and self._git_worker is None and self._ready(target))
+        idle = self._worker is None and self._git_worker is None
+        self._ok_button.setEnabled(idle and self._ready(target))
+        if self._language_combo is not None:
+            self._language_combo.setEnabled(idle)
 
     def _ready(self, target: Optional[Path]) -> bool:
         return target is not None and not self._model.problems(target, same_ok=self._selected_option() == OPTION_LEGACY)
@@ -256,7 +328,7 @@ class DataLocationDialog(QDialog):
     def _start_git_check(self, folder: Path) -> None:
         self._git_worker = GitCheckWorker(folder, self)
         self._git_worker.finished_ok.connect(self._git_checked)
-        self._ok_button.setEnabled(False)
+        self._refresh()      # busy: the confirm button and the language list wait for the check
         self._git_worker.start()
 
     def _git_checked(self, state: GitState) -> None:
@@ -300,7 +372,7 @@ class DataLocationDialog(QDialog):
         self._worker.failed.connect(self._copy_failed)
         self._progress.setVisible(True)
         self._cancel_copy_button.setVisible(True)
-        self._ok_button.setEnabled(False)
+        self._refresh()
         self._quit_button.setEnabled(False)
         self._worker.start()
 
@@ -339,6 +411,8 @@ class DataLocationDialog(QDialog):
             if self._write_ignore:
                 ensure_self_ignore(choice.target)
             write_pointer(choice.target, self._root)
+            if self._language_combo is not None:
+                save_ui_language(choice.target, current_language(), keep_existing=not self._language_picked)
         except OSError as exc:
             QMessageBox.warning(self, tr("Data folder"), tr("Saving the choice failed:") + " " + str(exc))
             self._refresh()
@@ -369,9 +443,15 @@ def ensure_data_location_chosen() -> bool:
     # Keep the reference: a QApplication nobody holds is destroyed at once, and the dialog below then fails with
     # "Must construct a QApplication before a QWidget". main.py reuses this instance through QApplication.instance().
     _app = QApplication.instance() or QApplication(sys.argv)
+    set_language(system_language())     # the dialog opens in the system language; the user can switch it there
     current = location.path if location.problem else None
     notice = tr("The saved data folder is missing or read-only. Choose a folder.") if location.problem else ""
     dialog = DataLocationDialog(app_root(), current=current, legacy=legacy_dir(), first_start=True, notice=notice)
+    # The first window of a start from a console: Windows keeps it behind other programs unless it asks to stay on top.
+    dialog.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
+    dialog.show()
+    dialog.raise_()
+    dialog.activateWindow()
     return dialog.exec() == QDialog.DialogCode.Accepted.value
 
 

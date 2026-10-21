@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: plugins/
-tokens: 14.2k
+tokens: 14.4k
 purpose: The one plugin guide: files, hooks, capabilities, tests
 ---
 # Plugin Developer Guide
@@ -177,11 +177,11 @@ Do not declare a capability the plugin cannot deliver.
 The Project Manager's new-project wizard, its Build, Export and Run buttons and its list icons use six optional hooks.
 Each hook has a default, so a plugin without them still works: the wizard then takes the role and the platform from the user, uses the files as they are, and the buttons stay off.
 
-- `get_source_roles()` lists the roles a project's files can have, for example base game, update, DLC and disc 2. The first role is the default.
+- `get_source_roles()` lists the roles a project's files can have, for example base game, update, DLC and disc 2. The first role is the default. The host always offers **Base game**, **Update** and **DLC** after them, so a user can add every file of a game; DLC may repeat, and `unpack_sources` then gets the keys `dlc`, `dlc_2`, `dlc_3`... (`plugin_facts.paths_of_role(sources, "dlc")` lists them). A file `identify_source` does not recognise gets the role and platform of its own header (Switch and 3DS title IDs).
 - `identify_source(path)` reads one file the user added, by its content, and returns its role and platform. It returns `None` for a file that is not from this game.
-- `get_platforms()` lists the platforms the game ships on. The wizard uses it when `identify_source` does not name one.
+- `get_platforms()` lists the platforms the game ships on. The wizard offers them in its platform list and uses them when `identify_source` does not name one; a game on one platform gives it to every file. Every plugin names at least one (`tests/test_architecture/test_plugin_platforms_declared.py`). The default reads `"platforms": ["3ds", "switch"]` from the plugin's `config.json`; the ids and their names are `plugin_facts.PLATFORM_LABELS` (gb, gbc, gba, nds, 3ds, snes, n64, gc, wii, wiiu, switch, psx, ps2, psp, saturn, gdrom, pc, android, other).
 - `unpack_sources(sources, target_dir, progress, is_cancelled)` unpacks the role files into an empty folder that the host made. It returns that folder, or `None` when the files need no unpacking.
-- `get_source_subfolder()` names the folder of the unpacked tree that is the project's source root, with `/` separators, for example `files/res/Msgus`. The default is `None`: the whole unpacked folder is the source. The host fails the unpack with a message when that folder is missing. Use it when the unpacked tree holds more than the game's text.
+- `get_source_subfolder()` names the folder of the unpacked tree that is the project's source root, with `/` separators, for example `files/res/Msgus`. The default is `None`: the whole unpacked folder is the source. A game whose platforms lay out their files differently returns a list of such paths; the first that exists is the source, also in an extracted folder the user adds. The host fails the unpack with a message when none exists. Use it when the unpacked tree holds more than the game's text.
 - `unpack_key_consoles()` lists the consoles whose key file the unpack reads: any of `"3ds"`, `"switch"`, `"wii"`. Default: none. The wizard asks for a console's key file only when a chosen file is encrypted and the game lists that console. A game that unpacks no encrypted image returns none.
 - Encrypted console images: `core/containers/console_crypto.py`. Inside `unpack_sources`, `key_path(console)` returns the key file the user chose for that console in the wizard, or `None`; the readers in `core/project_library/images.py` read the key file themselves. A reader raises `encrypted_error(console, label)` when the key file or pycryptodome is missing. The plugin never opens a key file itself, and a key path is never written into a project.
 - `get_build_targets()` lists what the game can build, each with an `id`, a `label`, `platforms` (empty means all) and a `kind`: `files`, `patch` or `layeredfs`.

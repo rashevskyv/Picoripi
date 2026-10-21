@@ -46,6 +46,8 @@ class LifecycleMixin:
             project.metadata.update(info['metadata'])
             self.mw.project_manager.save()
         log_info(f"Project '{project.name}' created at {info['directory']}; opening it.")
+        generation = self._start_open_attempt()
+        self._begin_open_dialog()   # shown at once: the file sync and the block load below take a while
 
         # Switch plugin if needed
         if info['plugin'] != self.mw.active_game_plugin:
@@ -57,20 +59,7 @@ class LifecycleMixin:
             if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
                 self.mw.translation_handler.initialize_glossary_highlighting()
 
-        # Now sync with plugin awareness
-        if self.mw.project_manager:
-            self.mw.project_manager.sync_project_files(plugin=self.mw.current_game_rules)
-
-        # Enable project-specific actions
-        self._set_project_actions_enabled(True)
-        if hasattr(self.mw, 'ui_handler'):
-            self.mw.ui_handler.update_editor_rules_properties()
-
-        # Update UI
-        self.ui_updater.update_title()
-
         project_file = str(Path(info['directory']) / "project.uiproj")
-        self._register_opened(project_file, save_project_settings=True)   # undone by _abandon_new_project
 
         def on_created(_state_restored):
             if self._populate_failed:
@@ -83,9 +72,27 @@ class LifecycleMixin:
             QMessageBox.information(
                 self.mw,
                 tr('Project Created'),
-                f"Project '{project.name}' has been created successfully."
+                tr("Project '{0}' has been created successfully.", project.name)
             )
-        self._populate_blocks_from_project(on_completed=on_created)
+
+        def created_synced():
+            if generation != self._open_generation:   # another project was opened while the files were matched
+                return
+            self._set_project_actions_enabled(True)
+            if hasattr(self.mw, 'ui_handler'):
+                self.mw.ui_handler.update_editor_rules_properties()
+            self.ui_updater.update_title()
+            self._register_opened(project_file, save_project_settings=True)   # undone by _abandon_new_project
+            self._populate_blocks_from_project(on_completed=on_created)
+
+        # Match the blocks with the files on disk on a worker (a big game has thousands), then load them.
+        self._sync_project_files_then(created_synced)
+
+    def _start_open_attempt(self) -> int:
+        """A new create or open: what an earlier one still has on its way (a file sync, a block load) is ignored."""
+        self._open_generation += 1
+        self._active_load_worker = None   # its result no longer matches the active worker, so it is dropped
+        return self._open_generation
 
     def _register_opened(self, project_file: str, save_project_settings: bool = False) -> None:
         """The project is the last one opened and in the recent list. A failed open undoes it (_forget_opened)."""
@@ -160,6 +167,8 @@ class LifecycleMixin:
 
         project = self.mw.project_manager.project
         log_info(f"Project '{project.name}' loaded; opening it.")
+        generation = self._start_open_attempt()
+        self._begin_open_dialog()   # shown at once: the file sync and the block load below take a while
 
         # Switch plugin if needed
         if project.plugin_name and project.plugin_name != self.mw.active_game_plugin:
@@ -184,13 +193,6 @@ class LifecycleMixin:
                 self.mw.settings_manager.load_all_font_maps()
             if hasattr(self.mw, 'string_settings_updater'):
                 self.mw.string_settings_updater.update_font_combobox()
-            self.mw.project_manager.sync_project_files(plugin=self.mw.current_game_rules)
-
-        # Enable project-specific actions
-        self._set_project_actions_enabled(True)
-
-        # Update UI
-        self.ui_updater.update_title()
 
         def on_opened(_state_restored):
             if self._populate_failed:
@@ -207,8 +209,16 @@ class LifecycleMixin:
             except Exception as exc:
                 log_debug(f"Failed to auto-sync companion on open: {exc}")
 
-        self._register_opened(project_path)   # a failed open undoes it (_project_open_failed)
-        self._populate_blocks_from_project(on_completed=on_opened)
+        def opened_synced():
+            if generation != self._open_generation:   # another project was opened while the files were matched
+                return
+            self._set_project_actions_enabled(True)
+            self.ui_updater.update_title()
+            self._register_opened(project_path)   # a failed open undoes it (_project_open_failed)
+            self._populate_blocks_from_project(on_completed=on_opened)
+
+        # Match the blocks with the files on disk on a worker (a big game has thousands), then load them.
+        self._sync_project_files_then(opened_synced)
 
     def close_project_action(self) -> None:
         """Close project action."""

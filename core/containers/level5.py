@@ -14,7 +14,9 @@ from __future__ import annotations
 
 from core.i18n import tr
 import struct
+import sys
 import zlib
+from array import array
 from typing import Dict, List, Tuple
 
 from core.containers.base_container import BaseArchiveContainer
@@ -60,33 +62,58 @@ def _lz10(src: bytes, pos: int, size: int) -> bytes:
     return bytes(out[:size])
 
 
+def _huffman_states(tree: bytes, root: int) -> List[int]:
+    """The tree walk as a table: table[state * 2 + bit] is the next state (times 2), or ~symbol at a leaf.
+
+    A state is the pair (nxt, node byte) the bit-by-bit walk carries; state 0 is the root."""
+    ids: Dict[Tuple[int, int], int] = {(0, root): 0}
+    table: List[int] = []
+    queue = [(0, root)]
+    while len(table) // 2 < len(queue):
+        nxt, node = queue[len(table) // 2]
+        nxt += ((node & 0x3F) << 1) + 2
+        for direction in (2, 1):                      # bit 0 / bit 1
+            child = tree[nxt - direction]
+            if (node >> 5 >> direction) & 1:
+                table.append(~child)
+            else:
+                state = ids.get((nxt, child))
+                if state is None:
+                    state = ids[(nxt, child)] = len(ids)
+                    queue.append((nxt, child))
+                table.append(state * 2)
+    return table
+
+
 def _huffman(src: bytes, pos: int, size: int, depth: int) -> bytes:
     count = size * 8 // depth
     tree_size = src[pos]
     root = src[pos + 1]
     tree = src[pos + 2:pos + 2 + tree_size * 2]
     pos += 2 + tree_size * 2
-    result = bytearray(count)
-    i = code = nxt = 0
-    node = root
-    done = 0
-    while done < count:
-        if i % 32 == 0:
-            code = struct.unpack_from("<I", src, pos)[0]
-            pos += 4
-        nxt += ((node & 0x3F) << 1) + 2
-        direction = 2 if (code >> (31 - i % 32)) & 1 == 0 else 1
-        leaf = (node >> 5 >> direction) & 1
-        node = tree[nxt - direction]
-        if leaf:
-            result[done] = node
-            done += 1
-            node = root
-            nxt = 0
-        i += 1
+    table = _huffman_states(tree, root)
+    words = array("I", src[pos:pos + (len(src) - pos) // 4 * 4])
+    if sys.byteorder == "little":
+        words.byteswap()                               # the code words are little-endian, read from bit 31 down
+    stream = bytes(words)
+    bits = format(int.from_bytes(stream, "big"), f"0{len(stream) * 8}b").encode() if stream else b""
+    result = bytearray()
+    append = result.append
+    state = 0
+    for bit in bits:
+        step = table[state + (bit & 1)]
+        if step < 0:
+            append(~step)
+            state = 0
+        else:
+            state = step
+    if len(result) < count:
+        raise IndexError("Huffman data ends before its size")
+    del result[count:]
     if depth == 8:
         return bytes(result)
-    return bytes(result[2 * j] | result[2 * j + 1] << 4 for j in range(size))
+    low, high = int.from_bytes(result[0::2], "big"), int.from_bytes(result[1::2], "big")
+    return (low | high << 4).to_bytes(size, "big")
 
 
 def rle_body(src: bytes, pos: int, size: int) -> bytes:

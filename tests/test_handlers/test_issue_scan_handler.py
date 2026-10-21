@@ -126,3 +126,29 @@ def test_an_empty_project_still_reports_its_scan_finished(handler, mock_mw):
     handler._perform_initial_silent_scan_all_issues(on_completed=lambda: done.append(True))
 
     assert done == [True]
+
+
+def test_a_quiet_scan_works_in_short_ticks_and_refreshes_the_tree_once(handler, mock_mw):
+    """The editor is open while it runs: a tick ends at its time budget, the status bar counts, the tree refreshes at the end."""
+    mock_mw.data_store.data = [["line"] for _ in range(3)]
+    handler._SCAN_TICK_SECONDS = 0   # every tick scans one block, then yields to the event loop
+    scanned = []
+
+    with patch.object(handler, '_perform_issues_scan_for_block', new=lambda block_idx: scanned.append(block_idx)):
+        handler._perform_initial_silent_scan_all_issues(force=True, quiet=True)
+        handler._scan_timer.stop()
+        assert handler._progress_dialog is None
+
+        handler._scan_next_batch()
+        handler._scan_timer.stop()
+        assert scanned == [0]
+        mock_mw.statusBar.showMessage.assert_called_with("Checking issues: 1 of 3 files")
+        handler.ui_updater.refresh_block_tree_indicators.assert_not_called()
+
+        handler._scan_next_batch()
+        handler._scan_timer.stop()
+        handler._scan_next_batch()
+
+    assert scanned == [0, 1, 2]
+    mock_mw.statusBar.clearMessage.assert_called_once()
+    handler.ui_updater.refresh_block_tree_indicators.assert_called_once()

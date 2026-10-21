@@ -3,6 +3,8 @@ from functools import partial
 from pathlib import Path
 from typing import Dict, Optional
 
+from PyQt6.QtWidgets import QDialog
+
 from core.project_library import flags, index, registry
 from core.project_library.icons import save_user_icon
 from core.project_library.scan import ICON_FILE_NAME
@@ -58,10 +60,12 @@ class LibraryMixin:
             return
         self.open_project_manager_action()
 
-    def open_new_project_wizard(self) -> None:
-        """The Project Manager's new-project wizard. It creates the project through the shared creation path."""
+    def open_new_project_wizard(self) -> bool:
+        """The Project Manager's new-project wizard. It creates the project through the shared creation path.
+
+        True when the wizard made a project (it is opening in the main window)."""
         wizard = ProjectWizard(self.mw, default_load_rules, self.finish_new_project)
-        wizard.exec()
+        return wizard.exec() == QDialog.DialogCode.Accepted.value
 
     def _open_from_manager(self, project_file: str) -> None:
         self._open_recent_project(project_file)

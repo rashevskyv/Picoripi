@@ -1,10 +1,12 @@
 """Data folder chooser dialog: the confirmed choice is written to the pointer; cancel writes nothing."""
+import json
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 
+from core import i18n
 from core.data_location_choice import OPTION_CUSTOM, OPTION_LEGACY, OPTION_PORTABLE
 from dialogs import data_location_dialog as dld
 from utils import app_mode
@@ -78,10 +80,12 @@ def test_old_profile_is_copied_into_the_chosen_folder_and_kept(qtbot, app_folder
     dialog = dld.DataLocationDialog(app_folder, legacy=legacy, first_start=True)
     qtbot.addWidget(dialog)
     assert OPTION_LEGACY in dialog._model.options()
-    assert dialog._copy_check.isChecked()
+    assert not dialog._copy_check.isChecked()   # the old profile is imported only when the user ticks the box
+    dialog._copy_check.setChecked(True)
     dialog._confirm()
     qtbot.waitUntil(lambda: dialog.result_folder is not None, timeout=10000)
-    assert (app_folder / "data" / "settings.json").read_text(encoding="utf-8") == "{}"
+    copied = json.loads((app_folder / "data" / "settings.json").read_text(encoding="utf-8"))
+    assert copied == {"ui_language": "en"}     # the old settings, plus the language shown in the dialog
     assert (legacy / "settings.json").exists()   # the old folder is never touched
     assert dl.read_pointer(app_folder) == "data"
 
@@ -123,6 +127,74 @@ def test_cancelled_copy_saves_no_pointer(qtbot, app_folder, tmp_path):
     dialog._copy_done(dld.CopyResult(stopped=True))   # the user pressed Cancel copy
     assert dialog.result_folder is None
     assert dl.read_pointer(app_folder) is None
+
+
+@pytest.fixture
+def english_after():
+    """Language tests switch the global catalog: put English back afterwards."""
+    yield
+    i18n.set_language("en")
+
+
+def _choose_language(dialog, code):
+    dialog._language_combo.setCurrentIndex(dialog._language_combo.findData(code))
+
+
+def test_first_start_offers_every_interface_language(qtbot, app_folder, english_after):
+    dialog = dld.DataLocationDialog(app_folder, first_start=True)
+    qtbot.addWidget(dialog)
+    codes = [dialog._language_combo.itemData(i) for i in range(dialog._language_combo.count())]
+    assert codes == i18n.available_languages()
+    assert codes[:1] == ["en"] and len(codes) > 1      # English first, then every catalog with translations
+
+
+def test_switching_the_language_translates_the_dialog_and_keeps_the_choices(qtbot, app_folder, tmp_path,
+                                                                          english_after):
+    dialog = dld.DataLocationDialog(app_folder, first_start=True)
+    qtbot.addWidget(dialog)
+    chosen = tmp_path / "mine"
+    _pick(dialog, OPTION_CUSTOM)
+    dialog._folder_edit.setText(str(chosen))
+    _choose_language(dialog, "uk")
+    assert dialog.windowTitle() == i18n.tr("Where Picoripi keeps your data") != "Where Picoripi keeps your data"
+    assert dialog._ok_button.text() == i18n.tr("Use this folder")
+    assert dialog._selected_option() == OPTION_CUSTOM
+    assert dialog._current_target() == chosen
+
+
+def test_confirming_saves_the_chosen_language_into_the_data_folder(qtbot, app_folder, english_after):
+    dialog = dld.DataLocationDialog(app_folder, first_start=True)
+    qtbot.addWidget(dialog)
+    _choose_language(dialog, "uk")
+    dialog._confirm()
+    saved = json.loads((app_folder / "data" / "settings.json").read_text(encoding="utf-8"))
+    assert saved == {"ui_language": "uk"}
+
+
+def test_the_saved_language_keeps_the_other_settings(tmp_path):
+    (tmp_path / "settings.json").write_text(json.dumps({"theme": "dark", "ui_language": "en"}), encoding="utf-8")
+    dld.save_ui_language(tmp_path, "uk")
+    assert json.loads((tmp_path / "settings.json").read_text(encoding="utf-8")) == {"theme": "dark", "ui_language": "uk"}
+
+
+def test_copied_settings_keep_their_language_unless_the_user_picked_one(tmp_path):
+    (tmp_path / "settings.json").write_text(json.dumps({"ui_language": "uk"}), encoding="utf-8")
+    dld.save_ui_language(tmp_path, "en", keep_existing=True)
+    assert json.loads((tmp_path / "settings.json").read_text(encoding="utf-8")) == {"ui_language": "uk"}
+
+
+def test_an_unreadable_settings_file_is_left_alone(tmp_path):
+    (tmp_path / "settings.json").write_text("{broken", encoding="utf-8")
+    dld.save_ui_language(tmp_path, "uk")
+    assert (tmp_path / "settings.json").read_text(encoding="utf-8") == "{broken"
+
+
+def test_the_settings_dialog_has_no_language_list(qtbot, app_folder, tmp_path):
+    current = tmp_path / "current"
+    current.mkdir()
+    dialog = dld.DataLocationDialog(app_folder, current=current, first_start=False)
+    qtbot.addWidget(dialog)
+    assert dialog._language_combo is None
 
 
 def test_tests_never_open_the_chooser(qtbot, monkeypatch):

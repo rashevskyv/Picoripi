@@ -117,3 +117,33 @@ def test_the_manager_is_built_with_the_quit_rule(qtbot, tmp_path, monkeypatch):
     mixin.open_project_manager_action()
 
     assert seen["on_closed"] == mixin._project_manager_closed
+
+
+def _dialog_with_wizard(qtbot, settings, on_closed, made_project):
+    dialog = ProjectManagerDialog(None, str(settings), [].append, lambda: made_project,
+                                  lambda project_file, updates: None, lambda name, value: None, on_closed=on_closed)
+    qtbot.addWidget(dialog)
+    dialog.show()
+    qtbot.waitUntil(lambda: dialog._loaded, timeout=5000)
+    return dialog
+
+
+def test_a_project_made_by_the_wizard_closes_the_manager_without_quitting(qtbot, tmp_path, monkeypatch):
+    _no_scan_child(monkeypatch)
+    calls = []
+    dialog = _dialog_with_wizard(qtbot, tmp_path, lambda: calls.append(1), made_project=True)
+
+    dialog._new_project_clicked()
+
+    assert not dialog.isVisible()
+    assert calls == []
+
+
+def test_a_cancelled_wizard_keeps_the_manager_and_an_empty_list_shows_no_loading_text(qtbot, tmp_path, monkeypatch):
+    _no_scan_child(monkeypatch)
+    dialog = _dialog_with_wizard(qtbot, tmp_path, lambda: None, made_project=False)
+
+    dialog._new_project_clicked()
+
+    assert dialog.isVisible()
+    assert dialog._status.text() == ""

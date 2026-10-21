@@ -1,15 +1,17 @@
 """Yo-kai Watch (3DS, Switch) plugin: Level-5 cfg.bin text, speakers from the game's tables, XF fonts, IMGC/IMGN textures."""
 import json
 import re
+import zlib
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_debug, log_warning
 from utils.utils import clean_spaces
 
-from . import tags
-from .cfgbin import FormatError
+from . import tags, unpack
+from .cfgbin import CfgBin, FormatError
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .speakers import GAMES, Speakers, game_of
 from .tag_manager import TagManager
@@ -127,6 +129,9 @@ class GameRules(BaseGameRules):
         self._speakers: Optional[Speakers] = None
         self._layout: Optional[Dict[str, Dict[str, int]]] = None
         self._japanese_for: Optional[Tuple[Optional[Path], bool]] = None
+        self._games: Dict[Path, str] = {}
+        self._roots: Dict[str, Optional[Path]] = {}
+        self._tables: Dict[Tuple[int, int], CfgBin] = {}
         self._reference_source_root = None
         self._reference_sources = {}
 
@@ -136,6 +141,29 @@ class GameRules(BaseGameRules):
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
         return [FileFormat((".bin",), "bytes", "Level-5 text tables (cfg.bin)"), *DEFAULT_FORMATS]
+
+    # -- Project Manager wizard -------------------------------------------------
+
+    def get_source_roles(self) -> List[Dict[str, str]]:
+        """The base game and, on Switch, its update: the game reads the update's archive over the base one."""
+        return [{"id": "base", "label": tr("Base game")}, {"id": "update", "label": tr("Update")}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, Any]]:
+        return unpack.identify(path)
+
+    def get_platforms(self) -> List[Dict[str, str]]:
+        return [{"id": "3ds", "label": tr("Nintendo 3DS")}, {"id": "switch", "label": tr("Nintendo Switch")}]
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
+        """Yo-kai Watch 1 (3DS USA, Switch): the text, fonts and textures into ``source``, speakers into ``meta``."""
+        return unpack.unpack(sources, target_dir, progress, is_cancelled)
+
+    def unpack_key_consoles(self) -> List[str]:
+        return ["3ds", "switch"]
+
+    def get_source_subfolder(self) -> Optional[str]:
+        """``source``: the speaker tables are in ``meta`` beside it (the workspace layout)."""
+        return "source"
 
     def includes_source_file(self, rel_path: str) -> bool:
         """Only expanded text tables become blocks; workspace notes and metadata are not game text."""
@@ -148,10 +176,18 @@ class GameRules(BaseGameRules):
             return super().load_data_from_json_obj(json_obj)
         self._last_loaded = bytes(json_obj)
         try:
-            return [TextFile(self._last_loaded, japanese=self._japanese_shown()).texts()], {}
+            return [TextFile(self._last_loaded, japanese=self._japanese_shown(),
+                             table=self._table_of(self._last_loaded)).texts()], {}
         except (FormatError, UnicodeDecodeError, ValueError) as error:
             log_debug(f"yokai_watch: not a text table ({error})")
             return [[]], {}
+
+    def _table_of(self, raw: bytes) -> CfgBin:
+        """The parsed table of raw: the load parses every file, and the row lookups parse it again without this."""
+        key = (len(raw), zlib.crc32(raw))
+        if key not in self._tables:
+            self._tables[key] = CfgBin(raw)
+        return self._tables[key]
 
     def prepare_save_context(self, context) -> None:
         """Every save is built from the source file (the last version offered)."""
@@ -168,6 +204,10 @@ class GameRules(BaseGameRules):
     def reset_runtime_state(self) -> None:
         self._located.clear()
         self._speakers = None
+        self._games.clear()
+        self._roots.clear()
+        self._tables.clear()
+        self._japanese_for = None
         self._save_source = self._last_loaded = None
 
     # -- where a string comes from ---------------------------------------------
@@ -188,7 +228,8 @@ class GameRules(BaseGameRules):
             rel = str(block.source_file).replace("\\", "/")
             path = Path(pm.get_absolute_path(block.source_file))
             root = Path(str(path)[:-len(rel)]) if str(path).replace("\\", "/").endswith(rel) else path.parent
-            found = (rel, TextFile(path.read_bytes(), path.name, self._japanese_shown()), root)
+            raw = path.read_bytes()
+            found = (rel, TextFile(raw, path.name, self._japanese_shown(), self._table_of(raw)), root)
         except (AttributeError, IndexError, KeyError, OSError, TypeError, ValueError) as error:
             log_debug(f"yokai_watch: no text file behind block {block_idx}: {error}")
         self._located[block_idx] = found
@@ -401,14 +442,22 @@ class GameRules(BaseGameRules):
     def _source_root(self) -> Optional[Path]:
         pm, project = self._project()
         source = (getattr(project, "metadata", None) or {}).get("source_path") if project else None
-        return Path(source) if source and Path(source).is_dir() else None
+        if not source:
+            return None
+        if source not in self._roots:   # one stat per source folder, not one per row (reset_runtime_state)
+            self._roots[source] = Path(source) if Path(source).is_dir() else None
+        return self._roots[source]
 
     # -- editor ----------------------------------------------------------------
 
     def _game(self, root: Optional[Path] = None) -> str:
         """``yw1`` or ``yw3`` (``speakers.game_of``: the layout of the source folder)."""
         root = root or self._source_root()
-        return game_of(root) if root else "yw1"
+        if not root:
+            return "yw1"
+        if root not in self._games:   # the stat calls of game_of, once per source folder (reset_runtime_state)
+            self._games[root] = game_of(root)
+        return self._games[root]
 
     def _japanese_shown(self) -> bool:
         """Per source folder, once (every file of a project loads through here)."""

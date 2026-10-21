@@ -17,6 +17,21 @@ from utils.utils import convert_spaces_to_dots_for_display
 # Load mapping for Ukrainian letters
 plugin_dir = os.path.dirname(os.path.abspath(__file__))
 
+# Project source folders, first existing wins: a GameCube or Wii disc, then the Wii U HD title (hd_pack.py).
+SOURCE_SUBFOLDERS = ("files/res/Msgus", "content/res/Msguk", "content/res/Msgus")
+HD_PRODUCT_CODE = re.compile(rb"<product_code[^>]*>WUP-[A-Z]-AZA[A-Z]<")   # Twilight Princess HD, any region
+
+
+def _is_hd_title_folder(path: str) -> bool:
+    """True for an unpacked Twilight Princess HD title folder: meta/meta.xml names the game, content/res holds text."""
+    try:
+        with open(os.path.join(path, "meta", "meta.xml"), "rb") as handle:
+            meta = handle.read(64 * 1024)
+    except OSError:
+        return False
+    return bool(HD_PRODUCT_CODE.search(meta)) and any(
+        os.path.isdir(os.path.join(path, *folder.split("/"))) for folder in SOURCE_SUBFOLDERS[1:])
+
 from .config import (
     PROBLEM_DEFINITIONS,
     PROBLEM_TAG_WARNING,
@@ -220,12 +235,19 @@ class GameRules(BaseGameRules):
         plan, _units = plan_for_sources(sources, rules)
         return plan
 
-    # Project Manager: the GameCube disc (USA) is unpacked whole; the project's source is its res/Msgus folder.
+    # Project Manager: the GameCube or Wii disc (USA) is unpacked whole; the project's source is its res/Msgus folder.
+    # Wii U HD is added as the user's unpacked title folder (code, content, meta); its source is content/res/Msguk.
     def get_platforms(self) -> list:
-        return [{"id": "gc", "label": tr("GameCube")}, {"id": "wiiu", "label": tr("Wii U")}]
+        return [{"id": "gc", "label": tr("GameCube")}, {"id": "wii", "label": tr("Wii")},
+                {"id": "wiiu", "label": tr("Wii U")}]
 
     def identify_source(self, path: str) -> Optional[Dict[str, str]]:
-        return images.base_identity(path, ("GZ2E01",))
+        if os.path.isdir(path):
+            return {"role": "base", "platform": "wiiu"} if _is_hd_title_folder(path) else None
+        return images.base_identity(path, ("GZ2E01", "RZDE01"))
+
+    def unpack_key_consoles(self) -> List[str]:
+        return ["wii"]   # the Wii disc's partition is encrypted
 
     def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
         base = sources.get("base")
@@ -236,8 +258,8 @@ class GameRules(BaseGameRules):
             write_source_mark(target_dir, base)   # the build copies this disc (plugins/common/disc_source.py)
         return done
 
-    def get_source_subfolder(self) -> Optional[str]:
-        return "files/res/Msgus"
+    def get_source_subfolder(self) -> List[str]:
+        return list(SOURCE_SUBFOLDERS)
 
     def get_build_targets(self) -> List[Dict[str, Any]]:
         return [
@@ -861,7 +883,7 @@ class GameRules(BaseGameRules):
 
     def get_display_name(self) -> str:
         """Get the display name."""
-        return "Zelda: Twilight Princess BMG"
+        return "Zelda: Twilight Princess"
 
     def get_spellcheck_ignore_pattern(self) -> str:
         # Ignore curly braces {...} which are used for tags and escape sequences

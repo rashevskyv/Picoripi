@@ -1136,7 +1136,9 @@ class BaseGameRules:
         """The roles a project's source files can have, as ``[{"id": ..., "label": ...}]``.
 
         A game with an update or a second disc declares one role per kind of file. The first role is the
-        one a single file gets when nothing else is known. Default: one role, ``base``.
+        one a single file gets when nothing else is known. Default: one role, ``base``. The host always adds
+        ``base``, ``update`` and ``dlc`` after the declared roles; many files may be DLC, and they reach
+        ``unpack_sources`` as ``dlc``, ``dlc_2``, ``dlc_3``... (``plugin_facts.paths_of_role``).
         """
         return [{"id": "base", "label": "Base game"}]
 
@@ -1150,8 +1152,22 @@ class BaseGameRules:
         return None
 
     def get_platforms(self) -> List[Dict[str, str]]:
-        """The platforms the game ships on, as ``[{"id": ..., "label": ...}]``. Default: none."""
-        return []
+        """The platforms the game ships on, as ``[{"id": ..., "label": ...}]``.
+
+        Default: the ids listed under ``"platforms"`` in the plugin's ``config.json`` (for example
+        ``["3ds", "switch"]``), named from ``plugin_facts.PLATFORM_LABELS``. Every plugin names at least one.
+        """
+        import sys
+        from pathlib import Path
+
+        from core.project_library.plugin_facts import platform_label
+        module = sys.modules.get(type(self).__module__)
+        config = Path(getattr(module, "__file__", "") or ".").parent / "config.json"
+        try:
+            ids = json.loads(config.read_text(encoding="utf-8")).get("platforms") or []
+        except (OSError, ValueError, AttributeError):
+            return []
+        return [{"id": str(item), "label": platform_label(str(item))} for item in ids]
 
     def unpack_sources(self, sources: Dict[str, str], target_dir: str,
                        progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> Optional[str]:
@@ -1169,8 +1185,10 @@ class BaseGameRules:
         """The folder of the unpacked tree that is the project's source root, e.g. ``files/res/Msgus``.
 
         Use it when the unpacked tree holds more than the game's text, so a new project starts from the folder its
-        workspace uses. The path uses ``/`` and is relative to the unpacked folder. The host fails the unpack when
-        that folder is missing. Default: None, the whole unpacked folder is the source.
+        workspace uses. The path uses ``/`` and is relative to the unpacked folder (or to an extracted folder the user
+        added). A game whose platforms lay their files out differently returns a list of such paths: the first that
+        exists is the source. The host fails the unpack when none exists. Default: None, the whole unpacked folder is
+        the source.
         """
         return None
 

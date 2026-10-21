@@ -171,6 +171,7 @@ def test_wizard_needs_a_role_for_every_file_and_no_two_files_share_one(qtbot, tm
     second.write_bytes(b"2")
     wizard = ProjectWizard(None, _loader, lambda info: None)
     qtbot.addWidget(wizard)
+    _wait_for_plugins(qtbot, wizard)
     wizard._name.setText("Aria")
     wizard._folder.setText(str(tmp_path / "Aria"))
     wizard.add_paths([str(first), str(second)])
@@ -181,7 +182,7 @@ def test_wizard_needs_a_role_for_every_file_and_no_two_files_share_one(qtbot, tm
 
     wizard._files_tree.itemWidget(wizard._files_tree.topLevelItem(0), 1).setCurrentIndex(1)
 
-    assert wizard._problem() == "Two files have the same role. Give each file its own role."
+    assert wizard._problem() == "Two files have the role Update. Only DLC can repeat: give each other file its own role."
 
 
 def test_unpack_job_that_is_cancelled_leaves_only_the_project_folder(qtbot, tmp_path):
@@ -414,3 +415,123 @@ def test_build_runs_the_plugin_target_into_the_project_build_folder(qtbot, tmp_p
     built = dialog._action_text[key].split("Built: ", 1)[1]
     assert built.endswith(os.path.join("build", "patch", "patch.bin"))
     assert os.path.isfile(built)
+
+def test_choosing_the_game_fills_the_project_name_until_the_user_types_one(qtbot):
+    wizard = ProjectWizard(None, _loader, lambda info: None)
+    qtbot.addWidget(wizard)
+    _wait_for_plugins(qtbot, wizard)
+    assert wizard._name.text() == "Fake game"
+
+    qtbot.keyClicks(wizard._name, " UA")
+    wizard._game.addItem("Other game", "fake")
+    wizard._game.setCurrentIndex(wizard._game.count() - 1)
+
+    assert wizard._name.text() == "Fake game UA"
+
+
+def test_many_files_get_the_dlc_role_at_once_and_dlc_may_repeat(qtbot, tmp_path):
+    paths = []
+    for name in ("base.bin", "dlc1.bin", "dlc2.bin", "dlc3.bin"):
+        (tmp_path / name).write_bytes(b"x")
+        paths.append(str(tmp_path / name))
+    wizard = ProjectWizard(None, _loader, lambda info: None)
+    qtbot.addWidget(wizard)
+    _wait_for_plugins(qtbot, wizard)
+    wizard.add_paths(paths)
+    qtbot.waitUntil(lambda: wizard._batch_role.count() > 0, timeout=10000)
+    assert "Two files have the role Base game" in wizard._files_problems.text()
+
+    for position in (1, 2, 3):
+        wizard._files_tree.topLevelItem(position).setSelected(True)
+    wizard._batch_role.setCurrentIndex(wizard._batch_role.findData("dlc"))
+    wizard._apply_role.click()
+
+    assert wizard._files_problems.text() == ""
+    assert wizard._sources(wizard._file_choices()) == {
+        "base": paths[0], "dlc": paths[1], "dlc_2": paths[2], "dlc_3": paths[3]}
+
+
+def test_a_file_the_game_cannot_read_blocks_next_and_says_to_add_the_folder(qtbot, tmp_path, monkeypatch):
+    from core.project_library import plugin_facts
+
+    image = tmp_path / "game.nsz"
+    image.write_bytes(b"x")
+    folder = tmp_path / "unpacked"
+    folder.mkdir()
+    monkeypatch.setattr(plugin_facts.images, "identify", lambda path: (
+        {"kind": "switch", "title_id": "0100C0000CEEA000", "title_kind": "base", "encrypted": True}
+        if str(path).endswith(".nsz") else None))
+    wizard = ProjectWizard(None, lambda name: BaseGameRules(), lambda info: None)
+    qtbot.addWidget(wizard)
+    _wait_for_plugins(qtbot, wizard)
+    wizard._show_page(1)
+    wizard.add_paths([str(image)])
+    qtbot.waitUntil(lambda: "cannot read a Nintendo Switch file" in wizard._files_problems.text(), timeout=10000)
+    assert not wizard._next.isEnabled()
+    assert wizard._files_tree.topLevelItem(0).text(3) == "Cannot read: add its folder"
+
+    wizard._files_tree.topLevelItem(0).setSelected(True)
+    wizard._remove_selected()
+    wizard.add_paths([str(folder)])
+    qtbot.waitUntil(lambda: wizard._files_tree.topLevelItem(0).text(3) == "Folder", timeout=10000)
+    assert wizard._next.isEnabled()
+
+
+def test_a_missing_key_offers_its_button_and_the_chosen_key_clears_the_problem(qtbot, tmp_path, monkeypatch):
+    from test_core.test_n3ds_image import build_cci, build_ncch
+    from ui.project_manager import wizard as wizard_module
+    from utils import constants
+
+    monkeypatch.setattr(constants, "SETTINGS_DIR", tmp_path / "data")
+    key_file = tmp_path / "keys.txt"
+    key_file.write_bytes(b"placeholder")
+    locked = tmp_path / "locked.cci"
+    locked.write_bytes(build_cci(build_ncch(encrypted=True)))
+
+    class FakeDialog:
+        @staticmethod
+        def getOpenFileName(*_args, **_kwargs):
+            return str(key_file), ""
+
+    monkeypatch.setattr(wizard_module, "QFileDialog", FakeDialog)
+    wizard = ProjectWizard(None, _loader, lambda info: None)
+    qtbot.addWidget(wizard)
+    _wait_for_plugins(qtbot, wizard)
+    wizard._show_page(1)
+    wizard.add_paths([str(locked)])
+    qtbot.waitUntil(lambda: "is encrypted" in wizard._files_problems.text(), timeout=10000)
+    assert not wizard._next.isEnabled()
+    button = wizard._key_bar.itemAt(0).widget()
+    assert button.text() == "Add the key file for Nintendo 3DS..."
+
+    button.click()
+
+    assert wizard._files_problems.text() == ""
+    assert wizard._next.isEnabled()
+    assert wizard._ask_key_files(wizard._file_choices()) == {"3ds": str(key_file)}
+
+
+def test_the_file_name_column_takes_the_free_width(qtbot):
+    from PyQt6.QtWidgets import QHeaderView
+
+    wizard = ProjectWizard(None, _loader, lambda info: None)
+    qtbot.addWidget(wizard)
+    header = wizard._files_tree.header()
+    assert header.sectionResizeMode(0) == QHeaderView.ResizeMode.Stretch
+    assert {header.sectionResizeMode(c) for c in (1, 2, 3)} == {QHeaderView.ResizeMode.ResizeToContents}
+
+
+def test_the_location_step_suggests_a_folder_from_the_project_name(qtbot):
+    from pathlib import Path
+
+    wizard = ProjectWizard(None, _loader, lambda info: None)
+    qtbot.addWidget(wizard)
+    wizard._name.setText('Zelda: "Twilight" Princess')
+
+    wizard._show_page(2)
+
+    assert Path(wizard._folder.text()) == Path.home() / "Documents" / "Picoripi" / "Zelda Twilight Princess"
+    wizard._folder.setText("my_projects/mine")
+    wizard._show_page(1)
+    wizard._show_page(2)
+    assert wizard._folder.text() == "my_projects/mine"      # a folder the user typed is kept

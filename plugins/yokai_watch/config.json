@@ -1,5 +1,6 @@
 {
     "display_name": "Yo-kai Watch",
+    "platforms": ["3ds", "switch"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

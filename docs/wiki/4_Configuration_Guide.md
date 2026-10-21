@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/settings
-tokens: 2.3k
+tokens: 2.4k
 purpose: Settings files, project files, where data is stored
 ---
 # Configuration
@@ -96,6 +96,7 @@ Categories: general, lifecycle, file_ops, settings, ui_action, ai, scanner, plug
 
 The first time Picoripi starts, it asks where to keep its data. The data folder holds your settings, the Project Manager list, series glossaries, plugin data and caches. Picoripi never picks a folder for you: you confirm it.
 
+- At the top of the dialog, **Language** chooses the interface language. It starts in the system's language when Picoripi has it, else English, and the dialog switches at once. The choice is saved as `ui_language` in `settings.json` of the chosen folder; old settings copied in keep their language unless you change the list. Later, use the **Language** menu.
 - The suggested folder is `data`, next to the program. It is portable: move the program folder and the data moves with it.
 - You can choose another folder. You can also keep using your old profile folder `~/.picoripi`. Copying the old data is optional. The old folder is never changed or deleted.
 - Change the folder later in **Settings → Global → Data folder → Data location…**. Picoripi copies the data to the new folder. Restart Picoripi to use it.

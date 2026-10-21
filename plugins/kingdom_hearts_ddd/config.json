@@ -1,5 +1,6 @@
 {
     "display_name": "Kingdom Hearts 3D: Dream Drop Distance",
+    "platforms": ["3ds"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

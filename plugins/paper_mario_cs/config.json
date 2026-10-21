@@ -1,5 +1,6 @@
 {
     "display_name": "Paper Mario: Color Splash",
+    "platforms": ["wiiu"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

@@ -132,6 +132,9 @@ def test_title_kind_of_a_switch_title():
 
 def test_identification_reports_the_key_a_file_needs(tmp_path, data_folder):
     class Rules:
+        def get_platforms(self):
+            return []
+
         def get_source_roles(self):
             return [{"id": "base", "label": "Base game"}]
 
@@ -195,6 +198,9 @@ def _pfs0(files):
 
 def test_a_library_the_unpack_loads_is_reported_only_when_the_game_lists_it(tmp_path, data_folder):
     class Rules:
+        def get_platforms(self):
+            return []
+
         def get_source_roles(self):
             return [{"id": "base", "label": "Base game"}]
 

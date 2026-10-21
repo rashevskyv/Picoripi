@@ -1,5 +1,6 @@
 {
     "display_name": "Zelda: A Link to the Past (PC port)",
+    "platforms": ["pc"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

@@ -1,33 +1,40 @@
 """The new-project wizard of the Project Manager: game, files with roles and platform, location, then unpack and create.
 
-The plugin reads the files on a worker. Unpacking runs on a worker with progress and cancel; only a finished
-project reaches ``on_create``, which creates it through the shared project-creation path.
+The plugin reads the files on a worker. Each file's role (base game, update, DLC) and platform come from its own
+header when the plugin does not say; the files step tells at once what blocks a create (a repeated role, a file this
+game cannot read, a missing key file). Unpacking runs on a worker with progress and cancel; only a finished project
+reaches ``on_create``, which creates it through the shared project-creation path. The project's icon is not asked
+here: the Project Manager's row has Change icon.
 """
 from __future__ import annotations
 
+from collections import Counter
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QImage, QPixmap
+from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
-    QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QMessageBox, QProgressBar,
-    QPushButton, QStackedWidget, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+    QAbstractItemView, QCheckBox, QComboBox, QCompleter, QDialog, QFileDialog, QFormLayout, QHBoxLayout, QHeaderView,
+    QLabel, QLineEdit, QMessageBox, QProgressBar, QPushButton, QStackedWidget, QTreeWidget, QTreeWidgetItem,
+    QVBoxLayout, QWidget,
 )
 
 from core.i18n import tr
-from core.project_library import build, images
-from core.project_library.icons import IMAGE_FILTER, load_image
-from ui.project_manager.jobs import BackgroundJob
+from core.project_library import build, images, plugin_facts
 from ui.project_manager.tasks import FactsJob, PluginListJob, UnpackJob
 from utils.logging_utils import log_info
 from utils.thread_utils import safe_shutdown_thread
 
 PROJECT_FILE_NAME = "project.uiproj"
 TRANSLATION_FOLDER = "translation"
-ROLE_COLUMN, PLATFORM_COLUMN = 1, 2
+FILE_COLUMN, ROLE_COLUMN, PLATFORM_COLUMN, STATUS_COLUMN = 0, 1, 2, 3
 NOT_SET = ""
+TOUCHED = Qt.ItemDataRole.UserRole + 1     # True once the user picked the row's role or platform by hand
+SOURCE_FOLDER = Qt.ItemDataRole.UserRole + 2   # True for an extracted game folder (checked for readable text on the worker)
+PROBLEM_COLOR = QColor("#c0392b")
+WARNING_COLOR = QColor("#b9770e")
 
 
 class ProjectWizard(QDialog):
@@ -36,17 +43,18 @@ class ProjectWizard(QDialog):
     def __init__(self, parent, load_rules: Callable[[str], Any], on_create: Callable[[Dict[str, Any]], None]):
         super().__init__(parent)
         self.setWindowTitle(tr("New project"))
-        self.resize(820, 520)
+        self.resize(980, 560)
         self._load_rules = load_rules
         self._on_create = on_create
         self._jobs: List[Any] = []
-        self._roles: List[Dict[str, str]] = []
+        self._roles: List[Dict[str, Any]] = []
         self._platforms: List[Dict[str, str]] = []
         self._unpack_job: Optional[UnpackJob] = None
         self._entries_before: Optional[List[str]] = None   # the project folder's names before a create
-        self._key_status: Dict[str, Dict[str, Any]] = {}   # per file path: the console its key file is for, and ready
-        self._retry_console = ""
-        self._picked_keys: Dict[str, str] = {}
+        self._key_status: Dict[str, Dict[str, Any]] = {}   # per file path: what the plugin and the header say
+        self._picked_keys: Dict[str, str] = {}             # console -> key file the user chose in this wizard
+        self._retry_console = ""                          # the console whose key file failed at unpack
+        self._name_typed = False                           # the user typed a project name: a new game keeps it
         self._build_ui()
         self._run(PluginListJob(), self._on_plugins)
         self._show_page(0)
@@ -82,78 +90,69 @@ class ProjectWizard(QDialog):
         layout.addWidget(QLabel(tr("Step 1 of 3: the game. Picoripi reads the files with this game's plugin.")))
         form = QFormLayout()
         self._game = QComboBox()
+        self._game.setEditable(True)        # type a part of the name to find the game in a long list
+        self._game.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self._game.lineEdit().setPlaceholderText(tr("Type a part of the game's name"))
         self._game.currentIndexChanged.connect(self._game_changed)
         form.addRow(tr("Game"), self._game)
         self._name = QLineEdit()
+        self._name.setPlaceholderText(tr("The game's name is filled in; change it if you like"))
+        self._name.textEdited.connect(self._name_edited)
         form.addRow(tr("Project name"), self._name)
-        self._icon_path = ""
-        icon_row = QHBoxLayout()
-        self._icon_preview = QLabel()
-        self._icon_preview.setFixedSize(64, 64)
-        self._icon_preview.setToolTip(tr("Optional. Shown in the Project Manager list."))
-        browse_icon = QPushButton(tr("Browse..."))
-        browse_icon.clicked.connect(self._browse_icon)
-        clear_icon = QPushButton(tr("Clear icon"))
-        clear_icon.clicked.connect(self._clear_icon)
-        icon_row.addWidget(self._icon_preview)
-        icon_row.addWidget(browse_icon)
-        icon_row.addWidget(clear_icon)
-        icon_row.addStretch(1)
-        form.addRow(tr("Icon (optional)"), icon_row)
         layout.addLayout(form)
         layout.addStretch(1)
         return page
 
-    # ----- icon -----
-    def _browse_icon(self) -> None:
-        path, _filter = QFileDialog.getOpenFileName(
-            self, tr("Choose an icon"), str(Path.home()), tr("Images") + f" ({IMAGE_FILTER});;" + tr("All files") + " (*)")
-        if path:
-            self.set_icon(path)
-
-    def set_icon(self, path: str) -> None:
-        """Remember the picture for the project. Its preview is decoded on a worker; a non-picture is refused."""
-        self._icon_path = path
-        self._run(BackgroundJob(load_image, Path(path)), partial(self._on_icon_preview, path))
-
-    def _on_icon_preview(self, path: str, image: Optional[QImage]) -> None:
-        if path != self._icon_path:
-            return  # the user picked another picture meanwhile
-        if image is None:
-            self._icon_path = ""
-            self._icon_preview.clear()
-            QMessageBox.warning(self, tr("New project"), tr("This file is not a picture."))
-            return
-        self._icon_preview.setPixmap(QPixmap.fromImage(
-            image.scaled(64, 64, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)))
-
-    def _clear_icon(self) -> None:
-        self._icon_path = ""
-        self._icon_preview.clear()
-
     def _files_page(self) -> QWidget:
         page = QWidget()
         layout = QVBoxLayout(page)
-        layout.addWidget(QLabel(tr("Step 2 of 3: the files. Each file gets a role. The plugin fills in the role "
-                                   "and the platform from the file's content. The originals stay where they are.")))
+        intro = QLabel(tr("Step 2 of 3: the files. Add the game, its update and its DLC: files or unpacked folders. "
+                          "Picoripi reads each file and sets its role and platform; you can change them. Select "
+                          "several rows to give them one role. The originals stay where they are."))
+        intro.setWordWrap(True)
+        layout.addWidget(intro)
         bar = QHBoxLayout()
         add = QPushButton(tr("Add files..."))
         add.clicked.connect(self._add_files)
+        add_folder = QPushButton(tr("Add folder..."))
+        add_folder.setToolTip(tr("An unpacked game: a folder with the game's files."))
+        add_folder.clicked.connect(self._add_folder)
         remove = QPushButton(tr("Remove selected"))
         remove.clicked.connect(self._remove_selected)
         bar.addWidget(add)
-        add_folder = QPushButton(tr("Add extracted game folder..."))
-        add_folder.clicked.connect(self._add_source_folder)
         bar.addWidget(add_folder)
         bar.addWidget(remove)
         bar.addStretch(1)
+        bar.addWidget(QLabel(tr("Role for the selected files:")))
+        self._batch_role = QComboBox()
+        self._batch_role.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        bar.addWidget(self._batch_role)
+        self._apply_role = QPushButton(tr("Apply"))
+        self._apply_role.clicked.connect(self._apply_batch_role)
+        bar.addWidget(self._apply_role)
         layout.addLayout(bar)
+
         self._files_tree = QTreeWidget()
-        self._files_tree.setHeaderLabels([tr("File"), tr("Role"), tr("Platform")])
+        self._files_tree.setHeaderLabels([tr("File"), tr("Role"), tr("Platform"), tr("Status")])
         self._files_tree.setRootIsDecorated(False)
+        self._files_tree.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self._files_tree.itemSelectionChanged.connect(self._selection_changed)
+        header = self._files_tree.header()
+        header.setStretchLastSection(False)
+        header.setSectionResizeMode(FILE_COLUMN, QHeaderView.ResizeMode.Stretch)
+        for column in (ROLE_COLUMN, PLATFORM_COLUMN, STATUS_COLUMN):
+            header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
         layout.addWidget(self._files_tree, 1)
+
         self._files_status = QLabel("")
         layout.addWidget(self._files_status)
+        self._files_problems = QLabel("")
+        self._files_problems.setWordWrap(True)
+        self._files_problems.setStyleSheet(f"color: {PROBLEM_COLOR.name()};")
+        layout.addWidget(self._files_problems)
+        self._key_bar = QHBoxLayout()
+        layout.addLayout(self._key_bar)
+        self._selection_changed()
         return page
 
     def _location_page(self) -> QWidget:
@@ -225,17 +224,26 @@ class ProjectWizard(QDialog):
         self._files_status.setText(tr("Something went wrong: {0}", message))
 
     def _on_plugins(self, choices: list) -> None:
-        """The plugin list arrived. Files the user already added stay; they are read with the first game."""
+        """The plugin list arrived. No game is chosen yet: the user picks one, then its name fills the project name."""
         self._game.blockSignals(True)
         for display, folder in choices:
             self._game.addItem(display, folder)
+        self._game.setCurrentIndex(-1)
         self._game.blockSignals(False)
-        self._reread_files()
+        completer = QCompleter(self._game.model(), self._game)
+        completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self._game.setCompleter(completer)
+
+    def _name_edited(self, text: str) -> None:
+        self._name_typed = bool(text.strip())
 
     def _game_changed(self, *_args: Any) -> None:
-        """A new game: its roles and platforms replace the old ones. The files stay and are read again."""
+        """A new game: its name fills the project name, its roles and platforms replace the old ones. The files stay."""
+        if not self._name_typed and self._game.currentIndex() >= 0:
+            self._name.setText(self._game.currentText())
         for position in range(self._files_tree.topLevelItemCount()):
-            self._files_tree.topLevelItem(position).setData(0, Qt.ItemDataRole.UserRole + 1, False)
+            self._files_tree.topLevelItem(position).setData(0, TOUCHED, False)
         self._roles, self._platforms = [], []
         self._key_status = {}
         self._picked_keys = {}
@@ -256,14 +264,14 @@ class ProjectWizard(QDialog):
         self._platforms = facts.get("platforms") or []
         identities = {item["path"]: item for item in facts.get("identities") or []}
         self._key_status = identities
+        self._fill_batch_roles()
         for position in range(self._files_tree.topLevelItemCount()):
             item = self._files_tree.topLevelItem(position)
-            path = item.data(0, Qt.ItemDataRole.UserRole)
-            identity = identities.get(path) or {}
-            if not item.data(0, Qt.ItemDataRole.UserRole + 1):  # the user has not picked a role yet
+            identity = identities.get(item.data(0, Qt.ItemDataRole.UserRole)) or {}
+            if not item.data(0, TOUCHED):  # the user has not picked a role yet
                 self._set_combo(item, ROLE_COLUMN, self._roles, identity.get("role") or self._roles[0]["id"])
-                self._set_combo(item, PLATFORM_COLUMN, self._platforms, identity.get("platform") or NOT_SET)
-        self._files_status.setText(tr("Files: {0}", self._files_tree.topLevelItemCount()))
+                self._set_combo(item, PLATFORM_COLUMN, self._platform_choices(), identity.get("platform") or NOT_SET)
+        self._refresh_files_state()
 
     # ----- files -----
     def _paths(self) -> List[str]:
@@ -275,49 +283,90 @@ class ProjectWizard(QDialog):
                                                       tr("All files") + " (*)")
         self.add_paths(names)
 
-    def _add_source_folder(self) -> None:
-        folder = QFileDialog.getExistingDirectory(self, tr("Extracted game folder"), str(Path.home()))
+    def _add_folder(self) -> None:
+        folder = QFileDialog.getExistingDirectory(self, tr("Add an unpacked game folder"), str(Path.home()))
         if folder:
             self.add_paths([folder], source_folder=True)
 
     def add_paths(self, names: List[str], source_folder: bool = False) -> None:
-        """Add files to the list; the plugin reads the new ones (and the rest again) on a worker."""
+        """Add files or folders to the list; the plugin reads the new ones (and the rest again) on a worker."""
         known = set(self._paths())
         for name in names:
             if name in known:
                 continue
-            item = QTreeWidgetItem([Path(name).name, "", ""])
-            item.setToolTip(0, name)
+            # A folder is often named "source" or "romfs": its parents tell which game and platform it is.
+            shown = str(Path(*Path(name).parts[-3:])) if source_folder else Path(name).name
+            item = QTreeWidgetItem([shown, "", "", ""])
+            item.setToolTip(FILE_COLUMN, name)
             item.setData(0, Qt.ItemDataRole.UserRole, name)
-            item.setData(0, Qt.ItemDataRole.UserRole + 1, False)
-            item.setData(0, Qt.ItemDataRole.UserRole + 2, source_folder)
+            item.setData(0, TOUCHED, False)
+            item.setData(0, SOURCE_FOLDER, source_folder)
             self._files_tree.addTopLevelItem(item)
             self._set_combo(item, ROLE_COLUMN, self._roles, self._roles[0]["id"] if self._roles else NOT_SET)
-            self._set_combo(item, PLATFORM_COLUMN, self._platforms, NOT_SET)
+            self._set_combo(item, PLATFORM_COLUMN, self._platform_choices(), NOT_SET)
         if names:
+            self._refresh_files_state()
             self._reread_files()
 
     def _source_folder(self) -> str:
+        """The extracted game folder on the list, or "" when the project is made from game files."""
         for position in range(self._files_tree.topLevelItemCount()):
             item = self._files_tree.topLevelItem(position)
-            if item.data(0, Qt.ItemDataRole.UserRole + 2):
+            if item.data(0, SOURCE_FOLDER):
                 return item.data(0, Qt.ItemDataRole.UserRole)
         return ""
 
     def _remove_selected(self) -> None:
         for item in self._files_tree.selectedItems():
             self._files_tree.takeTopLevelItem(self._files_tree.indexOfTopLevelItem(item))
+        self._refresh_files_state()
+
+    def _platform_choices(self) -> List[Dict[str, str]]:
+        """The plugin's platforms, plus every platform a file's header named that the plugin does not list."""
+        choices = list(self._platforms)
+        known = {choice["id"] for choice in choices}
+        for identity in self._key_status.values():
+            platform = str(identity.get("platform") or "")
+            if platform and platform not in known:
+                choices.append({"id": platform, "label": plugin_facts.platform_label(platform)})
+                known.add(platform)
+        return choices
 
     def _set_combo(self, item: QTreeWidgetItem, column: int, choices: List[Dict[str, str]], value: str) -> None:
         combo = QComboBox()
         if column == PLATFORM_COLUMN:
-            combo.addItem(tr("Not set"), NOT_SET)
+            combo.addItem(tr("Not detected"), NOT_SET)
         for choice in choices:
             combo.addItem(choice["label"], choice["id"])
         index = combo.findData(value)
         combo.setCurrentIndex(max(index, 0))
-        combo.currentIndexChanged.connect(lambda _i, it=item: it.setData(0, Qt.ItemDataRole.UserRole + 1, True))
+        combo.currentIndexChanged.connect(partial(self._combo_changed, item))
         self._files_tree.setItemWidget(item, column, combo)
+
+    def _combo_changed(self, item: QTreeWidgetItem, _index: int) -> None:
+        item.setData(0, TOUCHED, True)
+        self._refresh_files_state()
+
+    def _fill_batch_roles(self) -> None:
+        current = self._batch_role.currentData()
+        self._batch_role.clear()
+        for role in self._roles:
+            self._batch_role.addItem(role["label"], role["id"])
+        self._batch_role.setCurrentIndex(max(0, self._batch_role.findData(current)))
+        self._selection_changed()
+
+    def _selection_changed(self) -> None:
+        self._apply_role.setEnabled(bool(self._files_tree.selectedItems()) and self._batch_role.count() > 0)
+
+    def _apply_batch_role(self) -> None:
+        """Give every selected file the role chosen beside the Apply button (for example 90 DLC files at once)."""
+        role = self._batch_role.currentData()
+        for item in self._files_tree.selectedItems():
+            combo = self._files_tree.itemWidget(item, ROLE_COLUMN)
+            if combo is not None:
+                combo.setCurrentIndex(max(0, combo.findData(role)))
+            item.setData(0, TOUCHED, True)
+        self._refresh_files_state()
 
     def _file_choices(self) -> Dict[str, Dict[str, str]]:
         """``{path: {"role", "platform"}}`` as the user left the file list."""
@@ -331,19 +380,124 @@ class ProjectWizard(QDialog):
                             "platform": platform_combo.currentData() or "" if platform_combo else ""}
         return result
 
+    def _key_ready(self, console: str, identity: Dict[str, Any]) -> bool:
+        return bool(identity.get("key_ready")) or console in self._picked_keys
+
+    def _file_problems(self, include_keys: bool = True) -> List[str]:
+        """What stops a create in the file list, in words a user can act on. Empty when the files are fine.
+
+        ``include_keys=False`` leaves out missing key files: Create asks for them itself (``_ask_key_files``).
+        """
+        problems: List[str] = []
+        role_problem = self._role_problem()
+        if role_problem:
+            problems.append(role_problem)
+        for path in self._paths():
+            identity = self._key_status.get(path) or {}
+            name = Path(path).name
+            platform = plugin_facts.platform_label(str(identity.get("platform") or ""))
+            if identity.get("status") == plugin_facts.STATUS_UNREADABLE:
+                problems.append(tr("{0}: this game cannot read a {1} file itself. Remove it and add the unpacked "
+                                   "folder of the game instead (Add folder...).", name, platform))
+            console = str(identity.get("key") or "")
+            if include_keys and console and not self._key_ready(console, identity):
+                problems.append(tr("{0} is encrypted. Picoripi needs the key file for {1} to read it. Add the key "
+                                   "file, or remove the file and add the unpacked folder instead.",
+                                   name, tr(images.CONSOLE_LABEL[console])))
+        return problems
+
+    def _role_problem(self) -> str:
+        choices = self._file_choices()
+        roles = [choice["role"] for choice in choices.values()]
+        if "" in roles:
+            return tr("Give every file a role.")
+        labels = {role["id"]: role["label"] for role in self._roles}
+        multiple = {role["id"] for role in self._roles if role.get("multiple")}
+        repeated = [role for role, count in Counter(roles).items() if count > 1 and role not in multiple]
+        if repeated:
+            return tr("Two files have the role {0}. Only DLC can repeat: give each other file its own role.",
+                      labels.get(repeated[0], repeated[0]))
+        return ""
+
+    def _refresh_files_state(self) -> None:
+        """Status column, the problem text, the key buttons and the Next button, from the current list."""
+        for position in range(self._files_tree.topLevelItemCount()):
+            item = self._files_tree.topLevelItem(position)
+            text, color = self._status_text(self._key_status.get(item.data(0, Qt.ItemDataRole.UserRole)) or {})
+            item.setText(STATUS_COLUMN, text)
+            item.setForeground(STATUS_COLUMN, color if color is not None else self.palette().text().color())
+        self._files_status.setText(tr("Files: {0}", self._files_tree.topLevelItemCount()))
+        problems = self._file_problems()
+        self._files_problems.setText("\n".join(problems))
+        self._rebuild_key_buttons()
+        self._next.setEnabled(self._pages.currentIndex() != 1 or not problems)
+
+    def _status_text(self, identity: Dict[str, Any]) -> Tuple[str, Optional[QColor]]:
+        status = identity.get("status")
+        if status == plugin_facts.STATUS_UNREADABLE:
+            return tr("Cannot read: add its folder"), PROBLEM_COLOR
+        console = str(identity.get("key") or "")
+        if console and not self._key_ready(console, identity):
+            return tr("Needs the key file"), PROBLEM_COLOR
+        if status == plugin_facts.STATUS_UNRECOGNISED:
+            return tr("Not recognised by this game"), WARNING_COLOR
+        if status == plugin_facts.STATUS_FOLDER:
+            return tr("Folder"), None
+        return (tr("Ready"), None) if identity else ("", None)
+
+    def _missing_consoles(self) -> List[str]:
+        missing: List[str] = []
+        for path in self._paths():
+            identity = self._key_status.get(path) or {}
+            console = str(identity.get("key") or "")
+            if console and not self._key_ready(console, identity) and console not in missing:
+                missing.append(console)
+        return missing
+
+    def _rebuild_key_buttons(self) -> None:
+        while self._key_bar.count():
+            widget = self._key_bar.takeAt(0).widget()
+            if widget is not None:
+                widget.deleteLater()
+        for console in self._missing_consoles():
+            button = QPushButton(tr("Add the key file for {0}...", tr(images.CONSOLE_LABEL[console])))
+            button.clicked.connect(partial(self._pick_key_file, console))
+            self._key_bar.addWidget(button)
+        self._key_bar.addStretch(1)
+
+    def _pick_key_file(self, console: str) -> None:
+        """Remember the key file the user chose; it is stored when the project is created."""
+        path, _filter = QFileDialog.getOpenFileName(
+            self, tr("Choose the key file for {0}", tr(images.CONSOLE_LABEL[console])), str(Path.home()),
+            tr("All files") + " (*)")
+        if path:
+            self._picked_keys[console] = path
+            self._refresh_files_state()
+
     # ----- navigation -----
     def _show_page(self, index: int) -> None:
         index = max(0, min(2, index))
         self._pages.setCurrentIndex(index)
         self._back.setEnabled(index > 0 and self._unpack_job is None)
         self._next.setVisible(index < 2)
+        self._next.setEnabled(index != 1 or not self._file_problems())
         self._create.setVisible(index == 2)
         self._create.setEnabled(self._unpack_job is None)
         if index == 2:
+            if not self._folder.text().strip():
+                self._folder.setText(self._suggested_folder())
             self._update_summary()
+
+    def _suggested_folder(self) -> str:
+        """A folder for the project from its name, in the user's Documents. The user can change it."""
+        name = "".join(ch for ch in self._name.text().strip() if ch not in "\\/:*?\"<>|").strip('. ') or "Project"
+        return str(Path.home() / "Documents" / "Picoripi" / name)
 
     def _next_clicked(self) -> None:
         index = self._pages.currentIndex()
+        if index == 0 and self._game.currentIndex() < 0:
+            QMessageBox.warning(self, tr("New project"), tr("Choose the game."))
+            return
         if index == 0 and not self._name.text().strip():
             QMessageBox.warning(self, tr("New project"), tr("Give the project a name."))
             return
@@ -393,13 +547,22 @@ class ProjectWizard(QDialog):
         ]))
 
     # ----- create -----
+    def _sources(self, choices: Dict[str, Dict[str, str]]) -> Dict[str, str]:
+        """``{role key: path}``; repeated DLC files are ``dlc``, ``dlc_2``, ``dlc_3``... (``plugin_facts.role_key``)."""
+        sources: Dict[str, str] = {}
+        seen: Counter = Counter()
+        for path, choice in choices.items():
+            seen[choice["role"]] += 1
+            sources[plugin_facts.role_key(choice["role"], seen[choice["role"]])] = path
+        return sources
+
     def _create_clicked(self) -> None:
         problem = self._problem()
         if problem:
             QMessageBox.warning(self, tr("New project"), problem)
             return
         choices = self._file_choices()
-        sources = {choice["role"]: path for path, choice in choices.items()}
+        sources = self._sources(choices)
         folder = self._folder.text().strip()
         key_paths = self._ask_key_files(choices)
         if key_paths is None:
@@ -424,8 +587,9 @@ class ProjectWizard(QDialog):
     def _ask_key_files(self, choices: Dict[str, Dict[str, str]]) -> Optional[Dict[str, str]]:
         """The key file of each console that a chosen file needs and Picoripi has no live path for.
 
-        Asks only for files that have a role. A library the file's unpack loads (``libraries``, e.g. Oodle) is asked
-        the same way when Picoripi has no path for it. Returns ``{console: path}``, or None when the user cancels a dialog.
+        Key files picked on the files step are used first. Asks only for files that have a role. A library the file's
+        unpack loads (``libraries``, e.g. Oodle) is asked the same way when Picoripi has no path for it. Returns
+        ``{console: path}``, or None when the user cancels a dialog.
         """
         needed: List[str] = []
         if self._source_folder():
@@ -433,15 +597,17 @@ class ProjectWizard(QDialog):
         for path, choice in choices.items():
             status = self._key_status.get(path) or {}
             console = str(status.get("key") or "")
-            if choice["role"] and console and not status.get("key_ready") and console not in needed and console not in self._picked_keys:
+            if choice["role"] and console and not status.get("key_ready") and console not in needed:
                 needed.append(console)
             if choice["role"]:   # readiness of the libraries was read with the file, on the worker
                 ready = set(status.get("libraries_ready") or [])
                 for library in status.get("libraries") or []:
                     if library not in needed and library not in ready:
                         needed.append(library)
-        picked: Dict[str, str] = dict(self._picked_keys)
+        picked: Dict[str, str] = dict(self._picked_keys)   # chosen on the files step or after a failed key
         for console in needed:
+            if console in picked:
+                continue
             label = tr(images.CONSOLE_LABEL[console])
             if console != "oodle":
                 self._progress_text.setText(tr("The {0} image is encrypted and needs its key file.", label))
@@ -462,6 +628,7 @@ class ProjectWizard(QDialog):
         self._add_key.setVisible(True)
 
     def _replace_key_file(self) -> None:
+        """The key file failed at unpack: choose another one and create again."""
         label = tr(images.CONSOLE_LABEL[self._retry_console])
         path, _filter = QFileDialog.getOpenFileName(
             self, tr("Choose the key file for {0}", label), str(Path.home()), tr("All files") + " (*)")
@@ -482,17 +649,12 @@ class ProjectWizard(QDialog):
                 return tr("Choose the existing translation folder.")
             if not Path(existing).is_dir():
                 return tr("The translation folder does not exist.")
-        choices = self._file_choices()
-        if not choices:
+        if not self._file_choices():
             return tr("Add at least one file.")
-        if self._source_folder() and len(choices) != 1:
+        if self._source_folder() and len(self._file_choices()) != 1:
             return tr("Use one extracted game folder, or add game files. Remove the other sources.")
-        roles = [choice["role"] for choice in choices.values()]
-        if "" in roles:
-            return tr("Give every file a role.")
-        if len(set(roles)) != len(roles):
-            return tr("Two files have the same role. Give each file its own role.")
-        return ""
+        problems = self._file_problems(include_keys=False)
+        return problems[0] if problems else ""
 
     def _set_busy(self, busy: bool) -> None:
         self._progress.setVisible(busy)
@@ -521,6 +683,9 @@ class ProjectWizard(QDialog):
     def _on_unpack_failed(self, message: str) -> None:
         self._remove_made()
         self._progress_text.setText(tr("Unpacking failed: {0}", message))
+        box = QMessageBox(QMessageBox.Icon.Warning, tr("New project"), tr("Unpacking failed: {0}", message),
+                          QMessageBox.StandardButton.Ok, self)
+        box.open()   # not exec(): the wizard keeps running, and the text stays under the summary too
 
     def _remove_made(self) -> None:
         """Remove what this create added to the folder: nothing stays after a failed or cancelled create."""
@@ -554,7 +719,6 @@ class ProjectWizard(QDialog):
             "entries_before": self._entries_before,
             "auto_create_translations": not existing,
             "platform": platform,
-            "icon_source": self._icon_path,
             "metadata": {
                 "source_roles": {role: path for role, path in sources.items()},
                 "platform": platform,

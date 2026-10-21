@@ -1,5 +1,6 @@
 {
     "display_name": "Zelda: The Wind Waker (Tingle Tuner, GBA)",
+    "platforms": ["gc"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

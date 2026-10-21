@@ -188,6 +188,8 @@ def test_a_second_project_opened_while_the_first_loads_shows_only_its_own_blocks
     mw = interactive()
     monkeypatch.setattr(lifecycle.QFileDialog, "getOpenFileName", staticmethod(lambda *a, **k: (str(first), "")))
     mw.project_action_handler.open_project_action()
+    # The files are matched on a worker first; the block load starts when that is done.
+    qtbot.waitUntil(lambda: getattr(mw.project_action_handler, "_active_load_worker", None) is not None, timeout=15000)
     worker = mw.project_action_handler._active_load_worker
     assert worker.isRunning()
     if when == "after_reading_before_delivery":
@@ -234,6 +236,9 @@ def test_project_open_shows_a_progress_window_until_the_blocks_are_in(interactiv
         monkeypatch.setattr(lifecycle.QFileDialog, "getOpenFileName", staticmethod(lambda *a, **k: (str(project_file), "")))
         mw.project_action_handler.open_project_action()
 
+        assert _visible_progress(mw, "Loading Project")   # shown at once, before the file sync on its worker
+        qtbot.waitUntil(lambda: getattr(mw.project_action_handler, "_active_load_worker", None) is not None,
+                        timeout=15000)
         assert mw.project_action_handler._active_load_worker.isRunning()  # read on its own thread
         qtbot.waitUntil(lambda: len(mw.data_store.data) == 10 and not mw.is_loading_data, timeout=15000)
         qtbot.waitUntil(lambda: not _visible_progress(mw, "Loading Project"), timeout=15000)

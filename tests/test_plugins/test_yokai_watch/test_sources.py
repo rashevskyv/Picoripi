@@ -73,6 +73,7 @@ def test_each_game_has_its_own_texture_list(tmp_path, monkeypatch):
     (tmp_path / "data/txt/ev/en").rmdir()
     (tmp_path / "data/res/text").mkdir(parents=True)
     (tmp_path / "data/res/text/system_text_ja.cfg.bin").write_bytes(b"")
+    rules.reset_runtime_state()   # the layout of the folder changed: what was learned about it is dropped
     assert rules.get_texture_sources()[0]["path"] == "data/menu/*.xa"
     monkeypatch.setattr(GameRules, "_source_root", lambda self: None)
     assert rules.get_texture_sources()[0]["path"] == "data/menu/skill_telop/en/*.xi"
@@ -139,4 +140,21 @@ def test_switch_sequels_have_their_own_font_and_texture_lists(tmp_path, monkeypa
     assert len(rules.get_font_sources()) == 4
     assert rules.get_texture_sources()[0]["format"] == "g4tx"
     (tmp_path / "data/common/font/font/font_ja2").mkdir(parents=True)
+    rules.reset_runtime_state()
     assert len(rules.get_font_sources()) == 7
+
+
+def test_the_layout_of_a_source_folder_is_read_once_until_the_state_is_reset(tmp_path, monkeypatch):
+    """Every row asks for its game: the stat calls of ``game_of`` run once per folder, not once per row."""
+    from plugins.yokai_watch import rules as rules_module
+    reads = []
+    real = rules_module.game_of
+    monkeypatch.setattr(rules_module, "game_of", lambda root: reads.append(root) or real(root))
+    rules = rules_module.GameRules()
+    for _ in range(50):
+        assert rules._game(tmp_path) == "yw1"
+    assert reads == [tmp_path]
+    (tmp_path / "data/txt/ev/en").mkdir(parents=True)
+    assert rules._game(tmp_path) == "yw1"          # the answer is kept
+    rules.reset_runtime_state()
+    assert rules._game(tmp_path) == "yw3"

@@ -11,9 +11,11 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PyQt6.QtCore import pyqtSignal
 
-from core.project_library import build, console_keys, plugin_facts, resources
+from core.project_library import build, console_keys, game_icon, plugin_facts, resources
+from core.project_library.scan import ICON_FILE_NAME
 from core.project_library.source_folder import validate_source_folder
 from core.containers.console_crypto import KeyFileError
+from utils.atomic_io import atomic_write_bytes
 from utils.constants import plugins_root
 from utils.logging_utils import log_error, log_warning
 from utils.thread_utils import WorkerThread
@@ -72,7 +74,7 @@ class FactsJob(WorkerThread):
             rules = self._load_rules(self._plugin)
             result = {
                 "roles": plugin_facts.roles_of(rules),
-                "platforms": plugin_facts.platforms_of(rules),
+                "platforms": plugin_facts.offered_platforms(rules),
                 "identities": plugin_facts.identify_sources(rules, self._paths, self.isInterruptionRequested),
             }
         except Exception as exc:  # a plugin's failure is shown in the wizard; the user can still pick by hand
@@ -118,6 +120,7 @@ class UnpackJob(WorkerThread):
             if not self._existing_translation:
                 # Made only when the project keeps its own folder, so a refused create leaves no empty folder.
                 Path(self._project_dir, "translation").mkdir(parents=True, exist_ok=True)
+            self._store_game_icon()
         except build.Cancel:
             self.cancelled.emit()
             return
@@ -133,6 +136,18 @@ class UnpackJob(WorkerThread):
 
     def _report(self, percent: int, text: str) -> None:
         self.progress.emit(int(percent), str(text))
+
+    def _store_game_icon(self) -> None:
+        """Save the base image's own picture as the project's icon.png, unless the folder has one. Never fails a create."""
+        target = Path(self._project_dir, ICON_FILE_NAME)
+        if target.exists():
+            return
+        try:
+            data = game_icon.icon_png(self._sources.get("base", ""))
+            if data:
+                atomic_write_bytes(target, data)
+        except OSError as exc:
+            log_warning(f"The game's icon was not saved in {self._project_dir}: {exc}")
 
 
 def _project_paths(project_file: str) -> Tuple[str, str, str]:
