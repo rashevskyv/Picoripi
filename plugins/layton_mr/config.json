@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "All regions", "note": "Switch and Android; the plugin reads no id"}
+    ],
     "display_name": "Layton Brothers: Mystery Room",
     "platforms": ["switch", "android"],
     "default_tag_mappings": {},

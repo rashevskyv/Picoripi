@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-21
 owns: ui/project_manager/wizard.py
-tokens: 1.4k
+tokens: 1.5k
 purpose: First start to the first saved line: install, first start, new project, first translation, where to read next
 ---
 # Getting Started

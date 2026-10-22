@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "JPN", "note": "PSP image NPJB-40001 (Japanese release); the plugin reads no id"}
+    ],
     "display_name": "Monster Hunter Portable 3rd HD (PSP, Yakumo)",
     "platforms": ["psp"],
     "default_tag_mappings": {},

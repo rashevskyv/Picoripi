@@ -1,4 +1,8 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "EUR", "note": "Bravely Default, English set Common_en"},
+        {"kind": "unchecked", "id": "", "region": "USA", "note": "Bravely Second: End Layer, same plugin"}
+    ],
     "display_name": "Bravely Default / Bravely Second",
     "platforms": ["3ds"],
     "default_tag_mappings": {},

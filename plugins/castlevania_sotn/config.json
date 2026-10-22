@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "serial", "id": "SLUS-00067", "region": "USA", "note": "PlayStation"}
+    ],
     "display_name": "Castlevania: Symphony of the Night (PlayStation)",
     "platforms": ["psx"],
     "default_tag_mappings": {},

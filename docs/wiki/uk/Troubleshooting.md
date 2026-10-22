@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-21
 owns: handlers/ and ui/ (messages and dialogs)
-tokens: 3.6k
+tokens: 3.9k
 ---
 # Усунення несправностей
 

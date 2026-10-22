@@ -1,4 +1,9 @@
 {
+    "supported_images": [
+        {"kind": "title", "id": "0100ABF008968000", "region": "All regions", "note": "Sword"},
+        {"kind": "title", "id": "01008DB008C2C000", "region": "All regions", "note": "Shield"},
+        {"kind": "title", "id": "01001F5010DFA000", "region": "All regions", "note": "Legends: Arceus"}
+    ],
     "display_name": "Pokémon Sword/Shield + Legends: Arceus (Switch)",
     "default_tag_mappings": {
         "[PAGE]": "{PAGE}",

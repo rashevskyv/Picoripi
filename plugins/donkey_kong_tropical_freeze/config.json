@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "All regions", "note": "Switch update v131072"}
+    ],
     "display_name": "Donkey Kong Country: Tropical Freeze",
     "platforms": ["switch"],
     "default_tag_mappings": {},

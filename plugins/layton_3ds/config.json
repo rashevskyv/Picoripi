@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "Not stated", "note": "Several 3DS titles in one plugin"}
+    ],
     "display_name": "Professor Layton (3DS)",
     "platforms": ["3ds"],
     "default_tag_mappings": {},

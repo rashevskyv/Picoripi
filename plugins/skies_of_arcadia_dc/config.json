@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "disc", "id": "MK-51052", "region": "USA", "note": "Dreamcast GD-ROM, region U"}
+    ],
     "display_name": "Skies of Arcadia (Dreamcast, USA)",
     "default_tag_mappings": {},
     "block_names": {},

@@ -1,4 +1,8 @@
 {
+    "supported_images": [
+        {"kind": "title", "id": "00040000000ba900", "region": "Not stated", "note": "Gates to Infinity"},
+        {"kind": "title", "id": "0004000000174400", "region": "Not stated", "note": "Super Mystery Dungeon"}
+    ],
     "display_name": "Pokémon Mystery Dungeon (3DS)",
     "default_tag_mappings": {
         "[PLAYER]": "[hero]",

@@ -7,25 +7,25 @@ Read the row, then open only the document you need.
 | Document | What it is the home of | ~tokens | Status | Owns |
 |---|---|---|---|---|
 | `docs/ARCHITECTURE.md` | Layers, data flow, facades, and where to change what | 2.2k | current | layering, data flow |
-| `docs/DECISIONS.md` | Why the code is the way it is: one short record per decision | 28.6k | current | decisions and their reasons |
+| `docs/DECISIONS.md` | Why the code is the way it is: one short record per decision | 29.3k | current | decisions and their reasons |
 | `docs/ENGINEERING.md` | Habits behind the rules: threads, performance, persistence, tests | 2.0k | current | engineering practice |
 | `docs/FEATURES.md` | Every feature in detail; the wiki wins on a conflict | 14.9k | current | feature inventory |
 | `docs/MEMPALACE_CONTEXT_MANIFESTO.md` | MemPalace contract: principles, data flow, stage status | 2.3k | design | core/mempalace, ui/mempalace |
-| `docs/OPEN_ITEMS.md` | Everything left open, one line each, by work package | 68.6k | current | unfinished work |
-| `docs/PIPELINE_ROADMAP.md` | Pipeline design of record (Ukrainian); shipped vs planned on top | 12.4k | current | core/glossary_build, ui/pipeline_wizard_dialog.py |
+| `docs/OPEN_ITEMS.md` | Everything left open, one line each, by work package | 69.2k | current | unfinished work |
+| `docs/PIPELINE_ROADMAP.md` | Pipeline design of record (Ukrainian); shipped vs planned on top | 12.5k | current | core/glossary_build, ui/pipeline_wizard_dialog.py |
 | `docs/PROJECT_MANAGER_PHASE2.md` | Project Manager phase 2 | 0.7k | current | project manager |
 | `docs/REVIEW_QUEUE.md` | What is left for the owner after the audit: decisions with evidence, live runs, environment | 2.4k | current | owner decisions and live checks |
 | `docs/ROADMAP.md` | Master plan: the work packages of Picoripi, their state and the order | 1.6k | current | work packages, order of work |
 | `docs/TESTING_STRATEGY_AND_AUDIT.md` | Shape of the test suite, lanes, known risks | 2.3k | current | tests/ |
 | `docs/TRANSLATION_PROMPTING_STRATEGY.md` | Target design of translation context and prompts (Ukrainian) | 6.2k | design | handlers/translation/prompt_composer |
-| `docs/wiki/0_Getting_Started.md` (+uk) | First start to the first saved line: install, first start, new project, first translation, where to read next | 1.4k | current | ui/project_manager/wizard.py |
+| `docs/wiki/0_Getting_Started.md` (+uk) | First start to the first saved line: install, first start, new project, first translation, where to read next | 1.5k | current | ui/project_manager/wizard.py |
 | `docs/wiki/11_AI_Translation.md` (+uk) | Providers, prompts, chunks, run memory, translation memory | 6.0k | current | handlers/translation, core/translation |
 | `docs/wiki/12_Picoripi_Companion.md` (+uk) | Companion server and glossary sync | 1.9k | current | core/companion_sync.py, companion/ |
 | `docs/wiki/13_Working_Together.md` (+uk) | Rooms, roles, claims, comments | 2.9k | current | core/collab |
 | `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (+uk) | Main window, menus, filters, settings tabs, shortcuts | 11.3k | current | ui/, components/, dialogs/ |
 | `docs/wiki/2_API_Reference.md` (+uk) | Which Python file implements which control | 0.8k | current | module map |
-| `docs/wiki/3_Plugin_Developer_Guide.md` (+uk) | The one plugin guide: files, hooks, capabilities, tests | 14.6k | current | plugins/ |
-| `docs/wiki/4_Configuration_Guide.md` (+uk) | Map of every Settings tab and control, defaults, restart needs, and where each value is stored | 4.0k | current | ui/settings |
+| `docs/wiki/3_Plugin_Developer_Guide.md` (+uk) | The one plugin guide: files, hooks, capabilities, tests | 14.8k | current | plugins/ |
+| `docs/wiki/4_Configuration_Guide.md` (+uk) | Map of every Settings tab and control, defaults, restart needs, and where each value is stored | 4.4k | current | ui/settings |
 | `docs/wiki/5_Gemini_Web2API.md` (+uk) | The local Gemini proxy: start, settings, errors | 2.2k | current | core/translation/providers.py |
 | `docs/wiki/6_Virtual_Navigation_and_Preview.md` (+uk) | Virtual folders, story and speaker views, preview | 1.4k | current | ui/updaters/block_list |
 | `docs/wiki/7_Maintaining_This_Wiki.md` (+uk) | Which page owns which fact; how to update EN and UK | 1.0k | current | docs/wiki |
@@ -42,8 +42,8 @@ Read the row, then open only the document you need.
 | `docs/wiki/Recipes.md` (+uk) | Short task recipes: what to press, in order, for each common goal, with a link to the full page | 3.0k | current | docs/wiki |
 | `docs/wiki/Saving_and_Recovery.md` (+uk) | Saving, undo, backups, session recovery, revert and moving a project. | 2.2k | current | core/data_processor/save_mixin.py, core/data_processor/session_manager.py, core/data_processor/revert_manager.py, core/saved_translations_manager.py, core/undo_manager.py |
 | `docs/wiki/Search_Bookmarks.md` (+uk) | Quick find, Advanced Search & Replace, search history and bookmarks. | 1.9k | current | components/search_panel.py, handlers/search_handler.py, dialogs/search_review/, handlers/bookmark_handler.py |
-| `docs/wiki/Supported_Games.md` (+uk) | Table of every game plugin with platforms, wizard needs and build targets. | 6.6k | current | plugins/ |
-| `docs/wiki/Troubleshooting.md` (+uk) | Symptom, cause and fix tables for the problems a new user meets, plus how to read the log and report a bug. | 2.6k | current | handlers/ and ui/ (messages and dialogs) |
+| `docs/wiki/Supported_Games.md` (+uk) | Table of every game plugin with platforms, wizard needs and build targets. | 12.1k | current | plugins/ |
+| `docs/wiki/Troubleshooting.md` (+uk) | Symptom, cause and fix tables for the problems a new user meets, plus how to read the log and report a bug. | 2.8k | current | handlers/ and ui/ (messages and dialogs) |
 | `docs/wiki/Warnings_and_Autofix.md` (+uk) | Problem lines, warning colours, navigation, Detection and Auto-fix settings, Fix All Strings, rescans and the spell checker. | 2.0k | current | handlers/issue_scan_handler.py |
 | `docs/wiki/Width_Fonts_Tags.md` (+uk) | Line width in game pixels, per-string and project limits, the Font Map, default font and tags. | 2.0k | current | utils/width.py |
 | `AGENTS.md` | Agent entry: hard rules, commands, checklist |  | current | everything |

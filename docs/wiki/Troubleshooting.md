@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-21
 owns: handlers/ and ui/ (messages and dialogs)
-tokens: 2.6k
+tokens: 2.8k
 purpose: Symptom, cause and fix tables for the problems a new user meets, plus how to read the log and report a bug.
 ---
 # Troubleshooting

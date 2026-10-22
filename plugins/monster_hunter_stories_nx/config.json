@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "All regions", "note": "Switch English message archive"}
+    ],
     "display_name": "Monster Hunter Stories (Switch)",
     "platforms": ["switch"],
     "default_tag_mappings": {},

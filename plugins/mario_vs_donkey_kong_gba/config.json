@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "Not stated", "note": "GBA"}
+    ],
     "display_name": "Mario vs. Donkey Kong (GBA)",
     "platforms": ["gba"],
     "default_tag_mappings": {},

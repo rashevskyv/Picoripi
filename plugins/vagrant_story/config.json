@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "serial", "id": "SLUS-01040", "region": "USA", "note": "PlayStation"}
+    ],
     "display_name": "Vagrant Story",
     "platforms": ["psx"],
     "default_tag_mappings": {},

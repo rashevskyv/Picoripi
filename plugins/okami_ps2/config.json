@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "serial", "id": "SLUS-21115", "region": "USA", "note": "PlayStation 2 disc"}
+    ],
     "display_name": "Okami (PlayStation 2)",
     "default_tag_mappings": {},
     "block_names": {},

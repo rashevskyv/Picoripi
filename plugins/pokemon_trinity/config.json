@@ -1,4 +1,9 @@
 {
+    "supported_images": [
+        {"kind": "title", "id": "0100A3D008C5C000", "region": "All regions", "note": "Scarlet"},
+        {"kind": "title", "id": "01008F6008C5E000", "region": "All regions", "note": "Violet"},
+        {"kind": "title", "id": "0100F43008C44000", "region": "All regions", "note": "Legends: Z-A"}
+    ],
     "display_name": "Pokémon Scarlet/Violet, Legends: Z-A (Switch)",
     "default_tag_mappings": {
         "[PAGE]": "{PAGE}",

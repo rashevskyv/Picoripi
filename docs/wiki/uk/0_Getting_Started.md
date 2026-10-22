@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-21
 owns: ui/project_manager/wizard.py
-tokens: 1.9k
+tokens: 2.0k
 ---
 # З чого почати
 

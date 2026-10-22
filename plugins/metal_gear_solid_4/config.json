@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "Not stated", "note": "Master Collection, Switch and PC"}
+    ],
     "display_name": "Metal Gear Solid 4 (Master Collection)",
     "platforms": ["switch", "pc"],
     "default_tag_mappings": {},

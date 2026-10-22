@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "All regions", "note": "Switch 1.0.0 with update 1.1.0"}
+    ],
     "display_name": "Miitopia (Switch)",
     "platforms": ["switch"],
     "default_tag_mappings": {},

@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "disc", "id": "GEAE8P", "region": "USA", "note": "GameCube"}
+    ],
     "display_name": "Skies of Arcadia Legends (GameCube, USA)",
     "default_tag_mappings": {},
     "block_names": {},

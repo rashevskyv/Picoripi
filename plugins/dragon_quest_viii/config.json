@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "EUR", "note": "3DS, English slot eng"}
+    ],
     "display_name": "Dragon Quest VIII (3DS)",
     "platforms": ["3ds"],
     "default_tag_mappings": {},

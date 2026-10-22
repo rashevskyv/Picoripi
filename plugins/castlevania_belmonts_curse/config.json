@@ -1,4 +1,8 @@
 {
+    "supported_images": [
+        {"kind": "title", "id": "0100BA4026E94000", "region": "All regions", "note": "Switch base game, 1.1.0 (v65536)"},
+        {"kind": "title", "id": "0100BA4026E94800", "region": "All regions", "note": "Switch update"}
+    ],
     "display_name": "Castlevania: Belmont's Curse",
     "default_tag_mappings": {},
     "block_names": {},

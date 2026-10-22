@@ -1,4 +1,9 @@
 {
+    "supported_images": [
+        {"kind": "code", "id": "AYWE", "region": "USA", "note": "3DS"},
+        {"kind": "title", "id": "0100C0000CEEA000", "region": "All regions", "note": "Switch base game"},
+        {"kind": "title", "id": "0100C0000CEEA800", "region": "All regions", "note": "Switch update"}
+    ],
     "display_name": "Yo-kai Watch",
     "platforms": ["3ds", "switch"],
     "default_tag_mappings": {},

@@ -1,4 +1,8 @@
 {
+    "supported_images": [
+        {"kind": "disc", "id": "GM8E01", "region": "USA", "note": "GameCube"},
+        {"kind": "disc", "id": "R3ME01", "region": "USA", "note": "Wii"}
+    ],
     "display_name": "Metroid Prime Trilogy",
     "platforms": ["wii", "gc"],
     "default_tag_mappings": {},

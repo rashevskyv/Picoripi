@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "disc", "id": "RNHP99", "region": "EUR", "note": "Wii"}
+    ],
     "display_name": "No More Heroes",
     "platforms": ["wii"],
     "default_tag_mappings": {},

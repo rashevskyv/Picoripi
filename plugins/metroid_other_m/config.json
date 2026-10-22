@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "disc", "id": "R3OE01", "region": "USA", "note": "Wii"}
+    ],
     "display_name": "Metroid: Other M",
     "platforms": ["wii"],
     "default_tag_mappings": {},

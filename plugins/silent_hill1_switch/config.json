@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "EUR", "note": "Switch, PAL"}
+    ],
     "display_name": "Silent Hill (Switch, PAL)",
     "platforms": ["switch"],
     "default_tag_mappings": {},
