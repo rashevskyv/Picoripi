@@ -3273,5 +3273,7 @@
   "Region not stated": "Регіон не вказано",
   "All regions": "Усі регіони",
   "{0} ROM versions: {1}": "Версій ROM: {0}: {1}",
-  "Image ID: {0}": "ID образу: {0}"
+  "Image ID: {0}": "ID образу: {0}",
+  "The file is not the Hades Switch base game image.": "Файл не є образом базової гри Hades для Switch.",
+  "This Hades image holds an update patch: choose the update file too.": "Цей образ Hades містить патч оновлення: виберіть також файл оновлення."
 }
