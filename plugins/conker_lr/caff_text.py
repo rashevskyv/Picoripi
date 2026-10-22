@@ -160,6 +160,7 @@ def write_slots(data: bytes, texts: Sequence[str]) -> bytes:
     blob = bytearray()
     new_starts: List[int] = []
     deltas: List[int] = []
+    new_lengths: List[int] = []
     pos = first
     for index, slot in enumerate(slots):
         blob += data[pos:slot.offset]
@@ -171,6 +172,7 @@ def write_slots(data: bytes, texts: Sequence[str]) -> bytes:
             raw = data[slot.offset:slot.offset + old_len]
         blob += raw
         deltas.append(len(raw) - old_len)
+        new_lengths.append(len(raw))
         pos = slot.offset + old_len
     total = len(blob) - (old_end - first)
 
@@ -183,6 +185,8 @@ def write_slots(data: bytes, texts: Sequence[str]) -> bytes:
         for index, slot in enumerate(slots):
             start, end = slot.offset, slot.offset + slot.capacity + 2
             if start <= t < end:
+                if t == start + slot.capacity:  # the terminator: it stays the end of the (new) string
+                    return new_starts[index] + new_lengths[index] - 2
                 return new_starts[index] + (t - start)
             if end <= t:
                 shift += deltas[index]

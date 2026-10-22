@@ -182,3 +182,19 @@ def test_check_refuses_a_wrong_checksum_or_size():
     struct.pack_into("<I", data, 0x14, caff_text.caff_hash(bytes(data)))
     with pytest.raises(caff_text.CaffError):
         caff_text.check(bytes(data))
+
+
+
+def test_an_index_unit_at_a_terminator_stays_at_the_end_of_its_string():
+    # A unit that points at a string's NUL terminator must still point at the terminator after the string grows;
+    # mapping it to the first appended character would leave it inside the new text.
+    new_text = "A much longer first line of text"
+    base = _caff(["Hello there", "Bye.", "...."])
+    slots = caff_text.read_slots(base)
+    first = slots[0].offset
+    lsbl = base.find(b"LSBL")
+    key_unit = struct.unpack_from("<I", base, lsbl + 0x24 + 6 * 3 + 2)[0]
+    end_unit = (slots[0].offset - first) // 2 + len("Hello there")
+    data = _with_index(base, [0, end_unit, (slots[1].offset - first) // 2, key_unit])
+    grown = caff_text.write_slots(data, [new_text, "Bye."])
+    assert _index_units(grown)[1] == len(new_text)  # the first string starts at unit 0, its terminator is at its length
