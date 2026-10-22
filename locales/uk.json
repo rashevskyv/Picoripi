@@ -1886,6 +1886,7 @@
   "Choose a texture first.": "Спершу виберіть текстуру.",
   "Could not load the textures:\n{0}": "Не вдалося завантажити текстури:\n{0}",
   "Could not load the textures: {0}": "Не вдалося завантажити текстури: {0}",
+  "The Python package {0} is not installed. Run setup.bat again, or run: {1}": "Пакет Python {0} не встановлено. Запустіть setup.bat знову або виконайте: {1}",
   "Could not save the texture status: {0}": "Не вдалося зберегти статус текстур: {0}",
   "Error: {0}": "Помилка: {0}",
   "Export &All...": "Експорт &усіх...",

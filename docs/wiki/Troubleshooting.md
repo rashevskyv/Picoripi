@@ -141,6 +141,10 @@ Picoripi writes a log file named `app_debug.txt`. The default place is the progr
 - Note the project name and the stage (editor, build or AI).
 - Send the log. Name the project in the report, but not its text.
 
+**The Textures window says a Python package is not installed.**
+- Run `setup.bat` again. It installs everything in `requirements.txt`.
+- Or run `python -m pip install -r requirements.txt` in the activated Picoripi environment.
+
 **A problem is not in this list.**
 - Read [Getting started](0_Getting_Started.md) for the first steps.
 - Then report it as described above.

@@ -21,12 +21,20 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from core.i18n import tr
 from core.texture_formats import sources as texture_sources
 from core.texture_formats.sources import TextureSource
-from utils import app_mode
+from utils import app_mode, package_check
 from utils.logging_utils import log_error
 from utils.thread_utils import WorkerThread, safe_shutdown_thread
 
 _KEY = QtCore.Qt.ItemDataRole.UserRole
 _STATUS_LABELS = {"": "Not started", "redrawn": "Redrawn", "checked": "Checked in game"}
+
+
+def _error_text(exc: Exception) -> str:
+    """The text the window shows for ``exc``; a missing package gets its name and the install command."""
+    if isinstance(exc, ModuleNotFoundError) and exc.name:
+        return tr("The Python package {0} is not installed. Run setup.bat again, or run: {1}",
+                  package_check.pip_name(exc.name), package_check.REQUIREMENTS_COMMAND)
+    return str(exc)
 
 
 class TextureJob(WorkerThread):
@@ -51,7 +59,7 @@ class TextureJob(WorkerThread):
             result, error = self._work(self.item.emit, self.cancelled), ""
         except Exception as exc:  # shown to the user by the window
             log_error(f"Textures job failed: {exc}", exc_info=True)
-            result, error = None, str(exc)
+            result, error = None, _error_text(exc)
         self.done.emit(result, error)
 
 
@@ -203,7 +211,7 @@ class TextureWindow(QtWidgets.QMainWindow):
                 result, error = work(on_item, lambda: False), ""
             except Exception as exc:
                 log_error(f"Textures job failed: {exc}", exc_info=True)
-                result, error = None, str(exc)
+                result, error = None, _error_text(exc)
             on_done(result, error)
             return
         self._queue.append((work, on_item, on_done))

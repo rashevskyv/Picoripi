@@ -70,6 +70,7 @@ from core.filter_query_api import FilterQueryAPI
 from plugins.base_game_rules import BaseGameRules
 
 from utils.logging_utils import log_info, log_warning, log_error, log_debug
+from utils import package_check
 from utils.thread_utils import single_shot
 from utils.hotkey_manager import HotkeyManager
 from utils.constants import (
@@ -173,6 +174,10 @@ class MainWindow(QMainWindow):
         self._startup_splash = startup_splash
         self._startup_loading_pending = False
         log_info("Initializing main window...")
+        absent = package_check.missing()
+        if absent:
+            log_warning(f"Packages not installed (some features are off): {', '.join(absent)}. "
+                        f"Run: {package_check.REQUIREMENTS_COMMAND}")
 
         self.report_startup_progress(8, tr("Initializing application state…"))
         self._init_metadata()
