@@ -70,13 +70,13 @@ def test_changed_files_refuses_a_file_the_source_does_not_hold(tmp_path):
 def test_build_writes_a_disc_with_one_changed_record_and_the_dol_untouched(tmp_path):
     dol = b"\x00" * 0x120
     disc = tmp_path / "game.iso"
-    disc.write_bytes(build_disc({"Event/event01.szp": _archive(b"Aaahhhh!\r\nOuch\r\n")}, game_id=b"GLME01"))
+    disc.write_bytes(build_disc({"Event/event01.szp": _archive(b"alpha\r\nbeta\r\n")}, game_id=b"GLME01"))
     source = tmp_path / "source"
     _write(source / "sys/main.dol", dol)
-    _write(source / "files/Event/event01.szp/message01.csv", b"Aaahhhh!\r\nOuch\r\n")
+    _write(source / "files/Event/event01.szp/message01.csv", b"alpha\r\nbeta\r\n")
     write_source_mark(str(source), str(disc))
     trn = tmp_path / "trn"
-    _write(trn / "files/Event/event01.szp/message01.csv", b"Aaahhhh!\r\nOUCH UA\r\n")
+    _write(trn / "files/Event/event01.szp/message01.csv", b"alpha\r\nBETA UA\r\n")
 
     out = build.build_gc_iso(str(source), str(trn), str(tmp_path / "out"), _noop, _never)
 
@@ -84,7 +84,7 @@ def test_build_writes_a_disc_with_one_changed_record_and_the_dol_untouched(tmp_p
         image = GameCubeImage(stream)
         entry = next(e for e in image.entries() if e.path == "files/Event/event01.szp")
         member = RarcContainer(build.unwrap(image.read(entry))).read_file("message01.csv")
-        assert member == b"Aaahhhh!\r\nOUCH UA\r\n"
+        assert member == b"alpha\r\nBETA UA\r\n"
         with open(disc, "rb") as original:
             before = GameCubeImage(original)
             assert image.read(next(e for e in image.entries() if e.path == "sys/main.dol")) == before.read(

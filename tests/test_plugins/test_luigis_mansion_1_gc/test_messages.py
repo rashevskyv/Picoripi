@@ -5,9 +5,9 @@ from plugins.luigis_mansion_1_gc.messages import Table
 
 
 def test_unchanged_table_builds_the_original_bytes():
-    raw = b"Aaahhhh!\r\nOuch...\r\nOoof... I sure take a lot of\nknocks in this line.\r\n\r\n"
+    raw = b"alpha\r\nbeta\r\ngamma line\nwrapped here.\r\n\r\n"
     table = Table(raw)
-    assert table.texts() == ["Aaahhhh!", "Ouch...", "Ooof... I sure take a lot of\nknocks in this line.", ""]
+    assert table.texts() == ["alpha", "beta", "gamma line\nwrapped here.", ""]
     assert table.build(table.texts()) == raw
 
 
