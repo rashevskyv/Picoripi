@@ -1725,6 +1725,8 @@
   "Width": "Ширина",
   "Width (Char Space):": "Ширина (інтервал символу):",
   "Width Exceeded": "Перевищено ширину",
+  "default.xbe with the wider subtitle box (copy)": "default.xbe з ширшим субтитром (копія)",
+  "The original {0} is not Conker: Live & Reloaded (USA).": "Оригінал {0} не є Conker: Live & Reloaded (USA).",
   "Text too long for one string": "Текст задовгий для одного рядка",
   "Cutscene line over 511 characters": "Рядок катсцени понад 511 символів",
   "Bubble over 4 lines": "Субтитр понад 4 рядки",

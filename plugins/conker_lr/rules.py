@@ -19,8 +19,8 @@ from core.formats import FileFormat
 from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
 
-from . import caff_text, xiso
-from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
+from . import caff_text, xbe_box, xiso
+from .config import BOX_HEIGHT, BOX_LINE_LIMIT, BOX_WRAP_CHARS, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .problems import ProblemAnalyzer
 from .tag_manager import TagManager
 
@@ -32,12 +32,16 @@ FORMAT_ID = "conker-lr-caff-text/1"
 ORIGINAL_DIR = "original"
 TEXT_JSON_DIR = "text"
 TARGET_FILES = "translated_files"
+TARGET_BOX = "xbe_box"
+XBE_NAME = "default.xbe"
 # The UI table of this folder has keys and layout records, not dialogue: its block count does not match.
 NOT_DECODED_FOLDERS = {"UIFrontend", "UIPause"}
 
 
 def _wanted(path: str) -> bool:
-    """True for the English text files this plugin reads (one ``default.bin`` per folder)."""
+    """True for the English text files this plugin reads (one ``default.bin`` per folder) and the game's XBE."""
+    if path == XBE_NAME:
+        return True
     if not path.startswith(TEXT_DIR + "/") or not path.endswith("/default.bin"):
         return False
     return path.split("/")[-2] not in NOT_DECODED_FOLDERS
@@ -136,10 +140,14 @@ class GameRules(BaseGameRules):
 
     def get_build_targets(self) -> List[Dict[str, Any]]:
         return [{"id": TARGET_FILES, "label": tr("Translated text files (changed default.bin)"),
-                 "platforms": [PLATFORM_XBOX], "kind": "files"}]
+                 "platforms": [PLATFORM_XBOX], "kind": "files"},
+                {"id": TARGET_BOX, "label": tr("default.xbe with the wider subtitle box (copy)"),
+                 "platforms": [PLATFORM_XBOX], "kind": "patch"}]
 
     def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
                      progress, is_cancelled) -> str:
+        if target_id == TARGET_BOX:
+            return self._build_box(source_dir, output_dir, progress)
         if target_id != TARGET_FILES:
             return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
         files = sorted(Path(translation_dir, TEXT_JSON_DIR).glob("*.json"))
@@ -165,3 +173,21 @@ class GameRules(BaseGameRules):
                 target.write_bytes(new_data)
             progress(100 * position // max(1, len(files)), rel)
         return output_dir
+
+    def _build_box(self, source_dir: str, output_dir: str, progress) -> str:
+        """Write a copy of the game's default.xbe with the subtitle box changed (xbe_box.py); the original is kept."""
+        original = Path(source_dir, ORIGINAL_DIR, XBE_NAME)
+        if not original.is_file():
+            raise ValueError(tr("The original {0} is missing: unpack the disc again.", XBE_NAME))
+        xbe = original.read_bytes()
+        if xiso.xbe_title_id(xbe) != TITLE_ID:
+            raise ValueError(tr("The original {0} is not Conker: Live & Reloaded (USA).", XBE_NAME))
+        height = xbe_box.scaled_height(BOX_LINE_LIMIT) if BOX_HEIGHT else None
+        try:
+            patched = xbe_box.patched_box(xbe, BOX_WRAP_CHARS, BOX_LINE_LIMIT, height)
+        except xbe_box.XbeError as exc:
+            raise ValueError(tr("{0}: {1}", XBE_NAME, str(exc))) from exc
+        target = Path(output_dir, XBE_NAME)
+        target.write_bytes(patched)
+        progress(100, XBE_NAME)
+        return str(target)

@@ -16,6 +16,12 @@ PROBLEM_BAD_SPACING = f"{PLUGIN_PREFIX}_BAD_SPACING"
 PROBLEM_MISSING_ICON_SPACING = f"{PLUGIN_PREFIX}_MISSING_ICON_SPACING"
 PROBLEM_BROKEN_ICON_HYPHEN = f"{PLUGIN_PREFIX}_BROKEN_ICON_HYPHEN"
 
+# Subtitle box of default.xbe (xbe_box.py): the wrap width in characters, the line limit, and whether the fixed height
+# of a bubble with more lines than the limit is scaled with it. The original game uses 20, 4 and 160.0.
+BOX_WRAP_CHARS = 40
+BOX_LINE_LIMIT = 6
+BOX_HEIGHT = True
+
 CONTROL_CODES = []
 DEFAULT_LINES_PER_PAGE = 4
 
