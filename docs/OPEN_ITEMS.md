@@ -150,7 +150,7 @@ the line when it is done or moved into a plan.
 - Open: no text-fit problems (no length limit is known for the BMG strings).
 - Open: the build takes about 13 to 17 minutes (the writer seals every cluster in Python).
 - Open: the Emu Radar report is a status page only (no game screenshots, no game text).
-- Owner check: `D:\git\dev\Picoripi\data\console_keys.json` (the main checkout) was written twice by a helper that imported the main checkout; the `wii` entry is the owner's `keys.bin` path. The previous value is not known.
+- Owner check: the console key store file in the Picoripi data folder (`console_keys.json`) was written twice by a helper that imported the main checkout; the `wii` entry is the owner's `keys.bin` path. The previous value is not known.
 ## Black & White, openBlack Switch port (`plugins/black_and_white`, 2026-10-21, branch `feat/black-and-white`)
 
 - Open: the port draws no game text. `RUN_TEXT` plays voice only, `LOAD_LANGUAGE` throws "not implemented", and nothing reads `ADD_TEXT` (`src/CHLApi.cpp`, `src/LHScriptX/MapScriptCommands.cpp`). A translated line shows only after an openblack change: a text parser, a text display for `RUN_TEXT`, and a font with Cyrillic glyphs.
