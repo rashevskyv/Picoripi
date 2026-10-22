@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "serial", "id": "ULKS-46155", "region": "USA", "note": "PSP, English"}
+    ],
     "display_name": "Castlevania: The Dracula X Chronicles (PSP)",
     "platforms": ["psp"],
     "default_tag_mappings": {},

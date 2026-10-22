@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "USA", "note": "3DS"}
+    ],
     "display_name": "Attack on Titan: Humanity in Chains",
     "platforms": ["3ds"],
     "default_tag_mappings": {},

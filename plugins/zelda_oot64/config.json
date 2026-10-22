@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "USA", "note": "N64 US 1.0 ROM"}
+    ],
     "display_name": "Zelda: Ocarina of Time (N64)",
     "platforms": ["n64"],
     "default_tag_mappings": {},

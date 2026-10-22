@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "Not stated", "note": "Switch"}
+    ],
     "display_name": "Mario vs. Donkey Kong (Switch)",
     "platforms": ["switch"],
     "default_tag_mappings": {},

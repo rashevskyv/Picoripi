@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-21
+updated: 2026-10-22
 owns: ui/project_manager/wizard.py, core/project_library/
-tokens: 1.8k
+tokens: 2.2k
 purpose: The three-step new-project wizard and each kind of game source it accepts
 ---
 # Creating a project: every kind of game
@@ -74,7 +74,7 @@ The original game files are not copied. The project keeps their paths.
 |---|---|---|
 | GameCube or Wii disc image (ISO, WIA, RVZ) | The image file | A Wii file with encrypted content needs `keys.bin` |
 | Switch game (NSP, NSZ, XCI) | Base game, Update and DLC files | Encrypted files need `prod.keys` |
-| 3DS game (CIA, 3DS) | The files | Encrypted files need `aes_keys.txt` |
+| 3DS game (CIA, 3DS, CCI, CXI, and more: see [3DS images](#3ds-images)) | The files | Encrypted files need `aes_keys.txt` |
 | Unpacked game | **Add folder...** | Nothing, when the folder is readable |
 | PC game | The game folder, with **Add folder...** | Depends on the game plugin |
 
@@ -82,31 +82,46 @@ The original game files are not copied. The project keeps their paths.
 
 **Switch XCI:** not verified for every case. If the wizard refuses an encrypted XCI, use the unpacked folder or an NSP or NSZ file instead.
 
+**Switch compressed RomFS:** an NSP or NSZ whose RomFS is compressed (firmware 12 and later) is read like any other.
+
 **3DS, encrypted:** the roles come from the title ID. The file needs `aes_keys.txt`. Decrypted files need no key.
+
+**3DS fixed-key titles:** the key is public, so no key file is needed. Picoripi reads the zero key, or the fixed system key of a system title.
 
 **An unpacked folder:** add the folder alone. A folder cannot be mixed with other sources. Remove the other files
 first.
 
+## 3DS images
+
+Picoripi reads these 3DS files. The title ID in the file gives the role: `00040000` is a base game, `0004000E` an
+update and `0004008C` DLC.
+
+| File | What it is | Key | Result |
+|---|---|---|---|
+| `.3ds`, `.cci` | Game card image | Only if encrypted | Read |
+| `.cia` | Install image: base game, update or DLC | Only if encrypted | Read |
+| `.cxi`, `.ncch` | One program image | Only if encrypted | Read |
+| `.cfa` | Content file, for example a manual | Only if encrypted | Read as a program. A manual is not a game. |
+| `.app` | A content file from the console's storage | Only if encrypted | Read like `.cxi` |
+| `.zcia`, `.zcci`, `.zcxi`, `.z3ds` | Azahar or Citra compressed image (zstd) | As the image inside | Read decompressed. Needs zstd: Python 3.14, or the `zstandard` package. |
+| `.3dsx` | Homebrew program | None | **Refused.** It holds no game text. |
+| Folder | Unpacked `exefs` and `romfs` | None | Used as it is, when the plugin accepts it |
+
+**Updates and DLC.** The wizard reads them as files of the game:
+
+- A game whose plugin has its own unpack reads the files its plugin asks for. Some plugins read the update, for example Pokémon Sun and Moon; others read the base game only.
+- A game with no own unpack gets the whole image of each file: the base game first, then the update, then DLC. A later file replaces a file with the same path. So an update's files replace the base game's files, as the console reads them.
+
+**Refused, with the reason in the Status column:**
+
+- A `.3dsx` file: homebrew, not a game.
+- An encrypted file with no key file, or a key file that does not decrypt it.
+- A compressed image that is damaged, or that needs a zstd package Picoripi cannot find.
+
 ## Key files
 
-Some game files are encrypted. Picoripi needs the key file of the console to read them.
-
-| Console | Key file |
-|---|---|
-| Nintendo 3DS | `aes_keys.txt` |
-| Nintendo Switch | `prod.keys` |
-| Wii | `keys.bin` |
-| Oodle library | The Oodle DLL (`oo2core` or `oo2ext`) |
-| PlayStation BIOS | The BIOS file |
-
-1. The wizard shows **Needs the key file** in the **Status** column.
-2. Press **Add the key file for ...** and choose the file.
-3. Picoripi remembers only the path. It never shows, copies or logs the key contents.
-
-To set a key file before you start, open **File → Settings (Ctrl+P) → Console keys**. The path is kept for every
-console. Any game can reuse it.
-
-If you move or delete the key file, the wizard asks for it again.
+Some game files are encrypted. The wizard then asks for the key file of the console. See
+[Console keys](4_Configuration_Guide.md#console-keys) for the default source and each console's key file.
 
 ## Existing translation folder
 

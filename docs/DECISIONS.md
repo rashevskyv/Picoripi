@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-14
 owns: decisions and their reasons
-tokens: 28.6k
+tokens: 29.3k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -1174,3 +1174,56 @@ exception to the rule that game colours and palettes stay out of the repository;
 images stay out.
 **Cost.** The repository carries game-derived colour data (about 50 KB). A change of the sheet or the matching needs a
 rebuild and a commit.
+
+## D48. The default key source: a runtime download of pinned files, never vendored (2026-10-22, owner)
+
+**Context.** Users need the 3DS, Switch and Wii key files, and finding them is hard. The owner chose the `bios/Nintendo`
+folder of the public repository `Abdess/retrobios` as the default source. Picoripi must never contain key bytes.
+
+**Decision.**
+- The source is a pinned commit (`DEFAULT_REF` in `core/project_library/key_source.py`), read with raw GitHub URLs. The
+  repository is not a git submodule, not vendored and not copied into `plugins/` or a project. Nothing downloads at
+  build, install or start.
+- A download runs only after the user confirms it in a modal dialog (`ui/key_source_download.py`). The dialog names the
+  address, the folder, and that the user is responsible for the legal status of the keys in their country. Each
+  download asks again. No "remember" option.
+- The download runs on a `WorkerThread` with cooperative cancel, a socket timeout and a total budget. Files are staged
+  in the target folder, checked, then replaced together, so a failed console keeps no partial file.
+- Checks: for the pinned commit, each file must match the size and SHA-256 that the repository publishes in its
+  `database.json` at that commit (table `SOURCE_FILES`). A source the user sets has no record, so the registered file is
+  checked by the reader's own parser (`Keys3ds.load`, `switch_crypto.load_keys`, `wii_disc.load_common_key`).
+- The file table is data: 3DS `aes_keys.txt` (registered), `boot9.bin` and `seeddb.bin` beside it (the 3DS reader looks
+  for them there); Switch `prod.keys`; Wii `keys.bin` (0x400 bytes). Not used: `title.keys` (no reader), every `.variants`
+  copy, and Wii U `keys.txt`, `otp.bin`, `seeprom.bin` (no console slot).
+- Files go to `SETTINGS_DIR/key_source/<console>/`. The console key store keeps one path per console, as before. The
+  user's own key file always wins: a console whose stored path is outside `key_source/` and still exists is skipped.
+  The store schema is unchanged. The source settings (enabled, address, last commit, last time) live in
+  `SETTINGS_DIR/key_source.json`.
+
+**Why not a submodule or vendored files.** A submodule pulls the key files into every checkout of the public repository.
+Vendored files put key bytes in the repository. A runtime download keeps the bytes on the user's machine only.
+
+**Consequences.**
+- The default source depends on a third party. The pinned commit keeps the content stable. If the source moves or
+  disappears, the download says so and the user can set another source or choose a file.
+- Updating the default means regenerating `SOURCE_FILES` from `database.json` at the new commit and changing
+  `DEFAULT_REF` in the same change.
+- Verification in tests uses synthetic all-zero files and a loopback HTTP server. No test reaches the network.
+
+## D49. Fixed-key 3DS titles and the compressed Switch RomFS are read (2026-10-22)
+
+**Context.** Two image kinds were refused: a 3DS program with the fixed-key flag (NCCH flags 7, bit 0; the manuals
+`.cfa`) and a Switch NCA section with the compression table (firmware 12 and later; Luigi's Mansion 2 HD). Both
+refusals stopped the New Project wizard.
+
+**Decision.** A fixed-key program uses a public constant key, so it needs no key file. The zero key is used; the
+fixed system key `527CE630A9CA305F3696F3CDE954194B` is used when the title ID category has the system bit (0x10 in the
+high word). A compressed RomFS section is read as its logical space: the section bytes before the IVFC level stay as
+they are, and the RomFS image is read through the compression table (`core/containers/switch_compressed.py`, BKTR
+table, stored / zero / LZ4 blocks). The LZ4 decoder is in Python, with every offset and length checked.
+
+**Why.** The four owner manuals decrypt with the zero key (IVFC header). The Luigi's Mansion 2 HD RomFS reads whole
+(2,970 files, 6.5 GB logical) and every block decodes. No C LZ4 module is in the environment, and no package is added.
+
+**Cost.** Pure-Python LZ4 is slower than a C decoder; a full unpack of a large compressed RomFS is minutes. A compressed
+update patch and a compressed ExeFS are still refused. The system key is not checked on a real system title.

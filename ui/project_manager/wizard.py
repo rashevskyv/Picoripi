@@ -22,7 +22,10 @@ from PyQt6.QtWidgets import (
 )
 
 from core.i18n import tr
-from core.project_library import build, images, plugin_facts
+from core.project_library import build, images, key_source, plugin_facts
+from ui.key_source_download import KeyDownloadJob, confirm_download
+from ui.project_manager import image_labels
+from ui.project_manager.jobs import BackgroundJob
 from ui.project_manager.tasks import FactsJob, PluginListJob, UnpackJob
 from utils.logging_utils import log_info
 from utils.thread_utils import safe_shutdown_thread
@@ -54,9 +57,12 @@ class ProjectWizard(QDialog):
         self._key_status: Dict[str, Dict[str, Any]] = {}   # per file path: what the plugin and the header say
         self._picked_keys: Dict[str, str] = {}             # console -> key file the user chose in this wizard
         self._retry_console = ""                          # the console whose key file failed at unpack
+        self._download_job: Optional[KeyDownloadJob] = None   # the key download running now, if any
+        self._source: Optional[key_source.Source] = None   # the default source's settings, read on a worker
         self._name_typed = False                           # the user typed a project name: a new game keeps it
         self._build_ui()
         self._run(PluginListJob(), self._on_plugins)
+        self._run(BackgroundJob(key_source.snapshot), self._on_source_read)
         self._show_page(0)
 
     # ----- layout -----
@@ -95,6 +101,9 @@ class ProjectWizard(QDialog):
         self._game.lineEdit().setPlaceholderText(tr("Type a part of the game's name"))
         self._game.currentIndexChanged.connect(self._game_changed)
         form.addRow(tr("Game"), self._game)
+        self._images = QLabel()
+        self._images.setWordWrap(True)
+        form.addRow(tr("Images it opens"), self._images)
         self._name = QLineEdit()
         self._name.setPlaceholderText(tr("The game's name is filled in; change it if you like"))
         self._name.textEdited.connect(self._name_edited)
@@ -245,6 +254,7 @@ class ProjectWizard(QDialog):
         for position in range(self._files_tree.topLevelItemCount()):
             self._files_tree.topLevelItem(position).setData(0, TOUCHED, False)
         self._roles, self._platforms = [], []
+        self._images.setText("")
         self._key_status = {}
         self._picked_keys = {}
         self._add_key.setVisible(False)
@@ -254,12 +264,15 @@ class ProjectWizard(QDialog):
         """Run the plugin over every file on the list. Each file's role and platform are set when the answer comes."""
         paths = self._paths()
         plugin = self._game.currentData() or ""
-        if not paths or not plugin:
+        if not plugin:
             return
-        self._files_status.setText(tr("Reading the files..."))
-        self._run(FactsJob(plugin, paths, self._load_rules), self._on_facts)
+        if paths:
+            self._files_status.setText(tr("Reading the files..."))
+        self._run(FactsJob(plugin, paths, self._load_rules, dict(self._picked_keys)), self._on_facts)
 
     def _on_facts(self, facts: Dict[str, Any]) -> None:
+        if facts.get("plugin") == (self._game.currentData() or ""):
+            self._images.setText("\n".join(image_labels.summary_lines(facts.get("images") or [])))
         self._roles = facts.get("roles") or []
         self._platforms = facts.get("platforms") or []
         identities = {item["path"]: item for item in facts.get("identities") or []}
@@ -268,6 +281,7 @@ class ProjectWizard(QDialog):
         for position in range(self._files_tree.topLevelItemCount()):
             item = self._files_tree.topLevelItem(position)
             identity = identities.get(item.data(0, Qt.ItemDataRole.UserRole)) or {}
+            item.setToolTip(FILE_COLUMN, tr("Image ID: {0}", identity["title_id"]) if identity.get("title_id") else "")
             if not item.data(0, TOUCHED):  # the user has not picked a role yet
                 self._set_combo(item, ROLE_COLUMN, self._roles, identity.get("role") or self._roles[0]["id"])
                 self._set_combo(item, PLATFORM_COLUMN, self._platform_choices(), identity.get("platform") or NOT_SET)
@@ -396,6 +410,10 @@ class ProjectWizard(QDialog):
             identity = self._key_status.get(path) or {}
             name = Path(path).name
             platform = plugin_facts.platform_label(str(identity.get("platform") or ""))
+            if identity.get("status") == plugin_facts.STATUS_HOMEBREW:
+                problems.append(tr("{0} is homebrew, not a game. Remove it from the list.", name))
+            if identity.get("status") == plugin_facts.STATUS_UNSUPPORTED:
+                problems.append(tr("{0}: {1}. Remove it from the list.", name, identity.get("reason") or ""))
             if identity.get("status") == plugin_facts.STATUS_UNREADABLE:
                 problems.append(tr("{0}: this game cannot read a {1} file itself. Remove it and add the unpacked "
                                    "folder of the game instead (Add folder...).", name, platform))
@@ -434,6 +452,10 @@ class ProjectWizard(QDialog):
 
     def _status_text(self, identity: Dict[str, Any]) -> Tuple[str, Optional[QColor]]:
         status = identity.get("status")
+        if status == plugin_facts.STATUS_HOMEBREW:
+            return tr("Homebrew, not a game"), PROBLEM_COLOR
+        if status == plugin_facts.STATUS_UNSUPPORTED:
+            return tr("Not supported"), PROBLEM_COLOR
         if status == plugin_facts.STATUS_UNREADABLE:
             return tr("Cannot read: add its folder"), PROBLEM_COLOR
         console = str(identity.get("key") or "")
@@ -460,6 +482,11 @@ class ProjectWizard(QDialog):
             if widget is not None:
                 widget.deleteLater()
         for console in self._missing_consoles():
+            if self._source_offered(console):
+                get = QPushButton(self._get_label())
+                get.setEnabled(self._download_job is None)
+                get.clicked.connect(lambda _checked=False, c=console: self._get_keys_from_source(c))
+                self._key_bar.addWidget(get)
             button = QPushButton(tr("Add the key file for {0}...", tr(images.CONSOLE_LABEL[console])))
             button.clicked.connect(partial(self._pick_key_file, console))
             self._key_bar.addWidget(button)
@@ -473,6 +500,7 @@ class ProjectWizard(QDialog):
         if path:
             self._picked_keys[console] = path
             self._refresh_files_state()
+            self._reread_files()   # an encrypted image may show its product code only with this key
 
     # ----- navigation -----
     def _show_page(self, index: int) -> None:
@@ -613,6 +641,13 @@ class ProjectWizard(QDialog):
                 self._progress_text.setText(tr("The {0} image is encrypted and needs its key file.", label))
                 self._retry_console = console
                 self._add_key.setVisible(True)
+            if self._source_offered(console):   # the default source is offered first, then a file
+                choice = self._ask_key_source(console)
+                if choice == "get" and self._get_keys_from_source(console, after=self._create_clicked):
+                    return None
+                if choice == "cancel":
+                    self._progress_text.setText(tr("No key file was chosen. Nothing was created."))
+                    return None
             title = (tr("Choose the Oodle library file (oo2core or oo2ext DLL)") if console == "oodle"
                      else tr("Choose the key file for {0}", label))
             path, _filter = QFileDialog.getOpenFileName(
@@ -622,6 +657,74 @@ class ProjectWizard(QDialog):
                 return None
             picked[console] = path
         return picked
+
+    def _source_offered(self, console: str) -> bool:
+        return self._source is not None and self._source.enabled and console in key_source.SOURCE_CONSOLES
+
+    def _get_label(self) -> str:
+        if self._source is None or self._source.pinned:
+            return tr("Get keys from the default source")
+        return tr("Get keys from the source you set")
+
+    def _on_source_read(self, source: key_source.Source) -> None:
+        self._source = source
+        self._refresh_files_state()
+
+    def _ask_key_source(self, console: str) -> str:
+        """Asks how to get the key file: from the source first, then a file. Returns "get", "choose" or "cancel"."""
+        label = tr(images.CONSOLE_LABEL[console])
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Question)
+        box.setWindowTitle(tr("Choose the key file for {0}", label))
+        box.setText(tr("The {0} image is encrypted and needs its key file.", label))
+        get = box.addButton(self._get_label(), QMessageBox.ButtonRole.AcceptRole)
+        choose = box.addButton(tr("Choose a file"), QMessageBox.ButtonRole.ActionRole)
+        box.addButton(tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
+        box.exec()
+        clicked = box.clickedButton()
+        return "get" if clicked is get else "choose" if clicked is choose else "cancel"
+
+    def _get_keys_from_source(self, console: str, after: Optional[Callable[[], None]] = None) -> bool:
+        """Asks for consent, then downloads the console's files on a worker. True when a download started."""
+        if self._source is None or self._download_job is not None:
+            return False
+        if not confirm_download(self, [console], self._source):
+            return False
+        job = KeyDownloadJob([console], self._source.base)
+        self._download_job = job
+        self._jobs.append(job)
+        for signal in (job.done, job.failed, job.cancelled):   # connected first: the state is reset before "after" runs
+            signal.connect(lambda *_args, j=job: self._finish_download(j))
+        job.progress.connect(self._progress_text.setText)
+        job.done.connect(lambda outcome, c=console, a=after: self._on_keys_downloaded(c, outcome, a))
+        job.failed.connect(self._on_keys_failed)
+        job.cancelled.connect(lambda: self._progress_text.setText(tr("Download cancelled. Nothing was kept.")))
+        self._progress_text.setText(tr("Downloading the key files for {0}...", tr(images.CONSOLE_LABEL[console])))
+        self._cancel_unpack.setVisible(True)
+        self._refresh_files_state()
+        job.start()
+        return True
+
+    def _finish_download(self, job: Any) -> None:
+        if self._download_job is job:
+            self._download_job = None
+        self._forget(job)
+        self._cancel_unpack.setVisible(self._unpack_job is not None)
+        self._refresh_files_state()
+
+    def _on_keys_downloaded(self, console: str, outcome: key_source.Outcome, after: Optional[Callable[[], None]]) -> None:
+        label = tr(images.CONSOLE_LABEL[console])
+        if console not in outcome.downloaded:
+            self._progress_text.setText(tr("Your own key file for {0} is in use. Reopen the wizard to use it.", label))
+            return
+        self._picked_keys[console] = str(key_source.managed_dir(console) / key_source.REGISTERED[console])
+        self._progress_text.setText(tr("The key files for {0} were downloaded.", label))
+        self._refresh_files_state()
+        if after is not None:
+            after()
+
+    def _on_keys_failed(self, message: str) -> None:
+        QMessageBox.warning(self, tr("Key files"), message)
 
     def _on_key_failed(self, console: str, _message: str) -> None:
         self._retry_console = console
@@ -672,9 +775,10 @@ class ProjectWizard(QDialog):
         self._progress_text.setText(text)
 
     def _cancel_unpacking(self) -> None:
-        if self._unpack_job is not None:
+        job = self._unpack_job or self._download_job   # the one that runs; a download is cancelled the same way
+        if job is not None:
             self._progress_text.setText(tr("Cancelling..."))
-            self._unpack_job.requestInterruption()
+            job.requestInterruption()
 
     def _on_unpack_cancelled(self) -> None:
         self._remove_made()
@@ -732,13 +836,18 @@ class ProjectWizard(QDialog):
     def reject(self) -> None:
         if self._unpack_job is not None:
             self._unpack_job.requestInterruption()
+        self._stop_jobs()
         super().reject()
 
     def closeEvent(self, event) -> None:
+        self._stop_jobs()
+        super().closeEvent(event)
+
+    def _stop_jobs(self) -> None:
+        """Stop every job still running; a facts or list job must not outlive the dialog it reports to."""
         for job in list(self._jobs):
             try:
                 safe_shutdown_thread(job, None, 1000)
             except RuntimeError:  # Qt deleted a job that had already finished
                 pass
         self._jobs.clear()
-        super().closeEvent(event)

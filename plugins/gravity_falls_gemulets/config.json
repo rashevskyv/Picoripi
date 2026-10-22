@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "EUR", "note": "3DS, UbiArt engine"}
+    ],
     "display_name": "Gravity Falls: Legend of the Gnome Gemulets",
     "platforms": ["3ds"],
     "default_tag_mappings": {},

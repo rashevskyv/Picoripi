@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "title", "id": "0005000010143500", "region": "Not stated", "note": "Wii U HD, English pack of the US title"}
+    ],
     "display_name": "Zelda: The Wind Waker",
     "default_tag_mappings": {},
     "block_names": {},

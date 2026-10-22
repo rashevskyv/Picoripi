@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "name", "id": "CONKER BFD", "region": "USA", "note": "N64 ROM, internal name at header offset 0x20; USA 1.0"}
+    ],
     "display_name": "Conker's Bad Fur Day (N64)",
     "default_tag_mappings": {},
     "block_names": {},

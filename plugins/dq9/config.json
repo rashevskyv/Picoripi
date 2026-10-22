@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "code", "id": "YDQP", "region": "EUR", "note": "Nintendo DS"}
+    ],
     "display_name": "Dragon Quest IX: Sentinels of the Starry Skies",
     "default_tag_mappings": {},
     "block_names": {},

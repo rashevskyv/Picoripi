@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "Not stated", "note": "Switch OpenGOAL port; Jak 1 and Jak II NTSC-U, Jak 3 PAL"}
+    ],
     "display_name": "Jak and Daxter",
     "platforms": ["ps2", "switch"],
     "default_tag_mappings": {},

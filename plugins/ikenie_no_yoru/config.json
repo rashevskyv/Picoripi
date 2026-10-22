@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "disc", "id": "SEKJ99", "region": "JPN", "note": "Wii, Japanese disc with the English fan translation"}
+    ],
     "display_name": "Ikenie no Yoru",
     "platforms": ["wii"],
     "default_tag_mappings": {},

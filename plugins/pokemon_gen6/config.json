@@ -1,4 +1,10 @@
 {
+    "supported_images": [
+        {"kind": "title", "id": "0004000000055d00", "region": "Not stated", "note": "X"},
+        {"kind": "title", "id": "0004000000055e00", "region": "Not stated", "note": "Y"},
+        {"kind": "title", "id": "000400000011c400", "region": "Not stated", "note": "Omega Ruby"},
+        {"kind": "title", "id": "000400000011c500", "region": "Not stated", "note": "Alpha Sapphire"}
+    ],
     "display_name": "Pokémon X/Y + Omega Ruby/Alpha Sapphire (3DS)",
     "default_tag_mappings": {
         "{PLAYER}": "{VAR 0100 0000}",

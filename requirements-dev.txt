@@ -6,6 +6,8 @@ pytest-xdist==3.8.0
 ruff==0.15.15
 # AES for tools/wii_nand and the decrypt tests; the same pin is in requirements.txt (the app imports it).
 pycryptodome==3.23.0
+# zstd for the Z3DS tests and the compressed 3DS images; the same pin is in requirements.txt.
+zstandard==0.23.0; python_version < "3.14"
 
 # CLI only (see .agents/rules/graphify.md) - the app never imports it.
 graphifyy>=0.8.40

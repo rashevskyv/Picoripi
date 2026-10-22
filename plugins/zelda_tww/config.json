@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "disc", "id": "GZLE01", "region": "USA", "note": "GameCube BMG; the European discs are not identified"}
+    ],
     "display_name": "Zelda: The Wind Waker (GameCube BMG)",
     "PROBLEM_DEFINITIONS": {
         "PROBLEM_TAG_WARNING": {

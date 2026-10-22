@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "disc", "id": "GEDE01", "region": "USA", "note": "GameCube"}
+    ],
     "display_name": "Eternal Darkness: Sanity's Requiem",
     "default_tag_mappings": {},
     "block_names": {},

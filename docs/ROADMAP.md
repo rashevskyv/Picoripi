@@ -46,7 +46,7 @@ The per-game table is the status page generated from `_shared/status/*.json`. In
 | Pokémon, Castlevania, Metroid, DKC, Metal Gear, Layton, Dragon Quest, Bravely, others | plugins registered; proofs per game in the status page |
 | Silent Hill 1, 2 | Ukrainian builds exist; Switch packages in progress |
 | Monster Hunter Portable 3rd HD | project and build done; Yakumo built from source with the translation loader; Cyrillic seen on screen (Character Creation) |
-| Wii U (52 titles) | blocked on a console key file |
+| Wii U (52 titles) | blocked: Picoripi has no Wii U key slot yet |
 
 ## Order of work
 

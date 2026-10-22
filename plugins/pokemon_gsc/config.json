@@ -1,4 +1,10 @@
 {
+    "supported_images": [
+        {"kind": "hash", "id": "d8b8a3600a465308c9953dfa04f0081c05bdcb94", "region": "USA", "note": "Gold"},
+        {"kind": "hash", "id": "49b163f7e57702bc939d642a18f591de55d92dae", "region": "USA", "note": "Silver"},
+        {"kind": "hash", "id": "f4cd194bdee0d04ca4eac29e09b8e4e9d818c133", "region": "USA", "note": "Crystal"},
+        {"kind": "hash", "id": "f2f52230b536214ef7c9924f483392993e226cfb", "region": "USA", "note": "Crystal, version 1.1"}
+    ],
     "display_name": "Pokémon Gold, Silver and Crystal (pret)",
     "default_tag_mappings": {
         "{Player}": "<PLAYER>",

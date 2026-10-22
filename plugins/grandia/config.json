@@ -1,4 +1,9 @@
 {
+    "supported_images": [
+        {"kind": "disc", "id": "T17716N", "region": "USA", "note": "Dreamcast GD-ROM, Grandia II"},
+        {"kind": "serial", "id": "SCUS-94457", "region": "USA", "note": "PlayStation disc 1"},
+        {"kind": "serial", "id": "SCUS-94465", "region": "USA", "note": "PlayStation disc 2"}
+    ],
     "display_name": "Grandia II (Dreamcast, USA)",
     "default_tag_mappings": {
         "{BR}": "<01>",

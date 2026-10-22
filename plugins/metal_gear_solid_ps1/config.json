@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "serial", "id": "SLUS-00594", "region": "USA", "note": "PlayStation, both discs"}
+    ],
     "display_name": "Metal Gear Solid (PlayStation)",
     "platforms": ["psx"],
     "default_tag_mappings": {},

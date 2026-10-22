@@ -3,7 +3,7 @@
 ``load_keys`` reads a prod.keys-style file (``name = HEX`` lines); unknown lines are ignored. ``NcaHeader`` decrypts the
 first 0xC00 bytes of an NCA with the header key (Nintendo XTS). ``content_key`` finds the key of the program's sections
 and ``open_section`` gives a decrypted view of one section (plain or AES-CTR). Not here: BKTR patches, NCA0/NCA2,
-compressed sections and personalised tickets; the reader in switch_images refuses or skips them.
+compressed sections and personalised tickets (the RomFS compression layer is in switch_compressed); the reader in switch_images refuses or skips them.
 
 No file is written. Key values stay in memory and are never put in a repr, a log or an exception message.
 pycryptodome is imported inside the functions that use it, so the app starts without it (see console_crypto).

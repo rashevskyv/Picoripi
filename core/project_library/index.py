@@ -14,7 +14,7 @@ from utils.atomic_io import atomic_write_json
 from utils.logging_utils import log_warning
 
 INDEX_FILE_NAME = "project_index.json"
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2   # 2: cards carry the plugin's declared images; an older index is read as empty and rebuilt
 
 # Writers from several worker threads take turns; a read-modify-write must not interleave.
 _lock = threading.Lock()
@@ -29,6 +29,8 @@ def _read_entries(path: Path) -> Dict[str, Dict[str, Any]]:
         return {}
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(raw, dict) and raw.get("version") != SCHEMA_VERSION:
+            return {}
         entries = raw.get("entries") if isinstance(raw, dict) else None
         if not isinstance(entries, dict):
             raise ValueError("no entries object")

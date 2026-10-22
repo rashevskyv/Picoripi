@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-21
 owns: handlers/ and ui/ (messages and dialogs)
-tokens: 2.6k
+tokens: 2.8k
 purpose: Symptom, cause and fix tables for the problems a new user meets, plus how to read the log and report a bug.
 ---
 # Troubleshooting
@@ -32,7 +32,11 @@ Messages are quoted as Picoripi shows them in English.
 
 | Symptom | Cause | What to do |
 |---|---|---|
-| The file status shows **Needs the key file**. | The file is encrypted. | Click **Add the key file for ...**. Choose the key file for that console. |
+| The file status shows **Needs the key file**. | The file is encrypted. | Click **Get keys from the default source**, or **Add the key file for ...** to choose your own file. |
+| `Picoripi could not reach the source. Check the connection and try again.` | No connection, or a firewall or proxy blocks the download. | Check the connection and try again. Or choose a file. |
+| `The source has no ... The source may have moved.` | The default source has moved or was removed. | Change the source in the **Console keys** tab, or choose a file. |
+| `The source refused the request (HTTP 429). Try again later.` | The source limits requests for a while. | Try again later, or choose a file. |
+| `The file ... does not match the source record. It was not kept.` | The download was damaged, or the source changed. | Try again. Or choose a file. |
 | The status shows **Cannot read: add its folder**. | The game plugin cannot read this file type. | Remove the file. Add the unpacked game folder with **Add folder...**. |
 | The status shows **Not recognised by this game**. | The file is not from this game, or it is a format the plugin does not read. | Remove the file. Or set its **Role** and **Platform** by hand. |
 | `Give every file a role.` | At least one file has no role. | Choose a role for each file. Press **Apply**. |
@@ -136,6 +140,10 @@ Picoripi writes a log file named `app_debug.txt`. The default place is the progr
 **The program is slow only with one project.**
 - Note the project name and the stage (editor, build or AI).
 - Send the log. Name the project in the report, but not its text.
+
+**The Textures window says a Python package is not installed.**
+- Run `setup.bat` again. It installs everything in `requirements.txt`.
+- Or run `python -m pip install -r requirements.txt` in the activated Picoripi environment.
 
 **A problem is not in this list.**
 - Read [Getting started](0_Getting_Started.md) for the first steps.

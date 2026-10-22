@@ -244,7 +244,7 @@ class GameRules(BaseGameRules):
     def identify_source(self, path: str) -> Optional[Dict[str, str]]:
         if os.path.isdir(path):
             return {"role": "base", "platform": "wiiu"} if _is_hd_title_folder(path) else None
-        return images.base_identity(path, ("GZ2E01", "RZDE01"))
+        return images.base_identity(path, self._declared_ids("disc"))
 
     def unpack_key_consoles(self) -> List[str]:
         return ["wii"]   # the Wii disc's partition is encrypted

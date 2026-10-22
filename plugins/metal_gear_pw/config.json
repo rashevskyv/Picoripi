@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "Not stated", "note": "Master Collection, PC and Switch"}
+    ],
     "display_name": "Metal Gear Solid: Peace Walker (Master Collection)",
     "platforms": ["switch", "pc"],
     "default_tag_mappings": {},

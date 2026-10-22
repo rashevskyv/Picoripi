@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from core import formats
+from core.containers import console_crypto
 from core.i18n import tr
 from core.project_library import console_keys, images
 from core.project_library.cards import count_strings
@@ -47,6 +48,8 @@ N3DS_TITLE_KIND = {"00040000": "base", "0004000E": "update", "0004008C": "dlc"} 
 KIND_WIIU = "wiiu"                    # a Wii U disc image (.wux): recognised for its platform, never read
 WUX_MAGIC = b"WUX0"
 STATUS_OK, STATUS_FOLDER, STATUS_UNREADABLE, STATUS_UNRECOGNISED = "ok", "folder", "unreadable", "unrecognised"
+STATUS_HOMEBREW = "homebrew"          # a .3dsx: a homebrew program, not a game; refused with that reason
+STATUS_UNSUPPORTED = "unsupported"    # an image this build cannot read; the row's "reason" says why
 
 
 def roles_of(rules: Any) -> List[Dict[str, Any]]:
@@ -108,6 +111,8 @@ def generic_identity(found: Optional[Dict[str, Any]]) -> Dict[str, str]:
     if not found:
         return {"role": "", "platform": ""}
     kind = str(found.get("kind") or "")
+    if kind in (images.KIND_HOMEBREW, images.KIND_UNSUPPORTED):   # not a game: no role; the status says why
+        return {"role": "", "platform": images.KIND_3DS if kind == images.KIND_HOMEBREW else ""}
     role = str(found.get("title_kind") or "")
     if kind == images.KIND_3DS:
         role = N3DS_TITLE_KIND.get(str(found.get("title_id") or "")[:8].upper(), "base")
@@ -201,8 +206,20 @@ def targets_of(rules: Any) -> List[Dict[str, Any]]:
     return targets
 
 
-def identify_sources(rules: Any, paths: Sequence[str], is_cancelled: Cancelled = lambda: False) -> List[Dict[str, Any]]:
+def identify_sources(rules: Any, paths: Sequence[str], is_cancelled: Cancelled = lambda: False,
+                     key_paths: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
     """For each path: ``{"path", "role", "platform", "status", "title_id", "key", "key_ready", "libraries", ...}``.
+
+    ``key_paths`` are key files the user picked and has not stored yet (console -> path). With the stored ones they
+    let an encrypted 3DS image report its product code, which a plugin's identity may need.
+    """
+    picked = dict(key_paths or {})
+    with console_crypto.key_source(lambda console: picked.get(console) or console_keys.path_for(console)):
+        return _identify_sources(rules, paths, is_cancelled)
+
+
+def _identify_sources(rules: Any, paths: Sequence[str], is_cancelled: Cancelled) -> List[Dict[str, Any]]:
+    """The work of ``identify_sources``, run with the key lookup of the caller.
 
     The plugin's ``identify_source`` answers first. A file it does not recognise gets the role and platform its own
     header gives (``generic_identity``). A role the plugin did not declare is dropped. ``status``: ``ok``; ``folder``
@@ -215,7 +232,8 @@ def identify_sources(rules: Any, paths: Sequence[str], is_cancelled: Cancelled =
     known = {role["id"] for role in roles_of(rules)}
     declared = [platform["id"] for platform in platforms_of(rules)]
     allowed = _unpack_consoles(rules)
-    unpacks = _has_unpack(rules) or bool(allowed)    # a game that reads console keys unpacks images
+    has_hook = _has_unpack(rules)
+    unpacks = has_hook or bool(allowed)    # a game that reads console keys unpacks images
     result: List[Dict[str, Any]] = []
     for path in paths:
         if is_cancelled():
@@ -223,6 +241,9 @@ def identify_sources(rules: Any, paths: Sequence[str], is_cancelled: Cancelled =
         libraries: List[str] = []
         is_folder = os.path.isdir(path)
         found = None if is_folder else describe_file(path)
+        # A game with no unpack hook gets the whole 3DS image unpacked (images.extract_3ds_set), so its key is asked too.
+        generic_3ds = not has_hook and str((found or {}).get("kind") or "") == images.KIND_3DS
+        key_allowed = [*allowed, "3ds"] if generic_3ds else allowed
         try:
             identity = None if is_folder else rules.identify_source(path)
         except Exception as exc:  # a plugin's bug must not stop the wizard; the header or the user gives the role
@@ -236,13 +257,14 @@ def identify_sources(rules: Any, paths: Sequence[str], is_cancelled: Cancelled =
             generic = generic_identity(found)
             role = generic["role"] if generic["role"] in known else ""
             platform = generic["platform"]
-            status = _status_of(found, is_folder, unpacks)
+            status = _status_of(found, is_folder, unpacks, generic_3ds)
         if not platform and is_folder:
             platform = folder_platform(path) or path_platform(path, declared)
         if not platform and len(declared) == 1:
             platform = declared[0]          # a game on one platform: every file of it is on that platform
-        console = _key_console(found, allowed) if status in (STATUS_OK, STATUS_UNRECOGNISED) else ""
+        console = _key_console(found, key_allowed) if status in (STATUS_OK, STATUS_UNRECOGNISED) else ""
         result.append({"path": path, "role": role, "platform": platform, "status": status,
+                       "reason": str((found or {}).get("reason") or ""),
                        "title_id": str((found or {}).get("title_id") or (found or {}).get("game_id") or ""),
                        "key": console,
                        "key_ready": bool(console) and console_keys.path_for(console) is not None,
@@ -251,20 +273,29 @@ def identify_sources(rules: Any, paths: Sequence[str], is_cancelled: Cancelled =
     return result
 
 
-def _status_of(found: Optional[Dict[str, Any]], is_folder: bool, unpacks: bool) -> str:
+def _status_of(found: Optional[Dict[str, Any]], is_folder: bool, unpacks: bool, generic_3ds: bool = False) -> str:
     """The status of a file the plugin did not recognise (see ``identify_sources``)."""
     if is_folder:
         return STATUS_FOLDER
     kind = str((found or {}).get("kind") or "")
+    if kind == images.KIND_HOMEBREW:
+        return STATUS_HOMEBREW
+    if kind == images.KIND_UNSUPPORTED:
+        return STATUS_UNSUPPORTED
+    if generic_3ds and kind == images.KIND_3DS:   # unpacked whole by images.extract_3ds_set: ready
+        return STATUS_OK
     if kind == KIND_WIIU or (kind in images.UNPACK_KINDS and not unpacks):
         return STATUS_UNREADABLE
     return STATUS_UNRECOGNISED if kind in images.UNPACK_KINDS else STATUS_OK
 
 
-def _has_unpack(rules: Any) -> bool:
+def has_unpack_hook(rules: Any) -> bool:
     """True when the plugin has its own ``unpack_sources``; without it a game image cannot become a source."""
     owner = next((cls for cls in type(rules).__mro__ if "unpack_sources" in vars(cls)), None)
     return owner is not None and owner.__name__ != "BaseGameRules"
+
+
+_has_unpack = has_unpack_hook
 
 
 def _unpack_consoles(rules: Any) -> List[str]:

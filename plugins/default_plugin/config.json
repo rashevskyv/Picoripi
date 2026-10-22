@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "any", "id": "", "region": "", "note": "template for new games, not a game"}
+    ],
     "display_name": "Default Plugin Template",
     "platforms": ["other"],
     "default_tag_mappings": {},

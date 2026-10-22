@@ -1,4 +1,17 @@
 {
+    "supported_images": [
+        {"kind": "hash", "id": "f3ae088181bf583e55daf962a92bb46f4f1d07b7", "region": "USA, Europe", "note": "Emerald"},
+        {"kind": "hash", "id": "41cb23d8dccc8ebd7c649cd8fbb58eeace6e2fdc", "region": "USA", "note": "FireRed rev 0"},
+        {"kind": "hash", "id": "dd5945db9b930750cb39d00c84da8571feebf417", "region": "USA", "note": "FireRed rev 1"},
+        {"kind": "hash", "id": "574fa542ffebb14be69902d1d36f1ec0a4afd71e", "region": "USA", "note": "LeafGreen rev 0"},
+        {"kind": "hash", "id": "7862c67bdecbe21d1d69ce082ce34327e1c6ed5e", "region": "USA", "note": "LeafGreen rev 1"},
+        {"kind": "hash", "id": "f28b6ffc97847e94a6c21a63cacf633ee5c8df1e", "region": "USA, Europe", "note": "Ruby rev 0"},
+        {"kind": "hash", "id": "610b96a9c9a7d03d2bafb655e7560ccff1a6d894", "region": "USA, Europe", "note": "Ruby rev 1"},
+        {"kind": "hash", "id": "5b64eacf892920518db4ec664e62a086dd5f5bc8", "region": "USA, Europe", "note": "Ruby rev 2"},
+        {"kind": "hash", "id": "3ccbbd45f8553c36463f13b938e833f652b793e4", "region": "USA, Europe", "note": "Sapphire rev 0"},
+        {"kind": "hash", "id": "4722efb8cd45772ca32555b98fd3b9719f8e60a9", "region": "USA, Europe", "note": "Sapphire rev 1"},
+        {"kind": "hash", "id": "89b45fb172e6b55d51fc0e61989775187f6fe63c", "region": "USA, Europe", "note": "Sapphire rev 2"}
+    ],
     "display_name": "Pokemon FireRed/LeafGreen",
     "default_tag_mappings": {
         "{Player}": "{PLAYER}",

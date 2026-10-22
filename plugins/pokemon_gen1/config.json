@@ -1,4 +1,9 @@
 {
+    "supported_images": [
+        {"kind": "hash", "id": "ea9bcae617fdf159b045185467ae58b2e4a48b9a", "region": "USA", "note": "Pokemon Red"},
+        {"kind": "hash", "id": "d7037c83e1ae5b39bde3c30787637ba1d4c48ce2", "region": "USA", "note": "Pokemon Blue"},
+        {"kind": "hash", "id": "cc7d03262ebfaf2f06772c1a480c7d9d5f4a38e1", "region": "USA", "note": "Pokemon Yellow"}
+    ],
     "display_name": "Pokémon Red / Blue / Yellow (Game Boy)",
     "default_tag_mappings": {
         "{Player}": "<PLAYER>",

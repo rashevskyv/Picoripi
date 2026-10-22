@@ -115,8 +115,9 @@ def _ticket(rights, enc_title_key, personal=False):
     return bytes(ticket)
 
 
-def _section(body, fs, crypto, iv=None, field=(0x40, 0)):
-    return {"body": body, "fs": fs, "crypto": crypto, "iv": iv or os.urandom(8), "field": field}
+def _section(body, fs, crypto, iv=None, field=(0x40, 0), extra=None):
+    """A section spec. ``extra`` maps FS header offsets to bytes written after ``field`` (a compression table)."""
+    return {"body": body, "fs": fs, "crypto": crypto, "iv": iv or os.urandom(8), "field": field, "extra": extra or {}}
 
 
 BODY = 0x4000   # where the sections start: an NCZ copies this many bytes of NCA header first
@@ -146,6 +147,8 @@ def _nca(header_key, content_key, area_key, sections, content_type=0, rights=byt
         fsh[4] = spec["crypto"]
         fsh[0x140:0x148] = spec["iv"]
         struct.pack_into("<Q", fsh, spec["field"][0], spec["field"][1])
+        for at, raw in spec["extra"].items():
+            fsh[at:at + len(raw)] = raw
         fshs.append(bytes(fsh))
     head = bytearray(HEADER)
     head[0x200:0x204] = b"NCA3"
@@ -198,17 +201,71 @@ def _key_file(tmp_path, material, direct=False, extra=()):
 BIG = bytes(range(256)) * 160   # 40960 bytes: a body of three NCZ blocks (zstd frames compress it)
 
 
-def _program_sections(random_romfs=False, big=False):
+def _program_sections(random_romfs=False, big=False, compressed=False):
     exefs = _pfs0([("main", b"MAIN" * 300), ("main.npdm", b"NPDM" * 50)])
     sub = {"b.bin": b"bravo" * 30}
     if big:
         sub["big.bin"] = BIG
     romfs = _romfs({"a.bin": b"alpha" * 40}, "dir", sub)
+    if compressed:
+        body, extra = _compressed_romfs(romfs, damaged=compressed == "damaged")
+        return [
+            _section(exefs, fs=1, crypto=3, field=(0x40, 0)),
+            _section(body, fs=0, crypto=3, field=(0x90, SECTOR), extra=extra),
+        ]
     romfs_body = bytes(SECTOR) + (os.urandom(0x300) if random_romfs else romfs)
     return [
         _section(exefs, fs=1, crypto=3, field=(0x40, 0)),
         _section(romfs_body, fs=0, crypto=4 if random_romfs else 3, field=(0x90, SECTOR)),
     ]
+
+
+# A compressed RomFS section (firmware 12 and later): the RomFS image starts at the IVFC level (SECTOR). The compression
+# table sits at COMPRESS_TABLE from the level: one root node and one entry set (0x4000 bytes each), then the blocks.
+COMPRESS_TABLE = 0x400
+STORED_TYPE, ZERO_TYPE, LZ4_TYPE = 0, 1, 3
+
+
+def _lz4_literals(data):
+    """An LZ4 block of literals only: one sequence, no match (a valid last sequence)."""
+    out = bytearray([min(len(data), 15) << 4])
+    if len(data) >= 15:
+        rest = len(data) - 15
+        while rest >= 255:
+            out.append(255)
+            rest -= 255
+        out.append(rest)
+    return bytes(out) + data
+
+
+def _compressed_romfs(romfs, *, damaged=False):
+    """The section body and its FS header fields for ``romfs``, cut into a stored block, an LZ4 block, an LZ4 block and
+    zeros past the image. ``damaged`` makes the second LZ4 block claim more literals than it holds."""
+    romfs = romfs + bytes(max(0, 0x400 - len(romfs)))
+    cuts = [(0, 0x100, STORED_TYPE), (0x100, 0x300, LZ4_TYPE), (0x300, len(romfs), LZ4_TYPE),
+            (len(romfs), len(romfs) + 0x200, ZERO_TYPE)]
+    logical_end = cuts[-1][1]
+    blocks = bytearray()
+    entries = []
+    base = COMPRESS_TABLE + 0x4000 * 2
+    for start, end, kind in cuts:
+        if kind == STORED_TYPE:
+            raw = romfs[start:end]
+        elif kind == LZ4_TYPE:
+            raw = bytes([0xF0, 0xFF, 0xFF, 0xFF]) if damaged and start == 0x100 else _lz4_literals(romfs[start:end])
+        else:
+            raw = b""
+        entries.append((start, base + len(blocks) if raw else 0, kind, len(raw) or 0xFFFFFFFF))
+        blocks += raw
+    stored = bytearray(base + len(blocks))            # counted from the level: the IVFC bytes before it come first
+    stored[COMPRESS_TABLE:COMPRESS_TABLE + 0x10] = struct.pack("<iiq", 0, 1, logical_end)   # the root node
+    set_at = COMPRESS_TABLE + 0x4000
+    stored[set_at:set_at + 0x10] = struct.pack("<iiq", 0, len(entries), logical_end)       # the entry set
+    for index, (virt, phys, kind, size) in enumerate(entries):
+        stored[set_at + 0x10 + index * 0x18:set_at + 0x10 + (index + 1) * 0x18] =             struct.pack("<qqBbHI", virt, phys, kind, 0, 0, size)
+    stored[base:] = blocks
+    extra = {0x178: struct.pack("<qq4sII", COMPRESS_TABLE, 0x8000, b"BKTR", 1, len(entries))}
+    return bytes(SECTOR) + bytes(stored), extra
 
 
 BLOCK_EXP = 14   # NCZBLOCK blocks of 16 KiB in the synthetic files
@@ -237,12 +294,12 @@ def _ncz(nca, plain, placed, key, mode):
 
 
 def _package(material, *, ticketed=True, personal=False, meta_first=False, random_romfs=False, content_key=None,
-             ncz=None, big=False):
+             ncz=None, big=False, compressed=False):
     """The NSP bytes. ``ncz`` ("block" or "solid") stores the program NCA as an .ncz instead of an .nca."""
     header_key = material["header_key"]
     area, titlekek = _derived(material)
     content_key = content_key or os.urandom(16)
-    sections = _program_sections(random_romfs, big)
+    sections = _program_sections(random_romfs, big, compressed)
     if ticketed:
         rights = os.urandom(16)
         nca, plain, placed = _nca(header_key, content_key, area, sections, rights=rights)
@@ -388,6 +445,28 @@ def test_reading_writes_no_file(tmp_path):
     _read_all(nsp, keys)
 
     assert sorted(os.listdir(tmp_path)) == before
+
+
+@pytest.mark.parametrize("ncz", [None, "block"])
+def test_compressed_romfs_reads_the_same_files_as_a_plain_one(tmp_path, ncz):
+    material = _material()
+    content_key = os.urandom(16)
+    keys = load_keys(_key_file(tmp_path, material))
+    plain, _ = _read_all(_package(material, content_key=content_key), keys)
+    packed, reader = _read_all(_package(material, content_key=content_key, compressed=True, ncz=ncz), keys,
+                               tmp_path / "cache")
+
+    assert packed == plain
+    assert packed["romfs/dir/b.bin"] == b"bravo" * 30
+    assert reader.romfs_is_patch is False
+
+
+def test_compressed_romfs_with_a_damaged_block_is_an_image_error(tmp_path):
+    material = _material()
+    keys = load_keys(_key_file(tmp_path, material))
+
+    with pytest.raises(ImageError):
+        _read_all(_package(material, compressed="damaged"), keys)
 
 
 @pytest.mark.parametrize("mode", ["block", "solid"])

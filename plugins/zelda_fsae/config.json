@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "code", "id": "KQ9V", "region": "EUR", "note": "DSiWare, Four Swords Anniversary Edition"}
+    ],
     "display_name": "Zelda: Four Swords Anniversary Edition",
     "default_tag_mappings": {},
     "block_names": {},

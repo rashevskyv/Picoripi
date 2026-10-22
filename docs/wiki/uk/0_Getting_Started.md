@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-21
 owns: ui/project_manager/wizard.py
-tokens: 1.9k
+tokens: 2.0k
 ---
 # З чого почати
 
@@ -56,8 +56,9 @@ flowchart LR
    ![Крок 1: гра](../img/getting_started/03_wizard_game_uk.png)
 
 2. **Файли.** Натисніть **Додати файли...** й виберіть файли гри: саму гру, оновлення та DLC. Якщо гра вже
-   розпакована, натисніть **Додати папку...**. Програма сама визначить роль і платформу кожного файлу. Якщо
-   потрібен файл ключів, вона скаже про це в рядку помилки.
+   розпакована, натисніть **Додати папку...**. Програма сама визначить роль і платформу кожного файлу. Зашифрований
+   файл потребує файл ключів. Тоді натисніть **Отримати ключі з типового джерела** або **Додати файл ключів для ...**.
+   Див. [Ключі консолей](4_Configuration_Guide.md#ключі-консолей).
 
    ![Крок 2: файли](../img/getting_started/04_wizard_files_uk.png)
 
@@ -110,10 +111,10 @@ flowchart LR
 
 | Гра | Які файли додати | Файл ключів |
 |---|---|---|
-| Yo-kai Watch, Switch | гра `.nsz` або `.nsp` та її оновлення | Switch `prod.keys` |
-| Yo-kai Watch, 3DS | `.3ds` | ключі 3DS, лише якщо файл зашифровано |
+| Yo-kai Watch, Switch | гра `.nsz` або `.nsp` та її оновлення | Switch `prod.keys`, якщо зашифровано |
+| Yo-kai Watch, 3DS | `.3ds` | 3DS `aes_keys.txt`, лише якщо зашифровано |
 | Twilight Princess, GameCube | `.iso` | не потрібен |
-| Twilight Princess, Wii | `.iso` для Wii | Wii `keys.bin` |
+| Twilight Princess, Wii | `.iso` для Wii | Wii `keys.bin`, якщо зашифровано |
 | Twilight Princess HD, Wii U | розпакована тека гри (файл `.wux` Picoripi ще не читає) | не потрібен |
 
 <!-- wiki-nav -->

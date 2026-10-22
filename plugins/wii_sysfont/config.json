@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "any", "id": "", "region": "", "note": "the Wii system bitmap fonts wbf1 and wbf2"}
+    ],
     "display_name": "Wii System Font",
     "platforms": ["wii"],
     "default_tag_mappings": {},

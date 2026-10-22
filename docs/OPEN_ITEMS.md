@@ -2,13 +2,51 @@
 status: current
 updated: 2026-10-20
 owns: unfinished work
-tokens: 68.3k
+tokens: 69.4k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## Default key source (`core/project_library/key_source.py`, 2026-10-22, branch `feat/key-source`)
+
+- Done: consent-gated download of the 3DS, Switch and Wii key files from the pinned default source (D48), with the
+  wizard (Get keys first, then Choose a file) and the Console keys tab (source settings, Download again).
+- Not done: the owner's first real download in the app. The tests use a loopback server only, by design.
+- Open: Wii U keys (`keys.txt`, `otp.bin`, `seeprom.bin`) are in the source, but Picoripi has no Wii U key slot. Add a slot
+  and a reader first.
+- Note: Switch `title.keys` is not in the download table (`SOURCE_FILES`). No reader uses it.
+- Open: a source the user sets has no hash record. Only the registered file gets a parser check. `boot9.bin` and
+  `seeddb.bin` from such a source are not checked.
+- Open: on an update of the default commit, `DEFAULT_REF` and `SOURCE_FILES` change together. Nothing checks that they
+  agree; a test would need the repository.
+- Open: the legal status of these keys depends on the user's country. The owner decides whether the default stays.
+- Open: `core/containers/gcm.py` refuses a Wii disc with "a Wii disc: its files need a key, which Picoripi does not read yet". The Wii reader exists now (`wii_disc.py`, `keys.bin`). Reword the message to point to Console keys.
+- Open: some plugin build messages say "console keys" in lower case (`plugins/madworld`, `no_more_heroes`, `okami_wii`, `wario_land_shake_it`). The settings tab is "Console keys". Align the wording with a `uk.json` pair per string.
+## 3DS image formats (`core/containers/n3ds.py`, `z3ds.py`, `core/project_library/images.py`, 2026-10-22, branch `fix/3ds-image-formats`)
+
+- Open: encrypted 3DS formats are proven on synthetic data only. The owner's key store had no 3DS key file on 2026-10-22, so no real encrypted `.cia` or `.cci` ran. Set the 3DS key file (Settings, Console keys), then check Luigi's Mansion 2 `legit.cia` and Yo-kai Watch encrypted files.
+- Open: no real Z3DS sample is on disk (`.zcia`, `.zcci`, `.zcxi`, `.z3ds`). The reader follows Azahar's `file_derived.cpp`; a real file is the first proof.
+- Open: a multi-content CIA is read from content index 0 only (for example the e-manual at index 1 is not read).
+- Open: a manual `.cfa` has a base-game title ID (`00040000...`), so the wizard treats it as a game and unpacks it whole. A manual belongs to `manual_3ds`.
+- Open: the update overlay of a game with no unpack hook is checked on the owner's Luigi's Mansion 2 dump only, not on a base game with its update.
+## Fixed-key 3DS and compressed Switch RomFS (`n3ds.py`, `switch_compressed.py`, LM2 plugin, 2026-10-22, branch `feat/fixedkey-nca-compressed`)
+
+- Open: the fixed system key (title ID category bit 0x10) is not checked on a real system title; no owner sample. The zero key is checked on the four owner manuals (`.cfa`, all pass).
+- Open: a compressed RomFS in an update (a BKTR patch over a compressed base) is not tested; a compressed patch section and a compressed ExeFS are refused.
+- Open: the LZ4 decoder is pure Python. The Luigi's Mansion 2 HD RomFS (6.5 GB logical) reads whole in about 190 s on this PC; a full unpack to disk is not timed. The plugin writes only `romfs/art/fe`.
+- Open: the HD pairs are unpacked as the workspace does (`bundle.nlgh`, `strings.nloc`). The 8 workspace files match byte for byte; the 15 other files have no workspace copy to compare. Repacking HD pairs is not in the product.
+
+## Supported images (`supported_images`, `feat/supported-images`, 2026-10-22)
+
+- Open: 95 plugins declare `unchecked` (their identify reads no game ID; the folder or image is taken as the game). Each needs the owner's image ID and a detection check, then the entry becomes `disc`, `title`, `code` or `serial`.
+- Open: 46 entries have region `Not stated` (3DS title IDs of pokemon_gen6, pokemon_md_3ds, Wii U HD titles of zelda_bmg and zelda_ww, pokemon_gen5 and gen7 codes, and the unchecked plugins with no region in the wiki). Read the region from the owner's copy.
+- Open: `pokemon_gen5` codes IRBO, IRAO, IRBE, IREO, IRDO, IREE: which game and region each one is.
+- Open: `castlevania_gba`, `mhp3rd`, `policenauts`, `xenoblade_2`, `zelda_totk` ids come from the wiki and tests only (not from detection code); declared as `unchecked` with the id in the note.
+- Open: Switch title regions are `All regions`; the Switch title ids are region-free, so confirm each one on a real title.
+- Open: `supported_images` on `default_plugin`, `plain_text`, `manual_3ds`, `system_3ds`, `wii_sysfont` is `any`; confirm no plugin needs a narrower list.
 
 ## Share project (`core/project_library/share.py`, 2026-10-20, branch `feat/project-share`)
 
@@ -118,7 +156,7 @@ the line when it is done or moved into a plan.
 - Open: no text-fit problems (no length limit is known for the BMG strings).
 - Open: the build takes about 13 to 17 minutes (the writer seals every cluster in Python).
 - Open: the Emu Radar report is a status page only (no game screenshots, no game text).
-- Owner check: `D:\git\dev\Picoripi\data\console_keys.json` (the main checkout) was written twice by a helper that imported the main checkout; the `wii` entry is the owner's `keys.bin` path. The previous value is not known.
+- Owner check: the console key store file in the Picoripi data folder (`console_keys.json`) was written twice by a helper that imported the main checkout; the `wii` entry is the owner's `keys.bin` path. The previous value is not known.
 ## Black & White, openBlack Switch port (`plugins/black_and_white`, 2026-10-21, branch `feat/black-and-white`)
 
 - Open: the port draws no game text. `RUN_TEXT` plays voice only, `LOAD_LANGUAGE` throws "not implemented", and nothing reads `ADD_TEXT` (`src/CHLApi.cpp`, `src/LHScriptX/MapScriptCommands.cpp`). A translated line shows only after an openblack change: a text parser, a text display for `RUN_TEXT`, and a font with Cyrillic glyphs.
@@ -762,6 +800,7 @@ Open:
 - Majora's Mask `yar` archives have no room to grow in the ROM: an edit that compresses worse than the original is fitted by recompressing every block of the archive optimally; if even that does not fit, the save is refused with the file's size.
 - An archive around an edited texture is laid out anew by its container code (SARC, RARC); Revert restores the texture file byte for byte, not necessarily the archive.
 - Helper to erase the English and render Ukrainian with the game font (later).
+- `_backends()` in `core/texture_formats/__init__.py` imports every backend at once: one missing package (numpy before the fix) blanks every texture format in the window. Open: import the backends lazily per format. The message names the package now (`ui/texture_window.py`, `utils/package_check.py`).
 
 ## Startup speed (2026-10-04)
 
@@ -1677,8 +1716,8 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
   - Switch, Skyward Sword HD base NSP against `Zelda\Skyward Sword\HD - Switch` (`romfs` only): 162 workspace files in `exefs` and `romfs`, 161 equal sha256. The one difference is `romfs\EU\Object\nl_NL\5-CenterField.arc`: workspace 234554 bytes (dated 2026-10-04), ours 234522, which is the size in the RomFS table. The workspace file is most likely edited; not confirmed. The unpack has 720 files the workspace does not hold (the workspace is a subset).
   - Wii: first real-disc run 2026-10-18 (the owner's RZDE01 disc, key file in the console key store). The reader read the common key at 0x158 (the NAND key), so every decrypt failed. Fixed to 0x114. Then the H0 hash test of the first cluster passed 31 of 31, and the disc's `fontres.arc` equals the GC original. Only the first cluster was hash-checked; the rest of the disc is not.
 - Built, synthetic tests only before that run: decryption for 3DS (NCCH sections, CIA title key), Switch (NSP: NCA header, key area, CTR sections, ticket title key) and Wii (data partition, cluster IV). Run verify_unpack_keys.bat per image (`--image`, `--source` = the workspace `source` folder, and the key file argument of its console). It prints counts and equality only and unpacks into the unpack_check folder.
-- Still not verified on real data: the NCCH version 1 counter (3dbrew; no owner title checked); the NCCH 0x20 "new keyY generator" flag (the reader tries the signature KeyY and reports a wrong key if the tables do not parse); fixed-key and seed titles (refused). The Switch key-area and titlekek derivation (`switch_crypto.py`, from the spec, not from `nsz`, which is not on this PC) and the 3DS keyscrambler are now verified for the titles of the 2026-10-14 run only.
-- Refused with a message: 3DS fixed-key titles (flag 0x01); Wii Korean and vWii common keys (key index 1 and 2); Switch XCI images; Switch NCA0 and NCA2 headers; Switch XTS sections; Switch compressed sections; Switch personalised tickets; several program NCAs in one package; any other 3DS or Switch crypto method.
+- Still not verified on real data: the NCCH version 1 counter (3dbrew; no owner title checked); the NCCH 0x20 "new keyY generator" flag (the reader tries the signature KeyY and reports a wrong key if the tables do not parse); seed titles (refused). The Switch key-area and titlekek derivation (`switch_crypto.py`, from the spec, not from `nsz`, which is not on this PC) and the 3DS keyscrambler are now verified for the titles of the 2026-10-14 run only.
+- Refused with a message: Wii Korean and vWii common keys (key index 1 and 2); Switch XCI images; Switch NCA0 and NCA2 headers; Switch XTS sections; Switch personalised tickets; several program NCAs in one package; any other 3DS or Switch crypto method.
 - Partly read: a Switch update whose RomFS is a patch (BKTR). `SwitchImage.romfs_is_patch` is True and no RomFS entries are returned; the ExeFS is read. Sparse sections are read as plain: not checked (the sparse-info offset is not confirmed).
 - Not read: the 3DS seed database (flag 0x20 titles that need it report a wrong key). Wii U is not read.
 - Duplicate code: `core/containers/romfs.py` reads the 3DS RomFS only; `switch_images.py` has its own walker for the Switch RomFS (a 0x50-byte header, UTF-8 names). Merge the two when the next RomFS change lands.
@@ -1686,7 +1725,7 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - Stale (2026-10-17): plugins now unpack 3DS and Switch images (see phase 2c and phase 3). The 3DS zt scripts that run `ctr3ds.main(... "extract" ...)` (for example `zt/aot3ds.py`, `zt/layton3ds.py`, `zt/mii3ds.py`, `zt/pmd3ds.py`) also copy text or build a CXI, or need the seed database; each needs its own wiring and a check against its workspace. `zelda_mm3d` takes its files from texture and font JSON with globs and archive members; not wired. Candidates are listed in the ROADMAP A18 row.
 - The wizard asks for a key only when the chosen plugin lists the console in `unpack_key_consoles()` (new hook, D30 addendum) and the file is encrypted. Stale (2026-10-17): 8 plugins list one (pokemon_bdsp, pokemon_gen6, pokemon_gen7, pokemon_md_3ds, pokemon_nx, pokemon_trinity, super_mario_galaxy, zelda_las); the 3DS, Switch and Wii readers are wired through them.
 - `pycryptodome==3.23.0` is in `requirements.txt` (decided in D30 addendum 2c). When the package is missing, an encrypted image gives the pycryptodome message, not a crash.
-- Wiki EN and UK pages for the key file and the Switch and Wii sentences in the wizard paragraph need a check after the merge; `docs/wiki/3_Plugin_Developer_Guide.md` names the new hook.
+- Done 2026-10-22: the wiki key pages (EN and UK) follow the default source (D48). The owner section is "Console keys" in `docs/wiki/4_Configuration_Guide.md`. `docs/wiki/3_Plugin_Developer_Guide.md` names the new hook.
 - Audit r17 (2026-10-14), fixed: a missing or unreadable 3DS key file or boot9 file no longer chains its OS error, so a logged traceback does not show the key folder (`core/containers/n3ds.py`, two tests in `tests/test_core/test_n3ds_decrypt.py`).
 - Audit r17, fixed in audit r18: `tests/test_core/test_unreal_pak.py` no longer opens the real `prod.keys`. Its test that compared the Bravely Default II pak with the extracted files is removed, because the NSP needs the owner's keys. `tests/test_key_file_paths.py` now fails when a test names a real key file or key folder.
 - Audit r18, open (owner's choice): the Bravely Default II pak check (NSP, owner's `prod.keys`, extracted English entries) has no test now. Re-add it as a script outside the suite, if wanted.

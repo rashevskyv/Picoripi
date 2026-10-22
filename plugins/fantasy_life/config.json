@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "EUR", "note": "3DS"}
+    ],
     "display_name": "Fantasy Life",
     "platforms": ["3ds"],
     "default_tag_mappings": {},

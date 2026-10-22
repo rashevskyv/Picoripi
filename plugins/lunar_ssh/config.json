@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "serial", "id": "ULUS-10482", "region": "USA", "note": "PSP"}
+    ],
     "display_name": "Lunar: Silver Star Harmony (PSP)",
     "platforms": ["psp"],
     "default_tag_mappings": {},

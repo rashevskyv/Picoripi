@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-21
 owns: docs/wiki
-tokens: 3.0k
+tokens: 2.9k
 purpose: Short task recipes: what to press, in order, for each common goal, with a link to the full page
 ---
 # Recipes: I want to ...
@@ -63,11 +63,11 @@ Read more: [Creating a project: every kind of game](New_Project_Scenarios.md)
 Read more: [New Project Scenarios](New_Project_Scenarios.md)
 
 ### Add a game that needs a key file
-1. In wizard step 2, click the red row that says **Needs the key file**.
-2. Press **Add the key file for ...** and choose your console's file: `prod.keys` (Switch), `aes_keys.txt` (3DS) or `keys.bin` (Wii). Check that the row is no longer red. Picoripi keeps only the path, never the keys.
-3. To change the path later, open **Settings → Console keys**.
+1. In wizard step 2, the file shows **Needs the key file**.
+2. Press **Get keys from the default source**, confirm the dialog and wait. Or press **Add the key file for ...** and choose your own file.
+3. Check that the status shows **Ready**.
 
-Read more: [Configuration, Console keys](4_Configuration_Guide.md#console-keys)
+Read more: [Console keys](4_Configuration_Guide.md#console-keys)
 
 
 ## Share projects

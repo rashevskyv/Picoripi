@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "disc", "id": "RWLE01", "region": "USA", "note": "Wii, rev 0"}
+    ],
     "display_name": "Wario Land: Shake It! (Wii)",
     "default_tag_mappings": {},
     "block_names": {},

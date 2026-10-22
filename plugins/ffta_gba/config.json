@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "code", "id": "AFXE", "region": "USA", "note": "Game Boy Advance ROM header"}
+    ],
     "display_name": "Final Fantasy Tactics Advance (GBA)",
     "default_tag_mappings": {},
     "block_names": {},
