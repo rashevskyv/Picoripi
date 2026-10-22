@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Conker: Live & Reloaded (Xbox, USA): `font_atlas.py` exports the ConkerFont glyph texture (256 x 240, linear luminance) as a grey PNG and imports it back byte-identically; the editor and the build do not use it yet.
 - Conker: Live & Reloaded (Xbox, USA): a new build target `xbe_box` writes a copy of `default.xbe` with a wider subtitle box (40 characters a line, up to 6 lines, taller fixed box); each site is checked against its original bytes first.
 - Conker: Live & Reloaded (Xbox, USA): a grown text bank now gets its new data size (header +0x34) and a recomputed header checksum, the two fields the game checks before it loads a bank; the build refuses a bank that fails the check.
 - Conker: Live & Reloaded (Xbox, USA): the editor warns, without blocking, when a line is over 511 characters (cutscene), over 2047 (one displayed string), or a bubble paragraph wraps to more than 4 lines at 20 characters per line.

@@ -177,7 +177,7 @@ the line when it is done or moved into a plan.
 - Open: Eden proof: the game boots from a private copy and draws the Frontend subtitles from `Frontend/default.bin`. A changed subtitle was not captured yet (the scene order differs between runs; a fixed pad script is needed).
 - Open: the N64 Conker script is a different file set (ASCII tables in the ROM, not CAFF UTF-16); it is not a line-for-line reference.
 - Done (on screen, 2026-10-22): a grown voicemail line (`Frontend` string 0, English extra sentence) shows in a private Eden copy with the new writer; the bubble scrolls in its 4-line box and the game runs at 25 FPS. Not tested: Ukrainian length, a long play session, the multiplayer freeze.
-- Open: the ConkerFont atlas (`dvddata/aid/font/ConkerFont/default.bin`): a CAFF file with `.data` 0x32D8 bytes and `.gpu` 0xF000 bytes after it. The pixel format and size are not in the file; they come from the font's texture create call in the game code. No export or import yet.
+- Done (2026-10-22): the ConkerFont atlas (`dvddata/aid/font/ConkerFont/default.bin`, `.gpu` section at 0x3458, 0xF000 bytes) is a linear 8-bit luminance texture, 256 x 240, D3DFMT_LIN_L8 (0x13 in the xboxrecomp D3D8 headers). The format was matched by viewing the bytes, not by reading the game's create call. `font_atlas.py` exports it as a grey PNG and imports it back; export and import are byte-identical on the disc bank. Not wired into the editor or the build yet.
 
 ## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-bfd`)
 ## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-grow`)
