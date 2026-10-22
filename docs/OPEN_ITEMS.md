@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-20
 owns: unfinished work
-tokens: 69.4k
+tokens: 71.1k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -178,6 +178,26 @@ the line when it is done or moved into a plan.
 - Open: fonts (`Font0-0.bmp`, `Font0-1.bmp`, `HelpFont.bmp`, `*.fff`) and textures with text (`Front_end_buttons.raw` and others) are not in the plugin. The port loads neither, so their formats are not checked against it.
 - Open: the translation is empty: 0 of 6,974 lines are translated.
 - Owner: the reference files of the Russian overlay (`reference\ru_mod\`) are for format study only. Its text and voice are not used.
+
+## Conker: Live & Reloaded (Xbox, USA) (`plugins/conker_lr`, 2026-10-21, branch `feat/conker-lr`)
+
+- Done (build, not checked in game, 2026-10-22): the subtitle box constants are in the XBE (wrap 20 to 40 characters, line limit 4 to 6, fixed height 160.0 to 240.0). `xbe_box.py` changes them in a copy of `default.xbe` after each site holds its original bytes; the build target `xbe_box` writes the copy. The original is not changed. The height is not a change to the shared float at 0x00649428 (25 other instructions read it): the two height loads of the bubble point at a float 240.0 at 0x00566FD0, which no 32-bit value refers to. Config: `config.py` (`BOX_WRAP_CHARS`, `BOX_LINE_LIMIT`, `BOX_HEIGHT`). Open: the recomp port reads the same constants from its lifted code (request in the report, not applied there); the in-game size is not checked yet.
+- Done (growth): a longer line rebuilds the blob and moves the table, the block index, header pointers and section sizes (`caff_text.write_slots`); all 69 English files pass identity and growth checks on the disc. Found on 2026-10-22: the strings are read from the LSBL table (the old text scan read the index as text and overwrote it); with this, MPDuel marked alone runs past the multiplayer menu in a private Eden copy.
+- Fixed in the writer (2026-10-22, cause from the recomp session's report `docs/conker-text-limits-picoripi.md`): a grown bank kept its old data size (header +0x34) and its checksum (+0x14); the game sizes its buffers from those fields and rejects a wrong checksum. `caff_text.write_slots` now grows +0x34 and recomputes +0x14, and `caff_text.check` runs before every write. Open: the on-screen check in a private Eden copy is not run yet.
+- Open: the header field +0x34 is the data size; the tail holds a copy of that value (0x22B0 in MPFortress, after the build path). The writer leaves the copy as it is; the recomp session's grown build boots with the same bytes.
+- Oracle check (2026-10-22, real files, scratch script): the recomp reference tool and the writer give identical header, table, text and checksum after growing 4 strings by 520 characters in MPFortress and TrainingLevel. They differ only in pointers the reference leaves stale: block index units (104 and 60 bytes), LSBL+0x18 and LSBL+0x1C (both files), and LSBL+0x14 (TrainingLevel). In the writer output every moved pointer still reaches the same text; in the reference output it does not (for example LSBL+0x1C then reads a different string). The writer keeps those moves. Whether the game reads them is not proven yet: the MPFortress retest in the private Eden copy decides.
+- Open (2026-10-22, old): MPFortress freezes in the multiplayer menu at about 20-30 s (guest loop on `FE0000E8`/`FE0000F0`). Tested in a private Eden copy: not the index units (left unrelocated, still freezes); not the letters (same length, letters to `x`, runs); not the LSBL+0x1C relation (kept, still freezes). Growth of translatable strings 0-1 alone runs; 2-3 alone runs; 0-1 and 2-3 together freeze (translatable indexes in `prep_subset`); 0-1 grown to 520 characters each freezes. A flat file-size limit is refuted (MPDuel marked is 10740 bytes and runs). Next: find the per-string or total-length limit in the game code.
+- Open: the LSBL fields at +0x14/+0x18/+0x1C point at structures the writer does not decode (`+0x1C` often lands inside a string). They are moved as positions only.
+- Done (2026-10-22): `UIFrontend` (219 entries) and `UIPause` (81 entries) match their LSBL counts; the old note was out of date. Both are now in the plugin: identity and growth checks pass on the disc, and the numeric entries (`0`, ...) are not text. The reference tool differs in the same pointer and index fields as in the dialogue banks.
+- Open: `chapters_text` has a second text blob after its LSBL block (`Options`, `Chapters`, `Game 1`...); the plugin reads only the LSBL strings. Labels like `Game 1` on the title screen are pictures, not text.
+- Open: other languages (Japanese, French, German, Spanish, Italian) use the same container; the scanner reads Latin-1 text only, so Japanese needs a wider scan. Only the English slot is in scope.
+- Open: fonts (`dvddata/aid/font/ConkerFont`, `FrontendTitle`) and `media/ArialUni.Ttf` are not analysed; width checks are off until a font map exists.
+- Open: no XISO rebuild. The build writes the changed `default.bin` files into a folder; a playable image needs a rebuild step (extract-xiso `-c` or a Python writer).
+- Open: no Picoripi project file in the workspace yet (the wizard step is not run in the GUI) and no `zt_game.txt`.
+- Open: Eden proof: the game boots from a private copy and draws the Frontend subtitles from `Frontend/default.bin`. A changed subtitle was not captured yet (the scene order differs between runs; a fixed pad script is needed).
+- Open: the N64 Conker script is a different file set (ASCII tables in the ROM, not CAFF UTF-16); it is not a line-for-line reference.
+- Done (on screen, 2026-10-22): a grown voicemail line (`Frontend` string 0, English extra sentence) shows in a private Eden copy with the new writer; the bubble scrolls in its 4-line box and the game runs at 25 FPS. Not tested: Ukrainian length, a long play session, the multiplayer freeze.
+- Done (2026-10-22): the ConkerFont atlas (`dvddata/aid/font/ConkerFont/default.bin`, `.gpu` section at 0x3458, 0xF000 bytes) is a linear 8-bit luminance texture, 256 x 240, D3DFMT_LIN_L8 (0x13 in the xboxrecomp D3D8 headers). The format was matched by viewing the bytes, not by reading the game's create call. `font_atlas.py` exports it as a grey PNG and imports it back; export and import are byte-identical on the disc bank. Not wired into the editor or the build yet.
 
 ## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-bfd`)
 ## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-grow`)
