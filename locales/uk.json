@@ -3195,5 +3195,18 @@
   "Opening Tag": "Початковий тег",
   "Closing Tag": "Кінцевий тег",
   "Enable/disable problem detection:": "Увімкніть або вимкніть пошук проблем:",
-  "Enable/disable auto-fix for specific problems:": "Увімкніть або вимкніть автовиправлення окремих проблем:"
+  "Enable/disable auto-fix for specific problems:": "Увімкніть або вимкніть автовиправлення окремих проблем:",
+  "Homebrew, not a game": "Homebrew, не гра",
+  "Not supported": "Не підтримується",
+  "a .3dsx file is homebrew, not a game image: it holds no game files to translate": "файл .3dsx є homebrew-програмою, а не образом гри: у ньому немає ігрових файлів для перекладу",
+  "{0} is homebrew, not a game. Remove it from the list.": "{0} є homebrew-програмою, а не грою. Вилучіть його зі списку.",
+  "{0}: {1}. Remove it from the list.": "{0}: {1}. Вилучіть його зі списку.",
+  "This compressed 3DS image needs the zstandard package (zstd support).": "Цей стиснений образ 3DS потребує пакет zstandard (підтримка zstd).",
+  "seek before the start of a compressed 3DS image": "переміщення перед початком стисненого образу 3DS",
+  "the compressed 3DS image has a header this version does not read": "стиснений образ 3DS має заголовок, який ця версія не читає",
+  "the compressed 3DS image is damaged: a frame has the wrong size": "стиснений образ 3DS пошкоджено: кадр має неправильний розмір",
+  "the compressed 3DS image is damaged: it ends early": "стиснений образ 3DS пошкоджено: він обривається раніше",
+  "the compressed 3DS image is damaged: its frames do not fill the file": "стиснений образ 3DS пошкоджено: його кадри не займають весь файл",
+  "the compressed 3DS image is damaged: its seek table does not match its size": "стиснений образ 3DS пошкоджено: його таблиця переходів не відповідає розміру",
+  "the compressed 3DS image is damaged: no seek table": "стиснений образ 3DS пошкоджено: немає таблиці переходів"
 }

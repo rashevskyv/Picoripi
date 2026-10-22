@@ -257,7 +257,7 @@ class ProjectWizard(QDialog):
         if not paths or not plugin:
             return
         self._files_status.setText(tr("Reading the files..."))
-        self._run(FactsJob(plugin, paths, self._load_rules), self._on_facts)
+        self._run(FactsJob(plugin, paths, self._load_rules, dict(self._picked_keys)), self._on_facts)
 
     def _on_facts(self, facts: Dict[str, Any]) -> None:
         self._roles = facts.get("roles") or []
@@ -396,6 +396,10 @@ class ProjectWizard(QDialog):
             identity = self._key_status.get(path) or {}
             name = Path(path).name
             platform = plugin_facts.platform_label(str(identity.get("platform") or ""))
+            if identity.get("status") == plugin_facts.STATUS_HOMEBREW:
+                problems.append(tr("{0} is homebrew, not a game. Remove it from the list.", name))
+            if identity.get("status") == plugin_facts.STATUS_UNSUPPORTED:
+                problems.append(tr("{0}: {1}. Remove it from the list.", name, identity.get("reason") or ""))
             if identity.get("status") == plugin_facts.STATUS_UNREADABLE:
                 problems.append(tr("{0}: this game cannot read a {1} file itself. Remove it and add the unpacked "
                                    "folder of the game instead (Add folder...).", name, platform))
@@ -434,6 +438,10 @@ class ProjectWizard(QDialog):
 
     def _status_text(self, identity: Dict[str, Any]) -> Tuple[str, Optional[QColor]]:
         status = identity.get("status")
+        if status == plugin_facts.STATUS_HOMEBREW:
+            return tr("Homebrew, not a game"), PROBLEM_COLOR
+        if status == plugin_facts.STATUS_UNSUPPORTED:
+            return tr("Not supported"), PROBLEM_COLOR
         if status == plugin_facts.STATUS_UNREADABLE:
             return tr("Cannot read: add its folder"), PROBLEM_COLOR
         console = str(identity.get("key") or "")
@@ -473,6 +481,7 @@ class ProjectWizard(QDialog):
         if path:
             self._picked_keys[console] = path
             self._refresh_files_state()
+            self._reread_files()   # an encrypted image may show its product code only with this key
 
     # ----- navigation -----
     def _show_page(self, index: int) -> None:

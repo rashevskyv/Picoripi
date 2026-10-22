@@ -2,13 +2,22 @@
 status: current
 updated: 2026-10-20
 owns: unfinished work
-tokens: 68.3k
+tokens: 68.6k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## 3DS image formats (`core/containers/n3ds.py`, `z3ds.py`, `core/project_library/images.py`, 2026-10-22, branch `fix/3ds-image-formats`)
+
+- Open: encrypted 3DS formats are proven on synthetic data only. The owner's key store had no 3DS key file on 2026-10-22, so no real encrypted `.cia` or `.cci` ran. Set the 3DS key file (Settings, Console keys), then check Luigi's Mansion 2 `legit.cia` and Yo-kai Watch encrypted files.
+- Open: no real Z3DS sample is on disk (`.zcia`, `.zcci`, `.zcxi`, `.z3ds`). The reader follows Azahar's `file_derived.cpp`; a real file is the first proof.
+- Open: a multi-content CIA is read from content index 0 only (for example the e-manual at index 1 is not read).
+- Open: fixed-key 3DS titles (NCCH flag 0x01) are refused: "not read yet".
+- Open: a manual `.cfa` has a base-game title ID (`00040000...`), so the wizard treats it as a game and unpacks it whole. A manual belongs to `manual_3ds`.
+- Open: the update overlay of a game with no unpack hook is checked on the owner's Luigi's Mansion 2 dump only, not on a base game with its update.
 
 ## Share project (`core/project_library/share.py`, 2026-10-20, branch `feat/project-share`)
 

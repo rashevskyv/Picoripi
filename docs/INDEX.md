@@ -11,7 +11,7 @@ Read the row, then open only the document you need.
 | `docs/ENGINEERING.md` | Habits behind the rules: threads, performance, persistence, tests | 2.0k | current | engineering practice |
 | `docs/FEATURES.md` | Every feature in detail; the wiki wins on a conflict | 14.9k | current | feature inventory |
 | `docs/MEMPALACE_CONTEXT_MANIFESTO.md` | MemPalace contract: principles, data flow, stage status | 2.3k | design | core/mempalace, ui/mempalace |
-| `docs/OPEN_ITEMS.md` | Everything left open, one line each, by work package | 68.3k | current | unfinished work |
+| `docs/OPEN_ITEMS.md` | Everything left open, one line each, by work package | 68.6k | current | unfinished work |
 | `docs/PIPELINE_ROADMAP.md` | Pipeline design of record (Ukrainian); shipped vs planned on top | 12.4k | current | core/glossary_build, ui/pipeline_wizard_dialog.py |
 | `docs/PROJECT_MANAGER_PHASE2.md` | Project Manager phase 2 | 0.7k | current | project manager |
 | `docs/REVIEW_QUEUE.md` | What is left for the owner after the audit: decisions with evidence, live runs, environment | 2.4k | current | owner decisions and live checks |
@@ -36,7 +36,7 @@ Read the row, then open only the document you need.
 | `docs/wiki/Fonts_and_Textures.md` (+uk) | Edit game fonts and textures, add Ukrainian letters, and set the fonts folders and default font of a project | 1.8k | current | tools/bfn_editor/ and ui/texture_window.py |
 | `docs/wiki/Game_Notes.md` (+uk) | Per-game technical notes: source folders, file formats, tags, previews, build steps | 47.6k | current | plugins |
 | `docs/wiki/Hotkeys.md` (+uk) | Every keyboard shortcut and modifier click of the main window and its separate windows, grouped by task, with menu paths | 2.2k | current | ui/builders/menu_builder.py |
-| `docs/wiki/New_Project_Scenarios.md` (+uk) | The three-step new-project wizard and each kind of game source it accepts | 1.8k | current | ui/project_manager/wizard.py, core/project_library/ |
+| `docs/wiki/New_Project_Scenarios.md` (+uk) | The three-step new-project wizard and each kind of game source it accepts | 2.3k | current | ui/project_manager/wizard.py, core/project_library/ |
 | `docs/wiki/Project_Manager.md` (+uk) | The Project Manager window: list, folders, flags, import, share, storage and reopen at start | 2.1k | current | ui/project_manager/window.py, core/project_library/ |
 | `docs/wiki/README.md` (+uk) | Wiki index and reading order | 1.1k | current | docs/wiki |
 | `docs/wiki/Recipes.md` (+uk) | Short task recipes: what to press, in order, for each common goal, with a link to the full page | 3.0k | current | docs/wiki |
