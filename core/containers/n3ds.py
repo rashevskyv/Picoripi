@@ -4,10 +4,11 @@
 ``exheader.bin``, ``exefs/<name>.bin`` and ``romfs/<path>``. A decrypted program (NCCH flag NoCrypto, or a RomFS that is
 plain IVFC although the flag is unset, and a CIA whose content is not encrypted) needs no key. An encrypted program is read through a decrypting view with the keys of the
 console key file (``Keys3ds``; boot9 is read from the same folder when present). A CIA with encrypted content is
-decrypted with its title key first. Fixed-key titles (NCCH flag 0x01) are not read. When the decrypted tables do not
-parse, an encrypted program reports that the key file does not decrypt it. Every table pointer is bounds-checked and
-every name goes through ``check_name``, so no entry can point outside the image or name a path outside the output
-folder. Key bytes live only in memory, for one job.
+decrypted with its title key first. When the decrypted tables do not parse, an encrypted program reports that the key file
+does not decrypt it. A fixed-key program (NCCH flag 0x01) needs no key file: its regions use a public constant key (the
+zero key, or the fixed system key of a system title). Every table
+pointer is bounds-checked and every name goes through ``check_name``, so no entry can point outside the image or name a
+path outside the output folder. Key bytes live only in memory, for one job.
 """
 from __future__ import annotations
 
@@ -48,6 +49,9 @@ BOOT9_SIZE = 0x10000
 BOOT9_KEY_AREA = 0xD9D0      # boot9 key area: KeyX 0x2C..0x3F, as the workspace tool reads it
 BOOT9_LAYOUT = ((0x2C, 4), (0x30, 4), (0x34, 4), (0x38, 4), (0x3C, 1), (0x3D, 1), (0x3E, 1), (0x3F, 1))
 SCRAMBLER_C = 0x1FF9E9AAC5FE0408024591DC5D52768A   # public hardware key scrambler constant
+ZERO_KEY = bytes(16)                                # public: the key of a fixed-key title (3dbrew, NCCH)
+FIXED_SYSTEM_KEY = bytes.fromhex("527CE630A9CA305F3696F3CDE954194B")   # public: the fixed key of a system title
+SYSTEM_TITLE_BIT = 0x10      # title ID category bit (high word) of a system title
 MASK128 = (1 << 128) - 1
 
 
@@ -193,11 +197,17 @@ def _ncch_program(reader: ImageReader, base: int) -> Program:
     if head[0x100:0x104] != NCCH_MAGIC:
         raise ImageError(tr("the main partition is not a 3DS program"))
     nocrypto = bool(head[NCCH_FLAGS7] & NO_CRYPTO_BIT)
+    fixed = bool(head[NCCH_FLAGS7] & FIXED_KEY_BIT)
     # Decrypted dumps (for example "[Decrypted].3ds") often leave the NoCrypto flag unset while the RomFS is plain.
-    plain = not nocrypto and not head[NCCH_FLAGS7] & FIXED_KEY_BIT and _plain_romfs(reader, base, head)
+    plain = not nocrypto and not fixed and _plain_romfs(reader, base, head)
     product = head[0x150:0x160].split(b"\0", 1)[0].decode("ascii", "replace")
-    return dict(base=base, encrypted=not (nocrypto or plain), plain=plain, product=product,
+    return dict(base=base, encrypted=not (nocrypto or plain or fixed), plain=plain, fixed=fixed, product=product,
                 title_id=head[0x118:0x120][::-1].hex(), header=head)
+
+
+def fixed_key(title_id: str) -> bytes:
+    """The key of a fixed-key program: the fixed system key for a system title, else the zero key (3dbrew)."""
+    return FIXED_SYSTEM_KEY if int(title_id, 16) >> 32 & SYSTEM_TITLE_BIT else ZERO_KEY
 
 
 def _plain_romfs(reader: ImageReader, base: int, head: bytes) -> bool:
@@ -261,7 +271,7 @@ class N3dsImage(ImageReader):
     """A 3DS program: its exheader, ExeFS and RomFS files. ``keys_path`` is the console key file (None when there is none).
 
     Raises ``encrypted_error`` for encrypted content without a key file, and ImageError for content the key does not
-    decrypt, fixed-key titles, or a broken table.
+    decrypt or a broken table. A fixed-key program needs no key file.
     """
 
     def __init__(self, stream: Any, keys_path: Optional[str] = None) -> None:
@@ -323,8 +333,8 @@ class N3dsImage(ImageReader):
         head = self.program["header"]
         if head[NCCH_FLAGS7] & NO_CRYPTO_BIT or self.program.get("plain"):
             return None
-        if head[NCCH_FLAGS7] & FIXED_KEY_BIT:
-            raise ImageError(tr("fixed-key 3DS titles are not read yet"))
+        if self.program.get("fixed"):
+            return fixed_key(self.program["title_id"])
         slot = PRIMARY_SLOT
         if secondary:
             slot = METHOD_SLOTS.get(head[METHOD_AT])

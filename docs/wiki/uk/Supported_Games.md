@@ -93,6 +93,7 @@ tokens: 14.7k
 | Link's Awakening (Switch) | Title ID | 01006BB00C6F0000 | Усі регіони | Switch base game v1.0.0 |
 | Link's Awakening DX HD | ID не перевіряється | — | Не вказано | PC fan remake v1.0.0 |
 | Luigi's Mansion: Dark Moon (3DS) | ID не перевіряється | — | Європа | 3DS |
+| Luigi's Mansion: Dark Moon (3DS) | Title ID | 010048701995E000 | Усі регіони | Switch HD base game |
 | Lunar 2: Eternal Blue Complete | ID не перевіряється | — | США | PlayStation, three discs |
 | Lunar: Silver Star Harmony (PSP) | Серійний номер | ULUS-10482 | США | PSP |
 | Lunar: Silver Star Story Complete | Серійний номер | SLUS-00628 | США | PlayStation, program SLUS_006.28 |

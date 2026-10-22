@@ -82,7 +82,11 @@ The original game files are not copied. The project keeps their paths.
 
 **Switch XCI:** not verified for every case. If the wizard refuses an encrypted XCI, use the unpacked folder or an NSP or NSZ file instead.
 
+**Switch compressed RomFS:** an NSP or NSZ whose RomFS is compressed (firmware 12 and later) is read like any other.
+
 **3DS, encrypted:** the roles come from the title ID. The file needs `aes_keys.txt`. Decrypted files need no key.
+
+**3DS fixed-key titles:** the key is public, so no key file is needed. Picoripi reads the zero key, or the fixed system key of a system title.
 
 **An unpacked folder:** add the folder alone. A folder cannot be mixed with other sources. Remove the other files
 first.
@@ -112,7 +116,6 @@ update and `0004008C` DLC.
 
 - A `.3dsx` file: homebrew, not a game.
 - An encrypted file with no key file, or a key file that does not decrypt it.
-- A fixed-key title (its key is built into the program): not read yet.
 - A compressed image that is damaged, or that needs a zstd package Picoripi cannot find.
 
 ## Key files

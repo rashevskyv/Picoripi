@@ -94,6 +94,7 @@ Each plugin opens the images listed here. When you add an image, the wizard matc
 | Link's Awakening (Switch) | Title ID | 01006BB00C6F0000 | All regions | Switch base game v1.0.0 |
 | Link's Awakening DX HD | Not checked by ID | — | Not stated | PC fan remake v1.0.0 |
 | Luigi's Mansion: Dark Moon (3DS) | Not checked by ID | — | EUR | 3DS |
+| Luigi's Mansion: Dark Moon (3DS) | Title ID | 010048701995E000 | All regions | Switch HD base game |
 | Lunar 2: Eternal Blue Complete | Not checked by ID | — | USA | PlayStation, three discs |
 | Lunar: Silver Star Harmony (PSP) | Serial | ULUS-10482 | USA | PSP |
 | Lunar: Silver Star Story Complete | Serial | SLUS-00628 | USA | PlayStation, program SLUS_006.28 |

@@ -58,29 +58,36 @@ class GameRules(TableRules):
     # ----- wizard: the 3DS image is unpacked whole; its text and picture pairs become the source folder
 
     def identify_source(self, path: str) -> Optional[Dict[str, str]]:
-        """A 3DS image: its role comes from the header (base, update or DLC), as for a game without a plugin."""
+        """A 3DS image, or the Switch HD base game: its role comes from the header, as for a game without a plugin."""
         found = images.identify(path)
-        if not found or found.get("kind") != images.KIND_3DS:
+        if not found:
             return None
-        return generic_identity(found)
+        if found.get("kind") == images.KIND_3DS:
+            return generic_identity(found)
+        if found.get("kind") == images.KIND_SWITCH and str(found.get("title_id") or "").upper() in self._declared_ids():
+            return generic_identity(found)
+        return None
 
     def unpack_key_consoles(self) -> List[str]:
-        return ["3ds"]
+        return ["3ds", "switch"]
 
     def get_source_subfolder(self) -> Optional[str]:
         return unpack.SOURCE_SUBFOLDER
 
     def unpack_sources(self, sources: Dict[str, str], target_dir: str,
                        progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> Optional[str]:
-        """Unpack the 3DS image(s) into ``target_dir`` (romfs, exefs, exheader.bin) and write the source folder.
+        """Unpack the 3DS image(s) into ``target_dir`` (romfs, exefs, exheader.bin) and the Switch HD image into its
+        RomFS pairs only, then write the source folder.
 
-        A folder or any file that is not a 3DS image is left to the wizard, which returns None for it.
+        A folder or any file that is not a 3DS or Switch image is left to the wizard, which returns None for it.
         """
-        if not sources or any((images.identify(path) or {}).get("kind") != images.KIND_3DS
-                              for path in sources.values()):
+        kinds = {path: (images.identify(path) or {}).get("kind") for path in sources.values()}
+        if not sources or any(kind not in (images.KIND_3DS, images.KIND_SWITCH) for kind in kinds.values()):
             return None
         ordered = [path for _role, path in sorted(sources.items(), key=lambda item: _ROLE_RANK.get(item[0], 2))]
-        if images.extract_3ds_set(ordered, target_dir, progress, is_cancelled) is None:
-            return None
-        unpack.expand_pairs(Path(target_dir))
+        for path in ordered:
+            select = unpack.switch_pairs_only if kinds[path] == images.KIND_SWITCH else None
+            if images.extract(path, target_dir, progress, is_cancelled, select) is None:
+                return None
+        unpack.expand_pairs(Path(target_dir), hd=images.KIND_SWITCH in kinds.values())
         return target_dir

@@ -35,6 +35,28 @@ def write_pair(romfs, rel, members, packed=False):
     path.with_suffix(".data").write_bytes(data)
 
 
+def make_hd_pair(members):
+    """A Switch HD ``.dict`` / ``.data`` pair: members on 0x200 boundaries, the entry table before the names at the end."""
+    data, entries = bytearray(), []
+    for blob in members:
+        data += bytes((-len(data)) % 0x200)
+        entries.append((len(data), len(blob), 0, 0))
+        data += blob
+    head = bytearray(0x2C + len(members))
+    struct.pack_into("<I", head, 0, unpack.DICT_MAGIC)
+    struct.pack_into("<I", head, 8, len(members))
+    table = b"".join(struct.pack("<IIII", *entry) for entry in entries)
+    return bytes(head) + table + unpack.HD_NAMES, bytes(data)
+
+
+def write_hd_pair(romfs, rel, members):
+    dict_bytes, data = make_hd_pair(members)
+    path = romfs.joinpath(*rel.split("/"))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.with_suffix(".dict").write_bytes(dict_bytes)
+    path.with_suffix(".data").write_bytes(data)
+
+
 HEADER = b"\x00" * 12
 NLOC = b"NLOC" + bytes(range(60))
 TABLE = b"\x50\x43\xe9\x97" + bytes(44)
@@ -74,10 +96,17 @@ def test_a_file_that_is_not_a_pair_table_is_refused(tmp_path):
         unpack.expand_pairs(tmp_path)
 
 
-def test_the_plugin_names_the_3ds_key_and_the_source_folder():
+def test_the_plugin_names_the_3ds_and_switch_keys_and_the_source_folder():
     rules = GameRules(None)
-    assert rules.unpack_key_consoles() == ["3ds"]
+    assert rules.unpack_key_consoles() == ["3ds", "switch"]
     assert rules.get_source_subfolder() == "source/romfs"
+
+
+def test_a_switch_image_writes_only_the_pair_folder_and_the_staff_roll():
+    assert unpack.switch_pairs_only("romfs/art/fe/english.dict")
+    assert unpack.switch_pairs_only("romfs/art/fe/credits.txt")
+    assert not unpack.switch_pairs_only("romfs/exefs/main")
+    assert not unpack.switch_pairs_only("romfs/art/other.dict")
 
 
 def test_a_folder_source_is_left_to_the_wizard(tmp_path):
@@ -92,8 +121,35 @@ def test_a_3ds_image_is_identified_as_a_base_game_and_other_files_are_not(monkey
 
     from plugins.luigis_mansion_2 import rules as rules_module
 
-    fake = SimpleNamespace(KIND_3DS="3ds", identify=lambda path: {"kind": "3ds", "title_id": "0004000000076500"})
+    fake = SimpleNamespace(KIND_3DS="3ds", KIND_SWITCH="switch",
+                           identify=lambda path: {"kind": "3ds", "title_id": "0004000000076500"})
     monkeypatch.setattr(rules_module, "images", fake)
     assert GameRules(None).identify_source("game.cia") == {"role": "base", "platform": "3ds"}
-    monkeypatch.setattr(rules_module, "images", SimpleNamespace(KIND_3DS="3ds", identify=lambda path: None))
+    monkeypatch.setattr(rules_module, "images", SimpleNamespace(KIND_3DS="3ds", KIND_SWITCH="switch",
+                                                                identify=lambda path: None))
     assert GameRules(None).identify_source("notes.txt") is None
+
+
+def test_the_switch_hd_base_game_is_identified_and_another_switch_title_is_not(monkeypatch):
+    from types import SimpleNamespace
+
+    from plugins.luigis_mansion_2 import rules as rules_module
+
+    monkeypatch.setattr(rules_module, "images", SimpleNamespace(
+        KIND_3DS="3ds", KIND_SWITCH="switch",
+        identify=lambda path: {"kind": "switch", "title_id": "010048701995E000"}))
+    assert GameRules(None).identify_source("hd.nsp") == {"role": "base", "platform": "switch"}
+    monkeypatch.setattr(rules_module, "images", SimpleNamespace(
+        KIND_3DS="3ds", KIND_SWITCH="switch", identify=lambda path: {"kind": "switch", "title_id": "0100ABCD00000000"}))
+    assert GameRules(None).identify_source("other.nsp") is None
+
+
+def test_a_switch_hd_pair_gives_strings_nloc_and_a_nlgh_bundle(tmp_path):
+    romfs = tmp_path / "romfs"
+    write_hd_pair(romfs, "art/fe/ukenglish", [HEADER, HEADER, TABLE, NLOC])
+    write_hd_pair(romfs, "art/fe/febundleFonts_res", [HEADER, HEADER, TABLE, PIXELS])
+    unpack.expand_pairs(tmp_path, hd=True)
+    fe = tmp_path / "source" / "romfs" / "art" / "fe"
+    assert (fe / "ukenglish.data" / "strings.nloc").read_bytes() == NLOC
+    assert (fe / "febundlefonts_res.data" / "bundle.nlgh").read_bytes() == b"NLGH" + TABLE
+    assert not (fe / "febundlefonts_res.data" / "bundle.nlgb").exists()
