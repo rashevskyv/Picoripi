@@ -2,17 +2,17 @@
 from plugins.hades import text
 
 SJSON = (b'{\r\n  /* note */\r\n  lang = "en"\r\n  Texts = [\r\n'
-         b'    {\r\n      Id = "Hades_Line01"\r\n      DisplayName = "Stupid boy."\r\n    }\r\n'
+         b'    {\r\n      Id = "Hades_Line01"\r\n      DisplayName = "Synthetic line one."\r\n    }\r\n'
          b'    {\r\n      Id = "Hades_Line02"\r\n      DisplayName = "Quote \\"here\\""\r\n'
          b'      Description = """Raw "one" line"""\r\n    }\r\n  ]\r\n}\r\n')
 
-CSV = (b'"Hades","ID","ID","ID","","","","Line","","","Notes by DK"\r\n'
-       b'"Integrated","Hades_","0002","Hades_0002","","","","Stupid boy, I told you.","","",""\r\n'
+CSV = (b'"Synthetic","ID","ID","ID","","","","Line","","","Notes"\r\n'
+       b'"Integrated","Hades_","0002","Hades_0002","","","","Synthetic line two, with a comma.","","",""\r\n'
        b'"Integrated","Hades_","0003","Hades_0003","","","","Plain line","","",""\r\n')
 
 
 def test_sjson_rows_are_the_display_and_description_strings():
-    assert text.read_sjson(SJSON) == ["Stupid boy.", 'Quote \\"here\\"', 'Raw "one" line']
+    assert text.read_sjson(SJSON) == ["Synthetic line one.", 'Quote \\"here\\"', 'Raw "one" line']
 
 
 def test_sjson_unchanged_rows_keep_every_byte():
@@ -23,7 +23,7 @@ def test_sjson_unchanged_rows_keep_every_byte():
 
 def test_sjson_changed_row_writes_over_its_span_only():
     rows = text.read_sjson(SJSON)
-    rows[0] = "Дурний хлопчисько."
+    rows[0] = "Changed row one."
     out, warnings = text.write_sjson(SJSON, rows)
     assert warnings == []
     assert text.read_sjson(out) == rows
@@ -33,9 +33,9 @@ def test_sjson_changed_row_writes_over_its_span_only():
 
 def test_sjson_row_with_a_quote_is_escaped():
     rows = text.read_sjson(SJSON)
-    rows[0] = 'Він сказав "так"'
+    rows[0] = 'Changed "quoted" row'
     out, _ = text.write_sjson(SJSON, rows)
-    assert text.read_sjson(out)[0] == r'Він сказав \"так\"'
+    assert text.read_sjson(out)[0] == r'Changed \"quoted\" row'
 
 
 def test_sjson_row_count_change_keeps_the_file():
@@ -44,12 +44,12 @@ def test_sjson_row_count_change_keeps_the_file():
 
 
 def test_csv_rows_are_the_line_column_after_the_header():
-    assert text.read_csv(CSV) == ["Stupid boy, I told you.", "Plain line"]
+    assert text.read_csv(CSV) == ["Synthetic line two, with a comma.", "Plain line"]
 
 
 def test_csv_changed_row_changes_one_cell_and_keeps_line_endings():
     rows = text.read_csv(CSV)
-    rows[1] = "Рядок, з комою"
+    rows[1] = "Changed csv row, with a comma"
     out, warnings = text.write_csv(CSV, rows)
     assert warnings == []
     assert text.read_csv(out) == rows

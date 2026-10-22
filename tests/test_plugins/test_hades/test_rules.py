@@ -41,11 +41,11 @@ def test_layeredfs_build_writes_changed_files_under_the_base_title(tmp_path: Pat
     (source / "MiscText.en.sjson").write_bytes(SJSON)
     translation = tmp_path / "translation" / "Content" / "Game" / "Text" / "en"
     translation.mkdir(parents=True)
-    (translation / "MiscText.en.sjson").write_bytes(SJSON.replace(b"Stupid boy.", "Дурний.".encode("utf-8")))
+    (translation / "MiscText.en.sjson").write_bytes(SJSON.replace(b"Synthetic line one.", b"Changed row one."))
     (translation / "Unchanged.sjson").write_bytes(SJSON)
     (tmp_path / "source" / "Content" / "Game" / "Text" / "en" / "Unchanged.sjson").write_bytes(SJSON)
     out = build.build_switch(str(tmp_path / "source"), str(tmp_path / "translation"), str(tmp_path / "out"),
                              lambda percent, text: None, lambda: False)
     romfs = Path(out) / "atmosphere" / "contents" / BASE_ID / "romfs" / "Content" / "Game" / "Text" / "en"
-    assert (romfs / "MiscText.en.sjson").read_bytes().count("Дурний.".encode("utf-8")) == 1
+    assert (romfs / "MiscText.en.sjson").read_bytes().count(b"Changed row one.") == 1
     assert not (romfs / "Unchanged.sjson").exists()
