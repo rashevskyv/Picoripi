@@ -175,7 +175,9 @@ class RarcContainer(BaseArchiveContainer):
             size      = struct.unpack_from(self._e + "I", d, off + 12)[0]
             # 4 bytes of padding at off+16
 
-            is_dir = (file_id == 0xFFFF)
+            # Wii/Switch folders carry file ID 0xFFFF; GameCube folders (Luigi's Mansion) carry ID 0 and the
+            # directory attribute 0x02 in the high byte of the flags word.
+            is_dir = (file_id == 0xFFFF) or bool(flags & 0x0200)
             abs_data_off = (self._abs_data_off + data_off) if not is_dir else None
 
             self._entries.append({

@@ -56,3 +56,15 @@ def decompress(data: bytes, limit: int | None = None) -> bytes:
         mask = (mask << 1) & 0xFFFFFFFF
         bits -= 1
     return bytes(out[:size])
+
+
+def compress(data: bytes) -> bytes:
+    """Yay0 with literal bytes only: every mask bit is set and the link table is empty.
+
+    ponytail: no back-references, so the output is larger than a Nintendo encoder's. Add the matcher when the
+    disc space for a changed archive runs short.
+    """
+    size = len(data)
+    masks = b"".join(struct.pack(">I", 0xFFFFFFFF) for _ in range((size + 31) // 32))
+    link_off = 16 + len(masks)
+    return _MAGIC + struct.pack(">III", size, link_off, link_off) + masks + bytes(data)

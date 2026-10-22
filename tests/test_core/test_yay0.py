@@ -35,3 +35,10 @@ def test_yay0_rejects_wrong_magic():
     with pytest.raises(ValueError):
         decompress(b"Yaz0" + b"\x00" * 12)
 
+
+
+@pytest.mark.parametrize("payload", [b"", b"A", b"0123456789" * 7, bytes(range(256)) * 3])
+def test_yay0_literal_compress_round_trips(payload):
+    from core.containers.yay0 import compress
+
+    assert decompress(compress(payload)) == payload

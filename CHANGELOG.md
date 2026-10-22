@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Luigi's Mansion (GameCube, GLME01 USA): `plugins/luigis_mansion_1_gc` unpacks the disc (the Yay0 event archives and `system.arc` become folders), reads and writes the 1226 message records (`message/messageNN.csv`, CRLF records, Shift-JIS), and builds the translated ISO next to the original with `sys/main.dol` unchanged; `core/containers/yay0.py` writes literal-only Yay0, and RARC folders with file ID 0 are walked (GameCube).
 - Containers: `core/containers/yay0.py` decompresses Yay0 (GameCube archives, Luigi's Mansion groundwork), checked with synthetic streams; not yet wired into the archive openers.
 - Textures: `numpy` is in `requirements.txt` (the GIM textures and the Lunar and Silent Hill 2 image tools imported it undeclared; setup.bat did not install it); a missing package shows its name and the install command in the Textures window, and the start log lists missing packages (`utils/package_check.py`; `tests/test_architecture/test_declared_imports.py` checks the imports).
 - Docs: console keys have one owner section (`docs/wiki/4_Configuration_Guide.md` "Console keys", EN and UK) for the default key source (D48): the consent, where the files go, your own key file wins, offline use, what each console needs. Other pages link to it.
