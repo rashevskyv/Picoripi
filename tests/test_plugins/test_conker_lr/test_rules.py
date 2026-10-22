@@ -68,7 +68,7 @@ def test_only_the_english_text_files_are_wanted():
 
     assert _wanted("dvddata/aid/text/English/Frontend/default.bin")
     assert not _wanted("dvddata/aid/text/French/Frontend/default.bin")
-    assert not _wanted("dvddata/aid/text/English/UIFrontend/default.bin")
+    assert _wanted("dvddata/aid/text/English/UIFrontend/default.bin")
     assert _wanted("default.xbe")
     assert not _wanted("dashupdate.xbe")
 

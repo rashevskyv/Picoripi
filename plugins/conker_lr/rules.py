@@ -5,9 +5,9 @@ Scope of this version:
   ``default.bin`` is kept under ``original/`` for the build, and its translatable strings are written as JSON
   (format ``conker-lr-caff-text/1``) under ``text/``;
 - build the translated ``default.bin`` files. A longer line grows its block: the LSBL offset table, the header
-  pointers and the section sizes are moved with it (``caff_text.write_slots``).
-Not in this version: the UI text tables (``UIFrontend`` and ``UIPause`` are left out), fonts, the subtitle box
-size, and the XISO rebuild.
+  pointers, the data and section sizes and the checksum are moved with it (``caff_text.write_slots``);
+- build a copy of ``default.xbe`` with the wider subtitle box (``xbe_box``, target ``xbe_box``).
+Not in this version: the font atlas (``font_atlas.py`` exports it, the build does not use it yet) and the XISO rebuild.
 """
 from __future__ import annotations
 
@@ -34,17 +34,17 @@ TEXT_JSON_DIR = "text"
 TARGET_FILES = "translated_files"
 TARGET_BOX = "xbe_box"
 XBE_NAME = "default.xbe"
-# The UI table of this folder has keys and layout records, not dialogue: its block count does not match.
-NOT_DECODED_FOLDERS = {"UIFrontend", "UIPause"}
 
 
 def _wanted(path: str) -> bool:
-    """True for the English text files this plugin reads (one ``default.bin`` per folder) and the game's XBE."""
+    """True for the English text files this plugin reads (one ``default.bin`` per folder) and the game's XBE.
+
+    The UI banks (UIFrontend, UIPause) are read the same way: their block count matches the LSBL table, and their
+    numeric entries are not text, so they are kept as they are.
+    """
     if path == XBE_NAME:
         return True
-    if not path.startswith(TEXT_DIR + "/") or not path.endswith("/default.bin"):
-        return False
-    return path.split("/")[-2] not in NOT_DECODED_FOLDERS
+    return path.startswith(TEXT_DIR + "/") and path.endswith("/default.bin")
 
 
 def _folder_of(rel_path: str) -> str:
