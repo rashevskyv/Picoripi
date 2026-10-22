@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-20
 owns: unfinished work
-tokens: 69.3k
+tokens: 69.4k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
