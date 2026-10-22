@@ -22,7 +22,7 @@ SOURCE_RE = re.compile(r"^Content/(?:"
                        r"Game/Text/(?:en|pl)/[^/]+\.sjson"
                        r"|Game/Text/Languages\.sjson"
                        r"|Subtitles/(?:en|pl)/[^/]+\.csv"
-                       r"|Win/Fonts/en/[^/]+\.xnb"
+                       r"|Win/Fonts/(?:en|pl)/[^/]+\.(?:xnb|remap)"
                        r")$")
 
 
