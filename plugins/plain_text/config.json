@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "any", "id": "", "region": "", "note": "generic JSON and TXT files, not a game"}
+    ],
     "display_name": "Plain Text",
     "platforms": ["other"],
     "default_tag_mappings": {},

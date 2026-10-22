@@ -1,4 +1,9 @@
 {
+    "supported_images": [
+        {"kind": "code", "id": "ACVE", "region": "USA", "note": "Dawn of Sorrow"},
+        {"kind": "code", "id": "ACBE", "region": "USA", "note": "Portrait of Ruin"},
+        {"kind": "code", "id": "YR9E", "region": "USA", "note": "Order of Ecclesia"}
+    ],
     "display_name": "Castlevania DS: Dawn of Sorrow / Portrait of Ruin / Order of Ecclesia",
     "default_tag_mappings": {},
     "block_names": {},

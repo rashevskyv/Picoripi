@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "title", "id": "01000B900D8B0000", "region": "All regions", "note": "Switch base game"}
+    ],
     "display_name": "Zelda: Cadence of Hyrule",
     "platforms": ["switch"],
     "default_tag_mappings": {},

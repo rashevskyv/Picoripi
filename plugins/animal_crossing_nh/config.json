@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "All regions", "note": "Switch, 2020; the plugin reads no id"}
+    ],
     "display_name": "Animal Crossing: New Horizons (Switch)",
     "platforms": ["switch"],
     "default_tag_mappings": {},

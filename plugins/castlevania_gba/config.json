@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "EUR", "note": "Harmony of Dissonance, product code ACHP; Aria of Sorrow (USA), A2CE"}
+    ],
     "display_name": "Castlevania: Harmony of Dissonance / Aria of Sorrow (GBA)",
     "platforms": ["gba"],
     "default_tag_mappings": {},

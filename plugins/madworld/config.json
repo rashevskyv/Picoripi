@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "disc", "id": "RZZP8P", "region": "EUR", "note": "Wii"}
+    ],
     "display_name": "MadWorld",
     "platforms": ["wii"],
     "default_tag_mappings": {},

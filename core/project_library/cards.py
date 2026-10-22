@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from core.project_library.flags import flags_of
+from core.project_library.supported_images import declared_in
 from core.tag_utils import strip_tags
 from utils.constants import plugins_root
 
@@ -66,6 +67,7 @@ def read_card(project_file: str | Path) -> Dict[str, Any]:
         "issues": issues,
         "flags": flags_of(metadata),
         "source_roles": _source_roles(metadata),
+        "images": declared_in(plugins_root() / plugin) if plugin else [],
         "mtime_ns": stat.st_mtime_ns,
         "size": stat.st_size,
     }

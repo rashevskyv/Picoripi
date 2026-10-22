@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "USA", "note": "N64 US ROM"}
+    ],
     "display_name": "Zelda: Majora's Mask (N64)",
     "platforms": ["n64"],
     "default_tag_mappings": {},

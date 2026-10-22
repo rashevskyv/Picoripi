@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "code", "id": "A6FP", "region": "EUR", "note": "Nintendo DS"}
+    ],
     "display_name": "Final Fantasy Tactics A2",
     "default_tag_mappings": {},
     "block_names": {},

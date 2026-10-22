@@ -1,4 +1,10 @@
 {
+    "supported_images": [
+        {"kind": "code", "id": "A5FP", "region": "EUR", "note": ""},
+        {"kind": "code", "id": "YLTP", "region": "EUR", "note": ""},
+        {"kind": "code", "id": "C3JP", "region": "EUR", "note": ""},
+        {"kind": "code", "id": "BLFP", "region": "EUR", "note": ""}
+    ],
     "display_name": "Professor Layton (DS)",
     "default_tag_mappings": {},
     "block_names": {},

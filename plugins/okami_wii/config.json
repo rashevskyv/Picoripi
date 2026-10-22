@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "disc", "id": "ROWP08", "region": "EUR", "note": "Wii disc; region read from the disc ID"}
+    ],
     "display_name": "Okami (Wii)",
     "default_tag_mappings": {},
     "block_names": {},

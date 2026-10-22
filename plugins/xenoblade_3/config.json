@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "All regions", "note": "Switch, base game and DLC waves"}
+    ],
     "display_name": "Xenoblade Chronicles 3 (Switch)",
     "platforms": ["switch"],
     "default_tag_mappings": {},

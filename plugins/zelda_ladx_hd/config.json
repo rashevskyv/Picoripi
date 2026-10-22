@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "Not stated", "note": "PC fan remake v1.0.0"}
+    ],
     "display_name": "Link's Awakening DX HD",
     "platforms": ["pc"],
     "default_tag_mappings": {},

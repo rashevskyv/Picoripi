@@ -3195,5 +3195,18 @@
   "Opening Tag": "Початковий тег",
   "Closing Tag": "Кінцевий тег",
   "Enable/disable problem detection:": "Увімкніть або вимкніть пошук проблем:",
-  "Enable/disable auto-fix for specific problems:": "Увімкніть або вимкніть автовиправлення окремих проблем:"
+  "Enable/disable auto-fix for specific problems:": "Увімкніть або вимкніть автовиправлення окремих проблем:",
+  "Images it opens": "Образи, які відкриває",
+  "Disc ID": "ID диска",
+  "Title ID": "Title ID",
+  "Product code": "Код продукту",
+  "Serial": "Серійний номер",
+  "ROM name": "Назва в ROM",
+  "SHA-1 of the ROM": "SHA-1 образу ROM",
+  "Not checked by ID": "ID не перевіряється",
+  "Any file": "Будь-який файл",
+  "Region not stated": "Регіон не вказано",
+  "All regions": "Усі регіони",
+  "{0} ROM versions: {1}": "Версій ROM: {0}: {1}",
+  "Image ID: {0}": "ID образу: {0}"
 }

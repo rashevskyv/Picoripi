@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "Not stated", "note": "Game Boy Color, English v1.0 ROM"}
+    ],
     "display_name": "Zelda: Link's Awakening DX (Game Boy Color)",
     "platforms": ["gbc"],
     "default_tag_mappings": {},

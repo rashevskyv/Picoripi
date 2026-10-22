@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "EUR", "note": "3DS, with or without the v1040 update"}
+    ],
     "display_name": "Zelda: Majora's Mask 3D",
     "platforms": ["3ds"],
     "default_tag_mappings": {},

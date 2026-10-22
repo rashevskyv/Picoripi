@@ -23,6 +23,7 @@ from PyQt6.QtWidgets import (
 
 from core.i18n import tr
 from core.project_library import build, images, plugin_facts
+from ui.project_manager import image_labels
 from ui.project_manager.tasks import FactsJob, PluginListJob, UnpackJob
 from utils.logging_utils import log_info
 from utils.thread_utils import safe_shutdown_thread
@@ -95,6 +96,9 @@ class ProjectWizard(QDialog):
         self._game.lineEdit().setPlaceholderText(tr("Type a part of the game's name"))
         self._game.currentIndexChanged.connect(self._game_changed)
         form.addRow(tr("Game"), self._game)
+        self._images = QLabel()
+        self._images.setWordWrap(True)
+        form.addRow(tr("Images it opens"), self._images)
         self._name = QLineEdit()
         self._name.setPlaceholderText(tr("The game's name is filled in; change it if you like"))
         self._name.textEdited.connect(self._name_edited)
@@ -245,6 +249,7 @@ class ProjectWizard(QDialog):
         for position in range(self._files_tree.topLevelItemCount()):
             self._files_tree.topLevelItem(position).setData(0, TOUCHED, False)
         self._roles, self._platforms = [], []
+        self._images.setText("")
         self._key_status = {}
         self._picked_keys = {}
         self._add_key.setVisible(False)
@@ -254,12 +259,15 @@ class ProjectWizard(QDialog):
         """Run the plugin over every file on the list. Each file's role and platform are set when the answer comes."""
         paths = self._paths()
         plugin = self._game.currentData() or ""
-        if not paths or not plugin:
+        if not plugin:
             return
-        self._files_status.setText(tr("Reading the files..."))
+        if paths:
+            self._files_status.setText(tr("Reading the files..."))
         self._run(FactsJob(plugin, paths, self._load_rules), self._on_facts)
 
     def _on_facts(self, facts: Dict[str, Any]) -> None:
+        if facts.get("plugin") == (self._game.currentData() or ""):
+            self._images.setText("\n".join(image_labels.summary_lines(facts.get("images") or [])))
         self._roles = facts.get("roles") or []
         self._platforms = facts.get("platforms") or []
         identities = {item["path"]: item for item in facts.get("identities") or []}
@@ -268,6 +276,7 @@ class ProjectWizard(QDialog):
         for position in range(self._files_tree.topLevelItemCount()):
             item = self._files_tree.topLevelItem(position)
             identity = identities.get(item.data(0, Qt.ItemDataRole.UserRole)) or {}
+            item.setToolTip(FILE_COLUMN, tr("Image ID: {0}", identity["title_id"]) if identity.get("title_id") else "")
             if not item.data(0, TOUCHED):  # the user has not picked a role yet
                 self._set_combo(item, ROLE_COLUMN, self._roles, identity.get("role") or self._roles[0]["id"])
                 self._set_combo(item, PLATFORM_COLUMN, self._platform_choices(), identity.get("platform") or NOT_SET)
@@ -732,13 +741,18 @@ class ProjectWizard(QDialog):
     def reject(self) -> None:
         if self._unpack_job is not None:
             self._unpack_job.requestInterruption()
+        self._stop_jobs()
         super().reject()
 
     def closeEvent(self, event) -> None:
+        self._stop_jobs()
+        super().closeEvent(event)
+
+    def _stop_jobs(self) -> None:
+        """Stop every job still running; a facts or list job must not outlive the dialog it reports to."""
         for job in list(self._jobs):
             try:
                 safe_shutdown_thread(job, None, 1000)
             except RuntimeError:  # Qt deleted a job that had already finished
                 pass
         self._jobs.clear()
-        super().closeEvent(event)

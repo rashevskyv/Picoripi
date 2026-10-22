@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "disc", "id": "RQOP69", "region": "EUR", "note": "Wii"}
+    ],
     "display_name": "Spore Hero",
     "platforms": ["wii"],
     "default_tag_mappings": {},

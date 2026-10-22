@@ -1,4 +1,11 @@
 {
+    "supported_images": [
+        {"kind": "disc", "id": "GZ2E01", "region": "USA", "note": "GameCube, Twilight Princess"},
+        {"kind": "disc", "id": "RZDE01", "region": "USA", "note": "Wii, Twilight Princess"},
+        {"kind": "title", "id": "000500001019E500", "region": "Not stated", "note": "Wii U HD, Twilight Princess"},
+        {"kind": "title", "id": "000500001019E600", "region": "Not stated", "note": "Wii U HD, Twilight Princess"},
+        {"kind": "title", "id": "000500001019C800", "region": "Not stated", "note": "Wii U HD, Twilight Princess"}
+    ],
     "display_name": "Zelda: Twilight Princess",
     "PROBLEM_DEFINITIONS": {
         "PROBLEM_TAG_WARNING": {

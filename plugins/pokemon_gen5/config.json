@@ -1,4 +1,12 @@
 {
+    "supported_images": [
+        {"kind": "code", "id": "IRBO", "region": "Not stated", "note": ""},
+        {"kind": "code", "id": "IRAO", "region": "Not stated", "note": ""},
+        {"kind": "code", "id": "IRBE", "region": "Not stated", "note": ""},
+        {"kind": "code", "id": "IREO", "region": "Not stated", "note": ""},
+        {"kind": "code", "id": "IRDO", "region": "Not stated", "note": ""},
+        {"kind": "code", "id": "IREE", "region": "Not stated", "note": ""}
+    ],
     "display_name": "Pokémon Black / White and Black 2 / White 2 (DS)",
     "default_tag_mappings": {
         "{PLAYER}": "{VAR 0100 0000}",

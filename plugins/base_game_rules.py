@@ -1169,6 +1169,29 @@ class BaseGameRules:
             return []
         return [{"id": str(item), "label": platform_label(str(item))} for item in ids]
 
+    def get_supported_images(self) -> List[Dict[str, str]]:
+        """The images this plugin opens, as ``[{"kind", "id", "region", "note"}]`` (core/project_library/supported_images.py).
+
+        Default: the ``"supported_images"`` list of the plugin's ``config.json``. A plugin that opens any file of its
+        kind declares ``{"kind": "any"}``; one that opens a game it cannot tell by id declares ``unchecked``. Every
+        plugin declares at least one entry (tests/test_architecture/test_supported_images.py).
+        """
+        import sys
+        from pathlib import Path
+
+        from core.project_library.supported_images import normalise
+        module = sys.modules.get(type(self).__module__)
+        config = Path(getattr(module, "__file__", "") or ".").parent / "config.json"
+        try:
+            return normalise(json.loads(config.read_text(encoding="utf-8")).get("supported_images"))
+        except (OSError, ValueError, AttributeError):
+            return []
+
+    def _declared_ids(self, *kinds: str) -> Tuple[str, ...]:
+        """The ids this plugin declares for the given kinds (default: every id kind). Detection reads them here."""
+        from core.project_library.supported_images import ID_KINDS, ids_of
+        return ids_of(self.get_supported_images(), kinds or ID_KINDS)
+
     def unpack_sources(self, sources: Dict[str, str], target_dir: str,
                        progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> Optional[str]:
         """Unpack the role files into ``target_dir``, an empty folder the host made, and return that folder.

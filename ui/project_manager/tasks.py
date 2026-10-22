@@ -73,6 +73,8 @@ class FactsJob(WorkerThread):
         try:
             rules = self._load_rules(self._plugin)
             result = {
+                "plugin": self._plugin,
+                "images": rules.get_supported_images(),
                 "roles": plugin_facts.roles_of(rules),
                 "platforms": plugin_facts.offered_platforms(rules),
                 "identities": plugin_facts.identify_sources(rules, self._paths, self.isInterruptionRequested),

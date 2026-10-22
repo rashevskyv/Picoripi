@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "JPN", "note": "3DS, Japanese release with the English fan translation"}
+    ],
     "display_name": "Digimon World: Re:Digitize Decode",
     "platforms": ["3ds"],
     "default_tag_mappings": {},

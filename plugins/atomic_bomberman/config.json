@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "Not stated", "note": "PC port and Switch; the plugin reads no id"}
+    ],
     "display_name": "Atomic Bomberman",
     "default_tag_mappings": {
         "{0}": "[0]",

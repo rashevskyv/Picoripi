@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "any", "id": "", "region": "", "note": "the mod's src folder of the 3DS system menus"}
+    ],
     "display_name": "Nintendo 3DS system (Ukrainian)",
     "default_tag_mappings": {},
     "block_names": {},

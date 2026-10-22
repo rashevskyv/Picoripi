@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "Not stated", "note": "Xbox 360 XBLA and PC port; texture project"}
+    ],
     "display_name": "Hard Corps: Uprising",
     "platforms": ["pc"],
     "default_tag_mappings": {},

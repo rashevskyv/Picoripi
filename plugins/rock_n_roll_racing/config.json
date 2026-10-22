@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "USA", "note": "SNES; identified by the USA ROM check"}
+    ],
     "display_name": "Rock N' Roll Racing (SNES)",
     "default_tag_mappings": {},
     "block_names": {},

@@ -1,4 +1,8 @@
 {
+    "supported_images": [
+        {"kind": "serial", "id": "SLUS-00628", "region": "USA", "note": "PlayStation, program SLUS_006.28"},
+        {"kind": "serial", "id": "SLUS-00899", "region": "USA", "note": "PlayStation, the other disc of the pair"}
+    ],
     "display_name": "Lunar: Silver Star Story Complete",
     "platforms": ["psx"],
     "default_tag_mappings": {},

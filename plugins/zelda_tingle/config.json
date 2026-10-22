@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "USA", "note": "Tingle Tuner text in the Wind Waker disc; European discs also open"}
+    ],
     "display_name": "Zelda: The Wind Waker (Tingle Tuner, GBA)",
     "platforms": ["gc"],
     "default_tag_mappings": {},

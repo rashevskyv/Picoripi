@@ -2,13 +2,22 @@
 status: current
 updated: 2026-10-20
 owns: unfinished work
-tokens: 68.3k
+tokens: 68.6k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## Supported images (`supported_images`, `feat/supported-images`, 2026-10-22)
+
+- Open: 95 plugins declare `unchecked` (their identify reads no game ID; the folder or image is taken as the game). Each needs the owner's image ID and a detection check, then the entry becomes `disc`, `title`, `code` or `serial`.
+- Open: 46 entries have region `Not stated` (3DS title IDs of pokemon_gen6, pokemon_md_3ds, Wii U HD titles of zelda_bmg and zelda_ww, pokemon_gen5 and gen7 codes, and the unchecked plugins with no region in the wiki). Read the region from the owner's copy.
+- Open: `pokemon_gen5` codes IRBO, IRAO, IRBE, IREO, IRDO, IREE: which game and region each one is.
+- Open: `castlevania_gba`, `mhp3rd`, `policenauts`, `xenoblade_2`, `zelda_totk` ids come from the wiki and tests only (not from detection code); declared as `unchecked` with the id in the note.
+- Open: Switch title regions are `All regions`; the Switch title ids are region-free, so confirm each one on a real title.
+- Open: `supported_images` on `default_plugin`, `plain_text`, `manual_3ds`, `system_3ds`, `wii_sysfont` is `any`; confirm no plugin needs a narrower list.
 
 ## Share project (`core/project_library/share.py`, 2026-10-20, branch `feat/project-share`)
 

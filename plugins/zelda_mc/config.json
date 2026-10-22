@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "Not stated", "note": "Game Boy Advance"}
+    ],
     "display_name": "The Legend of Zelda: The Minish Cap",
     "platforms": ["gba"],
     "default_tag_mappings": {},

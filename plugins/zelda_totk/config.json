@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "All regions", "note": "Switch, checked on 1.4.0; title 0100F2C0115B6000"}
+    ],
     "display_name": "Zelda: Tears of the Kingdom",
     "platforms": ["switch"],
     "default_tag_mappings": {},

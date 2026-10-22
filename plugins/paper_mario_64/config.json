@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "USA", "note": "N64 USA 1.0, PC port PaperBoat 1.0.2"}
+    ],
     "display_name": "Paper Mario (N64)",
     "platforms": ["n64"],
     "default_tag_mappings": {},

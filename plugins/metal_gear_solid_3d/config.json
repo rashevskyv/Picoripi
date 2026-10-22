@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "EUR", "note": "3DS"}
+    ],
     "display_name": "Metal Gear Solid: Snake Eater 3D",
     "platforms": ["3ds"],
     "default_tag_mappings": {},
