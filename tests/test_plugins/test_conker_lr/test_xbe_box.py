@@ -7,10 +7,12 @@ import pytest
 from plugins.conker_lr import xbe_box
 
 BASE = 0x10000
+FLOAT_240_VA = 0x640100  # an unreferenced float 240.0 in the data section of the synthetic XBE
 
 
 def _xbe():
-    """A small XBE: header fields, a section table, two sections that cover the box sites with the original bytes."""
+    """A small XBE: header fields, a section table, two sections that cover the box sites with the original bytes.
+    The bubble's height is loaded from the shared 160.0 constant; a 240.0 constant sits unreferenced beside it."""
     xbe = bytearray(0x40000)
     xbe[0:4] = b"XBEH"
     struct.pack_into("<I", xbe, 0x104, BASE)
@@ -23,7 +25,10 @@ def _xbe():
         struct.pack_into("<I", xbe, xbe_box.va_to_offset(bytes(xbe), va, 4), xbe_box.ORIGINAL_WRAP)
     for va in xbe_box.LINE_VAS:
         xbe[xbe_box.va_to_offset(bytes(xbe), va, 1)] = xbe_box.ORIGINAL_LINES
-    struct.pack_into("<f", xbe, xbe_box.va_to_offset(bytes(xbe), xbe_box.HEIGHT_VA, 4), 160.0)
+    for va in xbe_box.HEIGHT_LOAD_VAS:
+        struct.pack_into("<I", xbe, xbe_box.va_to_offset(bytes(xbe), va, 4), xbe_box.HEIGHT_CONST_VA)
+    struct.pack_into("<f", xbe, xbe_box.va_to_offset(bytes(xbe), xbe_box.HEIGHT_CONST_VA, 4), 160.0)
+    struct.pack_into("<f", xbe, xbe_box.va_to_offset(bytes(xbe), FLOAT_240_VA, 4), 240.0)
     return bytes(xbe)
 
 
@@ -34,7 +39,16 @@ def test_the_sites_change_to_the_new_values():
         assert struct.unpack_from("<I", patched, xbe_box.va_to_offset(xbe, va, 4))[0] == 40
     for va in xbe_box.LINE_VAS:
         assert patched[xbe_box.va_to_offset(xbe, va, 1)] == 6
-    assert struct.unpack_from("<f", patched, xbe_box.va_to_offset(xbe, xbe_box.HEIGHT_VA, 4))[0] == 240.0
+    for va in xbe_box.HEIGHT_LOAD_VAS:
+        assert struct.unpack_from("<I", patched, xbe_box.va_to_offset(xbe, va, 4))[0] == FLOAT_240_VA
+    assert struct.unpack_from("<f", patched, xbe_box.va_to_offset(xbe, FLOAT_240_VA, 4))[0] == 240.0
+
+
+def test_the_shared_160_constant_is_not_changed():
+    xbe = _xbe()
+    patched = xbe_box.patched_box(xbe, 40, 6, 240.0)
+    offset = xbe_box.va_to_offset(xbe, xbe_box.HEIGHT_CONST_VA, 4)
+    assert patched[offset:offset + 4] == xbe[offset:offset + 4]
 
 
 def test_only_the_site_bytes_change():
@@ -50,7 +64,8 @@ def test_only_the_site_bytes_change():
 def test_the_height_can_be_left_alone():
     xbe = _xbe()
     patched = xbe_box.patched_box(xbe, 40, 6, None)
-    assert struct.unpack_from("<f", patched, xbe_box.va_to_offset(xbe, xbe_box.HEIGHT_VA, 4))[0] == 160.0
+    for va in xbe_box.HEIGHT_LOAD_VAS:
+        assert struct.unpack_from("<I", patched, xbe_box.va_to_offset(xbe, va, 4))[0] == xbe_box.HEIGHT_CONST_VA
 
 
 def test_the_original_values_give_the_same_bytes():
@@ -61,6 +76,13 @@ def test_the_original_values_give_the_same_bytes():
 def test_a_site_with_other_bytes_refuses_the_patch():
     xbe = bytearray(_xbe())
     xbe[xbe_box.va_to_offset(bytes(xbe), xbe_box.LINE_VAS[2], 1)] = 0x05
+    with pytest.raises(xbe_box.XbeError):
+        xbe_box.patched_box(bytes(xbe), 40, 6, 240.0)
+
+
+def test_a_height_constant_that_something_refers_to_is_not_used():
+    xbe = bytearray(_xbe())
+    struct.pack_into("<I", xbe, xbe_box.va_to_offset(bytes(xbe), 0x640200, 4), FLOAT_240_VA)  # a pointer to it
     with pytest.raises(xbe_box.XbeError):
         xbe_box.patched_box(bytes(xbe), 40, 6, 240.0)
 

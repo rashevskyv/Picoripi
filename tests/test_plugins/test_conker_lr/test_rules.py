@@ -116,7 +116,10 @@ def _xbe_with_title(title_id):
         struct.pack_into("<I", xbe, xbe_box.va_to_offset(bytes(xbe), va, 4), xbe_box.ORIGINAL_WRAP)
     for va in xbe_box.LINE_VAS:
         xbe[xbe_box.va_to_offset(bytes(xbe), va, 1)] = xbe_box.ORIGINAL_LINES
-    struct.pack_into("<f", xbe, xbe_box.va_to_offset(bytes(xbe), xbe_box.HEIGHT_VA, 4), 160.0)
+    for va in xbe_box.HEIGHT_LOAD_VAS:
+        struct.pack_into("<I", xbe, xbe_box.va_to_offset(bytes(xbe), va, 4), xbe_box.HEIGHT_CONST_VA)
+    struct.pack_into("<f", xbe, xbe_box.va_to_offset(bytes(xbe), xbe_box.HEIGHT_CONST_VA, 4), 160.0)
+    struct.pack_into("<f", xbe, xbe_box.va_to_offset(bytes(xbe), 0x640100, 4), 240.0)
     return bytes(xbe)
 
 
@@ -136,7 +139,8 @@ def test_the_box_build_writes_a_patched_copy_and_refuses_another_xbe(tmp_path):
     assert built == str(output / XBE_NAME)
     assert patched[xbe_box.va_to_offset(patched, xbe_box.LINE_VAS[0], 1)] == BOX_LINE_LIMIT
     assert struct.unpack_from("<I", patched, xbe_box.va_to_offset(patched, xbe_box.WRAP_VAS[0], 4))[0] == BOX_WRAP_CHARS
-    height = struct.unpack_from("<f", patched, xbe_box.va_to_offset(patched, xbe_box.HEIGHT_VA, 4))[0]
+    load = struct.unpack_from("<I", patched, xbe_box.va_to_offset(patched, xbe_box.HEIGHT_LOAD_VAS[0], 4))[0]
+    height = struct.unpack_from("<f", patched, xbe_box.va_to_offset(patched, load, 4))[0]
     assert height == (xbe_box.scaled_height(BOX_LINE_LIMIT) if BOX_HEIGHT else 160.0)
 
     (source / ORIGINAL_DIR / XBE_NAME).write_bytes(_xbe_with_title(0x12345678))

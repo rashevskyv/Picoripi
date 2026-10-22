@@ -58,6 +58,7 @@ Each plugin opens the images listed here. When you add an image, the wizard matc
 | Code Name: S.T.E.A.M. | Not checked by ID | — | EUR | 3DS |
 | Code of Princess | Not checked by ID | — | Not stated | 3DS, and Switch EX; the plugin reads no id |
 | Conker's Bad Fur Day (N64) | ROM name | CONKER BFD | USA | N64 ROM, internal name at header offset 0x20; USA 1.0 |
+| Conker: Live & Reloaded (Xbox) | Not checked by ID | — | USA | Xbox disc image (XISO), title ID 0x4D530051; the plugin reads the id from default.xbe |
 | Corpse Party | Not checked by ID | — | Not stated | 3DS and Switch 2021; the plugin reads no id |
 | Digimon World: Re:Digitize Decode | Not checked by ID | — | JPN | 3DS, Japanese release with the English fan translation |
 | Donkey Kong Country (SNES) | Not checked by ID | — | USA | SNES USA v1.0 through the Switch PC ports |

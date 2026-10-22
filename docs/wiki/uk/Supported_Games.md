@@ -57,6 +57,7 @@ tokens: 14.6k
 | Code Name: S.T.E.A.M. | ID не перевіряється | — | Європа | 3DS |
 | Code of Princess | ID не перевіряється | — | Не вказано | 3DS, and Switch EX; the plugin reads no id |
 | Conker's Bad Fur Day (N64) | Назва в ROM | CONKER BFD | США | N64 ROM, internal name at header offset 0x20; USA 1.0 |
+| Conker: Live & Reloaded (Xbox) | ID не перевіряється | — | США | Xbox disc image (XISO), title ID 0x4D530051; the plugin reads the id from default.xbe |
 | Corpse Party | ID не перевіряється | — | Не вказано | 3DS and Switch 2021; the plugin reads no id |
 | Digimon World: Re:Digitize Decode | ID не перевіряється | — | Японія | 3DS, Japanese release with the English fan translation |
 | Donkey Kong Country (SNES) | ID не перевіряється | — | США | SNES USA v1.0 through the Switch PC ports |
