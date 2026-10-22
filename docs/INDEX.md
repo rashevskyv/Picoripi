@@ -11,7 +11,7 @@ Read the row, then open only the document you need.
 | `docs/ENGINEERING.md` | Habits behind the rules: threads, performance, persistence, tests | 2.0k | current | engineering practice |
 | `docs/FEATURES.md` | Every feature in detail; the wiki wins on a conflict | 14.9k | current | feature inventory |
 | `docs/MEMPALACE_CONTEXT_MANIFESTO.md` | MemPalace contract: principles, data flow, stage status | 2.3k | design | core/mempalace, ui/mempalace |
-| `docs/OPEN_ITEMS.md` | Everything left open, one line each, by work package | 71.1k | current | unfinished work |
+| `docs/OPEN_ITEMS.md` | Everything left open, one line each, by work package | 71.6k | current | unfinished work |
 | `docs/PIPELINE_ROADMAP.md` | Pipeline design of record (Ukrainian); shipped vs planned on top | 12.5k | current | core/glossary_build, ui/pipeline_wizard_dialog.py |
 | `docs/PROJECT_MANAGER_PHASE2.md` | Project Manager phase 2 | 0.7k | current | project manager |
 | `docs/REVIEW_QUEUE.md` | What is left for the owner after the audit: decisions with evidence, live runs, environment | 2.4k | current | owner decisions and live checks |
@@ -42,7 +42,7 @@ Read the row, then open only the document you need.
 | `docs/wiki/Recipes.md` (+uk) | Short task recipes: what to press, in order, for each common goal, with a link to the full page | 2.9k | current | docs/wiki |
 | `docs/wiki/Saving_and_Recovery.md` (+uk) | Saving, undo, backups, session recovery, revert and moving a project. | 2.2k | current | core/data_processor/save_mixin.py, core/data_processor/session_manager.py, core/data_processor/revert_manager.py, core/saved_translations_manager.py, core/undo_manager.py |
 | `docs/wiki/Search_Bookmarks.md` (+uk) | Quick find, Advanced Search & Replace, search history and bookmarks. | 1.9k | current | components/search_panel.py, handlers/search_handler.py, dialogs/search_review/, handlers/bookmark_handler.py |
-| `docs/wiki/Supported_Games.md` (+uk) | Table of every game plugin with platforms, wizard needs and build targets. | 12.2k | current | plugins/ |
+| `docs/wiki/Supported_Games.md` (+uk) | Table of every game plugin with platforms, wizard needs and build targets. | 12.4k | current | plugins/ |
 | `docs/wiki/Troubleshooting.md` (+uk) | Symptom, cause and fix tables for the problems a new user meets, plus how to read the log and report a bug. | 2.8k | current | handlers/ and ui/ (messages and dialogs) |
 | `docs/wiki/Warnings_and_Autofix.md` (+uk) | Problem lines, warning colours, navigation, Detection and Auto-fix settings, Fix All Strings, rescans and the spell checker. | 2.0k | current | handlers/issue_scan_handler.py |
 | `docs/wiki/Width_Fonts_Tags.md` (+uk) | Line width in game pixels, per-string and project limits, the Font Map, default font and tags. | 2.0k | current | utils/width.py |

@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-21
 owns: plugins/
-tokens: 14.8k
+tokens: 15.0k
 ---
 # Підтримувані ігри
 
