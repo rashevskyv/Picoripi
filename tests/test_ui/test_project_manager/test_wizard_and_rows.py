@@ -200,12 +200,13 @@ def test_unpack_job_that_is_cancelled_leaves_only_the_project_folder(qtbot, tmp_
 
 
 def test_wizard_asks_for_a_key_file_only_when_a_chosen_file_needs_one_and_none_is_stored(qtbot, tmp_path, monkeypatch):
-    from core.project_library import console_keys
+    from core.project_library import console_keys, key_source
     from test_core.test_n3ds_image import build_cci, build_ncch
     from ui.project_manager import wizard as wizard_module
     from utils import constants
 
     monkeypatch.setattr(constants, "SETTINGS_DIR", tmp_path / "data")
+    key_source.set_config(enabled=False)   # no source offer here: the file dialog is the only choice
     key_file = tmp_path / "keys.txt"
     key_file.write_bytes(b"placeholder")
     locked = tmp_path / "locked.cci"
@@ -236,11 +237,13 @@ def test_wizard_asks_for_a_key_file_only_when_a_chosen_file_needs_one_and_none_i
 
 def test_cancelling_the_key_dialog_stops_create_with_a_message_and_no_unpack(qtbot, tmp_path, monkeypatch):
     from core.i18n import tr
+    from core.project_library import key_source
     from test_core.test_n3ds_image import build_cci, build_ncch
     from ui.project_manager import wizard as wizard_module
     from utils import constants
 
     monkeypatch.setattr(constants, "SETTINGS_DIR", tmp_path / "data")
+    key_source.set_config(enabled=False)   # no source offer here: the file dialog is the only choice
     locked = tmp_path / "locked.cci"
     locked.write_bytes(build_cci(build_ncch(encrypted=True)))
     constructed = []
@@ -478,11 +481,13 @@ def test_a_file_the_game_cannot_read_blocks_next_and_says_to_add_the_folder(qtbo
 
 
 def test_a_missing_key_offers_its_button_and_the_chosen_key_clears_the_problem(qtbot, tmp_path, monkeypatch):
+    from core.project_library import key_source
     from test_core.test_n3ds_image import build_cci, build_ncch
     from ui.project_manager import wizard as wizard_module
     from utils import constants
 
     monkeypatch.setattr(constants, "SETTINGS_DIR", tmp_path / "data")
+    key_source.set_config(enabled=False)   # the default source has its own tests: this one keeps the file button first
     key_file = tmp_path / "keys.txt"
     key_file.write_bytes(b"placeholder")
     locked = tmp_path / "locked.cci"

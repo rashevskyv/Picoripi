@@ -10,6 +10,20 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Default key source (`core/project_library/key_source.py`, 2026-10-22, branch `feat/key-source`)
+
+- Done: consent-gated download of the 3DS, Switch and Wii key files from the pinned default source (D48), with the
+  wizard (Get keys first, then Choose a file) and the Console keys tab (source settings, Download again).
+- Not done: the owner's first real download in the app. The tests use a loopback server only, by design.
+- Open: Wii U keys (`keys.txt`, `otp.bin`, `seeprom.bin`) are in the source, but Picoripi has no Wii U key slot. Add a slot
+  and a reader first.
+- Open: Switch `title.keys` is in the source, but no reader uses it. It is not downloaded.
+- Open: a source the user sets has no hash record. Only the registered file gets a parser check. `boot9.bin` and
+  `seeddb.bin` from such a source are not checked.
+- Open: on an update of the default commit, `DEFAULT_REF` and `SOURCE_FILES` change together. Nothing checks that they
+  agree; a test would need the repository.
+- Open: the legal status of these keys depends on the user's country. The owner decides whether the default stays.
+
 ## Share project (`core/project_library/share.py`, 2026-10-20, branch `feat/project-share`)
 
 - Open: translation files outside `translation_path` are not packed; their paths are cleared. Example: the

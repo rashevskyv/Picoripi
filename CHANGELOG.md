@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Key files: a default key source (the pinned `bios/Nintendo` folder of Abdess/retrobios, D48) downloads the 3DS, Switch and Wii key files only after a consent dialog; the wizard offers it before a file, and the Console keys tab has the source settings (`core/project_library/key_source.py`, `ui/key_source_download.py`).
 - Wiki restructure: Getting Started is now a short five-step start, and 14 new topic pages (Project Manager, New Project Scenarios, Editor Basics, Hotkeys, Width/Fonts/Tags, Warnings and Auto-fix, Search/Bookmarks, Saving and Recovery, Build and Test, Fonts and Textures, Supported Games, Game Notes, Troubleshooting, Recipes) cover the whole program in EN and UK; the Settings map is in the Configuration Guide; the wiki index is grouped by task.
 - Docs: Getting Started is now a full manual (Project Manager, editor, line width and where to set it, tags, warnings, find and replace, saving, AI, glossary, a map of every setting, build and emulator), and every wiki page ends with Previous/Next links; Settings labels for width, font size, tags and font map are translated (`tr()` plus `locales/uk.json`), and two Ukrainian typos in menu strings are fixed.
 - Docs: the Getting Started page (EN, UK) now covers the first translation (blocks, strings, editor, saving) and what comes next (AI, glossary, building the mod, working together) with real editor screenshots; the Ukrainian text was rewritten in natural Ukrainian.

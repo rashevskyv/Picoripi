@@ -191,6 +191,19 @@ One row for each console. Each row shows the stored path, its state, **Browse...
 - The Oodle path is read in this order: this row, then the environment variable `PICORIPI_OODLE_DLL`, then a search of known folders.
 - Changes apply at once. Restart: no.
 
+### Default source for key files
+
+Picoripi can download the 3DS, Switch and Wii key files for you. The default source is the `bios/Nintendo` folder of the [Abdess/retrobios](https://github.com/Abdess/retrobios) repository, at one fixed commit. Picoripi ships no keys. A download runs only after you confirm it.
+
+- **Consent.** Each download opens a dialog. The dialog names the address and the folder. You are responsible for the legal status of these keys in your country.
+- **Where the files go.** `key_source/<console>/` in the data folder. The 3DS folder also holds `boot9.bin` and `seeddb.bin`. The 3DS reader reads them beside the key file.
+- **Your own file wins.** A key file you chose with **Browse...** stays in use. The source does not replace it. Click **Clear** to use the source for that console.
+- **Checks.** Each file of the default source must match the size and SHA-256 that the repository publishes for it. A file that does not match is not kept. A source you set yourself has no record. Picoripi then checks only that the key file has the right format.
+- **Use another source.** Type its address in **Source folder:**. It must start with `https://` or `http://`, and it must use the same folder layout. **Use the default source** restores the default.
+- **Turn it off.** Clear **Allow downloads from a source**. The wizard then shows no download button.
+- **Download again.** After a download the button reads **Download again**. It replaces the downloaded files. Picoripi never keeps a partial file.
+- **Errors.** Picoripi says if the connection fails, the source refuses the request, the source has moved, or a file does not match.
+
 ## Logging
 
 | Control | What it does | Default |
@@ -214,6 +227,7 @@ Restart: no.
 | Project name, plugin, source and translation paths, bookmarks | `project.uiproj` | Project folder |
 | Tag aliases, font map, window limits | `aliases.json`, `font_map.json`, `window_layouts.json` | Data folder, `plugins/<plugin>/` |
 | Console key paths | `console_keys.json` | Data folder |
+| Default key source settings and downloaded key files | `key_source.json`, `key_source/` | Data folder |
 | Project list, groups, emulator commands | `project_manager.json` | Data folder |
 | Unsaved edits of a project | `.picoripi_session` | Project folder |
 | Event log | `app_debug.txt` (or your log path); `ai_traffic.log` | Program folder; data folder |
