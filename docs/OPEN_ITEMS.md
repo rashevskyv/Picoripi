@@ -10,6 +10,18 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Luigi's Mansion, GameCube and 3DS (`plugins/luigis_mansion_1_gc`, `plugins/luigis_mansion_1_3ds`, 2026-10-22, branch `feat/luigis-mansion`)
+
+- GameCube, done: the disc unpacks, 1226 message records in 89 files read and write byte-identical, a build changes one record and keeps `sys/main.dol`. Dolphin boots the built image (movie-driven run, frame dumps).
+- GameCube, open: no text on screen yet. The Dolphin runs never reached the dialogue of `event01`; the trigger is unknown. Find the scene that shows a message (a ghost encounter or a scripted event) and prove one edited record on screen.
+- GameCube, open: the Shift-JIS font `font_12.bfn` (in `system.arc`) is listed; the copy in `main.dol` (`FONTbfn1`) is not. Check which copy the game draws with, then decide whether the DOL copy needs a change (the port checks `main.dol`'s hash).
+- GameCube, open: textures with English text (`game_usa.szp`, `e_*.bti`) are not in `texture_sources.json` yet. The Yay0 writer is literal-only (larger archives); add the matcher if the disc runs short.
+- 3DS, done: the CIA unpacks with the key file; the English `main.gmsg` reads 2182 messages (2181 text, 1 raw) and writes byte-identical.
+- 3DS, open: the UI archives `romfs/Region_US/English/UI*.gar` are GAR version 5; `core/containers/grezzo.py` reads only version 2. Add version 5 before any UI text or textures.
+- 3DS, open: the fonts `romfs/Region_US/*.gzf` (GZFX) are not listed in `font_sources.json`; check them with `core/font_formats/gzf.py`.
+- 3DS, open: no Azahar proof yet. Needs a decrypted image or an install of the CIA in a private NAND, and the LayeredFS switch of Azahar (`run_azahar_hidden_desktop.ps1` takes a .3ds/.cxi).
+- Workspaces: the series folder (GameCube and 3DS subfolders); the `zt` bat scripts were not made (no `zt` module for these games); the Picoripi project file is the working path.
+
 ## Default key source (`core/project_library/key_source.py`, 2026-10-22, branch `feat/key-source`)
 
 - Done: consent-gated download of the 3DS, Switch and Wii key files from the pinned default source (D48), with the
