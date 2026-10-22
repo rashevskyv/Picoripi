@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: docs/wiki
-tokens: 1.0k
+tokens: 1.1k
 purpose: Which page owns which fact; how to update EN and UK
 ---
 # Maintaining this wiki
@@ -19,6 +19,7 @@ English files in `docs/wiki/` are the source of truth. `docs/wiki/uk/` is the Uk
 | Which Python file implements a control | `2_API_Reference.md` |
 | Writing a plugin (`BaseGameRules`, capabilities, discovery) | `3_Plugin_Developer_Guide.md` |
 | Settings persistence, `settings.json`, `.env`, session | `4_Configuration_Guide.md` |
+| Console keys: key files, default source, consent, offline (other pages link here) | `4_Configuration_Guide.md`, section "Console keys" |
 | Gemini Web2API / WebTOP / Parallel Requests | `5_Gemini_Web2API.md` |
 | Virtual folders, TP window preview, Show Unsaved Only | `6_Virtual_Navigation_and_Preview.md` |
 | This ownership table | this file |

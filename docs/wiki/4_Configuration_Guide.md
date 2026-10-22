@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-21
 owns: ui/settings
-tokens: 4.4k
+tokens: 5.1k
 purpose: Map of every Settings tab and control, defaults, restart needs, and where each value is stored
 ---
 # Configuration
@@ -176,6 +176,91 @@ Restart: no. See [Picoripi Companion](12_Picoripi_Companion.md).
 
 ## Console keys
 
+Some game files are encrypted. Picoripi needs the key file of the console to read them. This section explains
+every key file. Other pages link here.
+
+### Key files by console
+
+| Console | Key file | Also beside it | Needed for |
+|---|---|---|---|
+| Nintendo 3DS | `aes_keys.txt` | `boot9.bin`, and `seeddb.bin` for some titles | Encrypted 3DS game files |
+| Nintendo Switch | `prod.keys` | Nothing | Encrypted Switch files (NSP, NSZ): base game, update, DLC |
+| Wii | `keys.bin` | Nothing | Encrypted Wii disc images |
+
+The Oodle library and the PlayStation BIOS are not key files. They have their own rows, below.
+
+### Get the key files from the default source
+
+The default source is the `bios/Nintendo` folder of the [Abdess/retrobios](https://github.com/Abdess/retrobios)
+repository, at one fixed commit. Picoripi ships no keys. Picoripi offers the default source when a game needs a
+key file.
+
+1. In the wizard, the file shows **Needs the key file**.
+2. Press **Get keys from the default source**. Or press **Add the key file for ...** to choose your own file.
+3. Read the consent dialog. It names the address and the folder. The source is a third-party project, not Picoripi.
+   Press **Download**.
+4. Picoripi checks the files and keeps their path. The status shows **Ready**.
+
+If you pressed **Create project**, the project opens when the download ends.
+
+```mermaid
+flowchart TD
+    A[Wizard: a file is encrypted] --> B{Key file already set?}
+    B -- Yes --> U[Unpack the game]
+    B -- No --> C{Default source allowed?}
+    C -- No --> F[Choose your own key file]
+    C -- Yes --> D[Get keys from the default source]
+    D --> E{Consent dialog: Download?}
+    E -- Cancel --> F
+    E -- Download --> G[Download the files]
+    G --> H{Files match the record?}
+    H -- No --> X[Show the error. Keep nothing] --> F
+    H -- Yes --> S[Store the path in Console keys]
+    F --> S
+    S --> U
+```
+
+You are responsible for the legal status of these keys in your country.
+
+### Your own key file wins
+
+- A key file you choose with **Browse...** stays in use. The default source does not replace it.
+- A download skips every console that has your own key file.
+- To use the source for one console, click **Clear** for that console. Then get the keys again.
+
+### Change or turn off the default source
+
+Open **Settings → Console keys**, group **Default source for key files**.
+
+- **Allow downloads from a source.** Clear it to turn downloads off. The wizard then shows no download button.
+- **Source folder.** Type another `https://` or `http://` address with the same folder layout. The button then reads
+  **Get keys from the source you set**. **Use the default source** restores the default.
+- **Download again.** Shows after the first download. It replaces the files that an earlier download put in place.
+  Your own key files stay.
+- **Cancel download.** Stops a running download. Picoripi keeps no partial file.
+
+### Checks
+
+- **Default source.** Each file must match the size and SHA-256 that the repository publishes for the fixed commit.
+  A file that does not match is not kept.
+- **Other source.** Picoripi has no record for it. It checks only that the key file has the right format.
+- A new default commit ships in a new Picoripi version.
+
+### Offline
+
+- Picoripi starts and works without a connection. It downloads nothing at start.
+- Without a connection, a download fails. Choose a key file you already have: click **Browse...** in
+  **Console keys**, or press **Add the key file for ...** in the wizard.
+
+### Where the files go
+
+- Downloaded files go to `key_source\<console>\` in the data folder. For 3DS, `aes_keys.txt`, `boot9.bin` and
+  `seeddb.bin` share one folder.
+- Picoripi stores only the path of each key file. Key contents never go into a project, a shared package, a Work
+  Together room or a log.
+
+### Settings rows
+
 One row for each console. Each row shows the stored path, its state, **Browse...** and **Clear**.
 
 | Row | The file | Default |
@@ -186,23 +271,11 @@ One row for each console. Each row shows the stored path, its state, **Browse...
 | Oodle | The Oodle library (a DLL). Not a key file. | Not set |
 | PlayStation BIOS | The BIOS file. Its font table gives the menu lines of one game. No BIOS data is shipped. | Not set |
 
-- Picoripi stores only the path. It never shows, logs or copies the contents.
 - The state shows **File found** or **File not found**.
+- To set a key file before you start, use **Browse...** here. The path then serves every project of that console.
+- If you move or delete a key file, the wizard asks for it again.
 - The Oodle path is read in this order: this row, then the environment variable `PICORIPI_OODLE_DLL`, then a search of known folders.
 - Changes apply at once. Restart: no.
-
-### Default source for key files
-
-Picoripi can download the 3DS, Switch and Wii key files for you. The default source is the `bios/Nintendo` folder of the [Abdess/retrobios](https://github.com/Abdess/retrobios) repository, at one fixed commit. Picoripi ships no keys. A download runs only after you confirm it.
-
-- **Consent.** Each download opens a dialog. The dialog names the address and the folder. You are responsible for the legal status of these keys in your country.
-- **Where the files go.** `key_source/<console>/` in the data folder. The 3DS folder also holds `boot9.bin` and `seeddb.bin`. The 3DS reader reads them beside the key file.
-- **Your own file wins.** A key file you chose with **Browse...** stays in use. The source does not replace it. Click **Clear** to use the source for that console.
-- **Checks.** Each file of the default source must match the size and SHA-256 that the repository publishes for it. A file that does not match is not kept. A source you set yourself has no record. Picoripi then checks only that the key file has the right format.
-- **Use another source.** Type its address in **Source folder:**. It must start with `https://` or `http://`, and it must use the same folder layout. **Use the default source** restores the default.
-- **Turn it off.** Clear **Allow downloads from a source**. The wizard then shows no download button.
-- **Download again.** After a download the button reads **Download again**. It replaces the downloaded files. Picoripi never keeps a partial file.
-- **Errors.** Picoripi says if the connection fails, the source refuses the request, the source has moved, or a file does not match.
 
 ## Logging
 

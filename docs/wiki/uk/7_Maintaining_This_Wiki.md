@@ -2,7 +2,7 @@
 status: current
 updated: 2026-09-27
 owns: docs/wiki
-tokens: 1.3k
+tokens: 1.4k
 ---
 # Як вести цю вікі
 
@@ -18,6 +18,7 @@ tokens: 1.3k
 | Який Python-файл реалізує контроль | `2_API_Reference.md` | `uk/2_…` |
 | Написання плагіна | `3_Plugin_Developer_Guide.md` | `uk/3_…` |
 | `settings.json`, `.env`, сесія | `4_Configuration_Guide.md` | `uk/4_…` |
+| Ключі консолей: файли ключів, типове джерело, згода, робота без з’єднання (інші сторінки посилаються сюди) | `4_Configuration_Guide.md`, розділ «Ключі консолей» | `uk/4_…`, розділ «Ключі консолей» |
 | Gemini Web2API / WebTOP | `5_Gemini_Web2API.md` | `uk/5_…` |
 | Віртуальні теки, прев’ю TP, Show Unsaved Only | `6_Virtual_Navigation_and_Preview.md` | `uk/6_…` |
 | Ця таблиця | цей файл | `uk/7_…` |

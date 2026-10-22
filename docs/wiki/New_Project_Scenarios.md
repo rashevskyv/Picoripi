@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-22
 owns: ui/project_manager/wizard.py, core/project_library/
-tokens: 2.3k
+tokens: 2.2k
 purpose: The three-step new-project wizard and each kind of game source it accepts
 ---
 # Creating a project: every kind of game
@@ -117,24 +117,8 @@ update and `0004008C` DLC.
 
 ## Key files
 
-Some game files are encrypted. Picoripi needs the key file of the console to read them.
-
-| Console | Key file |
-|---|---|
-| Nintendo 3DS | `aes_keys.txt` |
-| Nintendo Switch | `prod.keys` |
-| Wii | `keys.bin` |
-| Oodle library | The Oodle DLL (`oo2core` or `oo2ext`) |
-| PlayStation BIOS | The BIOS file |
-
-1. The wizard shows **Needs the key file** in the **Status** column.
-2. Press **Add the key file for ...** and choose the file.
-3. Picoripi remembers only the path. It never shows, copies or logs the key contents.
-
-To set a key file before you start, open **File → Settings (Ctrl+P) → Console keys**. The path is kept for every
-console. Any game can reuse it.
-
-If you move or delete the key file, the wizard asks for it again.
+Some game files are encrypted. The wizard then asks for the key file of the console. See
+[Console keys](4_Configuration_Guide.md#console-keys) for the default source and each console's key file.
 
 ## Existing translation folder
 

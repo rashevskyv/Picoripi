@@ -58,8 +58,9 @@ Press **+ Add project → New project...**. The wizard has three steps.
    ![Step 1: the game](img/getting_started/03_wizard_game.png)
 
 2. **Files.** Press **Add files...** and choose the game files: the game, its update and its DLC. If the game is
-   already unpacked, press **Add folder...**. Picoripi sets the role and platform of each file itself. If a key file
-   is needed, it says so in the error row and offers **Get keys from the default source** or **Choose a file**.
+   already unpacked, press **Add folder...**. Picoripi sets the role and platform of each file itself. An encrypted
+   file needs a key file. Then press **Get keys from the default source** or **Add the key file for ...**. See
+   [Console keys](4_Configuration_Guide.md#console-keys).
 
    ![Step 2: the files](img/getting_started/04_wizard_files.png)
 
@@ -111,10 +112,10 @@ original files. For backups and recovery see [Saving and recovery](Saving_and_Re
 
 | Game | Files to add | Key file |
 |---|---|---|
-| Yo-kai Watch, Switch | the game `.nsz` or `.nsp` and its update | Switch `prod.keys` |
-| Yo-kai Watch, 3DS | the `.3ds` | 3DS keys, only when the file is encrypted |
+| Yo-kai Watch, Switch | the game `.nsz` or `.nsp` and its update | Switch `prod.keys`, when encrypted |
+| Yo-kai Watch, 3DS | the `.3ds` | 3DS `aes_keys.txt`, only when encrypted |
 | Twilight Princess, GameCube | the `.iso` | none |
-| Twilight Princess, Wii | the Wii `.iso` | Wii `keys.bin` |
+| Twilight Princess, Wii | the Wii `.iso` | Wii `keys.bin`, when encrypted |
 | Twilight Princess HD, Wii U | the unpacked game folder (Picoripi cannot read `.wux` yet) | none |
 
 <!-- wiki-nav -->

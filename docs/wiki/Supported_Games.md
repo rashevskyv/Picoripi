@@ -504,8 +504,8 @@ Each plugin opens the images listed here. When you add an image, the wizard matc
 
 **The wizard asks for a key file.**
 
-- Your file is encrypted. Click **Add the key file for ...**.
-- Picoripi remembers the key path for each console.
+- Your file is encrypted. Press **Get keys from the default source**, or **Add the key file for ...** for your own file.
+- The key file is kept for each console. See [Console keys](4_Configuration_Guide.md#console-keys).
 
 **The wizard says Cannot read: add its folder.**
 
