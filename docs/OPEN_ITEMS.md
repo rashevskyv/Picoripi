@@ -20,7 +20,7 @@ the line when it is done or moved into a plan.
 - 3DS, open: the UI archives `romfs/Region_US/English/UI*.gar` are GAR version 5; `core/containers/grezzo.py` reads only version 2. Add version 5 before any UI text or textures.
 - 3DS, open: the fonts `romfs/Region_US/*.gzf` (GZFX) are not listed in `font_sources.json`; check them with `core/font_formats/gzf.py`.
 - 3DS, open: no Azahar proof yet. Needs a decrypted image or an install of the CIA in a private NAND, and the LayeredFS switch of Azahar (`run_azahar_hidden_desktop.ps1` takes a .3ds/.cxi).
-- Workspaces: `E:\Emulators\RomHacking\Luigi's Mansion\` has the GameCube and 3DS folders; the `zt` bat scripts were not made (no `zt` module for these games); the Picoripi project file is the working path.
+- Workspaces: the series folder (GameCube and 3DS subfolders); the `zt` bat scripts were not made (no `zt` module for these games); the Picoripi project file is the working path.
 
 ## Default key source (`core/project_library/key_source.py`, 2026-10-22, branch `feat/key-source`)
 
