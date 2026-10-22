@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "USA", "note": "Xbox disc image (XISO), title ID 0x4D530051; the plugin reads the id from default.xbe"}
+    ],
     "display_name": "Conker: Live & Reloaded (Xbox)",
     "platforms": [
         "xbox"
@@ -26,7 +29,10 @@
         "CLR_EMPTY_FIRST_LINE_OF_PAGE": true,
         "CLR_BAD_SPACING": true,
         "CLR_MISSING_ICON_SPACING": true,
-        "CLR_BROKEN_ICON_HYPHEN": true
+        "CLR_BROKEN_ICON_HYPHEN": true,
+        "CLR_STRING_LIMIT": false,
+        "CLR_LINE_LIMIT": false,
+        "CLR_BUBBLE_LINES": false
     },
     "detection_enabled": {
         "CLR_TAG_WARNING": true,
@@ -38,7 +44,10 @@
         "CLR_EMPTY_FIRST_LINE_OF_PAGE": true,
         "CLR_BAD_SPACING": true,
         "CLR_MISSING_ICON_SPACING": true,
-        "CLR_BROKEN_ICON_HYPHEN": true
+        "CLR_BROKEN_ICON_HYPHEN": true,
+        "CLR_STRING_LIMIT": true,
+        "CLR_LINE_LIMIT": true,
+        "CLR_BUBBLE_LINES": true
     },
     "lines_per_page": 4,
     "default_font_file": "",

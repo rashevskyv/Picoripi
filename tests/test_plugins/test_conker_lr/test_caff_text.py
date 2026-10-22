@@ -23,9 +23,15 @@ def _caff(texts):
     lsbl = bytearray(b"LSBL" + b"\x00" * 32)
     struct.pack_into("<I", lsbl, 32, len(entries))
     body = bytes(lsbl) + b"".join(records) + b"".join(raws)
-    data = bytearray(head) + bytearray(body)
+    return _seal(bytearray(head) + bytearray(body))
+
+
+def _seal(data: bytearray) -> bytes:
+    """Set the header sizes and the checksum the way the game checks them (a file with no tail after the text)."""
+    struct.pack_into("<I", data, 0x34, len(data) - 0x180)
     struct.pack_into("<I", data, 0x50, len(data) - 0x180)
     struct.pack_into("<I", data, 0x64, len(data) - 0x180)
+    struct.pack_into("<I", data, 0x14, caff_text.caff_hash(bytes(data)))
     return bytes(data)
 
 
@@ -99,9 +105,7 @@ def _with_index(data: bytes, units):
     for k, unit in enumerate(units):
         out += struct.pack("<HHI", k, k + 4, unit)
     struct.pack_into("<I", out, lsbl + 0x10, index_at - lsbl)
-    struct.pack_into("<I", out, 0x50, len(out) - 0x180)
-    struct.pack_into("<I", out, 0x64, len(out) - 0x180)
-    return bytes(out)
+    return _seal(out)
 
 
 def _index_units(data: bytes):
@@ -146,3 +150,35 @@ def test_the_pointer_28_bytes_before_the_index_follows_the_index():
     struct.pack_into("<I", data, lsbl + 0x1C, struct.unpack_from("<I", data, lsbl + 0x10)[0] - 0x1C)
     grown = caff_text.write_slots(bytes(data), ["A much longer first line of text", "Bye."])
     assert struct.unpack_from("<I", grown, lsbl + 0x1C)[0] == struct.unpack_from("<I", grown, lsbl + 0x10)[0] - 0x1C
+
+
+def test_the_checksum_uses_signed_bytes_and_skips_its_own_field():
+    # A header of zeros hashes to 0. A last byte 0x7F hashes to itself; 0x80 is -128 as a signed char, which folds
+    # the top nibble back into the low bits: 0xFFFFFF80 ^ 0xF00000F0 = 0x0FFFFF70.
+    assert caff_text.caff_hash(bytes(0x180)) == 0
+    assert caff_text.caff_hash(bytes(0x17F) + b"\x7f") == 0x7F
+    assert caff_text.caff_hash(bytes(0x17F) + b"\x80") == 0x0FFFFF70
+    header = bytearray(0x180)
+    header[0x14:0x18] = b"\x12\x34\x56\x78"
+    assert caff_text.caff_hash(bytes(header)) == 0
+
+
+def test_a_grown_file_has_its_sizes_and_checksum_set():
+    data = _caff(["Hello there", "Bye."])
+    caff_text.check(data)
+    grown = caff_text.write_slots(data, ["A much longer first line of text", "Bye."])
+    caff_text.check(grown)
+    assert struct.unpack_from("<I", grown, 0x34)[0] == len(grown) - 0x180
+    assert struct.unpack_from("<I", grown, 0x14)[0] == caff_text.caff_hash(grown)
+
+
+def test_check_refuses_a_wrong_checksum_or_size():
+    data = bytearray(_caff(["Hello there", "Bye."]))
+    data[0x100] ^= 0x01
+    with pytest.raises(caff_text.CaffError):
+        caff_text.check(bytes(data))
+    data = bytearray(_caff(["Hello there", "Bye."]))
+    struct.pack_into("<I", data, 0x50, len(data) - 0x180 + 4)
+    struct.pack_into("<I", data, 0x14, caff_text.caff_hash(bytes(data)))
+    with pytest.raises(caff_text.CaffError):
+        caff_text.check(bytes(data))

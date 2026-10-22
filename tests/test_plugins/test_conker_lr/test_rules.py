@@ -16,7 +16,7 @@ FOLDER_REL = "dvddata/aid/text/English/Frontend/default.bin"
 
 def _caff(texts, extra=b""):
     """A minimal CAFF text file: an LSBL block with its table (one entry per text, then a key to skip), the strings."""
-    head = bytearray(b"CAFF".ljust(0x40, b"\x00"))
+    head = bytearray(b"CAFF".ljust(0x180, b"\x00"))
     entries = list(texts) + ["cutscene_TEST_1"]
     raws = [t.encode("utf-16le") + b"\x00\x00" for t in entries]
     records, pos = [], 0
@@ -26,7 +26,13 @@ def _caff(texts, extra=b""):
     records.append(struct.pack("<HI", 0xFFFF, pos // 2))
     lsbl = bytearray(b"LSBL" + b"\x00" * 32)
     struct.pack_into("<I", lsbl, 32, len(entries))
-    return bytes(bytearray(head) + bytearray(lsbl) + b"".join(records) + b"".join(raws) + extra)
+    data = bytearray(head) + bytearray(lsbl) + b"".join(records) + b"".join(raws) + extra
+    # the header sizes and the checksum as the game checks them
+    struct.pack_into("<I", data, 0x34, len(data) - 0x180)
+    struct.pack_into("<I", data, 0x50, len(data) - 0x180)
+    struct.pack_into("<I", data, 0x64, len(data) - 0x180)
+    struct.pack_into("<I", data, 0x14, caff_text.caff_hash(bytes(data)))
+    return bytes(data)
 
 
 def test_the_plugin_loads():

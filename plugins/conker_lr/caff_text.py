@@ -11,7 +11,9 @@ The block index at the pointer LSBL+0x10 holds one 8-byte entry ``(u16, u16, u32
 header; its units are offsets from the first string as well, and they may point inside a string.
 
 Writing a text of another length rebuilds the blob, then moves every position that points into or after it (the
-table, the index, the LSBL offsets at +0x10..+0x1C and header 0x34) and the section sizes (0x50, 0x64).
+table, the index, the LSBL offsets at +0x10..+0x1C), grows the data size (header 0x34) and the section sizes (0x50,
+0x64) by the same amount, and recomputes the header checksum (0x14) last. The game refuses a header whose
+checksum is wrong, and sizes its buffers from these fields.
 """
 from __future__ import annotations
 
@@ -27,7 +29,8 @@ TABLE_RECORD = 6
 END_ID = 0xFFFF
 SECTION_SIZE_FIELDS = (0x50, 0x64)
 SECTION_BASE = 0x180
-HEADER_POINTER = 0x34
+CHECKSUM_FIELD = 0x14
+DATA_SIZE_FIELD = 0x34
 LSBL_RELATIVE_FIELDS = (0x10, 0x14, 0x18, 0x1C)
 SKIPPED_PREFIXES = ("cutscene_",)
 SKIPPED_NAMES = ("EmptyString",)
@@ -187,15 +190,16 @@ def write_slots(data: bytes, texts: Sequence[str]) -> bytes:
 
     out = bytearray(data[:first]) + blob + bytearray(data[old_end:])
 
-    # 2. header section sizes: the section runs to the end of the file
+    # 2. header sizes: the section (data + tail) runs to the end of the file; the data size (+0x34) is counted from
+    # 0x180 and grows by the same amount as the blob
     old_size = len(data)
     for field in SECTION_SIZE_FIELDS:
         if struct.unpack_from("<I", data, field)[0] == old_size - SECTION_BASE:
             struct.pack_into("<I", out, field, len(out) - SECTION_BASE)
-    # 3. header pointer into the file
-    value = struct.unpack_from("<I", data, HEADER_POINTER)[0]
-    if value < old_size:
-        struct.pack_into("<I", out, HEADER_POINTER, relocate(value))
+    data_size = struct.unpack_from("<I", data, DATA_SIZE_FIELD)[0]
+    if SECTION_BASE + data_size < old_end:
+        raise CaffError("the data size does not cover the text block")
+    struct.pack_into("<I", out, DATA_SIZE_FIELD, data_size + total)
     # 4. LSBL pointers: relative to the LSBL block
     for field in LSBL_RELATIVE_FIELDS:
         if lsbl + field + 4 > first:
@@ -216,7 +220,45 @@ def write_slots(data: bytes, texts: Sequence[str]) -> bytes:
         struct.pack_into("<I", out, relocate(field), (relocate(first + 2 * value) - first) // 2)
 
     _check_rebuild(bytes(out), new_starts, slots, new_text, indexes)
+    # 7. the checksum last: the game refuses a header whose checksum is wrong (return 3 in 0x004072F0)
+    struct.pack_into("<I", out, CHECKSUM_FIELD, caff_hash(out))
     return bytes(out)
+
+
+def caff_hash(data: bytes) -> int:
+    """The header checksum: ELF/PJW hash over the first 0x180 bytes with the checksum field zeroed.
+
+    The game adds the bytes as signed chars (0x004072F0): ``h = (h << 4) + (int8) b``; when the top nibble is set,
+    it folds back into the low bits.
+    """
+    header = bytearray(data[:SECTION_BASE])
+    header[CHECKSUM_FIELD:CHECKSUM_FIELD + 4] = b"\x00\x00\x00\x00"
+    value = 0
+    for byte in header:
+        signed = byte - 256 if byte >= 128 else byte
+        value = ((value << 4) + signed) & 0xFFFFFFFF
+        top = value & 0xF0000000
+        if top:
+            value ^= (top >> 24) | top
+    return value
+
+
+def check(data: bytes) -> None:
+    """Raise CaffError unless the header checksum and the section sizes match the file.
+
+    The game reads the section size and the data size from the header to size its buffers, so a bank whose header
+    disagrees with its length would load past its buffer.
+    """
+    if len(data) < SECTION_BASE or not data.startswith(MAGIC):
+        raise CaffError("not a CAFF file")
+    stored = struct.unpack_from("<I", data, CHECKSUM_FIELD)[0]
+    if stored != caff_hash(data):
+        raise CaffError(f"header checksum {stored:08X} does not match the file ({caff_hash(data):08X})")
+    for field in SECTION_SIZE_FIELDS:
+        if struct.unpack_from("<I", data, field)[0] != len(data) - SECTION_BASE:
+            raise CaffError(f"section size at +0x{field:02X} does not match the file length")
+    if SECTION_BASE + struct.unpack_from("<I", data, DATA_SIZE_FIELD)[0] > len(data):
+        raise CaffError("the data size runs past the end of the file")
 
 
 def _check_rebuild(out: bytes, new_starts: List[int], slots: Sequence[Slot], new_text: dict, indexes: List[int]):

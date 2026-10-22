@@ -21,6 +21,7 @@ from plugins.base_game_rules import BaseGameRules
 
 from . import caff_text, xiso
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
+from .problems import ProblemAnalyzer
 from .tag_manager import TagManager
 
 ROLE_ISO = "iso"
@@ -52,6 +53,7 @@ class GameRules(BaseGameRules):
     problem_prefix = PLUGIN_PREFIX
     problem_definitions = PROBLEM_DEFINITIONS
     tag_manager_class = TagManager
+    problem_analyzer_class = ProblemAnalyzer
     tag_style = "curly"
     analyze_whole_string_first = True
     show_spaces_as_dots_default = True
@@ -154,6 +156,7 @@ class GameRules(BaseGameRules):
             data = original_path.read_bytes()
             try:
                 new_data = caff_text.write_slots(data, obj["strings"])
+                caff_text.check(new_data)  # refuse a bank the game would reject (checksum or sizes)
             except caff_text.CaffError as exc:
                 raise ValueError(tr("{0}: {1}", rel, str(exc))) from exc
             if new_data != data:

@@ -1,6 +1,8 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Conker: Live & Reloaded (Xbox, USA): a grown text bank now gets its new data size (header +0x34) and a recomputed header checksum, the two fields the game checks before it loads a bank; the build refuses a bank that fails the check.
+- Conker: Live & Reloaded (Xbox, USA): the editor warns, without blocking, when a line is over 511 characters (cutscene), over 2047 (one displayed string), or a bubble paragraph wraps to more than 4 lines at 20 characters per line.
 - Conker: Live & Reloaded (Xbox, USA): the strings come from the LSBL table, not from a text scan, and the block index's units move with a grown string; the scan had read the index as text and overwrote it, which froze the multiplayer menu (MPDuel alone reproduced it in a private Eden copy).
 - Conker: Live & Reloaded (Xbox, USA): new plugin `conker_lr` unpacks the XISO and writes the English CAFF dialogue of each text file as JSON; the build writes the changed `default.bin` files in place (a string must fit its slot, no growth yet); the UI table `UIFrontend` and the fonts are not decoded yet.
 - Key files: a default key source (the pinned `bios/Nintendo` folder of Abdess/retrobios, D48) downloads the 3DS, Switch and Wii key files only after a consent dialog; the wizard offers it before a file, and the Console keys tab has the source settings (`core/project_library/key_source.py`, `ui/key_source_download.py`).
