@@ -93,6 +93,8 @@ Each plugin opens the images listed here. When you add an image, the wizard matc
 | Layton Brothers: Mystery Room | Not checked by ID | — | All regions | Switch and Android; the plugin reads no id |
 | Link's Awakening (Switch) | Title ID | 01006BB00C6F0000 | All regions | Switch base game v1.0.0 |
 | Link's Awakening DX HD | Not checked by ID | — | Not stated | PC fan remake v1.0.0 |
+| Luigi's Mansion (3DS, 2018) | Title ID | 00040000001D1900 | USA | 3DS CIA, CTR-P-BGNE v0.2.0 |
+| Luigi's Mansion (GameCube) | Disc ID | GLME01 | USA | GameCube, rev 0 |
 | Luigi's Mansion: Dark Moon (3DS) | Not checked by ID | — | EUR | 3DS |
 | Luigi's Mansion: Dark Moon (3DS) | Title ID | 010048701995E000 | All regions | Switch HD base game |
 | Lunar 2: Eternal Blue Complete | Not checked by ID | — | USA | PlayStation, three discs |
@@ -324,6 +326,7 @@ Each plugin opens the images listed here. When you add an image, the wizard matc
 | Harvest Moon 3D / Story of Seasons (3DS) | Nintendo 3DS | Game files (folder or image) | None | Four titles in one plugin, all Europe. |
 | Kid Icarus: Uprising | Nintendo 3DS | Game files (folder or image) | None | Europe, English set eu. |
 | Kingdom Hearts 3D: Dream Drop Distance | Nintendo 3DS | Game files (folder or image) | None | 3DS Europe, English. |
+| Luigi's Mansion (3DS, 2018) | Nintendo 3DS | Game files (folder or image) | Luma LayeredFS (titles folder, romfs) | 3DS USA, CTR-P-BGNE v0.2.0. The English message table (main.gmsg); the fonts and UI archives are not translated yet. |
 | Luigi's Mansion: Dark Moon (3DS) | Nintendo 3DS | Game files (folder or image) | None | 3DS Europe. |
 | Metal Gear Solid: Snake Eater 3D | Nintendo 3DS | Game files (folder or image) | None | 3DS Europe. |
 | Monster Hunter (3DS: 3 Ultimate, 4 Ultimate, Stories) | Nintendo 3DS | Game files (folder or image) | None | 3DS: Monster Hunter 3 Ultimate, 4 Ultimate and Stories. |
@@ -376,6 +379,7 @@ Each plugin opens the images listed here. When you add an image, the wizard matc
 | Paper Mario: The Thousand-Year Door | GameCube | Game files (folder or image) | None | GameCube USA. |
 | Skies of Arcadia Legends (GameCube, USA) | GameCube | Game files (folder or image) | GameCube disc image (ISO) | GameCube USA. Byte budget per script: changed text may not grow in total. |
 | Super Mario Sunshine | GameCube | Game files (folder or image) | GameCube disc image (ISO); PC and Switch port pack (mods/uk) | GameCube USA GMSE01 rev 0. The European disc is a reference. |
+| Luigi's Mansion (GameCube) | GameCube | Game files (folder or image) | GameCube disc image (ISO) | GameCube USA GLME01 rev 0. The English messages in the event archives are translated; the fonts and textures are not yet. |
 | Super Paper Mario | GameCube | Game files (folder or image) | None | Wii PAL, English UK. |
 | Zelda: The Wind Waker (GameCube BMG) | GameCube, BlueWake | Game files (folder or image) | Disc image (ISO); BlueWake disc (original main.dol) | A BlueWake build needs the original main.dol (SHA-1 check). |
 | Zelda: The Wind Waker (Tingle Tuner, GBA) | GameCube | Game files (folder or image) | None | GBA program text in the GameCube disc. |

@@ -92,6 +92,8 @@ tokens: 14.7k
 | Layton Brothers: Mystery Room | ID не перевіряється | — | Усі регіони | Switch and Android; the plugin reads no id |
 | Link's Awakening (Switch) | Title ID | 01006BB00C6F0000 | Усі регіони | Switch base game v1.0.0 |
 | Link's Awakening DX HD | ID не перевіряється | — | Не вказано | PC fan remake v1.0.0 |
+| Luigi's Mansion (3DS, 2018) | Title ID | 00040000001D1900 | США | 3DS CIA, CTR-P-BGNE v0.2.0 |
+| Luigi's Mansion (GameCube) | ID диска | GLME01 | США | GameCube, rev 0 |
 | Luigi's Mansion: Dark Moon (3DS) | ID не перевіряється | — | Європа | 3DS |
 | Luigi's Mansion: Dark Moon (3DS) | Title ID | 010048701995E000 | Усі регіони | Switch HD base game |
 | Lunar 2: Eternal Blue Complete | ID не перевіряється | — | США | PlayStation, three discs |
@@ -323,6 +325,7 @@ tokens: 14.7k
 | Harvest Moon 3D / Story of Seasons (3DS) | Nintendo 3DS | Файли гри (тека або образ) | Немає | Чотири назви в одному плагіні, усі Європа. |
 | Kid Icarus: Uprising | Nintendo 3DS | Файли гри (тека або образ) | Немає | Європа, англійський набір eu. |
 | Kingdom Hearts 3D: Dream Drop Distance | Nintendo 3DS | Файли гри (тека або образ) | Немає | 3DS, Європа, англійська. |
+| Luigi's Mansion (3DS, 2018) | Nintendo 3DS | Файли гри (тека або образ) | Luma LayeredFS (тека titles, romfs) | 3DS, США, CTR-P-BGNE v0.2.0. Англійська таблиця повідомлень (main.gmsg); шрифти і архіви інтерфейсу ще не перекладено. |
 | Luigi's Mansion: Dark Moon (3DS) | Nintendo 3DS | Файли гри (тека або образ) | Немає | 3DS, Європа. |
 | Metal Gear Solid: Snake Eater 3D | Nintendo 3DS | Файли гри (тека або образ) | Немає | 3DS, Європа. |
 | Monster Hunter (3DS: 3 Ultimate, 4 Ultimate, Stories) | Nintendo 3DS | Файли гри (тека або образ) | Немає | 3DS: Monster Hunter 3 Ultimate, 4 Ultimate і Stories. |
@@ -375,6 +378,7 @@ tokens: 14.7k
 | Paper Mario: The Thousand-Year Door | GameCube | Файли гри (тека або образ) | Немає | GameCube, США. |
 | Skies of Arcadia Legends (GameCube, USA) | GameCube | Файли гри (тека або образ) | Образ диска GameCube (ISO) | GameCube, США. Ліміт байтів на скрипт: змінений текст не може збільшитися загалом. |
 | Super Mario Sunshine | GameCube | Файли гри (тека або образ) | Образ диска GameCube (ISO); Пакет для портів PC і Switch (mods/uk) | GameCube, США, GMSE01 rev 0. Європейський диск — як еталон. |
+| Luigi's Mansion (GameCube) | GameCube | Файли гри (тека або образ) | Образ диска GameCube (ISO) | GameCube, США, GLME01 rev 0. Англійські повідомлення в архівах подій перекладено; шрифти і текстури ще ні. |
 | Super Paper Mario | GameCube | Файли гри (тека або образ) | Немає | Wii PAL, англійська (Британія). |
 | Zelda: The Wind Waker (GameCube BMG) | GameCube, BlueWake | Файли гри (тека або образ) | Образ диска (ISO); Диск для BlueWake (оригінальний main.dol) | Збірка BlueWake потребує оригінального main.dol (перевірка SHA-1). |
 | Zelda: The Wind Waker (Tingle Tuner, GBA) | GameCube | Файли гри (тека або образ) | Немає | Текст GBA-програми на диску GameCube. |
