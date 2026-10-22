@@ -158,4 +158,4 @@ python chatmock.py serve --reasoning-effort low --reasoning-summary none    # п
 <!-- wiki-nav -->
 ---
 
-**Назад:** [AI-переклад](11_AI_Translation.md) · [До змісту вікі](README.md) · **Далі:** [Віртуальна навігація і прев’ю](6_Virtual_Navigation_and_Preview.md)
+**Назад:** [AI-переклад](11_AI_Translation.md) · [До змісту вікі](README.md) · **Далі:** [Шрифти і текстури](Fonts_and_Textures.md)

@@ -112,4 +112,4 @@ tokens: 2.8k
 <!-- wiki-nav -->
 ---
 
-**Назад:** [Спільна робота і прогрес](13_Working_Together.md) · [До змісту вікі](README.md) · **Далі:** [Налаштування](4_Configuration_Guide.md)
+**Назад:** [Спільна робота і прогрес](13_Working_Together.md) · [До змісту вікі](README.md) · **Далі:** [Рецепти: я хочу ...](Recipes.md)

@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "Not stated", "note": "Master Collection, Switch"}
+    ],
     "display_name": "Metal Gear Solid 2 / 3 (Master Collection)",
     "platforms": ["switch", "pc"],
     "default_tag_mappings": {},

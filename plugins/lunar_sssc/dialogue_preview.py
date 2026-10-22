@@ -8,7 +8,9 @@ Facts, measured on a native 1x capture of the USA disc (picture 320x240 at x=15 
   u16, high bit left). Line pitch 16 and the right text limit 316 are estimates from the same capture.
 
 A portrait is 8-bit indexed (``FACE_nnn.TIZ``: five 64x64 frames after a 32-byte header whose ID bytes name
-the frame of each index). The palette is not known yet: the preview uses ``PEO.PAL`` as an approximation.
+the frame of each index). Its colours come from ``face_palettes.json`` (the owner's colour table, read from a
+reference sprite sheet; see ``scripts/lunar_portrait_colours.py``). A project's own table overrides it per index;
+an index that neither table has uses ``PEO.PAL``.
 """
 from __future__ import annotations
 
@@ -41,6 +43,19 @@ PAGE_TAGS = {"page", "clear", "close", "end"}
 FONT = json.loads((HERE / "font_sources.json").read_text(encoding="utf-8"))[0]
 WIDTHS = json.loads((HERE / "fonts" / "lunar_font.json").read_text(encoding="utf-8"))
 SPEAKERS = json.loads((HERE / "speaker_names.json").read_text(encoding="utf-8"))
+FACE_COLOURS_FILE = "face_palettes.json"
+
+
+def load_colour_table(path: Path) -> Dict[str, Dict[int, Tuple[int, int, int]]]:
+    """A colour table {member: {index: "#rrggbb"}} as {member: {index: (r, g, b)}}; empty when the file is absent."""
+    if not path.is_file():
+        return {}
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    return {name: {int(value): (int(text[1:3], 16), int(text[3:5], 16), int(text[5:7], 16))
+                   for value, text in table.items()} for name, table in raw.items()}
+
+
+FACE_COLOURS = load_colour_table(HERE / FACE_COLOURS_FILE)
 
 
 @dataclass
@@ -157,18 +172,25 @@ def palette_from_file(data: bytes) -> List[Tuple[int, int, int]]:
 
 
 def face_picture(files: Dict[str, bytes], index: Dict[int, Tuple[str, int]], face: int,
-                 palette: Sequence[Tuple[int, int, int]]) -> Optional[Image.Image]:
-    """RGBA 64x64 portrait of a face number, or None when no member holds it. Index 0 is transparent."""
+                 palette: Sequence[Tuple[int, int, int]],
+                 colours: Optional[Dict[str, Dict[int, Tuple[int, int, int]]]] = None) -> Optional[Image.Image]:
+    """RGBA 64x64 portrait of a face number, or None when no member holds it. Index 0 is transparent.
+
+    The colour of an index comes from ``colours`` (a project's table, optional), else from ``FACE_COLOURS`` (the
+    plugin's table), else from ``palette``.
+    """
     entry = index.get(face)
     if entry is None:
         return None
     name, frame = entry
     indices = decode_frame(inflate_member(files[name]), frame)
+    own = dict(FACE_COLOURS.get(name, {}))
+    own.update((colours or {}).get(name, {}))
     image = Image.new("RGBA", (PORTRAIT, PORTRAIT), (0, 0, 0, 0))
     pixels = image.load()
     for i, value in enumerate(indices):
         if value:
-            red, green, blue = palette[value]
+            red, green, blue = own.get(value) or palette[value]
             pixels[i % PORTRAIT, i // PORTRAIT] = (red, green, blue, 255)
     return image
 

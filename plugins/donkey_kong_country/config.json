@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "USA", "note": "SNES USA v1.0 through the Switch PC ports"}
+    ],
     "display_name": "Donkey Kong Country (SNES)",
     "platforms": ["snes"],
     "default_tag_mappings": {},

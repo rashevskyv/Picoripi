@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "disc", "id": "GMSE01", "region": "USA", "note": "GameCube, rev 0"}
+    ],
     "display_name": "Super Mario Sunshine",
     "PROBLEM_DEFINITIONS": {
         "PROBLEM_TAG_WARNING": {

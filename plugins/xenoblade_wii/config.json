@@ -1,4 +1,8 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "USA", "note": "Wii"},
+        {"kind": "unchecked", "id": "", "region": "EUR", "note": "3DS New 3DS"}
+    ],
     "display_name": "Xenoblade Chronicles (Wii / 3DS)",
     "platforms": ["wii", "3ds"],
     "default_tag_mappings": {},

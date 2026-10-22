@@ -63,19 +63,24 @@ class FactsJob(WorkerThread):
     done = pyqtSignal(dict)
     failed = pyqtSignal(str)
 
-    def __init__(self, plugin_name: str, paths: List[str], load_rules: LoadRules):
+    def __init__(self, plugin_name: str, paths: List[str], load_rules: LoadRules,
+                 key_paths: Optional[Dict[str, str]] = None):
         super().__init__()
         self._plugin = plugin_name
         self._paths = list(paths)
         self._load_rules = load_rules
+        self._key_paths = dict(key_paths or {})   # key files picked on the wizard, not stored yet
 
     def run(self) -> None:
         try:
             rules = self._load_rules(self._plugin)
             result = {
+                "plugin": self._plugin,
+                "images": rules.get_supported_images(),
                 "roles": plugin_facts.roles_of(rules),
                 "platforms": plugin_facts.offered_platforms(rules),
-                "identities": plugin_facts.identify_sources(rules, self._paths, self.isInterruptionRequested),
+                "identities": plugin_facts.identify_sources(rules, self._paths, self.isInterruptionRequested,
+                                                            self._key_paths),
             }
         except Exception as exc:  # a plugin's failure is shown in the wizard; the user can still pick by hand
             log_error(f"Project wizard could not read plugin {self._plugin}: {exc}", exc_info=True)

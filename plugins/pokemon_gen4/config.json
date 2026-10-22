@@ -1,4 +1,11 @@
 {
+    "supported_images": [
+        {"kind": "code", "id": "ADAE", "region": "USA", "note": "Diamond"},
+        {"kind": "code", "id": "APAE", "region": "USA", "note": "Pearl"},
+        {"kind": "code", "id": "CPUE", "region": "USA", "note": "Platinum"},
+        {"kind": "code", "id": "IPKE", "region": "USA", "note": "HeartGold"},
+        {"kind": "code", "id": "IPGE", "region": "USA", "note": "SoulSilver"}
+    ],
     "display_name": "Pokémon Diamond, Pearl, Platinum, HeartGold and SoulSilver (DS)",
     "default_tag_mappings": {
         "{PLAYER}": "{STRVAR_01 3,0}",

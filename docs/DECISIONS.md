@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-14
 owns: decisions and their reasons
-tokens: 28.3k
+tokens: 29.3k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -1161,3 +1161,51 @@ followers are checked. The speaker resolver
 runs per place; a test with two blocks and the same two-word text gives one key, so no speaker depends on the block.
 **Rejected.** A `part` field in the key (keeps most folds apart, the fit check already covers size). Changing the
 manual's AI prompt (it stays as it is).
+
+## D47. The portrait colour table of Lunar SSSC ships in the plugin (2026-10-21, owner)
+
+**Context.** The FACE portraits are palette indices; the console colours are not in the game files that Picoripi
+reads. A reference sprite sheet has the colours, but a table built from it stays in each owner's folder and must be
+rebuilt per project.
+**Decision.** The owner allowed the portrait colour table in the plugin: `plugins/lunar_sssc/face_palettes.json`
+(index -> colour per `FACE_*.TIZ` member). The preview loads it by default. A project's `portrait_colours.json`, if
+present, overrides it per index. `scripts/lunar_portrait_colours.py` rebuilds the table from a sheet. This is the one
+exception to the rule that game colours and palettes stay out of the repository; the sheet image and the portrait
+images stay out.
+**Cost.** The repository carries game-derived colour data (about 50 KB). A change of the sheet or the matching needs a
+rebuild and a commit.
+
+## D48. The default key source: a runtime download of pinned files, never vendored (2026-10-22, owner)
+
+**Context.** Users need the 3DS, Switch and Wii key files, and finding them is hard. The owner chose the `bios/Nintendo`
+folder of the public repository `Abdess/retrobios` as the default source. Picoripi must never contain key bytes.
+
+**Decision.**
+- The source is a pinned commit (`DEFAULT_REF` in `core/project_library/key_source.py`), read with raw GitHub URLs. The
+  repository is not a git submodule, not vendored and not copied into `plugins/` or a project. Nothing downloads at
+  build, install or start.
+- A download runs only after the user confirms it in a modal dialog (`ui/key_source_download.py`). The dialog names the
+  address, the folder, and that the user is responsible for the legal status of the keys in their country. Each
+  download asks again. No "remember" option.
+- The download runs on a `WorkerThread` with cooperative cancel, a socket timeout and a total budget. Files are staged
+  in the target folder, checked, then replaced together, so a failed console keeps no partial file.
+- Checks: for the pinned commit, each file must match the size and SHA-256 that the repository publishes in its
+  `database.json` at that commit (table `SOURCE_FILES`). A source the user sets has no record, so the registered file is
+  checked by the reader's own parser (`Keys3ds.load`, `switch_crypto.load_keys`, `wii_disc.load_common_key`).
+- The file table is data: 3DS `aes_keys.txt` (registered), `boot9.bin` and `seeddb.bin` beside it (the 3DS reader looks
+  for them there); Switch `prod.keys`; Wii `keys.bin` (0x400 bytes). Not used: `title.keys` (no reader), every `.variants`
+  copy, and Wii U `keys.txt`, `otp.bin`, `seeprom.bin` (no console slot).
+- Files go to `SETTINGS_DIR/key_source/<console>/`. The console key store keeps one path per console, as before. The
+  user's own key file always wins: a console whose stored path is outside `key_source/` and still exists is skipped.
+  The store schema is unchanged. The source settings (enabled, address, last commit, last time) live in
+  `SETTINGS_DIR/key_source.json`.
+
+**Why not a submodule or vendored files.** A submodule pulls the key files into every checkout of the public repository.
+Vendored files put key bytes in the repository. A runtime download keeps the bytes on the user's machine only.
+
+**Consequences.**
+- The default source depends on a third party. The pinned commit keeps the content stable. If the source moves or
+  disappears, the download says so and the user can set another source or choose a file.
+- Updating the default means regenerating `SOURCE_FILES` from `database.json` at the new commit and changing
+  `DEFAULT_REF` in the same change.
+- Verification in tests uses synthetic all-zero files and a loopback HTTP server. No test reaches the network.

@@ -33,7 +33,8 @@ def _synthetic_sources():
     index_of_a = dp.FONT["params"]["chars"].index("A")
     struct.pack_into(">16H", slus, offset + index_of_a * 32, *([0xFFFF] * 16))
     glyphs = dp.decode_glyphs(bytes(slus))
-    return {"glyphs": glyphs, "files": files, "index": dp.index_faces(files), "palette": palette}
+    return {"glyphs": glyphs, "files": files, "index": dp.index_faces(files), "palette": palette,
+            "colours": {}}
 
 
 def test_widget_draws_the_page_and_pages_through_them(qtbot):

@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "code", "id": "AWLP", "region": "EUR", "note": "Nintendo DS"}
+    ],
     "display_name": "The World Ends with You",
     "default_tag_mappings": {},
     "block_names": {},

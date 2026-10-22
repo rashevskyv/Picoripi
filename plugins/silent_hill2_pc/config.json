@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "Not stated", "note": "PC; Switch data"}
+    ],
     "display_name": "Silent Hill 2 (PC, Switch data)",
     "platforms": ["pc", "switch"],
     "default_tag_mappings": {},

@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "title", "id": "0100276009872000", "region": "All regions", "note": "Switch base game"}
+    ],
     "display_name": "Okami HD (Switch)",
     "default_tag_mappings": {},
     "block_names": {},

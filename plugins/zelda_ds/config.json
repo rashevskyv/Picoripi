@@ -1,4 +1,8 @@
 {
+    "supported_images": [
+        {"kind": "code", "id": "AZEE", "region": "USA", "note": "Phantom Hourglass"},
+        {"kind": "code", "id": "BKIE", "region": "USA", "note": "Spirit Tracks"}
+    ],
     "display_name": "Zelda: Phantom Hourglass / Spirit Tracks (DS)",
     "default_tag_mappings": {},
     "block_names": {},

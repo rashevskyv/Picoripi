@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "JPN", "note": "PlayStation discs SLPS-00215 and SLPS-00216, with the English fan patch"}
+    ],
     "display_name": "Policenauts",
     "platforms": ["psx", "psp"],
     "default_tag_mappings": {},

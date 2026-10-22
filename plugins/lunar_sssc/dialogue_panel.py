@@ -1,7 +1,8 @@
 """The dialogue window preview of Lunar (GameRules.get_custom_preview_widget): the game's window, portrait and font.
 
 The program's font and the portrait files are read in a worker thread; the widget only draws what the pure
-logic in ``dialogue_preview`` returns. The palette is ``PEO.PAL`` until the portrait palette is measured.
+logic in ``dialogue_preview`` returns. Portrait colours come from the plugin's ``face_palettes.json``; the
+project's ``portrait_colours.json``, when it exists, overrides them.
 """
 from __future__ import annotations
 
@@ -17,6 +18,7 @@ from plugins.common.switch_message_preview import source_folder
 from utils.thread_utils import WorkerThread, safe_shutdown_thread
 
 from . import dialogue_preview as dp
+from . import portrait_colours as pc
 
 WORKER_STOP_MS = 2000
 ZOOM = 2
@@ -34,7 +36,9 @@ def load_sources(project_dir: str) -> Dict[str, Any]:
     files = {path.name: path.read_bytes() for path in sorted(folder.glob("FACE_*.TIZ"))}
     palette_path = folder / PALETTE_FILE
     palette = dp.palette_from_file(palette_path.read_bytes()) if palette_path.is_file() else None
-    return {"glyphs": glyphs, "files": files, "index": dp.index_faces(files), "palette": palette}
+    colours = pc.read_colours(Path(project_dir) / pc.COLOURS_FILE)
+    return {"glyphs": glyphs, "files": files, "index": dp.index_faces(files), "palette": palette,
+            "colours": colours}
 
 
 class SourceLoader(WorkerThread):
@@ -67,7 +71,7 @@ class LunarDialoguePreview(QWidget):
         self._source_key = ""
         self._picture = QLabel(self)
         self._picture.setMinimumSize(320 * ZOOM, 240 * ZOOM)
-        self._picture.setToolTip(tr("Portrait colours are approximate: the portrait palette is not measured yet."))
+        self._picture.setToolTip(tr("Portrait colours come from the plugin table; the project's portrait_colours.json overrides it."))
         self._prev = QPushButton(tr("Previous page"), self)
         self._next = QPushButton(tr("Next page"), self)
         self._prev.clicked.connect(lambda: self._turn(-1))
@@ -160,7 +164,7 @@ class LunarDialoguePreview(QWidget):
         portrait = None
         if face:
             portrait = dp.face_picture(self._sources["files"], self._sources["index"], face,
-                                       self._sources["palette"])
+                                       self._sources["palette"], self._sources["colours"])
         image = dp.render_page(page, self._sources["glyphs"], portrait).convert("RGBA")
         self._picture.setPixmap(self._pixmap(image))
         self._page_label.setText(tr("Page {0} of {1}").format(self._page + 1, len(layout.pages)))

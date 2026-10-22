@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "USA", "note": "SNES through the PC port sm_rewrite"}
+    ],
     "display_name": "Super Metroid (PC port)",
     "platforms": ["pc"],
     "default_tag_mappings": {},

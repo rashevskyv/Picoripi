@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "USA", "note": "PlayStation, three discs"}
+    ],
     "display_name": "Lunar 2: Eternal Blue Complete",
     "platforms": ["psx"],
     "default_tag_mappings": {},

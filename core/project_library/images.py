@@ -18,7 +18,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Container, Dict, Iterator, Optional, Sequence
 
-from core.containers import n3ds, switch_crypto, switch_images, wii_disc
+from core.containers import n3ds, switch_crypto, switch_images, wii_disc, z3ds
 from core.containers.console_crypto import encrypted_error, key_path
 from core.containers.gcm import GameCubeImage, HEADER_SIZE, is_gamecube_header
 from core.containers.gdrom import GdRomImage, GdRomStream, parse_layout
@@ -38,6 +38,9 @@ KIND_SWITCH = "switch"
 KIND_WII = "wii"
 KIND_GDROM = "gdrom"
 KIND_PSX = "psx"
+KIND_HOMEBREW = "homebrew"            # a .3dsx (or compressed .z3dsx) homebrew program: recognised, never a game
+HOMEBREW_MAGIC = b"3DSX"
+KIND_UNSUPPORTED = "unsupported"      # a compressed 3DS image this build cannot read: "reason" says why
 CONSOLE_OF_KIND = {KIND_3DS: "3ds", KIND_SWITCH: "switch", KIND_WII: "wii"}
 CONSOLE_LABEL = {"3ds": "Nintendo 3DS", "switch": "Nintendo Switch", "wii": "Wii", "oodle": "Oodle library",
                  "psx_bios": "PlayStation BIOS"}
@@ -51,6 +54,14 @@ WII_MAGIC = wii_disc.WII_MAGIC
 
 def _describe(stream: Any, head: bytes) -> Optional[Dict[str, Any]]:
     """``{"kind", "game_id", "encrypted", ...}`` of a supported image, or None. Leaves the stream at offset 0."""
+    if z3ds.is_z3ds(head):   # a compressed 3DS image: its decompressed header tells what it is
+        try:
+            view = z3ds.Z3dsStream(stream)
+            return _describe(view, view.read(HEADER_SIZE))
+        except ImageError as exc:   # damaged, or no zstd package: the wizard shows the reason
+            return {"kind": KIND_UNSUPPORTED, "game_id": "", "encrypted": False, "reason": str(exc)}
+    if head[:4] == HOMEBREW_MAGIC:
+        return {"kind": KIND_HOMEBREW, "game_id": "", "encrypted": False}
     if is_wia_or_rvz(head):   # the decoded disc's header
         stream.seek(0)
         disc_head = WiaStream(stream).read(HEADER_SIZE)
@@ -110,9 +121,29 @@ def identify(path: str | Path) -> Optional[Dict[str, Any]]:
         if _is_cue(path):
             return _describe_gdrom(path) or identify_psx(str(path))
         with open(path, "rb") as stream:
-            return _describe(stream, stream.read(HEADER_SIZE))
+            head = stream.read(HEADER_SIZE)
+            found = _describe(stream, head)
+            if found is not None and found.get("kind") == KIND_3DS and found.get("encrypted") \
+                    and key_path("3ds") is not None:
+                found = _with_product(found, stream, head)
+            return found
     except (OSError, ValueError, struct.error, MemoryError):   # ImageError is a ValueError: a broken image is not identified
         return None
+
+
+def _with_product(found: Dict[str, Any], stream: Any, head: bytes) -> Dict[str, Any]:
+    """An encrypted 3DS image's product code, read with the key file of the running job.
+
+    A wrong or unreadable key keeps the title ID the header gave: identification never fails because of a key.
+    """
+    try:
+        view = z3ds.Z3dsStream(stream) if z3ds.is_z3ds(head) else stream
+        product = n3ds.keyed_product(view, key_path("3ds"))
+    except (OSError, ValueError, struct.error):
+        return found
+    if "-" not in product:
+        return found
+    return dict(found, game_id=product.rsplit("-", 1)[-1], product=product)
 
 
 def unpack_room(path: str | Path) -> int:
@@ -125,7 +156,15 @@ def unpack_room(path: str | Path) -> int:
             return sum(os.path.getsize(path_) for path_ in {seg.path for seg in parse_layout(str(path))})
         except (OSError, ValueError):
             return size
-    if (identify(path) or {}).get("kind") != KIND_SWITCH:
+    kind = (identify(path) or {}).get("kind")
+    if kind == KIND_3DS:   # a compressed 3DS image is written decompressed: reserve its full size
+        try:
+            with open(path, "rb") as stream:
+                decompressed = z3ds.decompressed_size(stream)
+            return decompressed if decompressed is not None else size
+        except (OSError, ValueError, struct.error):
+            return size
+    if kind != KIND_SWITCH:
         return size
     try:
         with open(path, "rb") as stream:
@@ -163,6 +202,12 @@ def _reader(stream: Any, cache_dir: Optional[str | Path] = None,
             is_cancelled: Optional[Cancelled] = None, progress: Optional[Progress] = None) -> ImageReader:
     head = stream.read(HEADER_SIZE)
     stream.seek(0)
+    if z3ds.is_z3ds(head):   # a compressed 3DS image is read decompressed, through its seekable view
+        stream = z3ds.Z3dsStream(stream)
+        head = stream.read(HEADER_SIZE)
+        stream.seek(0)
+    if head[:4] == HOMEBREW_MAGIC:
+        raise ImageError(tr("a .3dsx file is homebrew, not a game image: it holds no game files to translate"))
     # An NKit GameCube disc keeps the GameCube header and layout, so the GameCube reader reads it as it is.
     if is_gamecube_header(head):
         return GameCubeImage(stream)
@@ -254,5 +299,20 @@ def extract(path: str | Path, target_dir: str | Path, progress: Progress, is_can
     with open_image(path, target_dir, is_cancelled, progress) as reader:   # an .nsz is decompressed into target_dir
         entries = [entry for entry in reader.entries() if select is None or select(entry.path)]
         if is_cancelled() or not write_entries(reader, entries, target_dir, progress, is_cancelled):
+            return None
+    return str(target_dir)
+
+
+def extract_3ds_set(paths: Sequence[str], target_dir: str | Path, progress: Progress,
+                    is_cancelled: Cancelled) -> Optional[str]:
+    """Write every file of each 3DS image in ``paths``, in order, into ``target_dir``. Returns ``target_dir``, or None
+    when cancelled.
+
+    This is the unpack of a 3DS game whose plugin has no unpack hook: the same layout a workspace tool gives
+    (``exheader.bin``, ``exefs/``, ``romfs/``). A later image writes over the same paths, so an update's RomFS replaces
+    the base game's files of the same name, as the console reads them. Raises ImageError for an unsupported image.
+    """
+    for path in paths:
+        if extract(path, target_dir, progress, is_cancelled) is None:
             return None
     return str(target_dir)

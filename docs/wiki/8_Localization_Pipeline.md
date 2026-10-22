@@ -228,4 +228,4 @@ You can still open every tool from **Tools** without the wizard.
 <!-- wiki-nav -->
 ---
 
-**Previous:** [User Guide: Interface](1_User_Guide_and_Workflow_Pipeline.md) · [Back to the wiki index](README.md) · **Next:** [AI Translation](11_AI_Translation.md)
+**Previous:** [Saving, undo, backups and recovery](Saving_and_Recovery.md) · [Back to the wiki index](README.md) · **Next:** [AI Translation](11_AI_Translation.md)

@@ -16,7 +16,7 @@ import hashlib
 import os
 import struct
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from core.containers.console_crypto import (CbcView, CtrView, KeyFileError, PlainView, RangeView, encrypted_error,
                                             require_pycryptodome, wrong_key_error)
@@ -164,6 +164,30 @@ def locate(reader: ImageReader, head: bytes) -> Optional[Program]:
     return None
 
 
+def _decrypt_cia_layer(stream: Any, layer: Dict[str, Any], keys_path: Optional[str]) -> Tuple[Any, Keys3ds]:
+    """The decrypted view of an encrypted CIA's content (its NCCH), with the key file's keys."""
+    keys = _load_keys(keys_path)
+    title_key = keys.cia_title_key(layer["common_index"], layer["title_id"], layer["encrypted"])
+    view = CbcView(stream, layer["base"], layer["size"], title_key, struct.pack(">H", layer["index"]) + bytes(14))
+    return view, keys
+
+
+def keyed_product(stream: Any, keys_path: Optional[str]) -> str:
+    """The product code (``AGGP``) of a 3DS image, decrypting an encrypted CIA with the key file.
+
+    A CIA keeps its product code inside its encrypted content, so identification without keys gives only the title ID.
+    A card image keeps its header in clear, so it needs no key. ``""`` when the code cannot be read.
+    """
+    probe = ImageReader(stream)
+    program = locate(probe, probe.read_at(0, 0x200))
+    if program is None:
+        return ""
+    if program.get("cia") is None:
+        return str(program.get("product") or "")
+    view, _keys = _decrypt_cia_layer(stream, program["cia"], keys_path)
+    return str(_ncch_program(ImageReader(view), 0).get("product") or "")
+
+
 def _ncch_program(reader: ImageReader, base: int) -> Program:
     head = reader.read_at(base, 0x200)
     if head[0x100:0x104] != NCCH_MAGIC:
@@ -247,11 +271,7 @@ class N3dsImage(ImageReader):
             raise ImageError(tr("not a Nintendo 3DS image"))
         keys: Optional[Keys3ds] = None
         if program.get("cia") is not None:   # encrypted CIA content: decrypt the CIA layer, then read the NCCH in it
-            keys = _load_keys(keys_path)
-            layer = program["cia"]
-            title_key = keys.cia_title_key(layer["common_index"], layer["title_id"], layer["encrypted"])
-            stream = CbcView(stream, layer["base"], layer["size"], title_key,
-                             struct.pack(">H", layer["index"]) + bytes(14))
+            stream, keys = _decrypt_cia_layer(stream, program["cia"], keys_path)
             try:
                 program = _ncch_program(ImageReader(stream), 0)
             except ImageError as exc:

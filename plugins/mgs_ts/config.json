@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "disc", "id": "GGSEA4", "region": "USA", "note": "GameCube, disc 1 and disc 2"}
+    ],
     "display_name": "Metal Gear Solid: The Twin Snakes",
     "default_tag_mappings": {},
     "block_names": {},

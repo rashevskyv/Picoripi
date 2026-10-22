@@ -102,17 +102,23 @@ class TestTheSpecIsComplete:
 class TestCheckConfig:
     def test_a_minimal_config_is_fine(self):
         report = Report("demo")
-        check_config({"display_name": "Demo"}, report)
+        check_config({"display_name": "Demo", "supported_images": [{"kind": "any"}]}, report)
         assert (report.errors, report.warnings) == ([], [])
 
     def test_a_missing_name_and_session_leftovers_are_errors(self):
         report = Report("demo")
-        check_config({"display_name": " ", "search_history": [], "last_selected_block_index": 3}, report)
+        check_config({"display_name": " ", "search_history": [], "last_selected_block_index": 3,
+                       "supported_images": [{"kind": "any"}]}, report)
         assert len(report.errors) == 2 and "last_selected_block_index, search_history" in report.errors[1]
+
+    def test_a_plugin_without_declared_images_is_an_error(self):
+        report = Report("demo")
+        check_config({"display_name": "Demo"}, report)
+        assert "'supported_images' is missing" in report.errors[0]
 
     def test_an_unknown_key_is_a_warning(self):
         report = Report("demo")
-        check_config({"display_name": "Demo", "line_widht": 200}, report)
+        check_config({"display_name": "Demo", "line_widht": 200, "supported_images": [{"kind": "any"}]}, report)
         assert report.errors == [] and "line_widht" in report.warnings[0]
 
 

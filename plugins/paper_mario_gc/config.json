@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "disc", "id": "G8ME01", "region": "USA", "note": "GameCube"}
+    ],
     "display_name": "Paper Mario: The Thousand-Year Door",
     "default_tag_mappings": {},
     "block_names": {},

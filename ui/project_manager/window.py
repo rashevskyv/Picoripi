@@ -35,6 +35,7 @@ from core.project_library.icons import ICON_SIZE, IMAGE_FILTER, save_user_icon
 from core.project_library.plugin_facts import PLUGIN_MISSING, default_load_rules
 from core.project_library.registry import EMULATOR_PREFIX
 from core.project_library.scan import ICON_FILE_NAME
+from ui.project_manager import image_labels
 from ui.project_manager.emulator_dialog import EmulatorDialog
 from ui.project_manager.group_glossary import (
     GroupGlossaryFileJob,
@@ -790,6 +791,7 @@ class ProjectManagerDialog(QDialog):
                 "last_opened": entry.get("last_opened") or "",
                 "added": entry.get("added") or "",
                 "plugin": card.get("plugin", ""),
+                "images": list(card.get("images") or []),
                 "source_roles": dict(card.get("source_roles") or {}),
                 "refreshing": key not in self._scanned,
                 "targets": list(cached.get("targets") or []),
@@ -954,7 +956,8 @@ class ProjectManagerDialog(QDialog):
         for column, text in enumerate(self._cells(row)):
             item.setText(column, text)
         item.setIcon(0, self._icon_for(row))
-        item.setToolTip(0, row["path"])
+        images_text = "\n".join(image_labels.summary_lines(row.get("images") or []))
+        item.setToolTip(0, f"{row['path']}\n{images_text}" if images_text else row["path"])
         item.setData(PROGRESS_COLUMN, PERCENT_ROLE, row["translated"])
 
     def _fill_grid(self, item: QListWidgetItem, row: Dict[str, Any]) -> None:
@@ -1146,6 +1149,8 @@ class ProjectManagerDialog(QDialog):
         form = QFormLayout()
         form.addRow(tr("Platform"), QLabel(row["platform"] or "—"))
         form.addRow(tr("Plugin"), QLabel(row["plugin"] or "—"))
+        if row.get("images"):
+            form.addRow(tr("Images it opens"), QLabel("\n".join(image_labels.summary_lines(row["images"]))))
         if row.get("source_roles"):
             roles = QLabel("\n".join(f"{role}: {path}" for role, path in row["source_roles"].items()))
             roles.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)

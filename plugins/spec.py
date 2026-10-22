@@ -228,6 +228,9 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
              call=None, returns=dict, optional=True),
         Hook("get_platforms", "Platforms the game ships on: [{id, label}]. Default: the ids under \"platforms\" in "
              "config.json, named from plugin_facts.PLATFORM_LABELS.", call=(), returns=list),
+        Hook("get_supported_images", "Images the game opens: [{kind, id, region, note}] with kind disc, title, code, "
+             "serial, name, unchecked or any (core/project_library/supported_images.py). Default: the "
+             "\"supported_images\" list of config.json.", call=(), returns=list),
         Hook("unpack_sources", "Unpack the role files into an empty folder: progress(percent, text) and "
              "is_cancelled() are passed in. Returns the folder, or None to use the files as they are; a "
              "recognised game image is then used only when get_file_formats claims its extension.",
@@ -312,7 +315,7 @@ KNOWN_CONFIG_KEYS = frozenset({
     "newline_display_symbol", "newline_css", "newline_color_rgba", "newline_bold", "newline_italic",
     "newline_underline", "tag_css", "bracket_tag_color_hex", "tag_color_rgba", "tag_bold", "tag_italic",
     "tag_underline", "autofix_enabled", "detection_enabled", "align_sentences_to_original_pages",
-    "prevent_empty_lines_in_autofix", "translation_config",
+    "prevent_empty_lines_in_autofix", "translation_config", "supported_images",
     # message box facts, one named window each (plugins/common/message_window.py, BoxFacts.load)
     "message_window", "dialogue_window", "dialogue_xy", "dialogue_oras", "language_xy", "language_oras",
     "dialogue_gti", "dialogue_psmd",

@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "All regions", "note": "Switch update 1.0.2"}
+    ],
     "display_name": "Xenoblade Chronicles X: Definitive Edition (Switch)",
     "platforms": ["switch"],
     "default_tag_mappings": {},

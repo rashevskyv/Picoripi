@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: plugins/
-tokens: 19.5k
+tokens: 19.9k
 ---
 # Посібник розробника плагінів
 
@@ -179,7 +179,8 @@ class GameRules(BaseGameRules):
 Кожен хук має типову поведінку, тож плагін без них працює: майстер тоді бере роль і платформу від користувача, файли використовуються як є, а кнопки лишаються вимкненими.
 
 - `get_source_roles()` перелічує ролі файлів проєкту, наприклад основна гра, оновлення, DLC і диск 2. Перша роль стає типовою. Хост завжди додає після них **Base game**, **Update** і **DLC**, щоб користувач міг додати всі файли гри; DLC може повторюватися, і `unpack_sources` тоді отримує ключі `dlc`, `dlc_2`, `dlc_3`... (`plugin_facts.paths_of_role(sources, "dlc")` їх перелічує). Файл, який `identify_source` не розпізнав, отримує роль і платформу з власного заголовка (ID тайтлів Switch і 3DS).
-- `identify_source(path)` читає один доданий файл за його вмістом і повертає його роль і платформу. Для файлу, що не з цієї гри, повертає `None`.
+- `identify_source(path)` читає один доданий файл за його вмістом і повертає його роль і платформу. Для файлу, що не з цієї гри, повертає `None`. Звіряйте його ідентифікатори з `self._declared_ids()`, тобто з ідентифікаторами `get_supported_images()`, щоб оголошення було єдиною таблицею.
+- `get_supported_images()` перелічує образи, які відкриває гра: `[{"kind", "id", "region", "note"}]`. Типово хук читає поле `"supported_images"` з `config.json` плагіна. `kind` — це `disc` (код гри GameCube, Wii або Dreamcast), `title` (16-значний title ID), `code` (чотирилітерний код продукту DS, GBA або 3DS), `serial` (серійний номер PlayStation), `name` (внутрішня назва ROM), `hash` (SHA-1 файлу ROM), `unchecked` (гра відома, але плагін не читає ідентифікатор) або `any` (будь-який файл свого типу). Кожен плагін оголошує принаймні один запис. Майстер і Менеджер проєктів показують цей список, а `tests/test_architecture/test_supported_images.py` перевіряє, що кожен оголошений ідентифікатор є в коді плагіна. Для відкритого джерела, наприклад теки з текстом, вкажіть `any`. Формат описано в `core/project_library/supported_images.py`.
 - `get_platforms()` перелічує платформи, на яких виходить гра. Майстер показує їх у списку платформ і бере їх, коли `identify_source` не назвав платформу; гра на одній платформі дає її кожному файлу. Кожен плагін називає хоча б одну (`tests/test_architecture/test_plugin_platforms_declared.py`). Типово хук читає `"platforms": ["3ds", "switch"]` з `config.json` плагіна; ідентифікатори та їхні назви — `plugin_facts.PLATFORM_LABELS` (gb, gbc, gba, nds, 3ds, snes, n64, gc, wii, wiiu, switch, psx, ps2, psp, saturn, gdrom, pc, android, other).
 - `unpack_sources(sources, target_dir, progress, is_cancelled)` розпаковує файли ролей у порожню теку, яку створив хост. Повертає цю теку або `None`, коли файли не треба розпаковувати.
 - `get_source_subfolder()` називає теку розпакованого дерева, яка є коренем вихідних файлів проєкту, з роздільниками `/`, наприклад `files/res/Msgus`. За замовчуванням `None`: вихідні файли — уся розпакована тека. Гра, чиї платформи розкладають файли по-різному, повертає список таких шляхів: джерелом стає перша наявна тека, так само в розпакованій теці, яку додає користувач. Якщо жодної немає, хост завершує розпакування з повідомленням. Використовуйте, коли розпаковане дерево містить більше за текст гри.
@@ -194,7 +195,7 @@ class GameRules(BaseGameRules):
 
 Еталон: `plugins/plain_text/rules.py`. Його єдина ціль копіює файли перекладу як є.
 
-Образи гри: `core/project_library/images.py` читає образи дисків GameCube (і диски NKit GameCube) та картриджі Nintendo DS за заголовком. Перед розпакуванням образу гри хост перевіряє, чи є на цільовому диску місце для нього; простий файл, наприклад ROM GBA, використовується як є. У `identify_source` викликайте `identify` або `base_identity(path, game_codes)`, а в `unpack_sources` — `extract(path, target_dir, progress, is_cancelled, select=...)`. `unpack.py` гри перелічує файли, які вона залишає, як це робив її скрипт zt; `plugins/zelda_fsae/` — короткий приклад. `ImageError` означає формат, який помічник не читає; він має дійти до хоста, що показує повідомлення.
+Образи гри: `core/project_library/images.py` читає образи дисків GameCube (і диски NKit GameCube) та картриджі Nintendo DS за заголовком. Перед розпакуванням образу гри хост перевіряє, чи є на цільовому диску місце для нього; простий файл, наприклад ROM GBA, використовується як є. У `identify_source` викликайте `identify` або `base_identity(path, self._declared_ids())`, а в `unpack_sources` — `extract(path, target_dir, progress, is_cancelled, select=...)`. `unpack.py` гри перелічує файли, які вона залишає, як це робив її скрипт zt; `plugins/zelda_fsae/` — короткий приклад. `ImageError` означає формат, який помічник не читає; він має дійти до хоста, що показує повідомлення.
 ## Сім'ї версій (family_plan)
 
 Гра, що вийшла в кількох версіях (наприклад GameCube, Wii і Wii U HD), може мати один переклад. `family_plan(sources, project_dir)` отримує теки або файли, які дав користувач, і повертає `core.family_projects.model.FamilyPlan`, або `None`, якщо сім'ї немає (типово). Плагін розпізнає кожне джерело за вмістом, а не за назвою теки, яку дав користувач: для Twilight Princess кількість повідомлень у файлах є відбитком (`plugins/zelda_bmg/family.py`). План перелічує учасників (`FamilyMember(key, label, path, base, parents)`), базову версію і `read(member_key)`, який повертає пари `(unit_id, text)`.
@@ -222,4 +223,4 @@ class GameRules(BaseGameRules):
 <!-- wiki-nav -->
 ---
 
-**Назад:** [Налаштування](4_Configuration_Guide.md) · [До змісту вікі](README.md) · **Далі:** [Карта коду (для супроводу)](2_API_Reference.md)
+**Назад:** [Усунення несправностей](Troubleshooting.md) · [До змісту вікі](README.md) · **Далі:** [Карта коду (для супроводу)](2_API_Reference.md)

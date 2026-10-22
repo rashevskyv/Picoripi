@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "EUR", "note": "3DS"}
+    ],
     "display_name": "One Piece: Unlimited World Red (3DS) / Deluxe (Switch)",
     "platforms": ["3ds", "switch"],
     "default_tag_mappings": {},

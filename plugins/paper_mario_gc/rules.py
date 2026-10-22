@@ -127,7 +127,7 @@ class GameRules(BaseGameRules):
         return [{"id": "gc", "label": tr("GameCube")}]
 
     def identify_source(self, path: str) -> Optional[Dict[str, str]]:
-        return images.base_identity(path, ("G8ME01",))
+        return images.base_identity(path, self._declared_ids())
 
     def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
         base = sources.get("base")

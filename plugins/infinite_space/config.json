@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "code", "id": "C6CP", "region": "EUR", "note": "Nintendo DS"}
+    ],
     "display_name": "Infinite Space",
     "default_tag_mappings": {},
     "block_names": {},

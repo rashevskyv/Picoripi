@@ -1,4 +1,10 @@
 {
+    "supported_images": [
+        {"kind": "disc", "id": "RMGE01", "region": "USA", "note": "Wii, Galaxy 1 rev 0"},
+        {"kind": "disc", "id": "SB4E01", "region": "USA", "note": "Wii, Galaxy 2 rev 0"},
+        {"kind": "title", "id": "010099C022B96000", "region": "All regions", "note": "Switch, Galaxy 1"},
+        {"kind": "title", "id": "0100FD8022DAA000", "region": "All regions", "note": "Switch, Galaxy 2"}
+    ],
     "display_name": "Super Mario Galaxy",
     "default_tag_mappings": {},
     "block_names": {},

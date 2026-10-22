@@ -1,4 +1,8 @@
 {
+    "supported_images": [
+        {"kind": "title", "id": "0100000011D90000", "region": "All regions", "note": "Brilliant Diamond"},
+        {"kind": "title", "id": "010018E011D92000", "region": "All regions", "note": "Shining Pearl"}
+    ],
     "display_name": "Pokémon Brilliant Diamond / Shining Pearl",
     "dialogue_box": {
         "_note": "Measured on an Eden frame of one field dialogue line (2026-10-17). Glyph N: 35 px high (rows 821-855). Ink box of the line (frame and render, threshold 100 / alpha 128): x 490 to 1087, y 818 to 870 (frame) and 871 (render, descender). Line pitch and wrap width: not measured.",

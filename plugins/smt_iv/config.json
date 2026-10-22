@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "EUR", "note": "3DS, and Apocalypse"}
+    ],
     "display_name": "Shin Megami Tensei IV",
     "platforms": ["3ds"],
     "default_tag_mappings": {},

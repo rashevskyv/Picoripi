@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "EUR", "note": "3DS, Tomodachi Life"}
+    ],
     "display_name": "Tomodachi Life / Miitopia (3DS)",
     "platforms": ["3ds"],
     "default_tag_mappings": {},

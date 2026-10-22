@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "USA", "note": "SNES through the PC port snesrev/zelda3"}
+    ],
     "display_name": "Zelda: A Link to the Past (PC port)",
     "platforms": ["pc"],
     "default_tag_mappings": {},

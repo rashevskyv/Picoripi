@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "EUR", "note": "Wii, PAL, English UK"}
+    ],
     "display_name": "Super Paper Mario",
     "platforms": ["wii"],
     "default_tag_mappings": {},

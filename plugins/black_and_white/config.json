@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "Not stated", "note": "openBlack Switch port; identified by the InfoScript2 table, not by an id"}
+    ],
     "display_name": "Black & White (openBlack Switch port)",
     "default_tag_mappings": {},
     "block_names": {},

@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "any", "id": "", "region": "", "note": "JSON manual folders of the 3DS system titles"}
+    ],
     "display_name": "Electronic manuals (3DS, Ukrainian)",
     "platforms": ["3ds"],
     "default_tag_mappings": {},

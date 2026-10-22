@@ -161,4 +161,4 @@ the day** і тим, на скільки другий відстає від пе
 <!-- wiki-nav -->
 ---
 
-**Назад:** [Script Markup Studio](9_Script_Markup.md) · [До змісту вікі](README.md) · **Далі:** [Picoripi Companion (мобільний PWA та синхронізація)](12_Picoripi_Companion.md)
+**Назад:** [Зібрати мод і перевірити його в грі](Build_and_Test.md) · [До змісту вікі](README.md) · **Далі:** [Picoripi Companion (мобільний PWA та синхронізація)](12_Picoripi_Companion.md)

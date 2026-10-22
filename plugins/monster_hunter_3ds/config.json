@@ -1,4 +1,7 @@
 {
+    "supported_images": [
+        {"kind": "unchecked", "id": "", "region": "Not stated", "note": "3DS: Monster Hunter 3 Ultimate, 4 Ultimate and Stories"}
+    ],
     "display_name": "Monster Hunter (3DS: 3 Ultimate, 4 Ultimate, Stories)",
     "platforms": ["3ds"],
     "default_tag_mappings": {},

@@ -2,13 +2,43 @@
 status: current
 updated: 2026-10-20
 owns: unfinished work
-tokens: 68.4k
+tokens: 69.2k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## Default key source (`core/project_library/key_source.py`, 2026-10-22, branch `feat/key-source`)
+
+- Done: consent-gated download of the 3DS, Switch and Wii key files from the pinned default source (D48), with the
+  wizard (Get keys first, then Choose a file) and the Console keys tab (source settings, Download again).
+- Not done: the owner's first real download in the app. The tests use a loopback server only, by design.
+- Open: Wii U keys (`keys.txt`, `otp.bin`, `seeprom.bin`) are in the source, but Picoripi has no Wii U key slot. Add a slot
+  and a reader first.
+- Open: Switch `title.keys` is in the source, but no reader uses it. It is not downloaded.
+- Open: a source the user sets has no hash record. Only the registered file gets a parser check. `boot9.bin` and
+  `seeddb.bin` from such a source are not checked.
+- Open: on an update of the default commit, `DEFAULT_REF` and `SOURCE_FILES` change together. Nothing checks that they
+  agree; a test would need the repository.
+- Open: the legal status of these keys depends on the user's country. The owner decides whether the default stays.
+## 3DS image formats (`core/containers/n3ds.py`, `z3ds.py`, `core/project_library/images.py`, 2026-10-22, branch `fix/3ds-image-formats`)
+
+- Open: encrypted 3DS formats are proven on synthetic data only. The owner's key store had no 3DS key file on 2026-10-22, so no real encrypted `.cia` or `.cci` ran. Set the 3DS key file (Settings, Console keys), then check Luigi's Mansion 2 `legit.cia` and Yo-kai Watch encrypted files.
+- Open: no real Z3DS sample is on disk (`.zcia`, `.zcci`, `.zcxi`, `.z3ds`). The reader follows Azahar's `file_derived.cpp`; a real file is the first proof.
+- Open: a multi-content CIA is read from content index 0 only (for example the e-manual at index 1 is not read).
+- Open: fixed-key 3DS titles (NCCH flag 0x01) are refused: "not read yet".
+- Open: a manual `.cfa` has a base-game title ID (`00040000...`), so the wizard treats it as a game and unpacks it whole. A manual belongs to `manual_3ds`.
+- Open: the update overlay of a game with no unpack hook is checked on the owner's Luigi's Mansion 2 dump only, not on a base game with its update.
+## Supported images (`supported_images`, `feat/supported-images`, 2026-10-22)
+
+- Open: 95 plugins declare `unchecked` (their identify reads no game ID; the folder or image is taken as the game). Each needs the owner's image ID and a detection check, then the entry becomes `disc`, `title`, `code` or `serial`.
+- Open: 46 entries have region `Not stated` (3DS title IDs of pokemon_gen6, pokemon_md_3ds, Wii U HD titles of zelda_bmg and zelda_ww, pokemon_gen5 and gen7 codes, and the unchecked plugins with no region in the wiki). Read the region from the owner's copy.
+- Open: `pokemon_gen5` codes IRBO, IRAO, IRBE, IREO, IRDO, IREE: which game and region each one is.
+- Open: `castlevania_gba`, `mhp3rd`, `policenauts`, `xenoblade_2`, `zelda_totk` ids come from the wiki and tests only (not from detection code); declared as `unchecked` with the id in the note.
+- Open: Switch title regions are `All regions`; the Switch title ids are region-free, so confirm each one on a real title.
+- Open: `supported_images` on `default_plugin`, `plain_text`, `manual_3ds`, `system_3ds`, `wii_sysfont` is `any`; confirm no plugin needs a narrower list.
 
 ## Share project (`core/project_library/share.py`, 2026-10-20, branch `feat/project-share`)
 
@@ -2001,7 +2031,8 @@ Facts from the USA decomp (`port/sotn-decomp`) and the disc files in `source/`. 
 - Done: the message window (rows 160-223, full picture width), the portrait at (7,152) (64x64), the text origin (x 80), the game font (`SLUS_006.28`, 16x16 glyphs), pages (`{page}`, `{clear}`, `{close}`, `{end}`), lines (`\n`, three to a page) and the layout problems (too many lines, a line wider than the window). Measured on one native 1x capture of the USA disc (DuckStation software renderer, uncorrected internal screenshot). Tests: `tests/test_plugins/test_lunar_sssc/test_dialogue_preview.py`, `test_dialogue_panel.py` (synthetic data only).
 - Done: portrait mapping. `{FA:xx}` is a face number; the 16 ID bytes of each `FACE_nnn.TIZ` name the frame of each number (frame = position). `{FA:6E}` = `FACE_022.TIZ` frame 4 (exact match on the capture: index-to-colour purity 1.0000, 46 indices, 1976 pixels).
 - Done: `FACE` members are raw deflate after a 32-byte header; the preview inflates them. Copies of `FACE_*.TIZ` and `PEO.PAL` are in the workspace `source\LUNADATA`. `zt\lunar.py` (outside this repo) now copies them on unpack (`unpack_raw`); its backup is `zt\lunar.py.bak_lunarpreview_20261021`.
-- Open: the portrait palette is not known. The preview uses `PEO.PAL` (colours approximate, the widget tooltip says so). Checked and not the source: `MC.PAL` and `PEO.PAL` (no exact or modulated fit with the colours on screen), the direct 16-bit `BIN` frames (no exact match), the program and `LUNADATA.FIL` raw bytes (best correlation 0.83, no exact fit), and the inflated `FACE` payloads (0.80). The DuckStation GPU dump (`RecordSingleFrameGPUDump`, format from `src/core/gpu_dump`) holds the VRAM snapshot, with the portrait at VRAM (256,448), but its two recorded frames do not redraw the portrait (a static dialogue is not repainted), so the CLUT upload and the portrait draw are not in the dump. Closed for now (2026-10-21, one run as allowed): a fresh-boot run with a multi-frame GPU dump (`RecordMultiFrameGPUDump`, F8) did not reach New Game (the title menu kept the cursor on CONTINUE), so the dump does not cover the portrait's first draw. The two dumps of that run hold 9 frames each with only VRAM copies and NOP, no textured draw. Reopen with a route that reaches the dialogue (a menu-driven driver checked on screenshots, not fixed timings), then record from a few frames before the first portrait draw.
+- Done (2026-10-21): portrait colours from a reference sprite sheet, `scripts/lunar_portrait_colours.py` writes the table `plugins/lunar_sssc/face_palettes.json` (owner allowed the table in the plugin, 2026-10-21). 106 of 108 non-empty frames match the sheet; `FACE_017.TIZ` frame 2 and `FACE_024.TIZ` frame 0 are not on the sheet (no match with flips or a 180-degree turn). 3351 of 3364 used indices have a colour; the rest use `PEO.PAL`. The sheet holds 5-bit channels times 8; the table holds the console's widening `(v << 3) | (v >> 2)`. On flat areas of Nall the table matches the native capture within 1 unit (4 indices, 363 pixels). Thin outline pixels still differ from the 2.5x screenshot (blur and sub-pixel offset).
+- Open: the thin outline pixels of the portrait still differ from the 2.5x native screenshot (blur and sub-pixel offset).
 - Open: the window band is the game's scene under a translucent dark strip. The preview draws black at alpha 128 (about half the scene brightness, estimated from the row means of the native capture: about 155 above the band, about 75 inside) over a neutral grey backdrop, because it has no scene. The scene itself is not drawn. The box edges and the line pitch (16) and right text limit (316) come from one capture; not checked on three-line pages.
 - Open: speaker names. Only `{FA:6E}` = Nall is checked on screen (`plugins/lunar_sssc/speaker_names.json`). The party-name table (`SYSTEM.DAT` table 0, slots 1-12: Alex, Nash, Jessica, Mia, Kyle, Luna, Ramus, Ghaleon, Laike, Tempest, Alex, Nall) is not linked to face numbers yet.
 - Open: `{FB:xx}` (second speaker, right side of the window) is not drawn. `{FC:xx}` colours and the glyph outline are not drawn.

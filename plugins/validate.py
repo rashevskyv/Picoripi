@@ -83,6 +83,11 @@ def check_config(config: Any, report: Report) -> None:
     unknown = sorted(set(config) - KNOWN_CONFIG_KEYS - SESSION_KEYS)
     if unknown:
         report.warnings.append("config.json: keys the host does not know: " + ", ".join(unknown))
+    if "supported_images" not in config:
+        report.errors.append("config.json: 'supported_images' is missing (declare the images the plugin opens)")
+    else:
+        from core.project_library.supported_images import problems
+        report.errors.extend(f"config.json: {text}" for text in problems(config["supported_images"]))
 
 
 def check_font_map(font_map: Any, report: Report) -> None:

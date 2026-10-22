@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: plugins/
-tokens: 14.6k
+tokens: 14.8k
 purpose: The one plugin guide: files, hooks, capabilities, tests
 ---
 # Plugin Developer Guide
@@ -180,7 +180,8 @@ The Project Manager's new-project wizard, its Build, Export and Run buttons and 
 Each hook has a default, so a plugin without them still works: the wizard then takes the role and the platform from the user, uses the files as they are, and the buttons stay off.
 
 - `get_source_roles()` lists the roles a project's files can have, for example base game, update, DLC and disc 2. The first role is the default. The host always offers **Base game**, **Update** and **DLC** after them, so a user can add every file of a game; DLC may repeat, and `unpack_sources` then gets the keys `dlc`, `dlc_2`, `dlc_3`... (`plugin_facts.paths_of_role(sources, "dlc")` lists them). A file `identify_source` does not recognise gets the role and platform of its own header (Switch and 3DS title IDs).
-- `identify_source(path)` reads one file the user added, by its content, and returns its role and platform. It returns `None` for a file that is not from this game.
+- `identify_source(path)` reads one file the user added, by its content, and returns its role and platform. It returns `None` for a file that is not from this game. Match its ids against `self._declared_ids()`, the ids of `get_supported_images()`, so the declaration is the one table.
+- `get_supported_images()` lists the images the game opens, as `[{"kind", "id", "region", "note"}]`. The default reads `"supported_images"` from the plugin's `config.json`. `kind` is `disc` (a GameCube, Wii or Dreamcast game code), `title` (a 16-digit title ID), `code` (a four-letter DS, GBA or 3DS product code), `serial` (a PlayStation serial), `name` (the internal name of a ROM), `hash` (the SHA-1 of a ROM file), `unchecked` (the game is known, but the plugin reads no ID) or `any` (any file of its kind). Every plugin declares at least one entry. The wizard and the Project Manager show the list, and `tests/test_architecture/test_supported_images.py` checks that each declared ID occurs in the plugin's code. Use `any` for an open-ended source, such as a folder of text. The format is in `core/project_library/supported_images.py`.
 - `get_platforms()` lists the platforms the game ships on. The wizard offers them in its platform list and uses them when `identify_source` does not name one; a game on one platform gives it to every file. Every plugin names at least one (`tests/test_architecture/test_plugin_platforms_declared.py`). The default reads `"platforms": ["3ds", "switch"]` from the plugin's `config.json`; the ids and their names are `plugin_facts.PLATFORM_LABELS` (gb, gbc, gba, nds, 3ds, snes, n64, gc, wii, wiiu, switch, psx, ps2, psp, saturn, gdrom, pc, android, other).
 - `unpack_sources(sources, target_dir, progress, is_cancelled)` unpacks the role files into an empty folder that the host made. It returns that folder, or `None` when the files need no unpacking.
 - `get_source_subfolder()` names the folder of the unpacked tree that is the project's source root, with `/` separators, for example `files/res/Msgus`. The default is `None`: the whole unpacked folder is the source. A game whose platforms lay out their files differently returns a list of such paths; the first that exists is the source, also in an extracted folder the user adds. The host fails the unpack with a message when none exists. Use it when the unpacked tree holds more than the game's text.
@@ -195,7 +196,7 @@ These hooks run on a worker thread, except `project_icon`, which runs in the sca
 
 `plugins/plain_text/rules.py` is the reference: its single target copies the translation files as they are.
 
-Game images: `core/project_library/images.py` reads GameCube discs (NKit GameCube discs too) and Nintendo DS cartridges by their header. Before unpacking a game image the host checks that the target drive has room for it; a plain file, such as a GBA ROM, is used as it is. Call `identify` or `base_identity(path, game_codes)` in `identify_source`, and `extract(path, target_dir, progress, is_cancelled, select=...)` in `unpack_sources`. The game's `unpack.py` lists the files it keeps, as its zt script did; `plugins/zelda_fsae/` is the short example. `ImageError` means a format the helper does not read; let it reach the host, which shows the message.
+Game images: `core/project_library/images.py` reads GameCube discs (NKit GameCube discs too) and Nintendo DS cartridges by their header. Before unpacking a game image the host checks that the target drive has room for it; a plain file, such as a GBA ROM, is used as it is. Call `identify` or `base_identity(path, self._declared_ids())` in `identify_source`, and `extract(path, target_dir, progress, is_cancelled, select=...)` in `unpack_sources`. The game's `unpack.py` lists the files it keeps, as its zt script did; `plugins/zelda_fsae/` is the short example. `ImageError` means a format the helper does not read; let it reach the host, which shows the message.
 ## Families of versions (family_plan)
 
 A game sold in several versions (for example GameCube, Wii and Wii U HD) can share one translation. `family_plan(sources, project_dir)` gets the folders or files the user gave and returns a `core.family_projects.model.FamilyPlan`, or `None` when the game has no family (the default). The plugin recognises each source by its content, not by the user's folder name: Twilight Princess uses the message count of its files as a fingerprint (`plugins/zelda_bmg/family.py`). The plan lists the members (`FamilyMember(key, label, path, base, parents)`), the base version, and `read(member_key)`, which returns `(unit_id, text)` pairs.
@@ -223,4 +224,4 @@ The generated test file is the start. Add, with real data: a sample that parses 
 <!-- wiki-nav -->
 ---
 
-**Previous:** [Configuration](4_Configuration_Guide.md) · [Back to the wiki index](README.md) · **Next:** [Code map (maintainers)](2_API_Reference.md)
+**Previous:** [Troubleshooting](Troubleshooting.md) · [Back to the wiki index](README.md) · **Next:** [Code map (maintainers)](2_API_Reference.md)
