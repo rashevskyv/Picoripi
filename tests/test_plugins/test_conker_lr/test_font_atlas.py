@@ -115,4 +115,3 @@ def test_the_caff_checksum_is_not_touched_by_an_atlas_change():
     struct.pack_into("<I", bank, 0x14, caff_text.caff_hash(bytes(bank)))
     edited = font_atlas.replace_pixels(bytes(bank), bytes(font_atlas.ATLAS_BYTES))
     assert struct.unpack_from("<I", edited, 0x14)[0] == caff_text.caff_hash(edited)
-
