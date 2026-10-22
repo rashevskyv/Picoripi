@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-21
+updated: 2026-10-22
 owns: plugins/
 tokens: 12.2k
 purpose: Table of every game plugin with platforms, wizard needs and build targets.
@@ -84,6 +84,8 @@ Each plugin opens the images listed here. When you add an image, the wizard matc
 | Grandia II (Dreamcast, USA) | Serial | SCUS-94457 | USA | PlayStation disc 1 |
 | Grandia II (Dreamcast, USA) | Serial | SCUS-94465 | USA | PlayStation disc 2 |
 | Gravity Falls: Legend of the Gnome Gemulets | Not checked by ID | — | EUR | 3DS, UbiArt engine |
+| Hades (Switch) | Title ID | 0100535012974000 | All regions | Switch base game |
+| Hades (Switch) | Title ID | 0100535012974800 | All regions | Switch update |
 | Hard Corps: Uprising | Not checked by ID | — | Not stated | Xbox 360 XBLA and PC port; texture project |
 | Harvest Moon 3D / Story of Seasons (3DS) | Not checked by ID | — | EUR | 3DS, four titles |
 | Ikenie no Yoru | Disc ID | SEKJ99 | JPN | Wii, Japanese disc with the English fan translation |
@@ -276,6 +278,7 @@ Each plugin opens the images listed here. When you add an image, the wizard matc
 | Metal Gear Solid 4 (Master Collection) | Nintendo Switch, PC | Game files (folder or image) | None | Switch and PC, Master Collection. |
 | Metal Gear Solid Master Collection Bonus Content | Nintendo Switch | Game files (folder or image) | None | Switch bonus content, volumes 1 and 2. |
 | Metal Gear Solid: Peace Walker (Master Collection) | Nintendo Switch, PC | Game files (folder or image) | None | Switch and PC, Master Collection. |
+| Hades (Switch) | Nintendo Switch | Game files (folder or image); Key file if encrypted (Switch) | Switch: Atmosphere LayeredFS mod | Switch. English SJSON and subtitles; Lua-held text is not included. |
 | Metroid Prime 4: Beyond | Nintendo Switch | Game files (folder or image) | None | Switch update 1.1.0. Glyphs are edited in place, none added. |
 | Metroid Prime Remastered | Nintendo Switch | Game files (folder or image) | None | Switch base game. Same formats as Metroid Prime 4. |
 | Miitopia (Switch) | Nintendo Switch | Game files (folder or image) | None | Switch 1.0.0 with update 1.1.0. |
