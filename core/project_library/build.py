@@ -15,7 +15,7 @@ from typing import Any, Callable, Dict, List, Optional
 from core import formats
 from core.containers import console_crypto
 from core.i18n import tr
-from core.project_library import images
+from core.project_library import images, plugin_facts
 from core.project_library.registry import EMULATOR_KEY, emulator_setting
 from utils.logging_utils import log_info
 
@@ -85,6 +85,8 @@ def run_unpack(rules: Any, sources: Dict[str, str], project_dir: str | os.PathLi
     try:
         with console_crypto.key_source(key_provider):
             result = rules.unpack_sources(sources, str(temporary), progress, is_cancelled)
+            if result is None and _whole_3ds_images(rules, sources):
+                result = images.extract_3ds_set(_base_first(sources), str(temporary), progress, is_cancelled)
         if is_cancelled():
             raise Cancel()
         if result is None:
@@ -135,6 +137,24 @@ def entries_before(project_dir: str | os.PathLike) -> Optional[List[str]]:
     if not folder.is_dir():
         return None
     return [entry.name for entry in folder.iterdir()]
+
+
+def _whole_3ds_images(rules: Any, sources: Dict[str, str]) -> bool:
+    """True when the plugin has no unpack hook and every source is a 3DS image it does not read as it is: each one is
+    unpacked whole. A file the plugin has a format for is read as it is, as before."""
+    if not sources or plugin_facts.has_unpack_hook(rules):
+        return False
+    return all((images.identify(path) or {}).get("kind") == images.KIND_3DS and formats.resolve(rules, path) is None
+               for path in sources.values())
+
+
+def _base_first(sources: Dict[str, str]) -> List[str]:
+    """The source paths in unpack order: the base game, then the update, then the rest (DLC).
+
+    A later file writes over the same paths of an earlier one, so an update's RomFS replaces the base game's files.
+    """
+    rank = {"base": 0, "update": 1}
+    return [path for _role, path in sorted(sources.items(), key=lambda item: rank.get(item[0], 2))]
 
 
 def _refuse_unread_image(rules: Any, sources: Dict[str, str]) -> None:

@@ -9,3 +9,5 @@ spylls==0.1.7
 Pillow>=10.4.0
 # AES for the encrypted 3DS, Switch and Wii images (core/containers/console_crypto.py); the app imports it at run time.
 pycryptodome==3.23.0
+# zstd for compressed 3DS images (Azahar Z3DS, core/containers/z3ds.py). Python 3.14 has it in the standard library.
+zstandard==0.23.0; python_version < "3.14"
