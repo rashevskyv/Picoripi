@@ -703,6 +703,46 @@ def make_gar(files):
     return bytes(head) + body
 
 
+def make_gar5(files):
+    """A GAR v5 of ``{name: bytes}``: 16-byte entries (size, data offset, name offset, 0xFFFFFFFF), data 0x80-aligned."""
+    names = list(files)
+    info_at = 0x30
+    names_at = info_at + 16 * len(names)
+    name_blob, name_offsets = b"", []
+    for name in names:
+        name_offsets.append(names_at + len(name_blob))
+        name_blob += name.encode() + b"\0"
+    data_at = names_at + len(name_blob)
+    data_at += -data_at % 0x80
+    body, starts = b"", []
+    for name in names:
+        body += bytes(-len(body) % 0x80)
+        starts.append(data_at + len(body))
+        body += files[name]
+    head = bytearray(data_at)
+    head[:4] = b"GAR\x05"
+    struct.pack_into("<IHHIII", head, 4, data_at + len(body), 1, len(names), 0x20, info_at, data_at)
+    struct.pack_into("<IIII", head, 0x20, 0, len(names), 0xFFFFFFFF, 0xA0)
+    for i, name in enumerate(names):
+        struct.pack_into("<IIII", head, info_at + 16 * i, len(files[name]), starts[i], name_offsets[i], 0xFFFFFFFF)
+    head[names_at:names_at + len(name_blob)] = name_blob
+    return bytes(head) + body
+
+
+def test_gar_v5_lists_and_reads_members_and_refuses_writes():
+    import pytest
+    from core.containers import grezzo
+    files = {"Tl_Title_T": b"CLIM" + bytes(60), "I_Data_00": b"CLYT" + b"x" * 10, "Lb_Labo_B": b"empty"}
+    blob = make_gar5(files)
+    assert grezzo.ZarContainer.can_handle(blob)
+    container = grezzo.ZarContainer(blob)
+    assert container.list_files() == list(files)
+    assert all(container.read_file(name) == files[name] for name in files)
+    assert container.pack() == blob
+    with pytest.raises(ValueError):
+        container.write_file("Tl_Title_T", b"new")
+
+
 def test_lzs_round_trip_with_back_references():
     from core.containers import grezzo
     rng = random.Random(9)

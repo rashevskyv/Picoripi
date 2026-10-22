@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Containers: `core/containers/grezzo.py` reads Grezzo GAR version 5 (read only; the eight Luigi's Mansion 3DS UI archives parse, 285 entries), checked with a synthetic archive.
 - Luigi's Mansion (3DS, 2018, USA CTR-P-BGNE, title 00040000001D1900): `plugins/luigis_mansion_1_3ds` opens the CIA (keys from the console key store), reads the English `romfs/Region_US/English/main.gmsg` (2182 messages; 2181 read as text, one stays raw), and builds a Luma LayeredFS folder (`titles/00040000001D1900/romfs`); the Ever Oasis GMSG grammar with the argument sizes of this game (`plugins/luigis_mansion_1_3ds/gmsg.py`).
 - Luigi's Mansion (GameCube, GLME01 USA): `plugins/luigis_mansion_1_gc` unpacks the disc (the Yay0 event archives and `system.arc` become folders), reads and writes the 1226 message records (`message/messageNN.csv`, CRLF records, Shift-JIS), and builds the translated ISO next to the original with `sys/main.dol` unchanged; `core/containers/yay0.py` writes literal-only Yay0, and RARC folders with file ID 0 are walked (GameCube).
 - Containers: `core/containers/yay0.py` decompresses Yay0 (GameCube archives, Luigi's Mansion groundwork), checked with synthetic streams; not yet wired into the archive openers.
