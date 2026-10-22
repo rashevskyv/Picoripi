@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-22
+updated: 2026-10-21
 owns: plugins/
-tokens: 14.9k
+tokens: 14.8k
 ---
 # Підтримувані ігри
 
@@ -83,8 +83,6 @@ tokens: 14.9k
 | Grandia II (Dreamcast, USA) | Серійний номер | SCUS-94457 | США | PlayStation disc 1 |
 | Grandia II (Dreamcast, USA) | Серійний номер | SCUS-94465 | США | PlayStation disc 2 |
 | Gravity Falls: Legend of the Gnome Gemulets | ID не перевіряється | — | Європа | 3DS, UbiArt engine |
-| Hades (Switch) | Title ID | 0100535012974000 | Усі регіони | Switch base game |
-| Hades (Switch) | Title ID | 0100535012974800 | Усі регіони | Switch update |
 | Hard Corps: Uprising | ID не перевіряється | — | Не вказано | Xbox 360 XBLA and PC port; texture project |
 | Harvest Moon 3D / Story of Seasons (3DS) | ID не перевіряється | — | Європа | 3DS, four titles |
 | Ikenie no Yoru | ID диска | SEKJ99 | Японія | Wii, Japanese disc with the English fan translation |
@@ -277,7 +275,6 @@ tokens: 14.9k
 | Metal Gear Solid 4 (Master Collection) | Nintendo Switch, ПК | Файли гри (тека або образ) | Немає | Switch і PC, Master Collection. |
 | Metal Gear Solid Master Collection Bonus Content | Nintendo Switch | Файли гри (тека або образ) | Немає | Switch, бонусний вміст, томи 1 і 2. |
 | Metal Gear Solid: Peace Walker (Master Collection) | Nintendo Switch, ПК | Файли гри (тека або образ) | Немає | Switch і PC, Master Collection. |
-| Hades (Switch) | Nintendo Switch | Файли гри (тека або образ); Файл ключів, якщо файл зашифровано (Switch) | Switch: мод LayeredFS для Atmosphere | Switch. Англійський SJSON і субтитри; текст, закладений у Lua, не входить. |
 | Metroid Prime 4: Beyond | Nintendo Switch | Файли гри (тека або образ) | Немає | Switch, оновлення 1.1.0. Гліфи редагуються на місці, нові не додаються. |
 | Metroid Prime Remastered | Nintendo Switch | Файли гри (тека або образ) | Немає | Switch, базова гра. Такі самі формати, як у Metroid Prime 4. |
 | Miitopia (Switch) | Nintendo Switch | Файли гри (тека або образ) | Немає | Switch 1.0.0 з оновленням 1.1.0. |

@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-20
 owns: unfinished work
-tokens: 71.5k
+tokens: 71.1k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -87,15 +87,6 @@ the line when it is done or moved into a plan.
 
 - Handed to another agent (2026-10-20). Not worked on in this branch.
 - Open: openblack has no string-table or font loader, and `LOAD_LANGUAGE` throws. A local text path in openblack may come later (licence ignored for internal use; code never committed).
-
-## Hades Switch (`plugins/hades`, 2026-10-22, branch `feat/hades`)
-- Version: the repack's CNMT (Application, title 0100535012974000) records version 589824. The update's CNMT is not in the partial torrent, and web search found no latest Hades Switch version. The latest version is not verified.
-- Naming: no mistake found in the title IDs, version tags or folder names. The one anomaly is the Russian language label in 11 language blocks of `Languages.sjson` (a deliberate exonym). The seed writes a different label for the same language; owner to confirm or revert.
-- Lua-held text not in the project: NPC, enemy, room, codex and encounter text is in `Content/Scripts/*.lua`. The seed writes the Ukrainian `pl` files as new `en` files (12 files, `_*Data.en.sjson`); the game load of these new `en` files is not verified.
-- Fonts: the English `Win/Fonts/en/*.xnb` and `pl/*.xnb` (with both `Fonts.remap`) are unpacked. `sprite_font` says "not a SpriteFont" for them, so they are not editable yet. The English slot keeps the English fonts; the `pl` font set is larger and may carry Cyrillic, but it is not copied into the `en` slot (not verified). The Ukrainian text in the reference uses look-alike Latin `i` in about 3,500 places.
-- Reference column (`pl`) is not shown yet; `load_multi_reference` is not wired.
-- In-game proof: not planned (owner decision 2026-10-22).
-- Repack has no ticket and no CNMT XML: `images.identify` names no title; `unpack._merged_hades` recognises it by its RomFS.
 ## Okami HD Switch (`plugins/okami_hd`, 2026-10-21, branch `feat/okami`)
 - Text codes (2026-10-21, fix on `fix/okami-ps2-text`): 0x0001 is the period, 0x0002 the comma, 0x0003 the question mark, 0x0004 the exclamation mark, 0x0009 the opening quote, 0x000A the apostrophe, 0x00C6 the hyphen. 0x0001 was taken for a space, so a typed space drew a dot. There is no space code: a space is a string break of the record, and 0xA001 is a line break (shown as a newline). Still tags: 0x0005-0x0008, 0x000B-0x0010 and the 0x80xx / 0xA0xx / 0xD0xx control codes.
 - Text rows: one row per record (was one row per string). The first letter of a record was taken for a header (1241 records in PS2 `_DATA0.AFS`); the header is now only a control unit or the "me51" header.
