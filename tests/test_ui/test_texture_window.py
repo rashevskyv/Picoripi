@@ -2,6 +2,7 @@
 revert, the status file, opening a file directly, and closing while a job runs."""
 import json
 import struct
+import sys
 import threading
 from types import SimpleNamespace
 
@@ -9,6 +10,7 @@ import pytest
 from PIL import Image, ImageDraw
 from PyQt6 import QtWidgets
 
+from core import texture_formats
 from core.texture_formats import pixels, sources
 from ui import texture_window as texture_window_module
 from ui.texture_window import TextureWindow
@@ -174,3 +176,21 @@ def test_tools_menu_action_opens_one_window(qtbot, project):
     assert first.tree.topLevelItemCount() == 2
     assert MainWindowToolsActionsMixin.open_texture_window(actions) is first
     first.close()
+
+
+def test_a_missing_numpy_is_named_with_the_install_command(qtbot, tmp_path, monkeypatch):
+    """Without numpy the window names the package and the command that installs it, not a bare ImportError."""
+    path = tmp_path / "picture.bti"
+    path.write_bytes(_bti(_card((10, 20, 30, 255))))
+    monkeypatch.setitem(sys.modules, "numpy", None)  # deslop: ignore[module-mocking] a None entry makes the import fail like a missing package; no product module is patched
+    monkeypatch.delitem(sys.modules, "core.texture_formats.gim", raising=False)
+    monkeypatch.delattr(texture_formats, "gim", raising=False)
+    warned = []
+    monkeypatch.setattr(texture_window_module.QtWidgets.QMessageBox, "warning", lambda *a, **k: warned.append(a))
+    window = TextureWindow(None)
+    qtbot.addWidget(window)
+    window.open_path(str(path))
+    assert warned, "the window did not show the error"
+    text = warned[0][2]
+    assert "numpy" in text and "python -m pip install -r requirements.txt" in text
+    assert "No module named" not in text

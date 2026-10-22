@@ -792,6 +792,7 @@ Open:
 - Majora's Mask `yar` archives have no room to grow in the ROM: an edit that compresses worse than the original is fitted by recompressing every block of the archive optimally; if even that does not fit, the save is refused with the file's size.
 - An archive around an edited texture is laid out anew by its container code (SARC, RARC); Revert restores the texture file byte for byte, not necessarily the archive.
 - Helper to erase the English and render Ukrainian with the game font (later).
+- `_backends()` in `core/texture_formats/__init__.py` imports every backend at once: one missing package (numpy before the fix) blanks every texture format in the window. Open: import the backends lazily per format. The message names the package now (`ui/texture_window.py`, `utils/package_check.py`).
 
 ## Startup speed (2026-10-04)
 
