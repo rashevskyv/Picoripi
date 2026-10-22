@@ -19,6 +19,7 @@ from PIL import Image
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from core.i18n import tr
+from core.texture_formats import cache as texture_cache
 from core.texture_formats import sources as texture_sources
 from core.texture_formats.sources import TextureSource
 from utils import app_mode, package_check
@@ -247,6 +248,9 @@ class TextureWindow(QtWidgets.QMainWindow):
 
     # -- loading ------------------------------------------------------------------------------------
 
+    def _cache_dir(self) -> str:
+        return os.path.join(self.project_dir, "textures", "cache") if self.project_dir else ""
+
     def _project(self):
         manager = getattr(self.mw, "project_manager", None)
         return getattr(manager, "project", None), getattr(manager, "project_dir", None) or ""
@@ -260,7 +264,8 @@ class TextureWindow(QtWidgets.QMainWindow):
             return
         metadata = dict(project.metadata)
         # The plugin reads the game's archives to name its textures, so that call runs in the job too.
-        self._load(lambda: texture_sources.resolve(rules.get_texture_sources(), metadata), project_dir,
+        cache_dir = os.path.join(project_dir, "textures", "cache") if project_dir else ""
+        self._load(lambda: texture_cache.resolve(rules.get_texture_sources(), metadata, cache_dir), project_dir,
                    empty_message=tr("This game's plugin names no textures: open a texture file (Ctrl+O)."))
 
     def open_file_dialog(self) -> None:
@@ -285,10 +290,8 @@ class TextureWindow(QtWidgets.QMainWindow):
             found = find()
             status = texture_sources.load_status(project_dir) if project_dir else {}
             progress(("list", found, status))
-            for source in found:
-                if cancelled():
-                    break
-                progress(("images", source, *_read_pair(source)))
+            for source, pair in texture_cache.read_pairs(found, self._cache_dir(), cancelled):
+                progress(("images", source, *pair))
             return len(found)
 
         self.run_job(work, self._on_load_item,
@@ -534,11 +537,8 @@ class TextureWindow(QtWidgets.QMainWindow):
 
 
 def _read_pair(source: TextureSource):
-    """``(original image, current image, error)`` of a texture."""
-    try:
-        return source.read_original().image, source.read_current().image, ""
-    except (OSError, ValueError, KeyError, IndexError) as error:
-        return None, None, str(error)
+    """``(original image, current image, error)`` of a texture, decoded afresh (its file just changed)."""
+    return texture_cache.read_pair(source)
 
 
 def _write(pairs, progress, cancelled) -> List[TextureSource]:

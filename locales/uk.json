@@ -3305,5 +3305,14 @@
   "Region not stated": "Регіон не вказано",
   "All regions": "Усі регіони",
   "{0} ROM versions: {1}": "Версій ROM: {0}: {1}",
-  "Image ID: {0}": "ID образу: {0}"
+  "Image ID: {0}": "ID образу: {0}",
+  "Build ROM": "Зібрати ROM",
+  "<b>Build ROM</b><br>Click — build the changed game (ROM, ISO or mod folder) from this project.": "<b>Зібрати ROM</b><br>Клацніть — зберіть змінену гру (ROM, ISO або теку мода) з цього проєкту.",
+  "This project has no build target. Open a project whose game plugin can build.": "Цей проєкт не має цілі збірки. Відкрийте проєкт, плагін гри якого вміє збирати.",
+  "A build is already running.": "Збірка вже триває.",
+  "What to build:": "Що збирати:",
+  "Building...": "Збірка...",
+  "Build failed": "Збірка не вдалася",
+  "Build cancelled": "Збірку скасовано",
+  "{0} warnings: {1}": "Попереджень: {0}. Перше: {1}"
 }

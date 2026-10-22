@@ -23,8 +23,10 @@ transparent and white on black both work. Lossy formats (BC, CMPR, ETC1) are enc
 from __future__ import annotations
 
 import struct
+from array import array
 from dataclasses import dataclass
 from functools import lru_cache
+from operator import itemgetter
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 from PIL import Image, ImageChops
@@ -82,8 +84,13 @@ def _grey(r: int, g: int, b: int, a: int) -> int:
 @lru_cache(maxsize=32)
 def tile_order(width: int, height: int, tile_w: int, tile_h: int) -> Tuple[int, ...]:
     """Pixel index (``y * width + x``) of every stored texel: tiles row by row, rows inside a tile (GX)."""
-    return tuple((ty + y) * width + tx + x for ty in range(0, height, tile_h) for tx in range(0, width, tile_w)
-                 for y in range(tile_h) for x in range(tile_w))
+    out: List[int] = []
+    for ty in range(0, height, tile_h):
+        for tx in range(0, width, tile_w):
+            for y in range(tile_h):       # one row of a tile per step: range() fills it in C
+                start = (ty + y) * width + tx
+                out.extend(range(start, start + tile_w))
+    return tuple(out)
 
 
 _MORTON = tuple((((i >> 1) & 1) | ((i >> 2) & 2) | ((i >> 3) & 4), (i & 1) | ((i >> 1) & 2) | ((i >> 2) & 4))
@@ -98,6 +105,12 @@ def pica_order(width: int, height: int) -> Tuple[int, ...]:
 
 
 # -- value formats (one number per texel) -----------------------------------------------------
+
+
+@lru_cache(maxsize=32)
+def _inverse(positions: Tuple[int, ...]) -> Tuple[int, ...]:
+    """For each pixel, the index in storage order of the texel that draws it."""
+    return tuple(sorted(range(len(positions)), key=positions.__getitem__))
 
 
 def _read_values(data: bytes, count: int, bits: int, endian: str, low_first: bool) -> Sequence[int]:
@@ -167,15 +180,20 @@ def value_codec(name: str, bits: int, decode: Callable[[int], RGBA], encode: Cal
         lut = table[0]
         count = width * height
         values = _read_values(data, count, bits, endian, low_first)
-        texels = [lut[v] for v in values] if lut else [bytes(decode(v)) for v in values]
         positions = order(width, height)
+        if lut and bits <= 8:   # a palette picture: reorder the numbers, PIL turns them into colours in C
+            numbers = bytes(values)
+            if positions is not None:
+                numbers = bytes(itemgetter(*_inverse(positions))(numbers)) if count > 1 else numbers[:count]
+            picture = Image.frombytes("P", (width, height), numbers[:count])
+            picture.putpalette(b"".join(lut) + bytes(4 * (256 - len(lut))), "RGBA")
+            return picture.convert("RGBA")
+        texels = list(map(lut.__getitem__, values)) if lut else [bytes(decode(v)) for v in values]
         if positions is None:
             raw = b"".join(texels)
-        else:
-            out = [b""] * count
-            for texel, at in zip(texels, positions):
-                out[at] = texel
-            raw = b"".join(out)
+        else:   # the texel to draw at pixel ``at`` is the one stored at ``stored[at]``; itemgetter gathers in C
+            stored = _inverse(positions)
+            raw = b"".join(itemgetter(*stored)(texels) if count > 1 else texels)
         return Image.frombytes("RGBA", (width, height), raw)
 
     def enc(image: Image.Image) -> bytes:
@@ -385,40 +403,49 @@ def _chunks(data: bytes, size: int) -> List[bytes]:
 _REVERSE_PAIRS = bytes(sum(((b >> (2 * i)) & 3) << (6 - 2 * i) for i in range(4)) for b in range(256))
 
 
-def _gx_to_bc1(block: bytes) -> bytes:
-    return bytes((block[1], block[0], block[3], block[2])) + block[4:8].translate(_REVERSE_PAIRS)
+def _swap_block_fields(data: bytes) -> bytearray:
+    """GX CMPR blocks to DXT1 blocks and back (the same change): swap the bytes of both colours, reverse the
+    texel pairs of the 4 index bytes. Done for every block at once with strided slices."""
+    out = bytearray(data)
+    out[0::8], out[1::8] = out[1::8], out[0::8]
+    out[2::8], out[3::8] = out[3::8], out[2::8]
+    for j in range(4, 8):
+        out[j::8] = out[j::8].translate(_REVERSE_PAIRS)
+    return out
 
 
-def _bc1_to_gx(block: bytes) -> bytes:
-    return bytes((block[1], block[0], block[3], block[2])) + block[4:8].translate(_REVERSE_PAIRS)
+def _gather_blocks(data: bytes, order: Tuple[int, ...]) -> bytes:
+    """The 8-byte blocks of ``data`` in the order ``order`` names (gathered as 64-bit numbers, in C)."""
+    blocks = array("Q")
+    blocks.frombytes(data)
+    return array("Q", itemgetter(*order)(blocks) if len(order) > 1 else blocks).tobytes()
+
+
+@lru_cache(maxsize=16)
+def _cmpr_order(width: int, height: int) -> Tuple[int, ...]:
+    """Index in the tile stream of every 4x4 block, row by row."""
+    wide = width // 4
+    out = [0] * ((width // 4) * (height // 4))
+    n = 0
+    for ty in range(0, height // 4, 2):
+        for tx in range(0, wide, 2):
+            for dy, dx in ((0, 0), (0, 1), (1, 0), (1, 1)):
+                out[(ty + dy) * wide + tx + dx] = n
+                n += 1
+    return tuple(out)
 
 
 def _cmpr() -> Codec:
-    def blocks_linear(width: int, height: int) -> List[int]:
-        """Index in the tile stream of every 4x4 block, row by row."""
-        wide = width // 4
-        out = [0] * ((width // 4) * (height // 4))
-        n = 0
-        for ty in range(0, height // 4, 2):
-            for tx in range(0, wide, 2):
-                for dy, dx in ((0, 0), (0, 1), (1, 0), (1, 1)):
-                    out[(ty + dy) * wide + tx + dx] = n
-                    n += 1
-        return out
-
     def dec(data: bytes, width: int, height: int) -> Image.Image:
-        index = blocks_linear(width, height)
-        linear = b"".join(_gx_to_bc1(data[i * 8:i * 8 + 8]) for i in index)
+        order = _cmpr_order(width, height)
+        linear = _gather_blocks(bytes(_swap_block_fields(bytes(data[:len(order) * 8]))), order)
         return Image.frombytes("RGBA", (width, height), linear, "bcn", 1)
 
     def enc(image: Image.Image) -> bytes:
         width, height = image.size
-        linear = _chunks(image.convert("RGBA").tobytes("bcn", 1), 8)
-        index = blocks_linear(width, height)
-        out = [b""] * len(index)
-        for block, at in zip(linear, index):
-            out[at] = _bc1_to_gx(block)
-        return b"".join(out)
+        linear = image.convert("RGBA").tobytes("bcn", 1)
+        order = _cmpr_order(width, height)
+        return bytes(_swap_block_fields(_gather_blocks(linear, _inverse(order))))
 
     return Codec("gx:CMPR", (8, 8), 32, dec, enc)
 

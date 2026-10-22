@@ -434,6 +434,61 @@ class MainWindowSettingsActionsMixin:
             on_recalculate_completed()
 
 
+    def build_rom(self):
+        """Build the project's translated game with the plugin's build target (ROM, ISO, mod folder) on a worker."""
+        from PyQt6.QtWidgets import QInputDialog
+        from core.project_library.plugin_facts import default_load_rules
+        from ui.project_manager.tasks import ActionJob
+
+        project_file = getattr(self.mw.project_manager, 'project_file_path', None)
+        rules = self.mw.current_game_rules
+        targets = (rules.get_build_targets() or []) if rules else []
+        title = tr('Build ROM')
+        if not project_file or not targets:
+            QMessageBox.information(self.mw, title, tr('This project has no build target. Open a project whose game plugin can build.'))
+            return
+        if getattr(self, '_build_job', None) is not None:
+            self.mw.statusBar.showMessage(tr('A build is already running.'), 3000)
+            return
+        target = targets[0]
+        if len(targets) > 1:
+            labels = [t['label'] for t in targets]
+            label, ok = QInputDialog.getItem(self.mw, title, tr('What to build:'), labels, 0, False)
+            if not ok:
+                return
+            target = targets[labels.index(label)]
+
+        def start(success=True):
+            if success is False:
+                return
+            job = ActionJob(project_file, target['id'], default_load_rules)
+            self._build_job = job
+            job.progress.connect(lambda percent, text: self.mw.statusBar.showMessage(f"{text} ({percent} %)"))
+            job.done.connect(self._build_done)
+            job.failed.connect(lambda message: self._build_ended(tr('Build failed'), message, True))
+            job.cancelled.connect(lambda: self._build_ended(tr('Build cancelled'), '', False))
+            self.mw.statusBar.showMessage(tr('Building...'))
+            job.start()
+
+        if getattr(self.mw.data_store, 'unsaved_changes', False):
+            self.mw.app_action_handler.save_data_action(ask_confirmation=False, on_finished_callback=start)
+        else:
+            start()
+
+    def _build_done(self, path):
+        from core.project_library import build
+        warnings = build.read_warnings(path)
+        text = tr('Built: {0}', path)
+        if warnings:
+            text += '\n\n' + tr('{0} warnings: {1}', len(warnings), warnings[0])
+        self._build_ended(text, '', False)
+
+    def _build_ended(self, text, detail, error):
+        self._build_job = None
+        self.mw.statusBar.showMessage(text.split('\n')[0], 5000)
+        box = QMessageBox.critical if error else QMessageBox.information
+        box(self.mw, tr('Build ROM'), text + ('\n\n' + detail if detail else ''))
+
     def run_external_script(self):
         """Asynchronously run configured external script (e.g. ROM builder / emulator)"""
         import subprocess

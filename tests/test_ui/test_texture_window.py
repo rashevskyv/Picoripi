@@ -194,3 +194,27 @@ def test_a_missing_numpy_is_named_with_the_install_command(qtbot, tmp_path, monk
     text = warned[0][2]
     assert "numpy" in text and "python -m pip install -r requirements.txt" in text
     assert "No module named" not in text
+
+
+def test_decoded_pairs_and_the_list_are_cached_and_follow_file_changes(project, monkeypatch):
+    from core.texture_formats import cache
+    cache_dir = str(project.tmp / "cache")
+    metadata = {"source_path": str(project.source), "translation_path": str(project.translation)}
+    descriptors = [{"label": "Card", "format": "bti", "path": "*.bti"}]
+    found = cache.resolve(descriptors, metadata, cache_dir)
+    assert len(found) == 2 and (project.tmp / "cache" / "list.pickle").is_file()
+    monkeypatch.setattr(sources, "resolve", lambda *a: pytest.fail("the list was read again"))
+    assert [s.key for s in cache.resolve(descriptors, metadata, cache_dir)] == [s.key for s in found]
+
+    monkeypatch.setattr(cache, "POOL_MIN", 1)       # two textures are enough to use the process pool
+    first = {s.key: pair for s, pair in cache.read_pairs(found, cache_dir, lambda: False)}
+    assert set(first) == {"a_title.bti", "b_menu.bti"} and all(p[2] == "" for p in first.values())
+    assert len(list((project.tmp / "cache" / "decoded").iterdir())) == 4
+    monkeypatch.setattr(cache, "_decode", lambda s: pytest.fail("a cached texture was decoded again"))
+    again = cache.read_pair(found[0], cache_dir)
+    assert list(again[0].getdata()) == list(first[found[0].key][0].getdata())
+
+    (project.source / "a_title.bti").write_bytes(_bti(_card((0, 200, 0, 255))))      # the game file changed
+    assert cache._pair_base(found[0], cache_dir) != cache._pair_base(found[1], cache_dir)
+    with pytest.raises(pytest.fail.Exception):
+        cache.read_pair(found[0], cache_dir)

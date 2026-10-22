@@ -113,6 +113,10 @@ Example: `"C:\Emu\emu.exe" {path}`. Put quotes around a path that has spaces.
 
 Each project row has two boxes: **Built** and **Verified in game**. Only you set them. Picoripi never changes them. Use them as your own notes. **Built** means you built the mod. **Verified in game** means you checked it in the game.
 
+## Build ROM button
+
+The **Build ROM** button on the toolbar builds the open project with its game plugin. It saves your edits first. If the game has more than one build target, it asks which one. The status bar shows the progress. A message gives the path of the result and the first warning.
+
 ## Run External Script
 
 The **>_** button at the right end of the toolbar starts your own tool or script. Set its path in **Settings → Global → External Tool/Script Path**. This button does not build the mod.

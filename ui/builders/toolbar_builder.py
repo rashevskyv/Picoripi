@@ -79,11 +79,17 @@ class ToolBarBuilder:
             tr('<b>Run external script</b><br>Click — run the external script / build tool configured in Settings (Ctrl+P).')
         )
         
+        self.mw.build_rom_action = QAction(tr('Build ROM'), self.mw)
+        self.mw.build_rom_action.setToolTip(
+            tr('<b>Build ROM</b><br>Click — build the changed game (ROM, ISO or mod folder) from this project.')
+        )
+
         # Push Help and Script to the far right
         toolbar_spacer = QWidget()
         toolbar_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.mw.main_toolbar.addWidget(toolbar_spacer)
         
+        self.mw.main_toolbar.addAction(self.mw.build_rom_action)
         self.mw.main_toolbar.addAction(self.mw.run_external_script_action)
         self.mw.main_toolbar.addSeparator()
         self.mw.main_toolbar.addAction(self.mw.help_shortcuts_action)

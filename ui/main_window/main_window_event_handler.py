@@ -71,6 +71,7 @@ class MainWindowEventHandler:
         if hasattr(self.mw, 'open_settings_action'): self.mw.open_settings_action.triggered.connect(self.mw.actions.open_settings_dialog)
         if hasattr(self.mw, 'run_external_script_action') and self.mw.run_external_script_action:
             self.mw.run_external_script_action.triggered.connect(self.mw.actions.run_external_script)
+        self.mw.build_rom_action.triggered.connect(self.mw.actions.build_rom)
         if hasattr(self.mw, 'bfn_editor_action') and self.mw.bfn_editor_action:
             self.mw.bfn_editor_action.triggered.connect(self.mw.actions.open_bfn_editor_standalone)
         if hasattr(self.mw, 'texture_window_action') and self.mw.texture_window_action:
@@ -403,6 +404,7 @@ class MainWindowEventHandler:
         safe_disconnect(mw, 'toggle_hide_tags_action')
         if hasattr(mw, 'toggle_hide_tags_action'): safe_disconnect(mw.toggle_hide_tags_action, 'triggered')
         if hasattr(mw, 'open_settings_action'): safe_disconnect(mw.open_settings_action, 'triggered')
+        if hasattr(mw, 'build_rom_action'): safe_disconnect(mw.build_rom_action, 'triggered')
         if hasattr(mw, 'run_external_script_action'): safe_disconnect(mw.run_external_script_action, 'triggered')
         if hasattr(mw, 'bfn_editor_action'): safe_disconnect(mw.bfn_editor_action, 'triggered')
         if hasattr(mw, 'texture_window_action'): safe_disconnect(mw.texture_window_action, 'triggered')
