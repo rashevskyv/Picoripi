@@ -2,7 +2,8 @@
 
 ``locate`` names the title from the rights ID of the ticket or from the content meta, without keys. ``SwitchImage``
 decrypts a .nsp with a prod.keys file (see switch_crypto): the ExeFS files and the RomFS of the program NCA. An .xci is
-identified but not read. A RomFS that is a BKTR patch (an update's) is not listed; ``romfs_is_patch`` tells the caller.
+identified but not read. A compressed RomFS (firmware 12 and later) is read through its compression table. A RomFS that
+is a BKTR patch (an update's) is not listed; ``romfs_is_patch`` tells the caller.
 """
 from __future__ import annotations
 
@@ -18,6 +19,7 @@ from typing import Any, BinaryIO, Callable, Dict, List, NamedTuple, Optional, Tu
 from core.containers.console_crypto import PlainView, RangeView, wrong_key_error
 from core.containers.image_files import ImageError, ImageFile, ImageReader, check_name
 from core.containers.switch_bktr import PatchedRomFs, PatchSection
+from core.containers.switch_compressed import CompressedView, is_compressed
 from core.containers.switch_crypto import HEADER_SIZE, NcaHeader, SwitchKeys, content_key, open_section
 from core.containers.switch_nsz import NCA_HEADER_SIZE, decompress_ncz, read_ncz
 from core.containers.switch_sparse import is_empty_sparse, is_sparse, open_sparse_section
@@ -243,6 +245,8 @@ class SwitchImage(ImageReader):
         base_body, base_header, base_key = base._program
         base_view, _base_fsh = base._section(base_body, base_header, base_key, 1)
         start, end, fsh = header.sections[1]
+        if is_compressed(fsh):   # the patch data is read as stored: a compressed patch is not read yet
+            raise ImageError(tr("compressed sections are not read"))
         patch = PatchSection(body.stream, body.base, start, key, fsh, body.plain)
         # The RomFS image is the IVFC data level: its offset at 0x90 and its size at 0x98 of the section header.
         level, data_size = struct.unpack_from("<QQ", fsh, 0x90)
@@ -348,14 +352,23 @@ class SwitchImage(ImageReader):
         return _Body(self._cache[0], 0, ncz.nca_size, True)
 
     def _section(self, body: _Body, header: NcaHeader, key: bytes, index: int) -> Tuple[PlainView, bytes]:
-        """The view of section ``index`` of the program NCA and its section header. An NCZ's sections are plain bytes:
-        they were decrypted before compression, so no CTR is applied again."""
+        """The view of section ``index`` of the program NCA and its section header. A compressed RomFS section reads as
+        its logical space (``switch_compressed``), so its RomFS level is where the RomFS image starts, as for a plain one.
+        """
         spec = header.sections[index]
         if spec is None:
             raise ImageError(tr("the program NCA has no section {0}", index))
-        start, end, fsh = spec
-        if struct.unpack_from("<Q", fsh, 0x180)[0]:
+        view, fsh = self._stored_section(body, spec, key)
+        if not is_compressed(fsh):
+            return view, fsh
+        if fsh[2] != 0 or is_sparse(fsh):   # the compression layer is read for a RomFS only
             raise ImageError(tr("compressed sections are not read"))
+        return CompressedView(view, fsh), fsh
+
+    def _stored_section(self, body: _Body, spec: Tuple[int, int, bytes], key: bytes) -> Tuple[PlainView, bytes]:
+        """The decrypted bytes of a section as stored (before any compression layer). An NCZ's sections are plain bytes:
+        they were decrypted before compression, so no CTR is applied again."""
+        start, end, fsh = spec
         if is_sparse(fsh) and not body.plain:   # the logical size may exceed the NCA: the sparse map gives the bytes
             return open_sparse_section(body.stream, body.base, spec, key, body.size), fsh
         if end > body.size:

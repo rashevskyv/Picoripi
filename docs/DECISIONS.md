@@ -1209,3 +1209,21 @@ Vendored files put key bytes in the repository. A runtime download keeps the byt
 - Updating the default means regenerating `SOURCE_FILES` from `database.json` at the new commit and changing
   `DEFAULT_REF` in the same change.
 - Verification in tests uses synthetic all-zero files and a loopback HTTP server. No test reaches the network.
+
+## D49. Fixed-key 3DS titles and the compressed Switch RomFS are read (2026-10-22)
+
+**Context.** Two image kinds were refused: a 3DS program with the fixed-key flag (NCCH flags 7, bit 0; the manuals
+`.cfa`) and a Switch NCA section with the compression table (firmware 12 and later; Luigi's Mansion 2 HD). Both
+refusals stopped the New Project wizard.
+
+**Decision.** A fixed-key program uses a public constant key, so it needs no key file. The zero key is used; the
+fixed system key `527CE630A9CA305F3696F3CDE954194B` is used when the title ID category has the system bit (0x10 in the
+high word). A compressed RomFS section is read as its logical space: the section bytes before the IVFC level stay as
+they are, and the RomFS image is read through the compression table (`core/containers/switch_compressed.py`, BKTR
+table, stored / zero / LZ4 blocks). The LZ4 decoder is in Python, with every offset and length checked.
+
+**Why.** The four owner manuals decrypt with the zero key (IVFC header). The Luigi's Mansion 2 HD RomFS reads whole
+(2,970 files, 6.5 GB logical) and every block decodes. No C LZ4 module is in the environment, and no package is added.
+
+**Cost.** Pure-Python LZ4 is slower than a C decoder; a full unpack of a large compressed RomFS is minutes. A compressed
+update patch and a compressed ExeFS are still refused. The system key is not checked on a real system title.

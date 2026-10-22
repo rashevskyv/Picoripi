@@ -70,7 +70,7 @@ def _shallow_tree(read: Callable[[int, int], bytes], table_off: int, entry_size:
         blob = read(set_off + 0x10, count * entry_size)
         entries.extend(blob[k * entry_size:(k + 1) * entry_size] for k in range(count))
     if len(entries) != total:
-        raise ImageError(tr("the RomFS patch table is deeper than this reader reads"))
+        raise ImageError(tr("a bucket tree is deeper than this reader reads"))
     return entries
 
 

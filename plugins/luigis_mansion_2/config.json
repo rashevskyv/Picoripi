@@ -1,9 +1,10 @@
 {
     "supported_images": [
-        {"kind": "unchecked", "id": "", "region": "EUR", "note": "3DS"}
+        {"kind": "unchecked", "id": "", "region": "EUR", "note": "3DS"},
+        {"kind": "title", "id": "010048701995E000", "region": "All regions", "note": "Switch HD base game"}
     ],
     "display_name": "Luigi's Mansion: Dark Moon (3DS)",
-    "platforms": ["3ds"],
+    "platforms": ["3ds", "switch"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

@@ -49,13 +49,19 @@ def ctr(key, counter, data):
     return bytes(out)
 
 
-def encrypt_ncch(plain, version=0):
-    """The plaintext NCCH from ``build_ncch`` with KeyY, flags and sections encrypted as a real program has them."""
+def encrypt_ncch(plain, version=0, key=None, flags7=0, title_id=None):
+    """The plaintext NCCH from ``build_ncch`` with KeyY, flags and sections encrypted as a real program has them.
+
+    ``key`` is the region key (default: slot 0x2C from KeyX and KeyY); ``flags7`` sets the flags byte 7 (0x01 is a
+    fixed-key program, which uses ``key`` directly); ``title_id`` (big-endian hex) sets the program ID.
+    """
     body = bytearray(plain)
     body[:16] = KEY_Y
     body[0x112:0x114] = struct.pack("<H", version)
-    body[0x188 + 7] = 0                       # encrypted, no fixed key
-    key = ref_scramble(KEYX_2C, KEY_Y)
+    body[0x188 + 7] = flags7
+    if title_id is not None:
+        body[0x108:0x110] = body[0x118:0x120] = bytes.fromhex(title_id)[::-1]
+    key = key or ref_scramble(KEYX_2C, KEY_Y)
     partition = bytes(body[0x108:0x110])
 
     def counter(region_start, kind):
@@ -142,11 +148,26 @@ def test_wrong_key_is_refused_without_echoing_key_bytes(tmp_path):
     assert KEYX_2C.hex() not in str(info.value)
 
 
-def test_fixed_key_title_is_refused(tmp_path):
-    plain = bytearray(build_ncch())
-    plain[0x188 + 7] = 0x01                                   # fixed-key flag, and no NoCrypto flag
-    with pytest.raises(ImageError, match="fixed-key"):
-        n3ds.N3dsImage(io.BytesIO(build_cci(bytes(plain))), standard_keys(tmp_path))
+def test_fixed_key_title_with_zero_key_needs_no_key_file():
+    cci = build_cci(encrypt_ncch(build_ncch(), key=n3ds.ZERO_KEY, flags7=0x01))
+    reader = n3ds.N3dsImage(io.BytesIO(cci), None)
+
+    assert read_all(reader) == reference_files()
+    assert reader.program["encrypted"] is False
+
+
+def test_fixed_key_system_title_uses_the_fixed_system_key():
+    cci = build_cci(encrypt_ncch(build_ncch(), key=n3ds.FIXED_SYSTEM_KEY, flags7=0x01, title_id="0004001B00012345"))
+
+    assert read_all(n3ds.N3dsImage(io.BytesIO(cci), None)) == reference_files()
+
+
+@pytest.mark.parametrize("title_id, key", [("0004000000F3FF00", n3ds.ZERO_KEY),
+                                           ("0004000000012345", n3ds.ZERO_KEY),
+                                           ("0004013800012345", n3ds.FIXED_SYSTEM_KEY),
+                                           ("0004001B00012345", n3ds.FIXED_SYSTEM_KEY)])
+def test_fixed_key_depends_on_the_system_bit_of_the_title_id(title_id, key):
+    assert n3ds.fixed_key(title_id) == key
 
 
 def test_encrypted_program_without_a_key_file_is_refused():
