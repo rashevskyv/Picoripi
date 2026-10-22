@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-20
 owns: unfinished work
-tokens: 69.2k
+tokens: 69.3k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -17,12 +17,14 @@ the line when it is done or moved into a plan.
 - Not done: the owner's first real download in the app. The tests use a loopback server only, by design.
 - Open: Wii U keys (`keys.txt`, `otp.bin`, `seeprom.bin`) are in the source, but Picoripi has no Wii U key slot. Add a slot
   and a reader first.
-- Open: Switch `title.keys` is in the source, but no reader uses it. It is not downloaded.
+- Note: Switch `title.keys` is not in the download table (`SOURCE_FILES`). No reader uses it.
 - Open: a source the user sets has no hash record. Only the registered file gets a parser check. `boot9.bin` and
   `seeddb.bin` from such a source are not checked.
 - Open: on an update of the default commit, `DEFAULT_REF` and `SOURCE_FILES` change together. Nothing checks that they
   agree; a test would need the repository.
 - Open: the legal status of these keys depends on the user's country. The owner decides whether the default stays.
+- Open: `core/containers/gcm.py` refuses a Wii disc with "a Wii disc: its files need a key, which Picoripi does not read yet". The Wii reader exists now (`wii_disc.py`, `keys.bin`). Reword the message to point to Console keys.
+- Open: some plugin build messages say "console keys" in lower case (`plugins/madworld`, `no_more_heroes`, `okami_wii`, `wario_land_shake_it`). The settings tab is "Console keys". Align the wording with a `uk.json` pair per string.
 ## 3DS image formats (`core/containers/n3ds.py`, `z3ds.py`, `core/project_library/images.py`, 2026-10-22, branch `fix/3ds-image-formats`)
 
 - Open: encrypted 3DS formats are proven on synthetic data only. The owner's key store had no 3DS key file on 2026-10-22, so no real encrypted `.cia` or `.cci` ran. Set the 3DS key file (Settings, Console keys), then check Luigi's Mansion 2 `legit.cia` and Yo-kai Watch encrypted files.
@@ -1716,7 +1718,7 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - Stale (2026-10-17): plugins now unpack 3DS and Switch images (see phase 2c and phase 3). The 3DS zt scripts that run `ctr3ds.main(... "extract" ...)` (for example `zt/aot3ds.py`, `zt/layton3ds.py`, `zt/mii3ds.py`, `zt/pmd3ds.py`) also copy text or build a CXI, or need the seed database; each needs its own wiring and a check against its workspace. `zelda_mm3d` takes its files from texture and font JSON with globs and archive members; not wired. Candidates are listed in the ROADMAP A18 row.
 - The wizard asks for a key only when the chosen plugin lists the console in `unpack_key_consoles()` (new hook, D30 addendum) and the file is encrypted. Stale (2026-10-17): 8 plugins list one (pokemon_bdsp, pokemon_gen6, pokemon_gen7, pokemon_md_3ds, pokemon_nx, pokemon_trinity, super_mario_galaxy, zelda_las); the 3DS, Switch and Wii readers are wired through them.
 - `pycryptodome==3.23.0` is in `requirements.txt` (decided in D30 addendum 2c). When the package is missing, an encrypted image gives the pycryptodome message, not a crash.
-- Wiki EN and UK pages for the key file and the Switch and Wii sentences in the wizard paragraph need a check after the merge; `docs/wiki/3_Plugin_Developer_Guide.md` names the new hook.
+- Done 2026-10-22: the wiki key pages (EN and UK) follow the default source (D48). The owner section is "Console keys" in `docs/wiki/4_Configuration_Guide.md`. `docs/wiki/3_Plugin_Developer_Guide.md` names the new hook.
 - Audit r17 (2026-10-14), fixed: a missing or unreadable 3DS key file or boot9 file no longer chains its OS error, so a logged traceback does not show the key folder (`core/containers/n3ds.py`, two tests in `tests/test_core/test_n3ds_decrypt.py`).
 - Audit r17, fixed in audit r18: `tests/test_core/test_unreal_pak.py` no longer opens the real `prod.keys`. Its test that compared the Bravely Default II pak with the extracted files is removed, because the NSP needs the owner's keys. `tests/test_key_file_paths.py` now fails when a test names a real key file or key folder.
 - Audit r18, open (owner's choice): the Bravely Default II pak check (NSP, owner's `prod.keys`, extracted English entries) has no test now. Re-add it as a script outside the suite, if wanted.

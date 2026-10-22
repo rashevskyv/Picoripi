@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Docs: console keys have one owner section (`docs/wiki/4_Configuration_Guide.md` "Console keys", EN and UK) for the default key source (D48): the consent, where the files go, your own key file wins, offline use, what each console needs. Other pages link to it.
 - Key files: a default key source (the pinned `bios/Nintendo` folder of Abdess/retrobios, D48) downloads the 3DS, Switch and Wii key files only after a consent dialog; the wizard offers it before a file, and the Console keys tab has the source settings (`core/project_library/key_source.py`, `ui/key_source_download.py`).
 - 3DS images: compressed Z3DS files (`.zcia`, `.zcci`, `.zcxi`, `.z3ds`) are read decompressed (`core/containers/z3ds.py`); a `.3dsx` is refused as homebrew; a 3DS game with no unpack hook gets its whole image unpacked, base game then update and DLC as an overlay (`images.extract_3ds_set`); an encrypted CIA reports its product code with the key file, so a plugin that matches product codes (Yo-kai Watch) recognises it; a key picked in the wizard re-reads the files; the wizard shows the reason for an unsupported image.
 - Supported images: every game plugin declares the images it opens (`supported_images` in config.json, hook `get_supported_images()`); the New Project wizard and the Project Manager row show the IDs and regions; `scripts/supported_images_page.py` writes the table on the Supported games pages (EN, UK).

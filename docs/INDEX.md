@@ -11,7 +11,7 @@ Read the row, then open only the document you need.
 | `docs/ENGINEERING.md` | Habits behind the rules: threads, performance, persistence, tests | 2.0k | current | engineering practice |
 | `docs/FEATURES.md` | Every feature in detail; the wiki wins on a conflict | 14.9k | current | feature inventory |
 | `docs/MEMPALACE_CONTEXT_MANIFESTO.md` | MemPalace contract: principles, data flow, stage status | 2.3k | design | core/mempalace, ui/mempalace |
-| `docs/OPEN_ITEMS.md` | Everything left open, one line each, by work package | 69.2k | current | unfinished work |
+| `docs/OPEN_ITEMS.md` | Everything left open, one line each, by work package | 69.3k | current | unfinished work |
 | `docs/PIPELINE_ROADMAP.md` | Pipeline design of record (Ukrainian); shipped vs planned on top | 12.5k | current | core/glossary_build, ui/pipeline_wizard_dialog.py |
 | `docs/PROJECT_MANAGER_PHASE2.md` | Project Manager phase 2 | 0.7k | current | project manager |
 | `docs/REVIEW_QUEUE.md` | What is left for the owner after the audit: decisions with evidence, live runs, environment | 2.4k | current | owner decisions and live checks |
@@ -25,21 +25,21 @@ Read the row, then open only the document you need.
 | `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (+uk) | Main window, menus, filters, settings tabs, shortcuts | 11.3k | current | ui/, components/, dialogs/ |
 | `docs/wiki/2_API_Reference.md` (+uk) | Which Python file implements which control | 0.8k | current | module map |
 | `docs/wiki/3_Plugin_Developer_Guide.md` (+uk) | The one plugin guide: files, hooks, capabilities, tests | 14.8k | current | plugins/ |
-| `docs/wiki/4_Configuration_Guide.md` (+uk) | Map of every Settings tab and control, defaults, restart needs, and where each value is stored | 4.4k | current | ui/settings |
+| `docs/wiki/4_Configuration_Guide.md` (+uk) | Map of every Settings tab and control, defaults, restart needs, and where each value is stored | 5.1k | current | ui/settings |
 | `docs/wiki/5_Gemini_Web2API.md` (+uk) | The local Gemini proxy: start, settings, errors | 2.2k | current | core/translation/providers.py |
 | `docs/wiki/6_Virtual_Navigation_and_Preview.md` (+uk) | Virtual folders, story and speaker views, preview | 1.4k | current | ui/updaters/block_list |
-| `docs/wiki/7_Maintaining_This_Wiki.md` (+uk) | Which page owns which fact; how to update EN and UK | 1.0k | current | docs/wiki |
+| `docs/wiki/7_Maintaining_This_Wiki.md` (+uk) | Which page owns which fact; how to update EN and UK | 1.1k | current | docs/wiki |
 | `docs/wiki/8_Localization_Pipeline.md` (+uk) | Pipeline wizard: script, glossary build, reconcile | 4.7k | current | core/glossary_build, core/glossary |
 | `docs/wiki/9_Script_Markup.md` (+uk) | Script Markup Studio | 1.9k | current | core/script_markup, ui/script_markup |
 | `docs/wiki/Build_and_Test.md` (+uk) | Build a mod from saved files, export it, run it in an emulator, and test it per platform | 2.1k | current | core/project_library/build.py |
 | `docs/wiki/Editor_Basics.md` (+uk) | Main window map, Blocks tree, Strings list, editors, status bar, and how to translate one line | 2.5k | current | ui/builders/ |
 | `docs/wiki/Fonts_and_Textures.md` (+uk) | Edit game fonts and textures, add Ukrainian letters, and set the fonts folders and default font of a project | 1.8k | current | tools/bfn_editor/ and ui/texture_window.py |
-| `docs/wiki/Game_Notes.md` (+uk) | Per-game technical notes: source folders, file formats, tags, previews, build steps | 47.6k | current | plugins |
+| `docs/wiki/Game_Notes.md` (+uk) | Per-game technical notes: source folders, file formats, tags, previews, build steps | 47.7k | current | plugins |
 | `docs/wiki/Hotkeys.md` (+uk) | Every keyboard shortcut and modifier click of the main window and its separate windows, grouped by task, with menu paths | 2.2k | current | ui/builders/menu_builder.py |
-| `docs/wiki/New_Project_Scenarios.md` (+uk) | The three-step new-project wizard and each kind of game source it accepts | 2.3k | current | ui/project_manager/wizard.py, core/project_library/ |
+| `docs/wiki/New_Project_Scenarios.md` (+uk) | The three-step new-project wizard and each kind of game source it accepts | 2.2k | current | ui/project_manager/wizard.py, core/project_library/ |
 | `docs/wiki/Project_Manager.md` (+uk) | The Project Manager window: list, folders, flags, import, share, storage and reopen at start | 2.1k | current | ui/project_manager/window.py, core/project_library/ |
 | `docs/wiki/README.md` (+uk) | Wiki index and reading order | 1.1k | current | docs/wiki |
-| `docs/wiki/Recipes.md` (+uk) | Short task recipes: what to press, in order, for each common goal, with a link to the full page | 3.0k | current | docs/wiki |
+| `docs/wiki/Recipes.md` (+uk) | Short task recipes: what to press, in order, for each common goal, with a link to the full page | 2.9k | current | docs/wiki |
 | `docs/wiki/Saving_and_Recovery.md` (+uk) | Saving, undo, backups, session recovery, revert and moving a project. | 2.2k | current | core/data_processor/save_mixin.py, core/data_processor/session_manager.py, core/data_processor/revert_manager.py, core/saved_translations_manager.py, core/undo_manager.py |
 | `docs/wiki/Search_Bookmarks.md` (+uk) | Quick find, Advanced Search & Replace, search history and bookmarks. | 1.9k | current | components/search_panel.py, handlers/search_handler.py, dialogs/search_review/, handlers/bookmark_handler.py |
 | `docs/wiki/Supported_Games.md` (+uk) | Table of every game plugin with platforms, wizard needs and build targets. | 12.1k | current | plugins/ |

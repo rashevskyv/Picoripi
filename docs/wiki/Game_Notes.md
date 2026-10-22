@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-21
 owns: plugins
-tokens: 47.6k
+tokens: 47.7k
 purpose: Per-game technical notes: source folders, file formats, tags, previews, build steps
 ---
 # Game notes
@@ -22,7 +22,7 @@ This page holds the technical notes of each game plugin: which folder is the **S
   and needs your own USA disc; **Wii U graphic pack and SDCafiine folder** writes the Cemu graphic pack and the
   SDCafiine folder for the HD game, with its size tables and redrawn font textures. The Wii disc has no build target
   yet: its partitions are encrypted and Picoripi cannot write them. **New project** wizard: add the USA GameCube
-  disc (GZ2E01) or the USA Wii disc (RZDE01; the wizard asks for your Wii key file once) and the wizard unpacks it;
+  disc (GZ2E01) or the USA Wii disc (RZDE01; the wizard asks for the Wii key file once, see [Console keys](4_Configuration_Guide.md#console-keys)) and the wizard unpacks it;
   for Wii U HD, which Picoripi cannot read as a `.wux`, add the unpacked title folder (the one with `code`,
   `content` and `meta`) with **Add folder...**: its source becomes `content/res/Msguk`.
 - `zelda_mc` — The Legend of Zelda: The Minish Cap
@@ -1059,7 +1059,7 @@ omase.nds`, made by the unpack) with the edited banks and files put in; no `zt`
   dungeon, item, move and Pokémon names and descriptions in `common`, menus, Pelipper and Connection Orb text);
   the fonts `font\*.dic` + `*.img` (Font Editor format `pmd_font`) and the pictures `image_2d\*.img` /
   `image_2d.bin\*.img` (title logo, menus; Textures window format `pmd_img`). The wizard unpacks the image itself
-  (Picoripi readers; the Super Mystery Dungeon CIA needs the 9.6 seed from the key folder, `seeds\` or `seeddb.bin`)
+  (Picoripi readers; the Super Mystery Dungeon CIA needs the 9.6 seed: a `seeds\` folder or `seeddb.bin`, beside the 3DS key file)
   and writes the same tree as `1_unpack.bat`. **Build target 3DS mod (LayeredFS)** writes `titles\<title id>\romfs\...`:
   a changed loose file as it is, a changed pack member rebuilt into the game's own pack. **Preview:** Gates to
   Infinity draws the intro dialogue on the top screen with the game's font (`FOT-RodinProN-DB_14`, the box at
