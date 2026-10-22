@@ -9,13 +9,18 @@ Each text table is one block; ``2_build.bat`` rebuilds the pair around a changed
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Set
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Set
 
+from core.project_library import images
+from core.project_library.plugin_facts import generic_identity
 from plugins.common.table_rules import TableRules
 
-from . import nloc
+from . import nloc, unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TAG_RE, TagManager
+
+_ROLE_RANK = {"base": 0, "update": 1}
 
 
 class GameRules(TableRules):
@@ -49,3 +54,33 @@ class GameRules(TableRules):
 
     def get_speaker_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
         return None
+
+    # ----- wizard: the 3DS image is unpacked whole; its text and picture pairs become the source folder
+
+    def identify_source(self, path: str) -> Optional[Dict[str, str]]:
+        """A 3DS image: its role comes from the header (base, update or DLC), as for a game without a plugin."""
+        found = images.identify(path)
+        if not found or found.get("kind") != images.KIND_3DS:
+            return None
+        return generic_identity(found)
+
+    def unpack_key_consoles(self) -> List[str]:
+        return ["3ds"]
+
+    def get_source_subfolder(self) -> Optional[str]:
+        return unpack.SOURCE_SUBFOLDER
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str,
+                       progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> Optional[str]:
+        """Unpack the 3DS image(s) into ``target_dir`` (romfs, exefs, exheader.bin) and write the source folder.
+
+        A folder or any file that is not a 3DS image is left to the wizard, which returns None for it.
+        """
+        if not sources or any((images.identify(path) or {}).get("kind") != images.KIND_3DS
+                              for path in sources.values()):
+            return None
+        ordered = [path for _role, path in sorted(sources.items(), key=lambda item: _ROLE_RANK.get(item[0], 2))]
+        if images.extract_3ds_set(ordered, target_dir, progress, is_cancelled) is None:
+            return None
+        unpack.expand_pairs(Path(target_dir))
+        return target_dir

@@ -58,7 +58,6 @@ BASELINE = {
     "kingdom_hearts_ddd": "owner source is not a disc image (folders); the user prepares the folder or files",
     "layton_3ds": "owner source is not a disc image (folders); the user prepares the folder or files",
     "layton_mr": "owner source is not a disc image (folders); the user prepares the folder or files",
-    "luigis_mansion_2": "owner source is not a disc image (folders); the user prepares the folder or files",
     "lunar_ebc": "owner source is not a disc image (folders); the user prepares the folder or files",
     "lunar_ssh": "owner source is not a disc image (folders); the user prepares the folder or files",
     "lunar_sssc": "owner source is not a disc image (folders); the user prepares the folder or files",
