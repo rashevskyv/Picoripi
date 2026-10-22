@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-22
 owns: ui/project_manager/wizard.py, core/project_library/
-tokens: 3.1k
+tokens: 3.2k
 purpose: Майстер нового проєкту на три кроки і види джерел гри, які він приймає
 ---
 # Новий проєкт: усі види ігор
