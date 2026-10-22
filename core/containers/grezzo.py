@@ -86,24 +86,32 @@ def lzs_compress(data: bytes, header: bytes = LZS_MAGIC + bytes(4)) -> bytes:
 
 
 class ZarContainer(BaseArchiveContainer):
-    """A Grezzo ZAR (v1) or GAR (v2) archive."""
+    """A Grezzo ZAR (v1), GAR (v2) or GAR (v5, read only) archive.
+
+    GAR v5 (the 3DS UI archives of Luigi's Mansion): the header's 0x10 field is the entry table, 16 bytes per entry
+    (u32 size, u32 data offset, u32 name offset, u32 0xFFFFFFFF), and the header's 0x14 field is the start of the data.
+    """
 
     @classmethod
     def can_handle(cls, data: bytes) -> bool:
-        return data[:4] in (b"ZAR\x01", b"GAR\x02")
+        return data[:4] in (b"ZAR\x01", b"GAR\x02", b"GAR\x05")
 
     def __init__(self, data: bytes) -> None:
         self._data = bytes(data)
         self._gar = data[:3] == b"GAR"
+        self._v5 = data[:4] == b"GAR\x05"
         _size, _types, count, _types_at, self._info, self._offsets = struct.unpack_from("<IHHIII", data, 4)
         self._entries: List[Tuple[str, int, int]] = []
         for index in range(count):
-            if self._gar:
-                size, _short, name_at = struct.unpack_from("<III", data, self._info + index * 12)
+            if self._v5:
+                size, start, name_at, _unused = struct.unpack_from("<IIII", data, self._info + index * 16)
             else:
-                size, name_at = struct.unpack_from("<II", data, self._info + index * 8)
+                if self._gar:
+                    size, _short, name_at = struct.unpack_from("<III", data, self._info + index * 12)
+                else:
+                    size, name_at = struct.unpack_from("<II", data, self._info + index * 8)
+                start = struct.unpack_from("<I", data, self._offsets + index * 4)[0]
             name = data[name_at:data.index(b"\0", name_at)].decode("ascii", "replace").replace("\\", "/")
-            start = struct.unpack_from("<I", data, self._offsets + index * 4)[0]
             self._entries.append((name, start, size))
         self._overlay: Dict[str, bytes] = {}
 
@@ -119,6 +127,8 @@ class ZarContainer(BaseArchiveContainer):
         raise KeyError(path)
 
     def write_file(self, path: str, data: bytes) -> None:
+        if self._v5:
+            raise ValueError("GAR version 5 is read only: its write layout is not verified")
         self.read_file(path)
         self._overlay[path] = bytes(data)
 
