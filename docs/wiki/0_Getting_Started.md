@@ -59,7 +59,7 @@ Press **+ Add project → New project...**. The wizard has three steps.
 
 2. **Files.** Press **Add files...** and choose the game files: the game, its update and its DLC. If the game is
    already unpacked, press **Add folder...**. Picoripi sets the role and platform of each file itself. If a key file
-   is needed, it says so in the error row.
+   is needed, it says so in the error row and offers **Get keys from the default source** or **Choose a file**.
 
    ![Step 2: the files](img/getting_started/04_wizard_files.png)
 

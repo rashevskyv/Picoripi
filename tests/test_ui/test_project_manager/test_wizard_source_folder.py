@@ -200,7 +200,7 @@ def test_wrong_key_can_be_replaced_in_same_wizard(qtbot, tmp_path, monkeypatch):
 
 
 def test_missing_key_cancel_and_retry_preserve_project_inputs(qtbot, tmp_path, monkeypatch):
-    from core.project_library import images
+    from core.project_library import images, key_source
     from test_core.test_n3ds_decrypt import encrypt_ncch, standard_keys
     from utils import constants
 
@@ -214,6 +214,7 @@ def test_missing_key_cancel_and_retry_preserve_project_inputs(qtbot, tmp_path, m
     monkeypatch.setattr(constants, "SETTINGS_DIR", tmp_path / "settings")
     image = tmp_path / "encrypted.cci"
     image.write_bytes(build_cci(encrypt_ncch(build_ncch())))
+    key_source.set_config(enabled=False)   # the file dialog is the only choice here
     created = []
     wizard = ProjectWizard(None, lambda _name: Rules(), created.append)
     qtbot.addWidget(wizard)
