@@ -14,14 +14,34 @@ from plugins.luigis_mansion_1_3ds import gmsg
 
 TITLE_ID = "00040000001D1900"
 ENGLISH_FOLDER = "romfs/region_us/english/"
+REGION_FOLDER = "romfs/region_us/"
 
 Progress = Callable[[int, str], None]
 Cancelled = Callable[[], bool]
 
 
-def select_english(path: str) -> bool:
-    """True for the files the source folder keeps: the English message tables (``images.extract`` ``select``)."""
-    return path.replace("\\", "/").lower().startswith(ENGLISH_FOLDER)
+def select_source(path: str) -> bool:
+    """True for the files the source folder keeps: the English message tables and the Region_US archives at the
+    RomFS root (``.gzf``). The French and Spanish folders are not selected (``images.extract`` ``select``)."""
+    low = path.replace("\\", "/").lower()
+    return low.startswith(ENGLISH_FOLDER) or (low.startswith(REGION_FOLDER) and low.count("/") == 2)
+
+
+def kept(rel: str) -> bool:
+    """True for the files the source folder keeps: the English tables, the RomFS root files (the Region_US ``.gzf``
+    text and font archives) and the source mark."""
+    return select_source(rel) or rel.replace("\\", "/").lower() == SOURCE_MARK.lower()
+
+
+def prune_to_english(target_dir: str | os.PathLike) -> None:
+    """Remove what ``images.extract`` wrote and the source folder does not keep (the French and Spanish tables, the
+    exefs, the other RomFS folders). The project reads every ``.gmsg`` under the folder, so these must not stay."""
+    root = Path(target_dir)
+    for path in sorted(root.rglob("*"), reverse=True):
+        if path.is_file() and not kept(path.relative_to(root).as_posix()):
+            path.unlink()
+        elif path.is_dir() and not any(path.iterdir()):
+            path.rmdir()
 
 
 def changed_files(source_dir: str | os.PathLike, translation_dir: str | os.PathLike) -> Dict[str, bytes]:

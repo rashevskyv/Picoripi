@@ -72,7 +72,10 @@ class GameRules(TableRules):
         base = sources.get("base") or next(iter(sources.values()), None)
         if not base or (images.identify(base) or {}).get("kind") != images.KIND_3DS:
             return None
-        return images.extract(base, target_dir, progress, is_cancelled, build.select_english)
+        done = images.extract(base, target_dir, progress, is_cancelled, build.select_source)
+        if done is not None:
+            build.prune_to_english(target_dir)
+        return done
 
     def get_build_targets(self) -> List[Dict[str, Any]]:
         return [{"id": "layeredfs", "label": tr("Luma LayeredFS (titles folder, romfs)"), "platforms": ["3ds"],

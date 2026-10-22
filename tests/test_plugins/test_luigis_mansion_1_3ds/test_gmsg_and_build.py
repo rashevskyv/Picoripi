@@ -58,10 +58,10 @@ def test_a_file_that_is_not_version_3_is_not_a_table():
 
 
 def test_only_the_english_tables_are_selected():
-    assert build.select_english("romfs/Region_US/English/main.gmsg")
-    assert build.select_english(r"romfs\Region_US\English\UIMansion.gar")
-    assert not build.select_english("romfs/Region_US/French/main.gmsg")
-    assert not build.select_english("exefs/code.bin")
+    assert build.select_source("romfs/Region_US/English/main.gmsg")
+    assert build.select_source(r"romfs\Region_US\English\UIMansion.gar")
+    assert not build.select_source("romfs/Region_US/French/main.gmsg")
+    assert not build.select_source("exefs/code.bin")
 
 
 def test_changed_files_refuses_a_table_with_another_message_count(tmp_path):
@@ -94,3 +94,17 @@ def test_control_codes_with_the_argument_sizes_of_this_game_round_trip():
     text = "Hi\n{clear}Press {c11:0600} now{style:" + "00" * 16 + "}{c15:03000000}{c08:01000000}."
     raw = encode(text)
     assert decode(raw) == text
+
+
+def test_prune_keeps_the_english_tables_the_region_archives_and_the_mark(tmp_path):
+    keep = ["romfs/Region_US/English/main.gmsg", "romfs/Region_US/English/UIMansion.gar",
+            "romfs/Region_US/main.gzf", ".picoripi_disc.json"]
+    drop = ["romfs/Region_US/French/main.gmsg", "romfs/demo/codemo01.gar", "exefs/code.bin", "exheader.bin"]
+    for rel in keep + drop:
+        _write(tmp_path / rel, b"x")
+
+    build.prune_to_english(tmp_path)
+
+    left = sorted(p.relative_to(tmp_path).as_posix() for p in tmp_path.rglob("*") if p.is_file())
+    assert left == sorted(keep)
+    assert not (tmp_path / "exefs").exists()
