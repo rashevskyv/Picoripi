@@ -3314,5 +3314,16 @@
   "Building...": "Збірка...",
   "Build failed": "Збірка не вдалася",
   "Build cancelled": "Збірку скасовано",
-  "{0} warnings: {1}": "Попереджень: {0}. Перше: {1}"
+  "{0} warnings: {1}": "Попереджень: {0}. Перше: {1}",
+  "The group stream does not start with the zlib header the game expects.": "Потік групи не починається із заголовка zlib, якого чекає гра.",
+  "The file is too short for a STAGE.DAT.": "Файл закороткий для STAGE.DAT.",
+  "This STAGE.DAT is not the one of Zone of the Enders: The 2nd Runner.": "Цей STAGE.DAT не належить Zone of the Enders: The 2nd Runner.",
+  "The index of stage {0} is not readable.": "Індекс етапу {0} не читається.",
+  "Group {0} of stage {1} does not follow the group before it.": "Група {0} етапу {1} не йде одразу за попередньою групою.",
+  "A changed group must keep its number of files.": "Змінена група має зберегти кількість файлів.",
+  "There is no text string at offset {0}.": "За зміщенням {0} немає текстового рядка.",
+  "The script has {0} strings, not {1}.": "У скрипті рядків: {0}, а не {1}.",
+  "The file is not the Zone of the Enders: The 2nd Runner PlayStation 2 disc.": "Цей файл не є диском PlayStation 2 гри Zone of the Enders: The 2nd Runner.",
+  "The stage {0} has no script.": "Етап {0} не має скрипта.",
+  "The disc has no stage {0}.": "На диску немає етапу {0}."
 }

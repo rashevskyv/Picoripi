@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-21
 owns: plugins
-tokens: 48.0k
+tokens: 48.3k
 purpose: Per-game technical notes: source folders, file formats, tags, previews, build steps
 ---
 # Game notes
@@ -1088,6 +1088,18 @@ omase.nds`, made by the unpack) with the edited banks and files put in; no `zt`
 - `rhythm_paradise_megamix` — Rhythm Paradise Megamix (3DS, EUR). **Source:** the 18 English MSBT files in the
   `.zlib` SARC archives (5,715 messages; tags named by `pajama.msbp`), ten BFFNT fonts and 2,318 BFLIM / CTPK / CGFX
   pictures; the build packs the changed members into the `.zlib` files again.
+- `zoe2_ps2` — Zone of the Enders: The 2nd Runner (PlayStation 2, USA disc SLUS-20545). **Source:** the wizard reads
+  the disc in place and writes one script per stage, `scx/<stage>.scx` (110 files, the byte code of `ZOE2/STAGE.DAT`
+  with its text); the text of a script is its player-visible strings: tutorials, mission texts, radio lines, menu and
+  memory card messages (about 10,000 strings; resource names and labels are left out). `|` is a line break (`
+` in the
+  editor); `{83:02}` and `{83:04}` are button pictures, `{80:7C}` a line break inside a text, `{0A}` a control byte.
+  **Build** writes `Zone of the Enders - The 2nd Runner (USA) Ukrainian.iso`: a changed script is packed again into its
+  stage; a longer string moves to the end of the script and the code is not touched. A stage that no longer fits its
+  sectors is appended to STAGE.DAT, and STAGE.DAT moves to the end of the image. Not in the project yet: the film and
+  polygon-demo subtitles (`MOVIE.DAT`, `DEMO.DAT`, about 1,600 lines), the fonts and the textures. The game's Latin
+  font is not located, so only ASCII text can be written (other letters become `?`); the game was not run on the
+  rebuilt disc.
 - `default_plugin` — Default Plugin Template
 
 <!-- wiki-nav -->
