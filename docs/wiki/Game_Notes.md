@@ -1098,8 +1098,8 @@ omase.nds`, made by the unpack) with the edited banks and files put in; no `zt`
   stage; a longer string moves to the end of the script and the code is not touched. A stage that no longer fits its
   sectors is appended to STAGE.DAT, and STAGE.DAT moves to the end of the image. Not in the project yet: the film and
   polygon-demo subtitles (`MOVIE.DAT`, `DEMO.DAT`, about 1,600 lines), the fonts and the textures. The game's Latin
-  font is not located, so only ASCII text can be written (other letters become `?`); the game was not run on the
-  rebuilt disc.
+  font is not located, so only ASCII text can be written (other letters become `?`). The rebuilt disc boots in PCSX2
+  2.8.2 and shows the edited lines on the difficulty screen of the new game.
 - `default_plugin` — Default Plugin Template
 
 <!-- wiki-nav -->
