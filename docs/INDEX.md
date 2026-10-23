@@ -11,7 +11,7 @@ Read the row, then open only the document you need.
 | `docs/ENGINEERING.md` | Habits behind the rules: threads, performance, persistence, tests | 2.0k | current | engineering practice |
 | `docs/FEATURES.md` | Every feature in detail; the wiki wins on a conflict | 14.9k | current | feature inventory |
 | `docs/MEMPALACE_CONTEXT_MANIFESTO.md` | MemPalace contract: principles, data flow, stage status | 2.3k | design | core/mempalace, ui/mempalace |
-| `docs/OPEN_ITEMS.md` | Everything left open, one line each, by work package | 72.3k | current | unfinished work |
+| `docs/OPEN_ITEMS.md` | Everything left open, one line each, by work package | 71.9k | current | unfinished work |
 | `docs/PIPELINE_ROADMAP.md` | Pipeline design of record (Ukrainian); shipped vs planned on top | 12.5k | current | core/glossary_build, ui/pipeline_wizard_dialog.py |
 | `docs/PROJECT_MANAGER_PHASE2.md` | Project Manager phase 2 | 0.7k | current | project manager |
 | `docs/REVIEW_QUEUE.md` | What is left for the owner after the audit: decisions with evidence, live runs, environment | 2.4k | current | owner decisions and live checks |
@@ -31,7 +31,7 @@ Read the row, then open only the document you need.
 | `docs/wiki/7_Maintaining_This_Wiki.md` (+uk) | Which page owns which fact; how to update EN and UK | 1.1k | current | docs/wiki |
 | `docs/wiki/8_Localization_Pipeline.md` (+uk) | Pipeline wizard: script, glossary build, reconcile | 4.7k | current | core/glossary_build, core/glossary |
 | `docs/wiki/9_Script_Markup.md` (+uk) | Script Markup Studio | 1.9k | current | core/script_markup, ui/script_markup |
-| `docs/wiki/Build_and_Test.md` (+uk) | Build a mod from saved files, export it, run it in an emulator, and test it per platform | 2.1k | current | core/project_library/build.py |
+| `docs/wiki/Build_and_Test.md` (+uk) | Build a mod from saved files, export it, run it in an emulator, and test it per platform | 2.2k | current | core/project_library/build.py |
 | `docs/wiki/Editor_Basics.md` (+uk) | Main window map, Blocks tree, Strings list, editors, status bar, and how to translate one line | 2.5k | current | ui/builders/ |
 | `docs/wiki/Fonts_and_Textures.md` (+uk) | Edit game fonts and textures, add Ukrainian letters, and set the fonts folders and default font of a project | 1.8k | current | tools/bfn_editor/ and ui/texture_window.py |
 | `docs/wiki/Game_Notes.md` (+uk) | Per-game technical notes: source folders, file formats, tags, previews, build steps | 48.0k | current | plugins |

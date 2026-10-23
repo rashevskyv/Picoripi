@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-20
+updated: 2026-10-23
 owns: unfinished work
-tokens: 72.3k
+tokens: 71.9k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -13,20 +13,17 @@ the line when it is done or moved into a plan.
 ## Luigi's Mansion, GameCube and 3DS (`plugins/luigis_mansion_1_gc`, `plugins/luigis_mansion_1_3ds`, 2026-10-22, branch `feat/luigis-mansion`)
 
 - GameCube, done: the disc unpacks, 1226 message records in 89 files read and write byte-identical, a build changes one record and keeps `sys/main.dol`. Dolphin boots the built image (movie-driven run, frame dumps).
-- GameCube, open: no text on screen yet. Two Dolphin runs on a marker build (every record replaced by an ID line) reached the title, the map, the mansion and the front door, but no text box appeared (160 s and 420 s). A movie run (`.dtm` made by `dtm_gen`, 20000 frames, Start pulses then A pulses) starts after the header fix, but the frame dump slowed to about 1 frame per minute and the run was stopped with 2 frames. The button word of the movie is unverified (libogc PAD_BUTTON bits). A run on the original image (hidden desktop, D3D11, no dumping, PrintWindow every 8 s, 209 s) shows the same title image in all 27 captures: the Start pulses do not move the title, so the movie button word or the movie input is wrong. Next step: an owner-run .bat for the first text window, or a recorded movie from a real pad.
-- 3DS, open: Azahar still renders black at 0 FPS. Tried: Vulkan (`graphics_api=2`), Software (`graphics_api=0`), and no LayeredFS mod. The log stops about 1.3 s after the service stubs in every run. The preview recipe (`azahar_home_manual.ps1`) uses the same runner, so the difference is not in the launch method. A visible Azahar window (normal desktop, sound 100%) is black too, so the hidden desktop is not the cause.
-- Owner checks (not in the repo): `Luigi's Mansion\1\GameCube\owner_check_marked.bat` (marked build, Dolphin) and `Luigi's Mansion\1\3DS\owner_check_new_game.bat` (3DS mod, Azahar). Both start their private emulator and were tested; the owner reports what is on screen.
+- GameCube, done: on-screen proof. The owner's Dolphin screenshots show the marker IDs of the translated build in the game's text box. The first boxes show records of event 001.
 - GameCube, open: the text box width and line length limits are not measured. The `game_dialog_max_width_pixels` (240) and `line_width_warning_threshold_pixels` (220) values in `config.json` are template defaults, not measured on the game.
-- GameCube, open: the port (`Luigi's Mansion Recompiled` v1.1) is not run. The release is unpacked in a private folder; the port needs `--us-disc <iso>` and a private `APPDATA` (its settings and install.ini live there).
+- GameCube, open: run the PC port (`Luigi's Mansion Recompiled` v1.1) with the translated image. The release is unpacked in a private folder; the port needs `--us-disc <iso>` and a private `APPDATA` (its settings and install.ini live there).
 - GameCube, open: the Shift-JIS font `font_12.bfn` (in `system.arc`) is listed; the copy in `main.dol` (`FONTbfn1`) is not. Check which copy the game draws with, then decide whether the DOL copy needs a change (the port checks `main.dol`'s hash).
 - GameCube, open: textures with English text (`game_usa.szp`, `e_*.bti`) are not in `texture_sources.json` yet. The Yay0 writer is literal-only (larger archives); add the matcher if the disc runs short.
 - 3DS, done: the CIA unpacks with the key file; the English `main.gmsg` reads 2182 messages (2181 text, 1 raw) and writes byte-identical.
 - 3DS, done: GAR version 5 reads in `core/containers/grezzo.py` (read only): the eight `Region_US/English/UI*.gar` archives parse, 285 entries, names and data offsets check out. Write-back is refused (the write layout is not verified).
+- 3DS, done: the black render was a private-copy config fault. The region was forced to Europe; region set to auto fixes it. The title menu shows the test mod string in Azahar.
 - 3DS, open: the UI texts and textures are not listed in a source file yet; the archives are readable, the member formats (layout, texture) are not classified.
 - 3DS, open: the fonts `romfs/Region_US/*.gzf` (GZFX) are not listed in `font_sources.json`; check them with `core/font_formats/gzf.py`.
 - 3DS, done: the plain CXI loads in Azahar. The first load failed (`Failed to load ROM (Error 1)`) because the seeded KeyY was applied to the exheader and ExeFS header; the repo reader uses it only for ExeFS `.code` and RomFS (`core/containers/n3ds.py` `_key`). Fixed in the scratch decrypt step (not committed; the repo's reader already does it).
-- 3DS, open: Azahar runs the title but the render stays black (0 FPS) on the hidden desktop after about 2.6 s of log; no on-screen menu text yet.
-- 3DS, open (old note, superseded above): Azahar proof blocked. A plain CXI of the CIA (content 0, seed-derived KeyY, NoCrypto flag) gets its program ID, then Azahar logs `Failed to load ROM (Error 1)`. The test mod is ready: `load/mods/00040000001D1900/romfs/Region_US/English/main.gmsg` with message 22 (a title menu label) changed to a synthetic test string (title menu, no input needed beyond Start). The private copy's `qt-config.ini` must point at its own folders; the preview build wrote E: paths.
 - Workspaces: the series folder (GameCube and 3DS subfolders); the `zt` bat scripts were not made (no `zt` module for these games); the Picoripi project file is the working path.
 
 ## Default key source (`core/project_library/key_source.py`, 2026-10-22, branch `feat/key-source`)
