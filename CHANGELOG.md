@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Guardian Heroes (Xbox 360 XBLA, 2011): `plugins/guardian_heroes` reads the STFS package, parses `media/script_eng.mrg` (50 scenes, 1338 strings, UTF-16BE with control words as `{F900}` tags) and rebuilds it byte for byte; the build writes the translated script. The compressed font is not decoded yet. New platform id `x360`.
 - Containers: `core/containers/grezzo.py` reads Grezzo GAR version 5 (read only; the eight Luigi's Mansion 3DS UI archives parse, 285 entries), checked with a synthetic archive.
 - Luigi's Mansion (3DS, 2018, USA CTR-P-BGNE, title 00040000001D1900): `plugins/luigis_mansion_1_3ds` opens the CIA (keys from the console key store), reads the English `romfs/Region_US/English/main.gmsg` (2182 messages; 2181 read as text, one stays raw), and builds a Luma LayeredFS folder (`titles/00040000001D1900/romfs`); the Ever Oasis GMSG grammar with the argument sizes of this game (`plugins/luigis_mansion_1_3ds/gmsg.py`).
 - Luigi's Mansion (GameCube, GLME01 USA): `plugins/luigis_mansion_1_gc` unpacks the disc (the Yay0 event archives and `system.arc` become folders), reads and writes the 1226 message records (`message/messageNN.csv`, CRLF records, Shift-JIS), and builds the translated ISO next to the original with `sys/main.dol` unchanged; `core/containers/yay0.py` writes literal-only Yay0, and RARC folders with file ID 0 are walked (GameCube).

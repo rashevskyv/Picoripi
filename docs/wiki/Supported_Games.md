@@ -84,6 +84,7 @@ Each plugin opens the images listed here. When you add an image, the wizard matc
 | Grandia II (Dreamcast, USA) | Serial | SCUS-94457 | USA | PlayStation disc 1 |
 | Grandia II (Dreamcast, USA) | Serial | SCUS-94465 | USA | PlayStation disc 2 |
 | Gravity Falls: Legend of the Gnome Gemulets | Not checked by ID | — | EUR | 3DS, UbiArt engine |
+| Guardian Heroes | Not checked by ID | — | All regions | Xbox 360 XBLA package (STFS), title id 0x58410B2B, read by the plugin; or a folder with media/script_eng.mrg |
 | Hard Corps: Uprising | Not checked by ID | — | Not stated | Xbox 360 XBLA and PC port; texture project |
 | Harvest Moon 3D / Story of Seasons (3DS) | Not checked by ID | — | EUR | 3DS, four titles |
 | Ikenie no Yoru | Disc ID | SEKJ99 | JPN | Wii, Japanese disc with the English fan translation |

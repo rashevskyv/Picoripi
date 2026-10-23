@@ -3314,5 +3314,19 @@
   "Building...": "Збірка...",
   "Build failed": "Збірка не вдалася",
   "Build cancelled": "Збірку скасовано",
-  "{0} warnings: {1}": "Попереджень: {0}. Перше: {1}"
+  "{0} warnings: {1}": "Попереджень: {0}. Перше: {1}",
+  "Guardian Heroes script": "Скрипт Guardian Heroes",
+  "Not a Guardian Heroes script file ({0})": "Це не файл скрипта Guardian Heroes ({0})",
+  "Scene {0}": "Сцена {0}",
+  "Xbox 360 game package (STFS) or its extracted folder": "Пакет гри Xbox 360 (STFS) або його розпакована тека",
+  "Xbox 360": "Xbox 360",
+  "The file is not the Guardian Heroes package (title id 0x58410B2B).": "Файл не є пакетом Guardian Heroes (title id 0x58410B2B).",
+  "Reading the package": "Читання пакета",
+  "{0}: {1}": "{0}: {1}",
+  "Translated script (media/script_eng.mrg)": "Перекладений скрипт (media/script_eng.mrg)",
+  "The original {0} is missing: unpack the game again.": "Оригінала {0} немає: розпакуйте гру ще раз.",
+  "The translation file {0} is missing.": "Файла перекладу {0} немає.",
+  "{0} is not a Guardian Heroes script file.": "{0} не є файлом скрипта Guardian Heroes.",
+  "Line longer than the shipped languages use": "Рядок довший, ніж у мовах самої гри",
+  "This line has more visible characters than 99 % of the lines in the game's own French, German and Spanish scripts (about 34; 50 in the battle quotes). The real limit is the width of the dialogue window, which is not measured yet. Break the line with Enter.": "У цьому рядку більше видимих символів, ніж у 99 % рядків французького, німецького та іспанського скриптів самої гри (близько 34; 50 у бойових репліках). Справжня межа — ширина вікна діалогу, її ще не виміряно. Розбийте рядок клавішею Enter."
 }

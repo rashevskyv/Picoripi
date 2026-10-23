@@ -1,0 +1,64 @@
+{
+    "supported_images": [
+        {
+            "kind": "unchecked",
+            "id": "",
+            "region": "All regions",
+            "note": "Xbox 360 XBLA package (STFS), title id 0x58410B2B, read by the plugin; or a folder with media/script_eng.mrg"
+        }
+    ],
+    "display_name": "Guardian Heroes",
+    "platforms": [
+        "x360"
+    ],
+    "default_tag_mappings": {},
+    "block_names": {},
+    "block_color_markers": {},
+    "newline_display_symbol": "↵",
+    "newline_css": "color: #A020F0; font-weight: bold;",
+    "tag_css": "color: rgba(128, 128, 128, 128); font-style: italic;",
+    "bracket_tag_color_hex": "#8da3b4",
+    "show_multiple_spaces_as_dots": true,
+    "space_dot_color_hex": "#808080",
+    "preview_wrap_lines": true,
+    "editors_wrap_lines": true,
+    "game_dialog_max_width_pixels": 240,
+    "line_width_warning_threshold_pixels": 220,
+    "autofix_enabled": {
+        "GHR_TAG_WARNING": false,
+        "GHR_WIDTH_EXCEEDED": false,
+        "GHR_SHORT_LINE": true,
+        "GHR_EMPTY_ODD_SUBLINE_DISPLAY": true,
+        "GHR_SINGLE_WORD_SUBLINE": false,
+        "GHR_SINGLE_WORD_SUBLINE_NON_START": false,
+        "GHR_EMPTY_FIRST_LINE_OF_PAGE": true,
+        "GHR_BAD_SPACING": true,
+        "GHR_MISSING_ICON_SPACING": true,
+        "GHR_BROKEN_ICON_HYPHEN": true,
+        "GHR_LINE_LONG": false
+    },
+    "detection_enabled": {
+        "GHR_TAG_WARNING": true,
+        "GHR_WIDTH_EXCEEDED": false,
+        "GHR_SHORT_LINE": true,
+        "GHR_EMPTY_ODD_SUBLINE_DISPLAY": true,
+        "GHR_SINGLE_WORD_SUBLINE": true,
+        "GHR_SINGLE_WORD_SUBLINE_NON_START": true,
+        "GHR_EMPTY_FIRST_LINE_OF_PAGE": true,
+        "GHR_BAD_SPACING": true,
+        "GHR_MISSING_ICON_SPACING": true,
+        "GHR_BROKEN_ICON_HYPHEN": true,
+        "GHR_LINE_LONG": true
+    },
+    "lines_per_page": 4,
+    "default_font_file": "",
+    "tag_color_rgba": "#ffff8c00",
+    "tag_bold": true,
+    "tag_italic": false,
+    "tag_underline": false,
+    "newline_color_rgba": "#ffa020f0",
+    "newline_bold": true,
+    "newline_italic": false,
+    "newline_underline": false,
+    "translation_config": {}
+}

@@ -83,6 +83,7 @@ tokens: 15.0k
 | Grandia II (Dreamcast, USA) | Серійний номер | SCUS-94457 | США | PlayStation disc 1 |
 | Grandia II (Dreamcast, USA) | Серійний номер | SCUS-94465 | США | PlayStation disc 2 |
 | Gravity Falls: Legend of the Gnome Gemulets | ID не перевіряється | — | Європа | 3DS, UbiArt engine |
+| Guardian Heroes | ID не перевіряється | — | Усі регіони | Xbox 360 XBLA package (STFS), title id 0x58410B2B, read by the plugin; or a folder with media/script_eng.mrg |
 | Hard Corps: Uprising | ID не перевіряється | — | Не вказано | Xbox 360 XBLA and PC port; texture project |
 | Harvest Moon 3D / Story of Seasons (3DS) | ID не перевіряється | — | Європа | 3DS, four titles |
 | Ikenie no Yoru | ID диска | SEKJ99 | Японія | Wii, Japanese disc with the English fan translation |
