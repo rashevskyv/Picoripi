@@ -38,6 +38,7 @@ class _RecordingTranslationUpdateDialog:
 
     def __init__(self):
         self.calls = []
+        self.old_translation = "edited phrase"
 
     def set_ai_busy(self, busy):
         self.calls.append(("set_ai_busy", busy))
@@ -161,16 +162,30 @@ def test_gou_request_ai_occurrence_update(updater):
 
     requested_from_batch = []
     with patch.object(updater, 'request_glossary_occurrence_update',
-                      new=lambda **kwargs: requested_from_batch.append(kwargs["from_batch"])):
+                      new=lambda **kwargs: requested_from_batch.append(
+                          (kwargs["from_batch"], kwargs["old_term_translation"])
+                      )):
         updater._request_ai_occurrence_update(occ, False)
         assert dialog.calls == [("set_ai_busy", True)]
-        assert requested_from_batch == [False]
+        assert requested_from_batch == [(False, "edited phrase")]
 
         dialog.calls.clear()
         requested_from_batch.clear()
         updater._request_ai_occurrence_update(occ, True)
         assert dialog.calls == [("set_ai_busy", True), ("set_batch_active", True)]
-        assert requested_from_batch == [True]
+        assert requested_from_batch == [(True, "edited phrase")]
+
+
+def test_gou_batch_ai_uses_dialog_phrase(updater):
+    dialog = _RecordingTranslationUpdateDialog()
+    updater.translation_update_dialog = dialog
+    updater._current_translation_entry = GlossaryEntry("t", "new")
+    occ = GlossaryOccurrence(updater._current_translation_entry, 1, 2, 3, 0, 0, "line")
+    requested = []
+    with patch.object(updater, 'request_glossary_occurrence_batch_update',
+                      new=lambda **kwargs: requested.append(kwargs) or True):
+        updater._start_ai_occurrence_batch([occ])
+    assert requested[0]["old_term_translation"] == "edited phrase"
 
 @patch('handlers.translation.glossary_occurrence_updater.QMessageBox')
 def test_gou_request_glossary_occurrence_update(mock_box, updater):

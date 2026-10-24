@@ -50,22 +50,26 @@ class GlossaryTranslationUpdateDialog(QDialog):
         self._term = term
         self._old_translation = old_translation or ''
         self._new_translation = new_translation or ''
-        self._occurrences: List[GlossaryOccurrence] = list(occurrences)
+        self._candidate_occurrences = []
+        seen_occurrences = set()
+        for occurrence in occurrences:
+            key = (occurrence.block_idx, occurrence.string_idx)
+            if key not in seen_occurrences:
+                seen_occurrences.add(key)
+                self._candidate_occurrences.append(occurrence)
+        self._occurrences: List[GlossaryOccurrence] = []
         self._get_original = get_original_text
         self._get_current_translation = get_current_translation
         self._apply_translation_cb = apply_translation
         self._ai_request_single = ai_request_single
         self._ai_request_all = ai_request_all
 
-        self._status: Dict[int, str] = {}
+        self._status: Dict[tuple[int, int], str] = {}
         self._ai_busy = False
         self._batch_mode = False
 
         self._build_ui()
-        self._populate_occurrences()
-        if self._occurrences:
-            self._occurrence_list.setCurrentRow(0)
-            self._load_occurrence(0)
+        self._refresh_occurrences()
 
     # ------------------------------------------------------------------
     # UI building
@@ -122,12 +126,12 @@ class GlossaryTranslationUpdateDialog(QDialog):
         button_row = QHBoxLayout()
         right_layout.addLayout(button_row)
 
-        apply_button = QPushButton(tr('Apply'), right_panel)
-        apply_button.setToolTip(
+        self._apply_button = QPushButton(tr('Apply'), right_panel)
+        self._apply_button.setToolTip(
             tr('<b>Apply</b><br>Click — accept the suggestion for this occurrence, mark it done and move to the next one.')
         )
-        apply_button.clicked.connect(lambda: self._apply_current(next_item=True))
-        button_row.addWidget(apply_button)
+        self._apply_button.clicked.connect(lambda: self._apply_current(next_item=True))
+        button_row.addWidget(self._apply_button)
 
         self._apply_all_button = QPushButton(tr('Apply All'), right_panel)
         self._apply_all_button.setToolTip(tr('Apply suggested translations to all remaining occurrences and mark them all as completed (with checkmarks).'))
@@ -143,7 +147,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
 
         self._quick_replace_all_button = QPushButton(tr('Replace All (No AI)'), right_panel)
         self._quick_replace_all_button.setStyleSheet("QPushButton { background-color: #047857; color: white; font-weight: bold; }")
-        self._quick_replace_all_button.setToolTip(tr('Instantly replace old translation with new translation across all occurrences without using AI.'))
+        self._quick_replace_all_button.setToolTip(tr('Instantly replace the full old translation phrase with the new phrase in matching occurrences.'))
         self._quick_replace_all_button.clicked.connect(self._run_quick_replace_all)
         button_row.addWidget(self._quick_replace_all_button)
 
@@ -189,8 +193,35 @@ class GlossaryTranslationUpdateDialog(QDialog):
 
     @staticmethod
     def _occ_key(occ: GlossaryOccurrence) -> tuple:
-        """Stable identity of an occurrence (``id()`` gets recycled once an object dies)."""
-        return (occ.block_idx, occ.string_idx, occ.line_idx, occ.start, occ.end)
+        """Stable identity for a project string occurrence."""
+        return (occ.block_idx, occ.string_idx)
+
+    def _eligible_occurrences(self) -> List[GlossaryOccurrence]:
+        from utils.search_text import find_phrase_spans
+        if not self._old_translation.strip():
+            return []
+        return [
+            occ for occ in self._candidate_occurrences
+            if find_phrase_spans(self._get_current_translation(occ) or "", self._old_translation)
+        ]
+
+    def _refresh_occurrences(self) -> None:
+        current = self._current_occurrence()
+        current_key = self._occ_key(current) if current else None
+        self._occurrences = self._eligible_occurrences()
+        self._occurrence_list.blockSignals(True)
+        self._populate_occurrences()
+        selected_row = next(
+            (i for i, occ in enumerate(self._occurrences) if self._occ_key(occ) == current_key),
+            0 if self._occurrences else -1,
+        )
+        self._occurrence_list.setCurrentRow(selected_row)
+        self._occurrence_list.blockSignals(False)
+        if selected_row >= 0:
+            self._load_occurrence(selected_row)
+        else:
+            self._load_occurrence(-1)
+        self.set_ai_busy(self._ai_busy)
 
     def _format_occurrence_label(self, number: int, occ: GlossaryOccurrence) -> str:
         """Internal helper to format occurrence label."""
@@ -217,8 +248,11 @@ class GlossaryTranslationUpdateDialog(QDialog):
         """Internal helper to load occurrence."""
         if not (0 <= row < len(self._occurrences)):
             self._original_view.clear()
+            self._original_view.setExtraSelections([])
             self._translation_edit.clear()
+            self._translation_edit.setExtraSelections([])
             self._context_label.clear()
+            self._status_label.clear()
             return
 
         occ = self._occurrences[row]
@@ -248,13 +282,18 @@ class GlossaryTranslationUpdateDialog(QDialog):
 
     def _suggest_translation(self, current_text: str) -> str:
         """Internal helper to suggest translation."""
-        from utils.utils import suggest_smart_translation
-        return suggest_smart_translation(current_text, self._old_translation, self._new_translation)
+        from utils.search_text import replace_phrase
+        return replace_phrase(current_text, self._old_translation, self._new_translation)
+
+    @property
+    def old_translation(self) -> str:
+        """Current phrase used to filter and update occurrences."""
+        return self._old_translation
 
     def _apply_current(self, next_item: bool = False) -> None:
         """Internal helper to apply current."""
         occ = self._current_occurrence()
-        if not occ:
+        if self._ai_busy or not occ or occ not in self._eligible_occurrences():
             return
         candidate = self._translation_edit.toPlainText().rstrip('\n')
         if not candidate:
@@ -275,60 +314,24 @@ class GlossaryTranslationUpdateDialog(QDialog):
             self._update_text_highlights()
 
     def _update_text_highlights(self) -> None:
-        """Applies green background highlighting to the target terms in both editors using fuzzy matching."""
+        """Highlight complete phrase matches in both editors."""
         from PyQt6.QtWidgets import QTextEdit
         from PyQt6.QtGui import QColor, QTextCursor
-        import re
-        from utils.utils import is_fuzzy_match
+        from utils.search_text import find_phrase_spans
         
         highlight_color = QColor(0, 255, 0, 80) # Light green background
 
         def get_selections_for_term(editor, term_phrase):
-            """Get the selections for term."""
-            selections = []
-            if not term_phrase:
-                return selections
-            
             text = editor.toPlainText()
-            
-            # Split target phrase into words, ignoring short ones (conjunctions etc.)
-            # If word is shorter than 4 chars, it must match exactly, so fuzzy is not applied
-            search_tokens = [t for t in re.split(r'\W+', term_phrase) if t]
-            
-            if not search_tokens:
-                return selections
-
-            # Find all words in editor's text
-            # Use iterator to get positions
-            word_iter = re.finditer(r'\w+', text)
-            
-            for match in word_iter:
-                word_in_text = match.group(0)
-                
-                # Check if this word is similar to any word from target phrase
-                is_match = False
-                for token in search_tokens:
-                    # If word is short, require exact match (case-insensitive)
-                    if len(token) < 4:
-                        if token.lower() == word_in_text.lower():
-                            is_match = True
-                            break
-                    # For longer words use fuzzy search
-                    else:
-                        # Threshold 0.75 allows "Islands" and "Island" to be similar enough
-                        if is_fuzzy_match(token, word_in_text, threshold=0.75):
-                            is_match = True
-                            break
-                
-                if is_match:
-                    sel = QTextEdit.ExtraSelection()
-                    sel.format.setBackground(highlight_color)
-                    cursor = editor.textCursor()
-                    cursor.setPosition(match.start())
-                    cursor.setPosition(match.end(), QTextCursor.MoveMode.KeepAnchor)
-                    sel.cursor = cursor
-                    selections.append(sel)
-                    
+            selections = []
+            for start, end in find_phrase_spans(text, term_phrase):
+                sel = QTextEdit.ExtraSelection()
+                sel.format.setBackground(highlight_color)
+                cursor = editor.textCursor()
+                cursor.setPosition(len(text[:start].encode('utf-16-le')) // 2)
+                cursor.setPosition(len(text[:end].encode('utf-16-le')) // 2, QTextCursor.MoveMode.KeepAnchor)
+                sel.cursor = cursor
+                selections.append(sel)
             return selections
 
         # 1. Highlight original term in original text view
@@ -368,7 +371,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
         if not self._ai_request_single or self._ai_busy:
             return
         occ = self._current_occurrence()
-        if not occ:
+        if not occ or occ not in self._eligible_occurrences():
             return
         self.set_ai_busy(True)
         self._ai_request_single(occ)
@@ -377,7 +380,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
         """Internal helper to run ai for all."""
         if not self._ai_request_all or self._ai_busy:
             return
-        remaining = [occ for occ in self._occurrences if self._status.get(self._occ_key(occ)) != 'applied']
+        remaining = [occ for occ in self._eligible_occurrences() if self._status.get(self._occ_key(occ)) != 'applied']
         if not remaining:
             QMessageBox.information(self, tr('AI Update'), tr('All occurrences already applied.'))
             return
@@ -397,16 +400,21 @@ class GlossaryTranslationUpdateDialog(QDialog):
     def set_ai_busy(self, busy: bool) -> None:
         """Set the ai busy."""
         self._ai_busy = busy
+        self._old_translation_edit.setEnabled(not busy)
+        has_items = bool(self._occurrences)
+        for button in (self._apply_button, self._apply_all_button, self._quick_replace_all_button):
+            button.setEnabled(has_items and not busy)
         if getattr(self, '_ai_current_button', None):
-            self._ai_current_button.setEnabled(bool(self._ai_request_single) and not busy)
+            self._ai_current_button.setEnabled(has_items and bool(self._ai_request_single) and not busy)
         if getattr(self, '_ai_all_button', None):
-            self._ai_all_button.setEnabled(bool(self._ai_request_all) and not busy and not self._batch_mode)
+            self._ai_all_button.setEnabled(has_items and bool(self._ai_request_all) and not busy and not self._batch_mode)
 
     def set_batch_active(self, active: bool) -> None:
         """Set the batch active."""
         self._batch_mode = bool(active)
         if getattr(self, '_ai_all_button', None):
-            self._ai_all_button.setEnabled(bool(self._ai_request_all) and not self._ai_busy and not self._batch_mode)
+            self._ai_all_button.setEnabled(bool(self._occurrences) and bool(self._ai_request_all)
+                                           and not self._ai_busy and not self._batch_mode)
 
     def on_ai_result(self, occurrence: GlossaryOccurrence, new_translation: str) -> None:
         """Handle the ai result event."""
@@ -428,7 +436,9 @@ class GlossaryTranslationUpdateDialog(QDialog):
 
     def _run_apply_all(self) -> None:
         """Apply suggested translations to all remaining occurrences and mark them all as completed."""
-        remaining = [occ for occ in self._occurrences if self._status.get(self._occ_key(occ)) != 'applied']
+        if self._ai_busy:
+            return
+        remaining = [occ for occ in self._eligible_occurrences() if self._status.get(self._occ_key(occ)) != 'applied']
         if not remaining:
             QMessageBox.information(self, tr('Apply All'), tr('All occurrences already applied.'))
             return
@@ -485,7 +495,9 @@ class GlossaryTranslationUpdateDialog(QDialog):
 
     def _run_quick_replace_all(self) -> None:
         """Internal helper to run quick replace all."""
-        remaining = [occ for occ in self._occurrences if self._status.get(self._occ_key(occ)) != 'applied']
+        if self._ai_busy:
+            return
+        remaining = [occ for occ in self._eligible_occurrences() if self._status.get(self._occ_key(occ)) != 'applied']
         if not remaining:
             QMessageBox.information(self, tr('Replace All'), tr('All occurrences already applied.'))
             return
@@ -493,9 +505,10 @@ class GlossaryTranslationUpdateDialog(QDialog):
         reply = QMessageBox.question(
             self,
             tr('Replace All (No AI)'),
-            f"Are you sure you want to instantly replace '{self._old_translation}' with '{self._new_translation}' "
-            f"in all {len(remaining)} remaining translated lines without using AI?\n\n"
-            f"This will also match grammatical cases (e.g. '{self._old_translation}a' -> '{self._new_translation}a').",
+            tr("Replace '{old}' with '{new}' in all {count} remaining matching lines without AI?\n\n"
+               "Only full phrase matches are replaced. Punctuation around the phrase is preserved.").format(
+                old=self._old_translation, new=self._new_translation, count=len(remaining)
+            ),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -515,8 +528,8 @@ class GlossaryTranslationUpdateDialog(QDialog):
         applied_count = 0
         for occ in remaining:
             current_translation = self._get_current_translation(occ) or ""
-            from utils.utils import suggest_smart_translation
-            new_text = suggest_smart_translation(current_translation, self._old_translation, self._new_translation)
+            from utils.search_text import replace_phrase
+            new_text = replace_phrase(current_translation, self._old_translation, self._new_translation)
             if new_text != current_translation:
                 self._apply_translation_cb(occ, new_text)
                 self._status[self._occ_key(occ)] = 'applied'
@@ -540,12 +553,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
     def _on_old_translation_changed(self, text: str) -> None:
         """Internal helper to handle the old translation changed event."""
         self._old_translation = text
-        row = self._occurrence_list.currentRow()
-        if 0 <= row < len(self._occurrences):
-            occ = self._occurrences[row]
-            current_translation = self._get_current_translation(occ) or ""
-            suggested = self._suggest_translation(current_translation)
-            self._translation_edit.setPlainText(suggested)
-        self._update_text_highlights()
+        self._status.clear()
+        self._refresh_occurrences()
 
 

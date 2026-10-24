@@ -148,7 +148,7 @@ class GlossaryOccurrenceUpdater:
             original_text=original_text,
             current_translation=current_translation,
             term=term_entry.original,
-            old_term_translation=self._previous_translation_value or "",
+            old_term_translation=dialog.old_translation,
             new_term_translation=term_entry.translation,
             dialog=dialog,
             from_batch=from_batch,
@@ -246,7 +246,7 @@ class GlossaryOccurrenceUpdater:
         started = self.request_glossary_occurrence_batch_update(
             occurrences=occurrences,
             term=self._current_translation_entry.original,
-            old_term_translation=self._previous_translation_value or "",
+            old_term_translation=dialog.old_translation,
             new_term_translation=self._current_translation_entry.translation,
             dialog=dialog,
         )

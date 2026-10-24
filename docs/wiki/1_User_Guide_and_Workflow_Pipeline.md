@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-13
 owns: ui/, components/, dialogs/
-tokens: 11.3k
+tokens: 11.4k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -293,6 +293,7 @@ Tree toolbar (bottom of the panel; buttons start disabled):
   - **Granular Occurrence Filtering**: Independent checkboxes for **Mentions** (text references) and **Spoken** (lines spoken by this character).
   - **Reference Line Preview & Occurrence Alignment**: For each dialogue occurrence, the preview shows the complete original message and the full corresponding reference record for that (block, string) without trimming surrounding lines. Long previews scroll vertically, even when there is only one occurrence. The occurrence is highlighted within the full original text, and matching reference terms are highlighted within the reference lines while preserving all line breaks. The `RU:` block is displayed only when the reference is explicitly identified as Russian; other reference languages provide evidence to the AI translator without displaying an `RU:` badge in occurrences.
   - **In-Place Variant Application & Double-Click**: Double-clicking any proposed variant or clicking **Apply selected variant** inserts the candidate translation and updates notes in place without advancing to the next row. Confirmation and progression to the next term are strictly decoupled and triggered by clicking **Confirm translation**. Reference variants from external patches are styled distinctly (cyan/italic) and protected from double-click application.
+- **Glossary translation updates**: The review dialog lists each translated string once when it contains the contiguous full old translation phrase, ignoring case and requiring word boundaries. Editing the old phrase refreshes the list. Apply, batch replacement, and AI actions use only matching strings. Quick replacement preserves surrounding punctuation and game tags.
 - **Bottom Toolbar**: Contains **Force Retranslate...** (highlighted in orange `#ea580c`, creates automatic `glossary.json.bak` backup before AI re-translates entries) and **`[☁ Companion Sync...]`** for 1-click push and pull synchronization with [Picoripi Companion](12_Picoripi_Companion.md).
 
 Right-click (empty space): **Create Folder**, **AI: Translate All Blocks (UA Chronological)**, **Revert All Blocks to Original**, **Restore All Translations**.

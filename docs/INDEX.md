@@ -22,7 +22,7 @@ Read the row, then open only the document you need.
 | `docs/wiki/11_AI_Translation.md` (+uk) | Providers, prompts, chunks, run memory, translation memory | 6.0k | current | handlers/translation, core/translation |
 | `docs/wiki/12_Picoripi_Companion.md` (+uk) | Companion server and glossary sync | 1.9k | current | core/companion_sync.py, companion/ |
 | `docs/wiki/13_Working_Together.md` (+uk) | Rooms, roles, claims, comments | 2.9k | current | core/collab |
-| `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (+uk) | Main window, menus, filters, settings tabs, shortcuts | 11.3k | current | ui/, components/, dialogs/ |
+| `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (+uk) | Main window, menus, filters, settings tabs, shortcuts | 11.4k | current | ui/, components/, dialogs/ |
 | `docs/wiki/2_API_Reference.md` (+uk) | Which Python file implements which control | 0.8k | current | module map |
 | `docs/wiki/3_Plugin_Developer_Guide.md` (+uk) | The one plugin guide: files, hooks, capabilities, tests | 14.8k | current | plugins/ |
 | `docs/wiki/4_Configuration_Guide.md` (+uk) | Map of every Settings tab and control, defaults, restart needs, and where each value is stored | 5.1k | current | ui/settings |

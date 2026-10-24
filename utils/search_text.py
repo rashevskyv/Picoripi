@@ -121,6 +121,27 @@ def suggest_smart_translation(current_text: str, old_translation: str, new_trans
 
     return result_text
 
+
+def find_phrase_spans(text: str, phrase: str) -> List[Tuple[int, int]]:
+    """Find full, case-insensitive phrase matches bounded by non-word characters."""
+    if not text or not phrase:
+        return []
+    from core.tag_utils import ALL_TAGS_PATTERN
+    tags = [match.span() for match in ALL_TAGS_PATTERN.finditer(text)]
+    pattern = rf"(?<!\w){re.escape(phrase)}(?!\w)"
+    return [
+        (match.start(), match.end()) for match in re.finditer(pattern, text, re.IGNORECASE)
+        if not any(start < match.end() and match.start() < end for start, end in tags)
+    ]
+
+
+def replace_phrase(text: str, old_phrase: str, new_phrase: str) -> str:
+    """Replace full phrase matches while preserving all surrounding text."""
+    spans = find_phrase_spans(text, old_phrase)
+    for start, end in reversed(spans):
+        text = text[:start] + new_phrase + text[end:]
+    return text
+
 def extract_first_word_with_tags(text: str) -> Tuple[str, str]:
     """Extract first word with tags."""
     if not text or not text.strip():
