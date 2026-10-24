@@ -4,7 +4,8 @@
     "format": "bfn",
     "path": ["res/Msg/fontres.arc", "files/res/Msg/fontres.arc", "fontres.arc", "../fontres.arc"],
     "member": "*.bfn",
-    "font_map": "rock_24_20_4i_usa.json"
+    "font_map": "rock_24_20_4i_usa.json",
+    "preview": true
   },
   {
     "label": "Hylian font",

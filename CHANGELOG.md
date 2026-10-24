@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Wind Waker (GameCube): the width check now measures with the project's message font (`zelda_tww/font_sources.json` marks it `"preview": true`; the BFN preview font takes the project's `translation_map.json`; a default map that held only the tag widths is replaced), so a line wider than its box shows **Width Exceeded** (before: no font was loaded and nothing was measured); the first issue scan waits for the preview fonts and the scan cache records the loaded width maps; tests in `tests/test_core/test_settings/test_preview_bfn_font_map.py`.
 - Wind Waker: the translation prompts of `zelda_tww` and `zelda_ww` add a rule that the player is addressed with the informal singular «ти» (never «Ви») and that no character of another script is written; a test checks the rule sits in the Ukrainian block.
 - Containers: `core/containers/grezzo.py` reads Grezzo GAR version 5 (read only; the eight Luigi's Mansion 3DS UI archives parse, 285 entries), checked with a synthetic archive.
 - Luigi's Mansion (3DS, 2018, USA CTR-P-BGNE, title 00040000001D1900): `plugins/luigis_mansion_1_3ds` opens the CIA (keys from the console key store), reads the English `romfs/Region_US/English/main.gmsg` (2182 messages; 2181 read as text, one stays raw), and builds a Luma LayeredFS folder (`titles/00040000001D1900/romfs`); the Ever Oasis GMSG grammar with the argument sizes of this game (`plugins/luigis_mansion_1_3ds/gmsg.py`).

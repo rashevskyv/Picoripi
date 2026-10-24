@@ -12,6 +12,7 @@ def handler(mock_mw):
     mock_mw.string_metadata = {}
     mock_mw.line_width_warning_threshold_pixels = 200
     mock_mw.helper = MagicMock()
+    mock_mw.settings_manager.font_map_loader.preview_scan_running = False   # no preview load in flight
     
     return IssueScanHandler(mock_mw, mock_mw.data_processor, mock_mw.ui_updater)
 

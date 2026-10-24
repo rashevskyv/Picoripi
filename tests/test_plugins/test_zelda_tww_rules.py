@@ -161,3 +161,9 @@ class TestMessages:
         rules.mw = Window()
         seeds = rules.get_glossary_seed_entries()
         assert [(s["term"], s["section"]) for s in seeds] == [("Telescope", "Items")]
+
+
+def test_only_the_message_font_feeds_the_width_map():
+    """The width check measures with the game's message font: it is the one preview font of the plugin."""
+    previews = [item["label"] for item in GameRules().get_font_sources() if item.get("preview")]
+    assert previews == ["Message font"]
