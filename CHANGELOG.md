@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Twilight Princess: dialogue preview ornaments recover after temporary resource-loading failures; frame caches follow each project's resource paths instead of retaining another project's frame.
 - Glossary occurrence updates now include only unique translated strings containing the full old phrase; batch replacement preserves tags, punctuation, and phrase boundaries.
 - Containers: `core/containers/grezzo.py` reads Grezzo GAR version 5 (read only; the eight Luigi's Mansion 3DS UI archives parse, 285 entries), checked with a synthetic archive.
 - Luigi's Mansion (3DS, 2018, USA CTR-P-BGNE, title 00040000001D1900): `plugins/luigis_mansion_1_3ds` opens the CIA (keys from the console key store), reads the English `romfs/Region_US/English/main.gmsg` (2182 messages; 2181 read as text, one stays raw), and builds a Luma LayeredFS folder (`titles/00040000001D1900/romfs`); the Ever Oasis GMSG grammar with the argument sizes of this game (`plugins/luigis_mansion_1_3ds/gmsg.py`).

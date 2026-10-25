@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: feature inventory
-tokens: 14.9k
+tokens: 15.0k
 purpose: Every feature in detail; the wiki wins on a conflict
 ---
 # Picoripi features
@@ -16,7 +16,7 @@ page and a wiki page disagree, the wiki page is right and this page needs the fi
 - **Project-Based Workflow**: Creates, loads, and manages `.uiproj` projects encapsulating all translation files, virtual categories, and settings.
 - **New Project sources and key recovery**: Choose game files or an already-extracted game folder, independently of an existing translation folder. A worker validates expanded text tables and resolves the plugin's source subfolder. A missing key file (3DS, Switch, Wii) comes from the default source after consent, or from **Add the key file for ...**; the wizard then retries ([Console keys](wiki/4_Configuration_Guide.md#console-keys)); unsupported image plugins report their limitation instead of creating a project from an unreadable image.
 - **Derived virtual views**: **Story**, **Speakers**, **Windows**, **Items**, and **Notated** pack non-empty strings in roughly sorted groups. Empty BMG padding stays only in the physical file. Warning ticks appear on virtual folders the same way they do on files. See the [virtual navigation wiki](wiki/6_Virtual_Navigation_and_Preview.md).
-- **Twilight Princess window preview**: When the Zelda BMG plugin exposes `message_window_preview`, the BFN preview draws talk / item-get / sign chrome from a local game dump (not shipped in this repo). Page `n/N` and original/translation (`T`/`O`) sit on the preview.
+- **Twilight Princess window preview**: When the Zelda BMG plugin exposes `message_window_preview`, the BFN preview draws talk / item-get / sign chrome from a local game dump (not shipped in this repo). Dialogue variants and Explain share the ornamented dialogue resource; temporary loading failures can recover, and cached frames are scoped to the project's resource paths. Page `n/N` and original/translation (`T`/`O`) sit on the preview.
 - **Bidirectional Proportional Preview Scaling & Aspect Ratio Lock**: The game window starts fitted to the preview; with a visible background, the image, frame, and dialogue text share the same transform as the panel resizes or `Ctrl+Wheel` zooms. Hiding the background restores the ordinary window fit. "Fix Font Scale" retains the chosen text size across reopening, and "Reset Scale (100%)" restores 100% zoom. Expanded offscreen rendering buffers prevent text, shadow, and glyph descender clipping, while the preview sidebar adapts button sizes (down to 24px/20px) on compact panels.
 - **Show Unsaved Only** (tree and string list) is a session filter. A restart always clears it so a forgotten check cannot hide the project.
 - **Redesigned Script Markup Studio Interface**: Reorganized the workspace to separate workflow stages, file operations, and advanced tools. Features a centralized File menu, a Live Save Status Indicator, a dynamic 4-stage Progress Bar, and an intelligent Next Action dashboard suggesting context-aware buttons (AI Auto-fill, suggestions review, or MemPalace transition) based on project completion.

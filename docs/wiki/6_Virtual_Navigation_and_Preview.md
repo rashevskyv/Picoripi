@@ -2,7 +2,7 @@
 status: current
 updated: 2026-09-26
 owns: ui/updaters/block_list
-tokens: 1.4k
+tokens: 1.5k
 purpose: Virtual folders, story and speaker views, preview
 ---
 # Virtual Navigation and Preview
@@ -67,6 +67,8 @@ A plugin can add folders under a physical block (`get_virtual_folders`). They si
 **View → Preview** (`Ctrl+Shift+P`), also the toolbar Preview action. Under Editable: `BfnPreviewWidget` + `BfnPreviewWindowBar`.
 
 When the plugin declares `message_window_preview` (Twilight Princess BMG), the preview can draw talk / item-get / sign chrome from a **local** game dump. The repo does not ship Nintendo assets. Page `n/N` and original/translation (`T`/`O`) sit on that bar.
+
+Twilight Princess Dialogue, Light spirit, Midna, Dialogue (green), Dialogue (kanban), Descriptions / save, and Explain use the same ornamented dialogue resource. A temporary resource-loading failure does not permanently replace it with the plain fallback. Each project uses its own game resources.
 
 Boss name cards follow `zelda_boss_name.blo` (`sfont00` 600×77, ruby 34px, centered). `{scale:…}` in the string still applies.
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from time import monotonic
 from typing import Dict, Optional, Tuple
 
 from PyQt6.QtCore import QRectF, Qt
@@ -80,8 +81,10 @@ class WindowFrame:
     text_metrics: Optional[Dict[str, float]] = None
 
 
-_CACHE: Dict[str, Optional[WindowFrame]] = {}
+_CACHE: Dict[Tuple[str, tuple], WindowFrame] = {}
+_MISS_CACHE: Dict[Tuple[str, tuple], float] = {}
 _LAYOUT_ROOT: Optional[Path] = None
+_MISS_RETRY_SECONDS = 1.0
 
 
 def screen_class_for_kind(kind, style=None) -> Optional[str]:
@@ -105,8 +108,6 @@ def screen_class_for_kind(kind, style=None) -> Optional[str]:
 
 def find_layout_root(mw=None) -> Optional[Path]:
     global _LAYOUT_ROOT
-    if _LAYOUT_ROOT and (_LAYOUT_ROOT / "msgres01.arc").is_file():
-        return _LAYOUT_ROOT
     candidates = []
     if mw is not None:
         explicit = getattr(mw, "zelda_game_root", None) or getattr(mw, "game_dump_root", None)
@@ -145,7 +146,33 @@ def find_layout_root(mw=None) -> Optional[Path]:
             if cur.parent == cur:
                 break
             cur = cur.parent
+    # A cached root is only a fallback for callers without project context.
+    # Project-aware calls must resolve against their own source paths.
+    if mw is None and _LAYOUT_ROOT and (_LAYOUT_ROOT / "msgres01.arc").is_file():
+        return _LAYOUT_ROOT
     return None
+
+
+def _layout_context(mw=None) -> tuple:
+    """Cheap project identity for frame-cache hits and bounded negative retries."""
+    if mw is None:
+        return ("fallback", str(_LAYOUT_ROOT or ""))
+    explicit = getattr(mw, "zelda_game_root", None) or getattr(mw, "game_dump_root", None)
+    ds = getattr(mw, "data_store", None)
+    pm = getattr(mw, "project_manager", None)
+    project = getattr(pm, "project", None) if pm else None
+    metadata = getattr(project, "metadata", None) or {}
+    block_source = next((getattr(block, "source_file", None)
+                         for block in getattr(project, "blocks", []) or []
+                         if getattr(block, "source_file", None)), None)
+    return tuple(str(value or "") for value in (
+        explicit,
+        getattr(ds, "json_path", None) if ds is not None else None,
+        getattr(ds, "edited_json_path", None) if ds is not None else None,
+        getattr(pm, "project_dir", None) if pm else None,
+        metadata.get("source_path") if isinstance(metadata, dict) else None,
+        block_source,
+    ))
 
 
 def load_item_icon(item_no: int, mw=None) -> Optional[QImage]:
@@ -177,11 +204,16 @@ def load_item_icon(item_no: int, mw=None) -> Optional[QImage]:
 def load_window_frame(screen_class: str, mw=None) -> Optional[WindowFrame]:
     if screen_class not in _SCREEN_RES:
         return None
-    if screen_class in _CACHE:
-        return _CACHE[screen_class]
+    cache_key = (screen_class, _layout_context(mw))
+    frame = _CACHE.get(cache_key)
+    if frame is not None:
+        return frame
+    now = monotonic()
+    if _MISS_CACHE.get(cache_key, 0.0) > now:
+        return None
     layout = find_layout_root(mw)
     if layout is None:
-        _CACHE[screen_class] = None
+        _MISS_CACHE[cache_key] = now + _MISS_RETRY_SECONDS
         return None
     arc_name, blo_path = _SCREEN_RES[screen_class]
     arc_path = layout / arc_name
@@ -190,7 +222,7 @@ def load_window_frame(screen_class: str, mw=None) -> Optional[WindowFrame]:
         blo_path = ("scrn/zelda_stage_title.blo" if screen_class == "place"
                     else "scrn/zelda_boss_name.blo")
     if not arc_path.is_file():
-        _CACHE[screen_class] = None
+        _MISS_CACHE[cache_key] = now + _MISS_RETRY_SECONDS
         return None
     try:
         arc = RarcContainer(arc_path.read_bytes())
@@ -210,7 +242,13 @@ def load_window_frame(screen_class: str, mw=None) -> Optional[WindowFrame]:
         )
     except Exception:
         frame = None
-    _CACHE[screen_class] = frame
+    if frame is not None:
+        _CACHE[cache_key] = frame
+        for miss_key in tuple(_MISS_CACHE):
+            if miss_key[1] == cache_key[1]:
+                _MISS_CACHE.pop(miss_key, None)
+    else:
+        _MISS_CACHE[cache_key] = now + _MISS_RETRY_SECONDS
     return frame
 
 

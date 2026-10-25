@@ -2,7 +2,7 @@
 status: current
 updated: 2026-09-26
 owns: ui/updaters/block_list
-tokens: 2.0k
+tokens: 2.1k
 ---
 # Віртуальна навігація і прев’ю
 
@@ -66,6 +66,8 @@ tokens: 2.0k
 **View → Preview** (`Ctrl+Shift+P`), також дія Preview на тулбарі. Під Editable: `BfnPreviewWidget` + `BfnPreviewWindowBar`.
 
 Коли плагін оголошує `message_window_preview` (Twilight Princess BMG), прев’ю може малювати хром talk / item-get / sign з **локального** дампу гри. Репозиторій не постачає ассети Nintendo. Сторінка `n/N` і original/translation (`T`/`O`) на тій панелі.
+
+У Twilight Princess варіанти Dialogue, Light spirit, Midna, Dialogue (green), Dialogue (kanban), Descriptions / save та Explain використовують спільний ресурс рамки з візерунками. Тимчасова помилка завантаження не закріплює просту запасну рамку назавжди. Кожен проєкт використовує власні ресурси гри.
 
 Картки імені боса відповідають `zelda_boss_name.blo` (`sfont00` 600×77, ruby 34px, по центру). `{scale:…}` у рядку все одно застосовується.
 

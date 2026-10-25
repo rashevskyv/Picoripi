@@ -1,6 +1,6 @@
 """Application constants: version, settings directory, plugin folders, default tags."""
 from pathlib import Path
-APP_VERSION = "0.3.168-dev"
+APP_VERSION = "0.3.169-dev"
 
 
 # Player tags
