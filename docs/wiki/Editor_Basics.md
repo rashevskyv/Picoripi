@@ -93,6 +93,8 @@ Filters work together. If the list looks empty, turn off every filter first.
 
 ## 6. The header above Editable
 
+Action buttons and formatting fields size themselves for the active font and theme. Their rows grow vertically when more space is needed.
+
 | Row | Field or button | What it does |
 |---|---|---|
 | 1 | **Window:** | Shows the message window type. Double-click the label to open the physical block |

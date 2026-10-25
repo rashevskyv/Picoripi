@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- UI: editor buttons and formatting fields use font-aware heights; glossary section headers remain visible when resized or collapsed, including after font/theme changes; main and popup menus have consistent item spacing.
 - Twilight Princess: dialogue preview ornaments recover after temporary resource-loading failures; frame caches follow each project's resource paths instead of retaining another project's frame.
 - Glossary occurrence updates now include only unique translated strings containing the full old phrase; batch replacement preserves tags, punctuation, and phrase boundaries.
 - Containers: `core/containers/grezzo.py` reads Grezzo GAR version 5 (read only; the eight Luigi's Mansion 3DS UI archives parse, 285 entries), checked with a synthetic archive.

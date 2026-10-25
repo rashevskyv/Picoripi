@@ -659,6 +659,7 @@ class TestVariantChoiceSettlesTheEntry:
     def test_variants_pane_is_expandable_splitter_child_and_not_collapsed(self, qtbot):
         dialog = _dialog(qtbot, [AMBIGUOUS, SINGLE, AMBIGUOUS_2])
         dialog.show()
+        qtbot.waitExposed(dialog)
         assert hasattr(dialog, "_main_splitter")
         assert dialog._main_splitter.handleWidth() >= 4
         assert hasattr(dialog, "_detail_splitter")
@@ -670,6 +671,7 @@ class TestVariantChoiceSettlesTheEntry:
 
         dialog.focus_term("Spring Goron")
         assert dialog._variants_pane.isVisibleTo(dialog) is True
+        qtbot.waitUntil(lambda: dialog._lower_detail_splitter.minimumHeight() > 0)
         sizes = dialog._detail_splitter.sizes()
         assert sizes[0] > 0
 
@@ -1515,8 +1517,8 @@ class TestGlossaryLayoutAndControls:
 
         # 1. Height and vertical level alignment
         assert dialog._original_edit.height() == dialog._translation_edit.height() == 26
-        assert dialog._wiki_link_button.height() == 26
-        assert dialog._confirm_button.height() == 26
+        assert dialog._wiki_link_button.height() >= dialog._wiki_link_button.sizeHint().height()
+        assert dialog._confirm_button.height() >= dialog._confirm_button.sizeHint().height()
 
         # Both edits are on the same vertical Y level within the dialog
         orig_global_y = dialog._original_edit.mapTo(dialog, dialog._original_edit.rect().topLeft()).y()
@@ -1559,8 +1561,8 @@ class TestGlossaryLayoutAndControls:
         # 3. Lower details splitter default sizes are balanced
         lower_sizes = dialog._lower_detail_splitter.sizes()
         assert len(lower_sizes) == 3
-        # Three equal stretch factors split the height in whole pixels: the parts differ by at most one pixel.
-        assert max(lower_sizes) - min(lower_sizes) <= 1
+        # Three equal stretch factors use integer thirds; the final pane can receive two remainder pixels.
+        assert max(lower_sizes) - min(lower_sizes) <= 2
 
     def test_save_button_keeps_dialog_open_and_saves_in_place(self, qtbot):
         update_cb = MagicMock(return_value=([SINGLE], {}))
@@ -1908,7 +1910,7 @@ class TestCollapsibleDetailPanes:
         assert dialog._notes_edit.isHidden()
         assert dialog._notes_collapse_button.text() == "▶"
         sizes_after_collapse = dialog._lower_detail_splitter.sizes()
-        assert sizes_after_collapse[0] <= 34
+        assert sizes_after_collapse[0] == dialog._notes_pane.minimumSizeHint().height()
         # The other two expanded panes should have received space
         assert sizes_after_collapse[1] >= sizes[1]
         assert sizes_after_collapse[2] >= sizes[2]
@@ -1918,8 +1920,8 @@ class TestCollapsibleDetailPanes:
         assert dialog._occurrence_list.isHidden()
         assert dialog._occ_collapse_button.text() == "▶"
         sizes_two_col = dialog._lower_detail_splitter.sizes()
-        assert sizes_two_col[0] <= 34
-        assert sizes_two_col[2] <= 34
+        assert sizes_two_col[0] == dialog._notes_pane.minimumSizeHint().height()
+        assert sizes_two_col[2] == dialog._occurrences_pane.minimumSizeHint().height()
         # AI notes (only expanded pane) should occupy the rest
         assert sizes_two_col[1] > 200
 
@@ -1973,8 +1975,8 @@ class TestCollapsibleDetailPanes:
         assert dialog2._occ_collapse_button.text() == "▶"
         s2 = dialog2._lower_detail_splitter.sizes()
         assert s2[0] >= 100
-        assert s2[1] <= 34
-        assert s2[2] <= 34
+        assert s2[1] == dialog2._ai_notes_pane.minimumSizeHint().height()
+        assert s2[2] == dialog2._occurrences_pane.minimumSizeHint().height()
 
         # Test migration from old format where only sizes [242, 34, 34] were saved without flags
         with open(settings_file, "w", encoding="utf-8") as f:

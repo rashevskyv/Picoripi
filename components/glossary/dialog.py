@@ -325,7 +325,6 @@ class GlossaryDialog(
         actions_box.setSpacing(4)
 
         self._wiki_link_button = QPushButton(tr('Wiki ↗'), self)
-        self._wiki_link_button.setFixedHeight(26)
         self._wiki_link_button.setStyleSheet("QPushButton { padding: 2px 8px; }")
         self._wiki_link_button.setToolTip(tr('Open external wiki reference for this term'))
         self._wiki_link_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
@@ -334,7 +333,6 @@ class GlossaryDialog(
         actions_box.addWidget(self._wiki_link_button)
 
         self._save_term_button = QPushButton(tr('Save'), self)
-        self._save_term_button.setFixedHeight(26)
         self._save_term_button.setStyleSheet("QPushButton { padding: 2px 8px; }")
         self._save_term_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self._save_term_button.setToolTip(tr('Save changes to this term (Ctrl+S)'))
@@ -345,7 +343,6 @@ class GlossaryDialog(
         self._save_notes_button = self._save_term_button
 
         self._confirm_button = QPushButton(tr('Confirm translation'), self)
-        self._confirm_button.setFixedHeight(26)
         self._confirm_button.setStyleSheet("QPushButton { padding: 2px 8px; }")
         self._confirm_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self._confirm_button.setToolTip(
@@ -355,7 +352,6 @@ class GlossaryDialog(
         actions_box.addWidget(self._confirm_button)
 
         self._discuss_variant_button = QPushButton(tr('Discuss with AI…'), self)
-        self._discuss_variant_button.setFixedHeight(26)
         self._discuss_variant_button.setStyleSheet("QPushButton { padding: 2px 8px; }")
         self._discuss_variant_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self._discuss_variant_button.setToolTip(
@@ -376,7 +372,7 @@ class GlossaryDialog(
         right_layout.addWidget(self._detail_splitter, 1)
 
         # Proposed variants: shown only when the AI offered a real choice.
-        self._variants_pane = _DetailPane(self)
+        self._variants_pane = _DetailPane(self, flexible_minimum=True)
         self._variants_pane.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         variants_layout = QVBoxLayout(self._variants_pane)
         variants_layout.setContentsMargins(0, 0, 0, 0)
@@ -394,7 +390,6 @@ class GlossaryDialog(
 
         lower_details_pane = _DetailPane(self)
         self._lower_details_pane = lower_details_pane
-        self._lower_details_pane.setMinimumHeight(60)
         lower_details_layout = QVBoxLayout(lower_details_pane)
         lower_details_layout.setContentsMargins(0, 0, 0, 0)
         variants_btn_layout = QHBoxLayout()
@@ -408,6 +403,8 @@ class GlossaryDialog(
         lower_details_layout.addLayout(variants_btn_layout)
 
         self._lower_detail_splitter = QSplitter(Qt.Orientation.Vertical, lower_details_pane)
+        self._lower_detail_splitter.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self._lower_detail_splitter.setMaximumHeight(16777215)
         self._lower_detail_splitter.setHandleWidth(6)
         self._lower_detail_splitter.setChildrenCollapsible(False)
         lower_details_layout.addWidget(self._lower_detail_splitter, 1)
@@ -419,34 +416,42 @@ class GlossaryDialog(
         notes_layout.setContentsMargins(0, 0, 0, 0)
         notes_layout.setSpacing(2)
 
-        notes_header = QHBoxLayout()
+        notes_header = QVBoxLayout()
         notes_header.setContentsMargins(0, 0, 0, 0)
-        notes_header.setSpacing(6)
+        notes_header.setSpacing(2)
+        notes_title_header = QHBoxLayout()
+        notes_title_header.setContentsMargins(0, 0, 0, 0)
+        notes_title_header.setSpacing(6)
         self._notes_collapse_button = QPushButton("▼", self)
-        self._notes_collapse_button.setFixedSize(22, 22)
+        self._notes_collapse_button.setMinimumSize(self._notes_collapse_button.sizeHint())
         self._notes_collapse_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._notes_collapse_button.setStyleSheet("QPushButton { font-size: 10px; font-weight: bold; padding: 0px; }")
         self._notes_collapse_button.setToolTip(tr("Collapse/Expand section"))
-        notes_header.addWidget(self._notes_collapse_button)
+        notes_title_header.addWidget(self._notes_collapse_button)
 
         notes_label = QLabel(tr('Description:'), self)
         notes_label.setStyleSheet("font-weight: bold;")
-        notes_header.addWidget(notes_label)
+        notes_title_header.addWidget(notes_label)
 
         self._notes_variation_default_text = tr('AI Variations')
         self._notes_variation_button = QPushButton(self._notes_variation_default_text, self)
         self._notes_variation_button.clicked.connect(self._on_notes_variation_clicked)
         self._notes_variation_busy = False
-        notes_header.addWidget(self._notes_variation_button)
+        notes_title_header.addStretch()
+        notes_header.addLayout(notes_title_header)
+        variation_header = QHBoxLayout()
+        variation_header.setContentsMargins(0, 0, 0, 0)
+        variation_header.addWidget(self._notes_variation_button)
+        variation_header.addStretch()
+        notes_header.addLayout(variation_header)
 
-        notes_header.addStretch()
-
-        self._profiled_checkbox = QCheckBox(tr('Profiled via AI (Speech Profile generated)'), self)
+        self._profiled_checkbox = QCheckBox(tr('Profiled via AI'), self)
         self._profiled_checkbox.setToolTip(
             tr('Indicates that an AI speech profile has been generated for this character. Automated profiling workers will skip re-analyzing marked characters. Changes are saved with the entry.')
         )
         notes_header.addWidget(self._profiled_checkbox)
         notes_layout.addLayout(notes_header)
+        notes_pane.watch_header(notes_header)
 
         if not self._ai_variation_callback:
             self._notes_variation_button.hide()
@@ -468,7 +473,7 @@ class GlossaryDialog(
         ai_notes_header.setContentsMargins(0, 0, 0, 0)
         ai_notes_header.setSpacing(6)
         self._ai_notes_collapse_button = QPushButton("▼", self)
-        self._ai_notes_collapse_button.setFixedSize(22, 22)
+        self._ai_notes_collapse_button.setMinimumSize(self._ai_notes_collapse_button.sizeHint())
         self._ai_notes_collapse_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._ai_notes_collapse_button.setToolTip(tr("Collapse section"))
         self._ai_notes_collapse_button.setStyleSheet("QPushButton { font-size: 10px; font-weight: bold; padding: 0px; }")
@@ -481,6 +486,7 @@ class GlossaryDialog(
         ai_notes_header.addStretch()
 
         ai_notes_layout.addLayout(ai_notes_header)
+        ai_notes_pane.watch_header(ai_notes_header)
 
         self._ai_notes_edit = QPlainTextEdit(self)
         self._ai_notes_edit.setReadOnly(False)
@@ -502,7 +508,7 @@ class GlossaryDialog(
         occ_header.setContentsMargins(0, 0, 0, 0)
         occ_header.setSpacing(6)
         self._occ_collapse_button = QPushButton("▼", self)
-        self._occ_collapse_button.setFixedSize(22, 22)
+        self._occ_collapse_button.setMinimumSize(self._occ_collapse_button.sizeHint())
         self._occ_collapse_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._occ_collapse_button.setToolTip(tr("Collapse section"))
         self._occ_collapse_button.setStyleSheet("QPushButton { font-size: 10px; font-weight: bold; padding: 0px; }")
@@ -530,6 +536,9 @@ class GlossaryDialog(
         self._occurrence_label.setStyleSheet("color: #666;")
         occ_header.addWidget(self._occurrence_label)
         occurrences_layout.addLayout(occ_header)
+        occurrences_pane.watch_header(occ_header)
+        for pane in (notes_pane, ai_notes_pane, occurrences_pane):
+            pane.set_rebalance_callback(self._rebalance_lower_splitter)
 
         self._occurrence_list = QListWidget(self)
         self._occurrence_list.setSpacing(6)
@@ -545,7 +554,7 @@ class GlossaryDialog(
         self._lower_detail_splitter.addWidget(occurrences_pane)
         self._detail_splitter.setStretchFactor(0, 1)
         self._detail_splitter.setStretchFactor(1, 3)
-        self._detail_splitter.setSizes([120, 450])
+        self._detail_splitter.setSizes([240, 450])
         self._lower_detail_splitter.setStretchFactor(0, 1)
         self._lower_detail_splitter.setStretchFactor(1, 1)
         self._lower_detail_splitter.setStretchFactor(2, 1)
@@ -693,13 +702,12 @@ class GlossaryDialog(
         if collapsed:
             content.setHidden(True)
             content.setMinimumHeight(0)
-            pane.setMinimumHeight(0)
-            pane.setMaximumHeight(32)
+            pane.set_collapsed(True)
         else:
             content.setHidden(False)
             content.setMinimumHeight(50)
-            pane.setMaximumHeight(16777215)
-            pane.setMinimumHeight(80)
+            pane.set_collapsed(False)
+            pane.setMinimumHeight(0)
 
         if update_splitter and hasattr(self, "_lower_detail_splitter"):
             self._rebalance_lower_splitter(focus_idx=idx, just_expanded=not collapsed)
@@ -712,25 +720,11 @@ class GlossaryDialog(
         if len(sizes) != 3:
             return
 
-        total_h = sum(sizes)
+        total_h = max(sum(sizes), self._lower_detail_splitter.height())
         if total_h <= 0:
             total_h = self._lower_detail_splitter.height()
         if total_h <= 0:
             total_h = 450
-
-        # If expanding and available height in lower_splitter is too constrained,
-        # try to borrow space from _variants_pane in _detail_splitter if possible.
-        if just_expanded and hasattr(self, "_detail_splitter"):
-            ds = self._detail_splitter.sizes()
-            if len(ds) == 2 and ds[0] > 160 and ds[1] < 280:
-                needed = 280 - ds[1]
-                can_take = ds[0] - 120
-                shift = max(0, min(needed, can_take))
-                if shift > 0:
-                    self._detail_splitter.setSizes([ds[0] - shift, ds[1] + shift])
-                    total_h = sum(self._lower_detail_splitter.sizes())
-                    if total_h <= 0:
-                        total_h = 450
 
         collapsed = [
             bool(getattr(self, "_notes_collapsed", False)),
@@ -738,16 +732,39 @@ class GlossaryDialog(
             bool(getattr(self, "_occurrences_collapsed", False)),
         ]
         num_expanded = 3 - sum(collapsed)
+        collapsed_sizes = [
+            pane.minimumSizeHint().height()
+            for pane in (self._notes_pane, self._ai_notes_pane, self._occurrences_pane)
+        ]
+        pane_minimums = [
+            max(pane.minimumHeight(), pane.minimumSizeHint().height())
+            for pane in (self._notes_pane, self._ai_notes_pane, self._occurrences_pane)
+        ]
+        self._lower_detail_splitter.setMinimumHeight(
+            sum(pane_minimums) + self._lower_detail_splitter.handleWidth() * 2
+        )
+        self._lower_details_pane.updateGeometry()
+        self._detail_splitter.refresh()
+        self._detail_splitter.updateGeometry()
+        collapsed_cost = sum(size for size, is_collapsed in zip(collapsed_sizes, collapsed) if is_collapsed)
+
+        # Borrow enough from the variants pane to keep every section header visible.
+        required_height = collapsed_cost + 90 * num_expanded
+        if total_h < required_height and hasattr(self, "_detail_splitter"):
+            ds = self._detail_splitter.sizes()
+            if len(ds) == 2 and ds[0] > 120:
+                shift = min(required_height - total_h, ds[0] - 120)
+                self._detail_splitter.setSizes([ds[0] - shift, ds[1] + shift])
+                total_h = max(self._lower_detail_splitter.height(), sum(self._lower_detail_splitter.sizes()))
 
         if num_expanded == 0:
-            self._lower_detail_splitter.setSizes([32, 32, 32])
+            self._lower_detail_splitter.setSizes(collapsed_sizes)
             return
 
         # Target minimum height for expanded sections: at least 90px
-        collapsed_cost = sum(32 for c in collapsed if c)
         available_expanded = max(90 * num_expanded, total_h - collapsed_cost)
 
-        new_sizes = [32, 32, 32]
+        new_sizes = collapsed_sizes.copy()
         if num_expanded == 1:
             for i in range(3):
                 if not collapsed[i]:

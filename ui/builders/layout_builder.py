@@ -512,8 +512,6 @@ class LayoutBuilder:
         right_header_layout.setContentsMargins(0, 0, 0, 0)
         right_header_layout.setSpacing(0)
 
-        control_height = 28
-
         header_grid = QGridLayout()
         header_grid.setContentsMargins(0, 2, 0, 2)
         header_grid.setHorizontalSpacing(6)
@@ -580,7 +578,7 @@ class LayoutBuilder:
         self.mw.navigate_down_button.setToolTip(
             tr('<b>Next problem string</b><br>Click — jump to the next string that has a warning (Ctrl+Down).<br>Alt+Down — next string regardless of warnings.<br>Alt+Shift+Down — next block.')
         )
-        self.mw.navigate_down_button.setFixedSize(control_height, control_height)
+        self.mw.navigate_down_button.setMinimumSize(self.mw.navigate_down_button.sizeHint())
         editor_action_layout.addWidget(self.mw.navigate_down_button)
 
         self.mw.navigate_up_button = QPushButton()
@@ -588,28 +586,25 @@ class LayoutBuilder:
         self.mw.navigate_up_button.setToolTip(
             tr('<b>Previous problem string</b><br>Click — jump to the previous string that has a warning (Ctrl+Up).<br>Alt+Up — previous string regardless of warnings.<br>Alt+Shift+Up — previous block.')
         )
-        self.mw.navigate_up_button.setFixedSize(control_height, control_height)
+        self.mw.navigate_up_button.setMinimumSize(self.mw.navigate_up_button.sizeHint())
         editor_action_layout.addWidget(self.mw.navigate_up_button)
 
         self.mw.ai_translate_button = QPushButton(tr('AI Translate'))
         self.mw.ai_translate_button.setToolTip(
             tr('<b>AI Translate</b><br>Click — translate the current string. If a translation for it is already in the backup database, that one is reused instead of a new AI request.<br>Ctrl-click — open the prompt editor before sending, and ignore the stored translation (always re-translate).<br>To translate more than one string, select lines in the Strings panel and use its right-click menu (Ctrl-click there too for the prompt editor).')
         )
-        self.mw.ai_translate_button.setFixedHeight(control_height)
         editor_action_layout.addWidget(self.mw.ai_translate_button)
 
         self.mw.ai_variation_button = QPushButton(tr('AI Variation'))
         self.mw.ai_variation_button.setToolTip(
             tr('<b>AI Variation</b><br>Click — ask the AI for an alternative wording of the current translation.<br>Select part of the text in the Editable panel first — only that fragment is rewritten.<br>Ctrl-click — open the prompt editor before sending.')
         )
-        self.mw.ai_variation_button.setFixedHeight(control_height)
         editor_action_layout.addWidget(self.mw.ai_variation_button)
 
         self.mw.auto_fix_button = QPushButton(tr('Auto-fix'))
         self.mw.auto_fix_button.setToolTip(
             tr('<b>Auto-fix</b><br>Click — fix the detected issues in the current string with every enabled rule (Ctrl+Shift+A).<br>Ctrl-click — pick which rules to apply first.<br>Shift-click — page-local mode: each page is fixed in isolation, so text never flows across a page boundary.<br>Ctrl+Shift-click — pick the rules and run page-local.<br>Modifiers work on the button only; the Ctrl+Shift+A shortcut always runs the plain fix.')
         )
-        self.mw.auto_fix_button.setFixedHeight(control_height)
         editor_action_layout.addWidget(self.mw.auto_fix_button)
         header_grid.addWidget(
             editor_action_group,
@@ -659,7 +654,6 @@ class LayoutBuilder:
         formatting_layout.addWidget(font_label)
         self.mw.font_combobox = QComboBox()
         self.mw.font_combobox.setFixedWidth(160)
-        self.mw.font_combobox.setFixedHeight(control_height)
         formatting_layout.addWidget(self.mw.font_combobox)
         formatting_layout.addSpacing(8)
 
@@ -670,7 +664,6 @@ class LayoutBuilder:
             tr('<b>Max-width</b><br>Set a custom width for this string (0 = use the plugin default), then press Apply.<br>Right-click — Reset to Plugin Default, or Set Width from Original.')
         )
         self.mw.width_spinbox.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.mw.width_spinbox.setFixedHeight(control_height)
         self.mw.width_spinbox.setFixedWidth(90)
         
         def show_width_context_menu(pos):
@@ -701,7 +694,6 @@ class LayoutBuilder:
             tr('<b>Apply formatting</b><br>Click — save the Font and Max-width override for this string. Enabled only while there is an unapplied change.<br>Right-click the Max-width field — Reset to Plugin Default, or Set Width from Original.<br>Clicking the Max-width value above the Original panel copies it here.')
         )
         self.mw.apply_width_button.setEnabled(False)
-        self.mw.apply_width_button.setFixedHeight(control_height)
         self.mw.apply_width_button.setFixedWidth(70)
         formatting_layout.addWidget(self.mw.apply_width_button)
         header_grid.addWidget(
@@ -801,7 +793,7 @@ class LayoutBuilder:
         elif text:
             btn.setText(text)
         btn.setToolTip(tooltip)
-        btn.setFixedSize(28, 28)
+        btn.setMinimumSize(btn.sizeHint())
         return btn
 
     def _create_editor_title_label(self, text):
@@ -815,7 +807,7 @@ class LayoutBuilder:
         btn = QPushButton(text)
         btn.setToolTip(tooltip)
         btn.setStyleSheet("padding: 0px; font-weight: bold;")
-        btn.setFixedSize(26, 26)
+        btn.setMinimumSize(btn.sizeHint())
         btn.setEnabled(False)
         return btn
 

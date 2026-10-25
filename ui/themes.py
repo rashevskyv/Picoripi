@@ -15,6 +15,9 @@ QMenuBar {
 QMenuBar::item:selected {
     background-color: #505050;
 }
+QMenuBar::item {
+    padding: 5px 8px;
+}
 QMenuBar::item:disabled {
     color: #707070;
 }
@@ -22,6 +25,9 @@ QMenu {
     background-color: #383838;
     color: #E0E0E0;
     border: 1px solid #505050;
+}
+QMenu::item {
+    padding: 5px 28px 5px 8px;
 }
 QMenu::item:selected {
     background-color: #505050;
@@ -326,6 +332,9 @@ QMenuBar {
 QMenuBar::item:selected {
     background-color: #E0E0E0;
 }
+QMenuBar::item {
+    padding: 5px 8px;
+}
 QMenuBar::item:disabled {
     color: #888888;
 }
@@ -333,6 +342,9 @@ QMenu {
     background-color: #F0F0F0;
     color: #000000;
     border: 1px solid #CCCCCC;
+}
+QMenu::item {
+    padding: 5px 28px 5px 8px;
 }
 QMenu::item:selected {
     background-color: #E0E0E0;
