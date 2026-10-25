@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-13
 owns: ui/, components/, dialogs/
-tokens: 11.4k
+tokens: 11.5k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -278,6 +278,8 @@ Tree toolbar (bottom of the panel; buttons start disabled):
 | ⟳ | Rebuild Speakers, Chapters and Items from current story data. Does not touch translation files |
 
 **Glossary…** under the tree opens the project glossary (`Ctrl+G`). Ctrl-click a glossary term in Original to open that entry.
+
+With the glossary enabled, Original underlines source terms and Editable underlines their translated forms. After selecting another string, both editors restore glossary underlines when deferred highlighting finishes.
 
 **Glossary Dialog Layout & Controls**:
 - **Left Panel (Terms & Categories)**:

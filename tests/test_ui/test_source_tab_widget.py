@@ -70,6 +70,72 @@ def test_update_text_views_populates_reference(mock_window):
     assert mock_window.reference_text_edit.toPlainText() == "Привет мир"
 
 
+def test_row_followup_restores_source_glossary_highlighting(mock_window):
+    """A lightweight row fill must not leave read-only glossary highlighting paused."""
+    from core.glossary_manager import GlossaryManager
+    from ui.updaters.text_views_mixin import TextViewsMixin
+
+    class DummyUpdater(TextViewsMixin):
+        def __init__(self, mw):
+            self.mw = mw
+            self.data_processor = mw.data_processor
+
+    builder = LayoutBuilder(mock_window)
+    builder._build_original_panel()
+    builder._build_middle_panel()
+    builder._build_edited_panel()
+    mock_window.glossary_enabled = True
+    mock_window.data_store.data = [["Villages ask the mayor."]]
+    mock_window.data_store.physical_block_idx = 0
+    mock_window.data_store.current_string_idx = 0
+    mock_window.data_processor._get_string_from_source.return_value = "Villages ask the mayor."
+    mock_window.data_processor.get_current_string_text.return_value = ("Села питають старосту.", False)
+    mock_window.current_game_rules = None
+    mock_window.ui_updater = MagicMock()
+    mock_window.ui_updater.update_status_bar = MagicMock()
+
+    glossary = GlossaryManager()
+    glossary.load_from_text(
+        plugin_name="test",
+        glossary_path=None,
+        raw_text="| Original | Translation | Notes |\n|---|---|---|\n| Village | Село | |\n| Mayor | Староста | |",
+    )
+    mock_window.original_text_edit.set_glossary_manager(glossary)
+
+    updater = DummyUpdater(mock_window)
+    updater._pending_row_followup = (0, 0)
+    updater._followup_gen = 1
+    updater._apply_heavy_text_view_overlays = MagicMock()
+    updater._sync_bfn_previews = MagicMock()
+    mock_window.editor_operation_handler = MagicMock()
+
+    updater._do_update_text_views(False, heavy=False)
+    assert updater._followup_row_is_current(1)
+    assert mock_window.original_text_edit.highlighter._typing_mode is True
+
+    updater._followup_gen = 2
+    updater._row_paint_followup(1)
+    assert mock_window.original_text_edit.highlighter._typing_mode is True
+    assert mock_window.original_text_edit.document().firstBlock().userData() is None
+
+    updater._followup_gen = 1
+    updater._row_paint_followup(1)
+
+    block = mock_window.original_text_edit.document().firstBlock()
+    block_data = block.userData()
+    assert mock_window.original_text_edit.highlighter._typing_mode is False
+    assert block_data is not None
+    assert {match.entry.original for match in block_data.matches} == {"Village", "Mayor"}
+    underlined_positions = {
+        position
+        for item in block.layout().formats()
+        if item.format.fontUnderline()
+        for position in range(item.start, item.start + item.length)
+    }
+    assert set(range(0, 8)) <= underlined_positions
+    assert set(range(17, 22)) <= underlined_positions
+
+
 def test_update_text_views_populates_multi_reference(mock_window):
     """Verify that update_text_views dynamically adds and populates tabs for all languages."""
     from ui.updaters.text_views_mixin import TextViewsMixin

@@ -350,6 +350,12 @@ class TextViewsMixin:
         self._apply_heavy_text_view_overlays(
             original_text_raw, edited_text_raw, highlights=False, bfn=False
         )
+        # The light row fill paused the source highlighter too. The scanner
+        # restores only the editable editor, so resume source highlights here.
+        original = getattr(self.mw, 'original_text_edit', None)
+        highlighter = getattr(original, 'highlighter', None) if original is not None else None
+        if highlighter is not None:
+            highlighter.set_typing_mode(False, trigger_rehighlight=True)
         handler = getattr(self.mw, 'editor_operation_handler', None)
         if handler is not None and hasattr(handler, 'launch_async_scanner_immediate'):
             handler.launch_async_scanner_immediate()
