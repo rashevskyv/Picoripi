@@ -42,7 +42,8 @@ class SettingsLoadSaveMixin:
         
         self.font_size_spinbox.setValue(self.mw.current_font_size)
         self.tooltip_font_size_spinbox.setValue(getattr(self.mw, 'tooltip_font_size', 11))
-        self.external_script_path_edit.setText(getattr(self.mw, 'external_script_path', ""))
+        tools = getattr(self.mw, 'external_tools', [])
+        self.load_external_tools(tools if isinstance(tools, list) else [])
         self.show_spaces_checkbox.setChecked(self.mw.show_multiple_spaces_as_dots)
         self.space_dot_color_picker.setColor(QColor(self.mw.space_dot_color_hex))
         self.restore_session_checkbox.setChecked(self.mw.restore_unsaved_on_startup)
@@ -302,7 +303,7 @@ class SettingsLoadSaveMixin:
             'theme': self.theme_combo.currentText().lower(), 'active_game_plugin': selected_dir_name,
             'font_size': self.font_size_spinbox.value(),
             'tooltip_font_size': self.tooltip_font_size_spinbox.value(),
-            'external_script_path': self.external_script_path_edit.text().strip(),
+            'external_tools': self.get_external_tools(),
             'show_multiple_spaces_as_dots': self.show_spaces_checkbox.isChecked(),
             'space_dot_color_hex': self.space_dot_color_picker.color().name(), 'restore_unsaved_on_startup': self.restore_session_checkbox.isChecked(),
             'prompt_editor_enabled': self.prompt_editor_checkbox.isChecked(),

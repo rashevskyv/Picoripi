@@ -25,6 +25,7 @@ class GlobalSettings:
             "editors_font_size": default_font_size,
             "tooltip_font_size": 11,
             "external_script_path": "",
+            "external_tools": [],
             "font_size": default_font_size,
             "active_game_plugin": "zelda_mc",
             "ui_language": "en",
@@ -140,7 +141,10 @@ class GlobalSettings:
                 settings_data = json.load(f)
 
             for key, default_value in self.defaults.items():
-                loaded_value = settings_data.get(key, default_value)
+                if key == "external_tools":
+                    loaded_value = self._load_external_tools(settings_data)
+                else:
+                    loaded_value = settings_data.get(key, default_value)
                 attr = getattr(type(self.mw), key, None)
                 is_prop_or_desc = isinstance(attr, property) or hasattr(attr, '__set__')
 
@@ -172,6 +176,26 @@ class GlobalSettings:
             log_debug("Global settings loaded.")
         except Exception as e:
             log_error(f"Error loading global settings: {e}", exc_info=True)
+
+    @staticmethod
+    def _load_external_tools(settings_data: Dict[str, Any]) -> list[Dict[str, str]]:
+        """Validate toolbar tools and migrate the former single script path."""
+        if "external_tools" not in settings_data:
+            legacy_path = settings_data.get("external_script_path", "")
+            return ([{"name": "External Tool", "path": legacy_path, "icon": ">_"}]
+                    if isinstance(legacy_path, str) and legacy_path.strip() else [])
+        raw_tools = settings_data.get("external_tools")
+        if not isinstance(raw_tools, list):
+            return []
+        tools = []
+        for tool in raw_tools:
+            if not isinstance(tool, dict):
+                continue
+            name, path, icon = (tool.get(key) for key in ("name", "path", "icon"))
+            if all(isinstance(value, str) for value in (name, path, icon)):
+                valid_icon = len(icon) <= 8 and not any(0xD800 <= ord(char) <= 0xDFFF for char in icon)
+                tools.append({"name": name[:80], "path": path, "icon": icon if valid_icon else "B"})
+        return tools
 
     def save(self, settings_dict: Dict[str, Any]) -> None:
         """Saves current global settings to settings.json."""
@@ -214,6 +238,7 @@ class GlobalSettings:
             "editors_font_size": getattr(self.mw, 'editors_font_size', self.mw.current_font_size),
             "tooltip_font_size": getattr(self.mw, 'tooltip_font_size', 11),
             "external_script_path": getattr(self.mw, 'external_script_path', "") if isinstance(getattr(self.mw, 'external_script_path', ""), str) else "",
+            "external_tools": self._load_external_tools({"external_tools": getattr(self.mw, "external_tools", [])}),
             "font_size": self.mw.current_font_size,
             "active_game_plugin": self.mw.active_game_plugin,
             "ui_language": ui_language,

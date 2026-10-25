@@ -569,6 +569,7 @@ class MainWindow(QMainWindow):
     editors_font_size = SettingsProperty('editors_font_size', lambda inst: inst.current_font_size)
     tooltip_font_size = SettingsProperty('tooltip_font_size', 11)
     external_script_path = SettingsProperty('external_script_path', "")
+    external_tools = SettingsProperty('external_tools', [])
     last_advanced_search_query = SettingsProperty('last_advanced_search_query', "")
 
     @property

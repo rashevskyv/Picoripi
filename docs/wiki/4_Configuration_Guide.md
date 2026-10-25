@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-21
+updated: 2026-10-25
 owns: ui/settings
-tokens: 5.1k
+tokens: 5.2k
 purpose: Map of every Settings tab and control, defaults, restart needs, and where each value is stored
 ---
 # Configuration
@@ -28,7 +28,6 @@ This page is the map of **Settings** (`Ctrl+P`). It lists every tab, each contro
 | Active Game Plugin | The game plugin Picoripi loads. Lists the plugins it finds. | `zelda_mc` | Yes, auto |
 | Application Font Size | Font size of the program. Range 6 to 24. | System font size | No |
 | Tooltip Font Size | Font size of tooltips. Range 6 to 32. | 11 | No |
-| External Tool/Script Path | The file the `>_` toolbar button runs (`.bat`, `.cmd`, `.exe`, `.py`, `.sh`). | Empty | No |
 | Wiimms ISO Tool (wit.exe) Path | Optional `wit.exe`, used to read GameCube and Wii ISO messages. Empty means PATH or automatic search. | Empty | No |
 | Show special spaces as dots | Draws repeated or special spaces as dots in the editor. | On | No |
 | Space Dot Color | Colour of those dots. | `#BBBBBB` | No |
@@ -40,6 +39,15 @@ This page is the map of **Settings** (`Ctrl+P`). It lists every tab, each contro
 | Show archive size warnings | Warns when a packed archive is larger than the original. | On | No |
 | Auto-Sleep Idle Delay (minutes) | Idle time, 1 to 60 minutes, before the computer sleeps after a finished task. | 5 | No |
 | Data folder: **Data location…** | Shows the data folder. Moves the data to another folder (copies it). See [Data folder](#the-data-folder). | Next to the program (`data`) | Yes, you restart |
+
+## Tools
+
+Add, edit or remove script buttons shown on the main toolbar. Each row has a badge, a name and a script path. Badges support short text and emoji. An empty list is allowed. Changes stay in the global `settings.json` file and apply after **OK**.
+
+- **+ Add tool** adds a row. Enter a name and paste a path, or select the script with **Browse**.
+- Click the row's icon to open **Edit Tool Icon**. Enter up to eight Unicode characters (a combined emoji can use several) and check the preview. Examples: `B1`, `▶️`, `🔧`.
+- **Remove** deletes the row. **Cancel** discards edits. **OK** refreshes the toolbar without a restart.
+- The previous single-script setting becomes the first tool automatically. Removing all tools keeps the list empty after restart.
 
 ## Project
 

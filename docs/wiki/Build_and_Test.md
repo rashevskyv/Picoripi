@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-21
+updated: 2026-10-25
 owns: core/project_library/build.py
 tokens: 2.1k
 purpose: Build a mod from saved files, export it, run it in an emulator, and test it per platform
@@ -119,7 +119,7 @@ The **Build ROM** button on the toolbar builds the open project with its game pl
 
 ## Run External Script
 
-The **>_** button at the right end of the toolbar starts your own tool or script. Set its path in **Settings → Global → External Tool/Script Path**. This button does not build the mod.
+The configured tool buttons at the right end of the toolbar start your own scripts. Add a name, badge and path in **Settings → Tools**. **Build ROM** builds the current project; custom tool buttons run their own configured paths.
 
 ## How to test per platform
 

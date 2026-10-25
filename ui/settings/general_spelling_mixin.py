@@ -28,11 +28,6 @@ class SettingsGeneralSpellingMixin:
         self.tooltip_font_size_spinbox = LabeledSpinBox(tr("Tooltip Font Size:"), 6, 32, 11, parent=self)
         layout.addRow(self.tooltip_font_size_spinbox)
         
-        self.external_script_path_edit = QLineEdit(self)
-        self.external_script_path_edit.setPlaceholderText(tr('Path to .bat, .cmd, .exe, etc.'))
-        self.external_script_selector = self._create_script_selector(self.external_script_path_edit)
-        layout.addRow(QLabel(tr('External Tool/Script Path:')), self.external_script_selector)
-
         self.wit_tool_path_edit = QLineEdit(self)
         self.wit_tool_path_edit.setPlaceholderText(tr('Optional path to wit.exe (Wiimms ISO Tool)'))
         self.wit_tool_selector = self._create_file_selector(

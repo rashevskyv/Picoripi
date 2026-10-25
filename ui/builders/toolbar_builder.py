@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import QToolBar, QStyle, QWidget, QSizePolicy
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QFont
+from html import escape
 from core.i18n import tr
 
 class ToolBarBuilder:
@@ -62,23 +63,6 @@ class ToolBarBuilder:
         self.mw.main_toolbar.addSeparator()
         self.mw.main_toolbar.addAction(self.mw.open_settings_action)
         
-        # Create a dynamic beautiful icon for External Script with '>_'
-        pixmap_cmd = QPixmap(32, 32)
-        pixmap_cmd.fill(Qt.GlobalColor.transparent)
-        painter_cmd = QPainter(pixmap_cmd)
-        painter_cmd.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        painter_cmd.setPen(QColor("#0078d7"))
-        font_cmd = QFont("Courier New", 18, QFont.Weight.Bold)
-        painter_cmd.setFont(font_cmd)
-        painter_cmd.drawText(pixmap_cmd.rect(), Qt.AlignmentFlag.AlignCenter, ">_")
-        painter_cmd.end()
-        cmd_icon = QIcon(pixmap_cmd)
-
-        self.mw.run_external_script_action = QAction(cmd_icon, tr('Run External Script'), self.mw)
-        self.mw.run_external_script_action.setToolTip(
-            tr('<b>Run external script</b><br>Click — run the external script / build tool configured in Settings (Ctrl+P).')
-        )
-        
         self.mw.build_rom_action = QAction(tr('Build ROM'), self.mw)
         self.mw.build_rom_action.setToolTip(
             tr('<b>Build ROM</b><br>Click — build the changed game (ROM, ISO or mod folder) from this project.')
@@ -88,8 +72,37 @@ class ToolBarBuilder:
         toolbar_spacer = QWidget()
         toolbar_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.mw.main_toolbar.addWidget(toolbar_spacer)
+        self.mw.external_tool_actions = []
+        self.refresh_external_tool_actions()
         
         self.mw.main_toolbar.addAction(self.mw.build_rom_action)
-        self.mw.main_toolbar.addAction(self.mw.run_external_script_action)
         self.mw.main_toolbar.addSeparator()
         self.mw.main_toolbar.addAction(self.mw.help_shortcuts_action)
+
+    def refresh_external_tool_actions(self):
+        """Replace custom script actions with the currently saved tool list."""
+        from ui.settings.script_tools_mixin import tool_badge_icon
+
+        toolbar = getattr(self.mw, "main_toolbar", None)
+        if toolbar is None:
+            return
+        for action in getattr(self.mw, "external_tool_actions", []):
+            toolbar.removeAction(action)
+            action.deleteLater()
+        self.mw.external_tool_actions = []
+        anchor = self.mw.build_rom_action
+        for index, tool in enumerate(getattr(self.mw, "external_tools", []) or []):
+            name = tool.get("name", "").strip() or tr("External Tool")
+            path = tool.get("path", "").strip()
+            action = QAction(tool_badge_icon(tool.get("icon", "B")), name, self.mw)
+            action.setToolTip(tr("<b>Run tool: {}</b><br>Path: {}").format(
+                escape(name), escape(path),
+            ))
+            action.triggered.connect(
+                lambda _checked=False, tool_index=index: self.mw.actions.run_external_script(tool_index)
+            )
+            toolbar.insertAction(anchor, action)
+            self.mw.external_tool_actions.append(action)
+        self.mw.run_external_script_action = (
+            self.mw.external_tool_actions[0] if self.mw.external_tool_actions else None
+        )

@@ -32,4 +32,5 @@ def setup_main_window_ui(main_window):
 
     # 5. Build ToolBar
     toolbar_builder = ToolBarBuilder(main_window)
+    main_window.toolbar_builder = toolbar_builder
     toolbar_builder.build()

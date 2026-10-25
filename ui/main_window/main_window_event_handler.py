@@ -69,8 +69,6 @@ class MainWindowEventHandler:
         if hasattr(self.mw, 'toggle_hide_tags_action') and self.mw.toggle_hide_tags_action:
             self.mw.toggle_hide_tags_action.triggered.connect(self.mw.list_selection_handler.toggle_hide_tags_global)
         if hasattr(self.mw, 'open_settings_action'): self.mw.open_settings_action.triggered.connect(self.mw.actions.open_settings_dialog)
-        if hasattr(self.mw, 'run_external_script_action') and self.mw.run_external_script_action:
-            self.mw.run_external_script_action.triggered.connect(self.mw.actions.run_external_script)
         self.mw.build_rom_action.triggered.connect(self.mw.actions.build_rom)
         if hasattr(self.mw, 'bfn_editor_action') and self.mw.bfn_editor_action:
             self.mw.bfn_editor_action.triggered.connect(self.mw.actions.open_bfn_editor_standalone)
@@ -360,6 +358,9 @@ class MainWindowEventHandler:
         self.mw.app_action_handler.handle_close_event(event)
         
         if event.isAccepted():
+            launcher = getattr(self.mw, 'script_launch_controller', None)
+            if launcher is not None:
+                launcher.shutdown()
             collab = getattr(self.mw, 'collab_handler', None)
             if collab is not None:
                 collab.leave()

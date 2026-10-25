@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-21
+updated: 2026-10-25
 owns: ui/builders/
 tokens: 2.5k
 purpose: Main window map, Blocks tree, Strings list, editors, status bar, and how to translate one line
@@ -20,7 +20,7 @@ The screenshots show the Ukrainian interface. The labels in this page are Englis
 | Area | What it is |
 |---|---|
 | Menu bar | **File**, **Edit**, **View**, **Tools**, **Navigation**, **Bookmarks**, **Language**, **Help** |
-| Toolbar | Save, undo, redo, find, preview, AI Batch Translation, Open AI Chat, Font Editor, Rescan All, Settings, Run External Script, Shortcuts Help |
+| Toolbar | Save, undo, redo, find, preview, AI Batch Translation, Open AI Chat, Font Editor, Rescan All, Settings, configured tool buttons, Build ROM, Shortcuts Help |
 | Blocks (left) | The tree of blocks and virtual folders. Block buttons and **Glossary…** are under it |
 | Strings in block (top right) | The lines of the selected block. Filters are above the list |
 | Original (bottom left) | The source text. Read only |

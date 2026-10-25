@@ -5,6 +5,7 @@ from .ai_mixin import SettingsAiMixin
 from .logging_mixin import SettingsLoggingMixin
 from .companion_mixin import SettingsCompanionMixin
 from .console_keys_mixin import SettingsConsoleKeysMixin
+from .script_tools_mixin import SettingsScriptToolsMixin
 
 class SettingsDialogUiMixin(
     SettingsGeneralSpellingMixin,
@@ -13,6 +14,7 @@ class SettingsDialogUiMixin(
     SettingsLoggingMixin,
     SettingsCompanionMixin,
     SettingsConsoleKeysMixin,
+    SettingsScriptToolsMixin,
 ):
     """Facade class aggregating all settings subtabs layout setup methods."""
     pass

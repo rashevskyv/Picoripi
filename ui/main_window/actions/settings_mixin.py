@@ -84,6 +84,9 @@ class MainWindowSettingsActionsMixin:
             setattr(self.mw, key, value)
             if hasattr(self.mw, 'settings_manager') and hasattr(self.mw.settings_manager, 'set'):
                 self.mw.settings_manager.set(key, value)
+        toolbar_builder = getattr(self.mw, 'toolbar_builder', None)
+        if toolbar_builder is not None:
+            toolbar_builder.refresh_external_tool_actions()
         if hasattr(self.mw, 'toggle_preview_action'):
             self.mw.toggle_preview_action.setChecked(bool(self.mw.preview_enabled))
         if hasattr(self.mw, 'ui_updater'):
@@ -521,52 +524,24 @@ class MainWindowSettingsActionsMixin:
         box = QMessageBox.critical if error else QMessageBox.information
         box(self.mw, tr('Build ROM'), text + ('\n\n' + detail if detail else ''))
 
-    def run_external_script(self):
+    def run_external_script(self, tool_index=0):
         """Asynchronously run configured external script (e.g. ROM builder / emulator)"""
-        import subprocess
+        from ui.settings.script_launch_worker import ScriptLaunchController
         from PyQt6.QtWidgets import QMessageBox
-        from pathlib import Path
-        import os
 
-        script_path = getattr(self.mw, 'external_script_path', "").strip()
+        tools = getattr(self.mw, 'external_tools', [])
+        tool = tools[tool_index] if isinstance(tools, list) and 0 <= tool_index < len(tools) else {}
+        script_path = str(tool.get('path', '')).strip()
+        tool_name = str(tool.get('name', '')).strip() or tr('External Tool')
         if not script_path:
             QMessageBox.warning(
                 self.mw,
                 tr('Run External Tool/Script'),
-                tr('No script or tool path configured.\n\nPlease go to Project -> Settings -> Global and set the path.')
+                tr('No script or tool path configured.\n\nPlease go to Settings → Tools and set the path.')
             )
             return
-
-        path_obj = Path(script_path)
-        if not path_obj.exists() or not path_obj.is_file():
-            QMessageBox.critical(
-                self.mw,
-                tr('Run External Tool/Script'),
-                f"Configured script path does not exist or is not a file:\n{script_path}"
-            )
-            return
-
-        try:
-            cwd = path_obj.parent.as_posix()
-            if os.name == 'nt':
-                # Launch via cmd.exe /k to open a new console window and keep it open
-                # so the user can see the executed script and its output.
-                cmd = ["cmd.exe", "/k", str(path_obj.resolve())]
-                subprocess.Popen(
-                    cmd,
-                    cwd=cwd,
-                    creationflags=0x00000010  # CREATE_NEW_CONSOLE
-                )
-            else:
-                subprocess.Popen(
-                    [str(path_obj.resolve())],
-                    cwd=cwd
-                )
-            if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
-                self.mw.statusBar.showMessage(f"Started script: {path_obj.name}", 3000)
-        except Exception as e:
-            QMessageBox.critical(
-                self.mw,
-                tr('Run External Script Error'),
-                f"Failed to start script:\n{e}"
-            )
+        controller = getattr(self.mw, "script_launch_controller", None)
+        if controller is None:
+            controller = ScriptLaunchController(self.mw)
+            self.mw.script_launch_controller = controller
+        controller.launch(tool_name, script_path)

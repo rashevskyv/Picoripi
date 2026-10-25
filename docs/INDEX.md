@@ -25,7 +25,7 @@ Read the row, then open only the document you need.
 | `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (+uk) | Main window, menus, filters, settings tabs, shortcuts | 11.5k | current | ui/, components/, dialogs/ |
 | `docs/wiki/2_API_Reference.md` (+uk) | Which Python file implements which control | 0.8k | current | module map |
 | `docs/wiki/3_Plugin_Developer_Guide.md` (+uk) | The one plugin guide: files, hooks, capabilities, tests | 14.8k | current | plugins/ |
-| `docs/wiki/4_Configuration_Guide.md` (+uk) | Map of every Settings tab and control, defaults, restart needs, and where each value is stored | 5.1k | current | ui/settings |
+| `docs/wiki/4_Configuration_Guide.md` (+uk) | Map of every Settings tab and control, defaults, restart needs, and where each value is stored | 5.2k | current | ui/settings |
 | `docs/wiki/5_Gemini_Web2API.md` (+uk) | The local Gemini proxy: start, settings, errors | 2.2k | current | core/translation/providers.py |
 | `docs/wiki/6_Virtual_Navigation_and_Preview.md` (+uk) | Virtual folders, story and speaker views, preview | 1.5k | current | ui/updaters/block_list |
 | `docs/wiki/7_Maintaining_This_Wiki.md` (+uk) | Which page owns which fact; how to update EN and UK | 1.1k | current | docs/wiki |

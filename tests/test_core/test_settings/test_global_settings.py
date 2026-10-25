@@ -259,3 +259,35 @@ def test_GlobalSettings_saves_and_loads_auto_sleep_idle_delay_seconds(mock_mw, t
     s.load(d)
     assert d["auto_sleep_idle_delay_seconds"] == 600
     assert mock_mw.auto_sleep_idle_delay_seconds == 600
+
+
+@pytest.mark.parametrize("settings_data, expected", [
+    ({"external_script_path": "old/build.bat"}, [{"name": "External Tool", "path": "old/build.bat", "icon": ">_"}]),
+    ({"external_script_path": "old/build.bat", "external_tools": []}, []),
+    ({"external_tools": [None, {"name": 2, "path": "bad", "icon": "B"}, {"name": "Run", "path": "ok.py", "icon": "👨‍👩‍👧‍👦"}]},
+     [{"name": "Run", "path": "ok.py", "icon": "👨‍👩‍👧‍👦"}]),
+])
+def test_GlobalSettings_migrates_and_validates_script_tools(mock_mw, tmp_path, settings_data, expected):
+    settings_file = tmp_path / "settings.json"
+    settings_file.write_text(json.dumps(settings_data), encoding="utf-8")
+    settings = GlobalSettings(mock_mw, settings_file)
+
+    loaded = {}
+    settings.load(loaded)
+
+    assert loaded["external_tools"] == expected
+    assert mock_mw.external_tools == expected
+
+
+def test_GlobalSettings_round_trips_script_tools(mock_mw, tmp_path):
+    settings_file = tmp_path / "settings.json"
+    settings = GlobalSettings(mock_mw, settings_file)
+    mock_mw.external_tools = [{"name": "Build", "path": "build.py", "icon": "B1"}]
+
+    settings.save({})
+    saved = json.loads(settings_file.read_text(encoding="utf-8"))
+    mock_mw.external_tools = []
+    loaded = {}
+    settings.load(loaded)
+
+    assert saved["external_tools"] == mock_mw.external_tools == loaded["external_tools"]

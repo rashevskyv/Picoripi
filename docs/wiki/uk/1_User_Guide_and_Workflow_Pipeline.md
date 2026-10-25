@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-13
+updated: 2026-10-25
 owns: ui/, components/, dialogs/
-tokens: 15.5k
+tokens: 15.6k
 ---
 # Посібник: інтерфейс
 
@@ -250,11 +250,11 @@ tokens: 15.5k
 
 Зліва направо (`toolbar_builder.py`):
 
-Save · Undo · Redo · Find · Preview · **AI Batch Translation** (відкриває вікно вибору конвеєра перекладу) · **Open AI Chat** (`Ctrl+Shift+C`) · Font Editor · **Rescan All** (`Ctrl+Shift+R`) · Settings · (розпірка) · **Run External Script** (`>_`) · Shortcuts Help.
+Save · Undo · Redo · Find · Preview · **AI Batch Translation** (відкриває вікно вибору конвеєра перекладу) · **Open AI Chat** (`Ctrl+Shift+C`) · Font Editor · **Rescan All** (`Ctrl+Shift+R`) · Settings · (розпірка) · кнопки налаштованих інструментів · **Зібрати ROM** · Shortcuts Help.
 
 **AI Translate** і **AI Variation** на цьому тулбарі **немає**. Вони над Editable.
 
-**Run External Script** запускає шлях з **Settings → Global → External Tool/Script Path**. Збережіть (`Ctrl+S`) перед збіркою ROM: інструмент читає файли з диска.
+Кожен налаштований інструмент має окрему кнопку на панелі. У **Налаштування → Інструменти** задайте назву, значок і шлях до скрипту. Збережіть (`Ctrl+S`) перед збіркою ROM: інструмент читає файли з диска.
 
 **AI Chat:** у полі чату Ctrl+Enter надсилає; Enter додає новий рядок.
 
@@ -397,7 +397,8 @@ Yo-kai Watch автоматично знаходить наявні мовні �
 
 | Вкладка | Вміст |
 |---------|--------|
-| **Global** | Theme (потрібен перезапуск), Active Game Plugin (перезапуск), розміри шрифтів, шлях зовнішнього скрипта, шлях до Wiimms ISO Tool (`wit.exe`), крапки пробілів, restore session, редактор промпта перед AI, live preview, сканування попереджень у реальному часі, система глосарія, попередження про розмір архіву, затримка auto-sleep |
+| **Global** | Theme (потрібен перезапуск), Active Game Plugin (перезапуск), розміри шрифтів, шлях до Wiimms ISO Tool (`wit.exe`), крапки пробілів, restore session, редактор промпта перед AI, live preview, сканування попереджень у реальному часі, система глосарія, попередження про розмір архіву, затримка auto-sleep |
+| **Інструменти** | Додавайте кнопки скриптів із назвою та значком текстом або емодзі. Виберіть шлях до скрипту або видаліть інструмент. |
 | **Project** | Лише з відкритим проєктом. Підвкладки: File Paths (Directory Mode, Auto-generate translation path, шляхи original/changes/fonts, Reference Translation / ROM Path із меню вибору теки або `.iso`), Display, Rules, Context Tags, Tag Aliases, Font Map, Detection, Auto-fix (**Align sentences to original page layout**, **Prevent adding empty padding lines during pagination**, плюс перемикачі по типах проблем) |
 | **Spelling** | Enable spell checking, мова словника, Manage Dictionaries… |
 | **AI Translation** | Див. [11](11_AI_Translation.md) |

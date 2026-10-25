@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-13
+updated: 2026-10-25
 owns: ui/, components/, dialogs/
 tokens: 11.5k
 purpose: Main window, menus, filters, settings tabs, shortcuts
@@ -251,11 +251,11 @@ Shortcuts listed in F1:
 
 Left to right (`toolbar_builder.py`):
 
-Save · Undo · Redo · Find · Preview · **AI Batch Translation** (opens pipeline mode chooser) · **Open AI Chat** (`Ctrl+Shift+C`) · Font Editor · **Rescan All** (`Ctrl+Shift+R`) · Settings · (spacer) · **Run External Script** (`>_`) · Shortcuts Help.
+Save · Undo · Redo · Find · Preview · **AI Batch Translation** (opens pipeline mode chooser) · **Open AI Chat** (`Ctrl+Shift+C`) · Font Editor · **Rescan All** (`Ctrl+Shift+R`) · Settings · (spacer) · configured tool buttons · **Build ROM** · Shortcuts Help.
 
 **AI Translate** and **AI Variation** are **not** on this toolbar. They sit above Editable.
 
-**Run External Script** runs the path in **Settings → Global → External Tool/Script Path**. Save (`Ctrl+S`) before you run a ROM build; the tool reads files on disk.
+Each configured tool has its own toolbar button. Set its name, badge and script path in **Settings → Tools**. Save (`Ctrl+S`) before a ROM build; the tool reads files on disk.
 
 **AI Chat:** in the chat input, Ctrl+Enter sends; Enter adds a new line.
 
@@ -398,7 +398,8 @@ Window title **Settings**. Tabs:
 
 | Tab | Contents |
 |-----|----------|
-| **Global** | Theme (restart), Active Game Plugin (restart), font sizes, external script path, Wiimms ISO Tool (`wit.exe`) path, space dots, restore session, prompt editor before AI, live preview, real-time warning scan, glossary system, archive size warnings, auto-sleep idle delay |
+| **Global** | Theme (restart), Active Game Plugin (restart), font sizes, Wiimms ISO Tool (`wit.exe`) path, space dots, restore session, prompt editor before AI, live preview, real-time warning scan, glossary system, archive size warnings, auto-sleep idle delay |
+| **Tools** | Add any number of named script buttons. Set a short text or emoji badge, choose a script path, or remove a tool. |
 | **Project** | Only with a project open. Subtabs: File Paths (Directory Mode, Auto-generate translation path, original/changes/fonts paths, Reference Translation / ROM Path with popup selector for folder or `.iso`), Display, Rules, Context Tags, Tag Aliases, Font Map, Detection, Auto-fix (**Align sentences to original page layout**, **Prevent adding empty padding lines during pagination**, plus per-problem toggles) |
 | **Spelling** | Enable spell checking, dictionary language, Manage Dictionaries… |
 | **AI Translation** | See [11](11_AI_Translation.md) |

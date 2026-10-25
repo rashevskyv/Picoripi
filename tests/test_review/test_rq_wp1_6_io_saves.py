@@ -59,7 +59,8 @@ def test_translation_archive_glossary_settings_and_session_are_written_as_before
     assert out["glossary"] == expected_glossary
 
     # Settings: the run's folders are placeholders. The only change is the AI defaults added on purpose by the
-    # audit (WP1 provider "profile"; WP4 fold_duplicates / fixed_output_sections; review_enabled).
+    # audit (WP1 provider "profile"; WP4 fold_duplicates / fixed_output_sections; review_enabled),
+    # plus the global list of custom toolbar tools (empty in this scenario).
     settings = scenario.normalize_settings(out["settings"], root)
     old_bytes = _golden("save_settings.json.bin")
 
@@ -81,6 +82,7 @@ def test_translation_archive_glossary_settings_and_session_are_written_as_before
     assert geometry == {key for key in old if key.endswith("_splitter_state")}
     assert {k: v for k, v in new.items() if k not in geometry} == {
         **{k: v for k, v in old.items() if k not in geometry}, "translation_config": new["translation_config"],
+        "external_tools": [],
     }
     assert settings == dump(new)
 
