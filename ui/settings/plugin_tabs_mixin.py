@@ -267,6 +267,10 @@ class PluginTabsMixin:
         self.window_rules_mode_stack.addWidget(per_type_page)
 
         self.window_rules_mode_stack.setCurrentIndex(1 if use_per_type else 0)
+        self._initial_zelda_window_layout_values = {
+            key: {name: control.value() for name, control in controls.items()}
+            for key, controls in self._zelda_window_layout_controls.items()
+        }
         self.per_window_mode_radio.toggled.connect(
             lambda checked: self.window_rules_mode_stack.setCurrentIndex(1 if checked else 0)
         )
@@ -304,12 +308,16 @@ class PluginTabsMixin:
                 "max_width": controls["max_width"].value(),
                 "lines_per_page": controls["lines_per_page"].value(),
             }
+            if values == self._initial_zelda_window_layout_values.get(key):
+                continue
             if values["warn_width"] > values["max_width"]:
                 return False, f"{_label}: warning width cannot exceed maximum width."
 
-            targets = [defaults] if target_kinds is None else [kinds.setdefault(kind, {}) for kind in target_kinds]
-            for target in targets:
-                target.update(values)
+            if target_kinds is None:
+                defaults.update(values)
+            else:
+                for kind in target_kinds:
+                    kinds.setdefault(kind, {}).update(values)
 
         if document == self._zelda_window_layouts_document:
             return True, ""

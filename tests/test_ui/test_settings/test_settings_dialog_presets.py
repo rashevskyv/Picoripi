@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 from ui.settings_dialog import SettingsDialog
 from core.translation.config import build_default_translation_config
 import PyQt6.QtWidgets
+import pytest
 
 class MockMainWindow(PyQt6.QtWidgets.QMainWindow):
     def __init__(self):
@@ -85,6 +86,50 @@ def test_settings_dialog_presets_ui(qapp):
     assert dialog.translation_preset_combo.count() == 1
     assert dialog.translation_preset_combo.itemText(0) == "Default"
     assert dialog.translation_preset_combo.itemData(0) == "default"
+
+
+def test_settings_dialog_does_not_save_unchanged_font_map(qapp, monkeypatch, tmp_path):
+    from ui.settings import load_save_mixin
+
+    plugin_dir = tmp_path / "user-plugin"
+    monkeypatch.setattr(load_save_mixin, "user_plugin_dir", lambda _name: plugin_dir)
+    mw = MockMainWindow()
+    dialog = SettingsDialog(mw)
+
+    dialog.get_settings()
+
+    assert not (plugin_dir / "font_map.json").exists()
+    assert dialog.rules_changed_requires_rescan is False
+
+
+def test_settings_dialog_saves_changed_font_map_and_marks_scan(qapp, monkeypatch, tmp_path):
+    from ui.settings import load_save_mixin
+
+    plugin_dir = tmp_path / "user-plugin"
+    monkeypatch.setattr(load_save_mixin, "user_plugin_dir", lambda _name: plugin_dir)
+    mw = MockMainWindow()
+    dialog = SettingsDialog(mw)
+    dialog.font_map_table.insertRow(dialog.font_map_table.rowCount())
+    from PyQt6.QtWidgets import QTableWidgetItem
+    dialog.font_map_table.setItem(dialog.font_map_table.rowCount() - 1, 0, QTableWidgetItem("★"))
+    dialog.font_map_table.setItem(dialog.font_map_table.rowCount() - 1, 1, QTableWidgetItem("17"))
+
+    dialog.get_settings()
+
+    saved_map = json.loads((plugin_dir / "font_map.json").read_text(encoding="utf-8"))
+    assert saved_map["★"] == {"width": 17}
+    assert mw.current_font_map == saved_map
+    assert dialog.rules_changed_requires_rescan is True
+
+
+def test_missing_detection_values_keep_their_enabled_default():
+    from ui.main_window.actions.settings_mixin import _detection_settings_changed
+
+    assert not _detection_settings_changed({}, {"width": True}, {"width"})
+    assert _detection_settings_changed({}, {"width": False}, {"width"})
+    assert not _detection_settings_changed(
+        {"retired": False}, {"width": True}, {"width": {}}
+    )
 
 def test_settings_dialog_save_and_apply_preset(qapp, monkeypatch):
     mw = MockMainWindow()
@@ -221,6 +266,44 @@ def test_zelda_bmg_window_rules_save_grouped_kinds_only_on_accept(qapp, tmp_path
     assert saved["kinds"]["15"]["lines_per_page"] == 7
     assert mw.current_game_rules._window_layouts is None
     assert source.read_text(encoding="utf-8") == before        # the plugin's own file is untouched
+
+
+def test_zelda_bmg_window_rules_noop_accept_preserves_inherited_layouts(qapp, tmp_path):
+    source = Path("plugins/zelda_bmg/window_layouts.json")
+    target = tmp_path / "window_layouts.json"
+    before = source.read_text(encoding="utf-8")
+    target.write_text(before, encoding="utf-8")
+    dialog = SettingsDialog(_zelda_bmg_window(target))
+
+    dialog.accept()
+
+    assert target.read_text(encoding="utf-8") == before
+    assert dialog.rules_changed_requires_rescan is False
+
+
+@pytest.mark.parametrize(
+    "document",
+    [
+        {"default": {"warn_width": 280, "max_width": 300}, "kinds": {}},
+        {
+            "default": {"warn_width": 280, "max_width": 300, "lines_per_page": 4},
+            "kinds": {
+                "2": {"max_width": 350},
+                "6": {"max_width": 450},
+            },
+        },
+    ],
+)
+def test_zelda_bmg_noop_accept_preserves_sparse_and_grouped_values(qapp, tmp_path, document):
+    target = tmp_path / "window_layouts.json"
+    original = json.dumps(document, indent=4, ensure_ascii=False) + "\n"
+    target.write_text(original, encoding="utf-8")
+    dialog = SettingsDialog(_zelda_bmg_window(target))
+
+    dialog.accept()
+
+    assert target.read_text(encoding="utf-8") == original
+    assert dialog.rules_changed_requires_rescan is False
 
 
 def test_zelda_bmg_window_rules_cancel_does_not_write(qapp, tmp_path):

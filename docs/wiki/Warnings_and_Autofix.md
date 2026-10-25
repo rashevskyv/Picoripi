@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-21
+updated: 2026-10-25
 owns: handlers/issue_scan_handler.py
-tokens: 2.0k
+tokens: 2.1k
 purpose: Problem lines, warning colours, navigation, Detection and Auto-fix settings, Fix All Strings, rescans and the spell checker.
 ---
 # Warnings and auto-fix
@@ -98,6 +98,7 @@ Save your work with `Ctrl+S` before you start.
 
 ## Rescan
 
+- Saving Settings rescans the project only when detection inputs change, such as width limits, font widths, tag mappings or plugin rules. Translation endpoints, API keys, appearance and auto-fix choices do not trigger a full scan. Pressing OK without changes also keeps the current results.
 - **Rescan All** (`Ctrl+Shift+R`) rebuilds the widths and the warnings for the whole project. The toolbar button does the same.
 - Right-click one block in the **Blocks** tree to rescan only that block.
 - A large project takes time on the first scan. The program shows a progress window.

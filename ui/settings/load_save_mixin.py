@@ -264,12 +264,13 @@ class SettingsLoadSaveMixin:
                         pass
             
             # Save as the user's font map for the plugin; the plugin's own file is never written (rule 8)
-            if selected_dir_name:
+            if selected_dir_name and new_font_map != getattr(self, "_initial_font_map", {}):
                 font_map_path = user_plugin_dir(selected_dir_name) / "font_map.json"
                 try:
                     font_map_path.parent.mkdir(parents=True, exist_ok=True)
                     atomic_write_json(font_map_path, new_font_map, indent=4, ensure_ascii=False)
                     self.mw.current_font_map = new_font_map
+                    self.font_map_changed_requires_rescan = True
                     self.rules_changed_requires_rescan = True
                 except Exception as e:
                     log_debug(f"SettingsDialog: Failed to save font_map.json: {e}")

@@ -1,6 +1,8 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+
+- Settings: rescan issues only when detection inputs change; endpoint, appearance, auto-fix and unchanged settings no longer trigger a full scan.
 - Glossary: restore source-term underlines in Original after selecting a string, alongside translated-term underlines in Editable.
 - UI: editor buttons and formatting fields use font-aware heights; glossary section headers remain visible when resized or collapsed, including after font/theme changes; main and popup menus have consistent item spacing.
 - Twilight Princess: dialogue preview ornaments recover after temporary resource-loading failures; frame caches follow each project's resource paths instead of retaining another project's frame.

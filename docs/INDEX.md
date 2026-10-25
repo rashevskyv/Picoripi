@@ -9,7 +9,7 @@ Read the row, then open only the document you need.
 | `docs/ARCHITECTURE.md` | Layers, data flow, facades, and where to change what | 2.2k | current | layering, data flow |
 | `docs/DECISIONS.md` | Why the code is the way it is: one short record per decision | 29.7k | current | decisions and their reasons |
 | `docs/ENGINEERING.md` | Habits behind the rules: threads, performance, persistence, tests | 2.0k | current | engineering practice |
-| `docs/FEATURES.md` | Every feature in detail; the wiki wins on a conflict | 15.0k | current | feature inventory |
+| `docs/FEATURES.md` | Every feature in detail; the wiki wins on a conflict | 15.1k | current | feature inventory |
 | `docs/MEMPALACE_CONTEXT_MANIFESTO.md` | MemPalace contract: principles, data flow, stage status | 2.3k | design | core/mempalace, ui/mempalace |
 | `docs/OPEN_ITEMS.md` | Everything left open, one line each, by work package | 72.3k | current | unfinished work |
 | `docs/PIPELINE_ROADMAP.md` | Pipeline design of record (Ukrainian); shipped vs planned on top | 12.5k | current | core/glossary_build, ui/pipeline_wizard_dialog.py |
@@ -44,7 +44,7 @@ Read the row, then open only the document you need.
 | `docs/wiki/Search_Bookmarks.md` (+uk) | Quick find, Advanced Search & Replace, search history and bookmarks. | 1.9k | current | components/search_panel.py, handlers/search_handler.py, dialogs/search_review/, handlers/bookmark_handler.py |
 | `docs/wiki/Supported_Games.md` (+uk) | Table of every game plugin with platforms, wizard needs and build targets. | 12.4k | current | plugins/ |
 | `docs/wiki/Troubleshooting.md` (+uk) | Symptom, cause and fix tables for the problems a new user meets, plus how to read the log and report a bug. | 2.8k | current | handlers/ and ui/ (messages and dialogs) |
-| `docs/wiki/Warnings_and_Autofix.md` (+uk) | Problem lines, warning colours, navigation, Detection and Auto-fix settings, Fix All Strings, rescans and the spell checker. | 2.0k | current | handlers/issue_scan_handler.py |
+| `docs/wiki/Warnings_and_Autofix.md` (+uk) | Problem lines, warning colours, navigation, Detection and Auto-fix settings, Fix All Strings, rescans and the spell checker. | 2.1k | current | handlers/issue_scan_handler.py |
 | `docs/wiki/Width_Fonts_Tags.md` (+uk) | Line width in game pixels, per-string and project limits, the Font Map, default font and tags. | 2.0k | current | utils/width.py |
 | `AGENTS.md` | Agent entry: hard rules, commands, checklist |  | current | everything |
 | `README.md` | Pitch, install, run, tests, doc map |  | current | repository |

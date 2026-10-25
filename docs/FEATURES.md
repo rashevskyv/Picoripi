@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-02
+updated: 2026-10-25
 owns: feature inventory
-tokens: 15.0k
+tokens: 15.1k
 purpose: Every feature in detail; the wiki wins on a conflict
 ---
 # Picoripi features
@@ -13,6 +13,7 @@ use each control is in the wiki ([interface](wiki/1_User_Guide_and_Workflow_Pipe
 page and a wiki page disagree, the wiki page is right and this page needs the fix.
 
 ## Project Management & Workspace Navigation
+- **Selective settings rescans**: Saving Settings rescans issues only when detection inputs change. Translation endpoints, API keys, appearance, auto-fix choices and unchanged settings keep the current scan results.
 - **Project-Based Workflow**: Creates, loads, and manages `.uiproj` projects encapsulating all translation files, virtual categories, and settings.
 - **New Project sources and key recovery**: Choose game files or an already-extracted game folder, independently of an existing translation folder. A worker validates expanded text tables and resolves the plugin's source subfolder. A missing key file (3DS, Switch, Wii) comes from the default source after consent, or from **Add the key file for ...**; the wizard then retries ([Console keys](wiki/4_Configuration_Guide.md#console-keys)); unsupported image plugins report their limitation instead of creating a project from an unreadable image.
 - **Derived virtual views**: **Story**, **Speakers**, **Windows**, **Items**, and **Notated** pack non-empty strings in roughly sorted groups. Empty BMG padding stays only in the physical file. Warning ticks appear on virtual folders the same way they do on files. See the [virtual navigation wiki](wiki/6_Virtual_Navigation_and_Preview.md).

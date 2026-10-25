@@ -41,6 +41,7 @@ class SettingsDialog(
         self.initial_plugin_name = self.mw.active_game_plugin
         self.initial_theme = getattr(self.mw, 'theme', 'auto')
         self.rules_changed_requires_rescan = False
+        self.font_map_changed_requires_rescan = False
 
         self._glossary_manual_api_keys = {}
         self._glossary_updating_api_key = False

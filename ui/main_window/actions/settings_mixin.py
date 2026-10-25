@@ -1,11 +1,22 @@
 """Main window actions: settings, save, revert, undo, tag mappings, widths."""
 from __future__ import annotations
 from pathlib import Path
+import copy
 import json
 from PyQt6.QtWidgets import QMessageBox
 from utils.logging_utils import log_info, log_error
+from core.plugin_call import safe_call
 from ui.settings_dialog import SettingsDialog
 from core.i18n import tr
+
+
+def _detection_settings_changed(previous, current, problem_ids):
+    """Compare effective detection values, where missing problem IDs default to enabled."""
+    relevant_ids = set(problem_ids) or (set(previous) | set(current))
+    return any(
+        previous.get(problem_id, True) != current.get(problem_id, True)
+        for problem_id in relevant_ids
+    )
 
 
 class MainWindowSettingsActionsMixin:
@@ -19,6 +30,15 @@ class MainWindowSettingsActionsMixin:
         old_game_dialog_max_width = self.mw.game_dialog_max_width_pixels
         old_line_width_warning = self.mw.line_width_warning_threshold_pixels
         old_lines_per_page = getattr(self.mw, 'lines_per_page', 4)
+        old_detection_enabled = copy.deepcopy(getattr(self.mw, 'detection_enabled', {}))
+        old_tag_mappings = copy.deepcopy(getattr(self.mw, 'default_tag_mappings', {}))
+        old_use_per_window_layouts = getattr(self.mw, 'use_per_window_layouts', True)
+        old_fonts_dir_path = getattr(self.mw, 'fonts_dir_path', '')
+        old_default_font_file = getattr(self.mw, 'default_font_file', '') or ''
+        old_window_layouts = None
+        rules = getattr(self.mw, 'current_game_rules', None)
+        if safe_call(rules, 'get_window_layout_groups', default=None):
+            old_window_layouts = copy.deepcopy(safe_call(rules, 'get_window_layouts_document'))
         
         dialog = SettingsDialog(self.mw)
         
@@ -28,15 +48,27 @@ class MainWindowSettingsActionsMixin:
 
         new_settings = dialog.get_settings()
         
-        # Check if rules values were actually changed to trigger rescan
+        # Compare effective scan inputs so transient UI interactions do not trigger scans.
         new_game_dialog_max_width = new_settings.get('game_dialog_max_width_pixels', old_game_dialog_max_width)
         new_line_width_warning = new_settings.get('line_width_warning_threshold_pixels', old_line_width_warning)
         new_lines_per_page = new_settings.get('lines_per_page', old_lines_per_page)
-        
-        if (new_game_dialog_max_width != old_game_dialog_max_width or
-            new_line_width_warning != old_line_width_warning or
-            new_lines_per_page != old_lines_per_page):
-            dialog.rules_changed_requires_rescan = True
+        new_window_layouts = getattr(dialog, '_zelda_window_layouts_document', None)
+        dialog.rules_changed_requires_rescan = any((
+            new_game_dialog_max_width != old_game_dialog_max_width,
+            new_line_width_warning != old_line_width_warning,
+            new_lines_per_page != old_lines_per_page,
+            _detection_settings_changed(
+                old_detection_enabled,
+                new_settings.get('detection_enabled', {}),
+                safe_call(rules, 'get_problem_definitions', default={}) or {},
+            ),
+            new_settings.get('default_tag_mappings', {}) != old_tag_mappings,
+            getattr(dialog, 'font_map_changed_requires_rescan', False),
+            new_settings.get('fonts_dir_path', old_fonts_dir_path) != old_fonts_dir_path,
+            (new_settings.get('default_font_file') or '') != old_default_font_file,
+            new_settings.get('use_per_window_layouts', old_use_per_window_layouts) != old_use_per_window_layouts,
+            new_window_layouts is not None and new_window_layouts != old_window_layouts,
+        ))
         
         new_font_file = new_settings.get('default_font_file') or ""
         old_font_file = getattr(self.mw, 'default_font_file', '') or ""

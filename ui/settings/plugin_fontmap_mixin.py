@@ -93,6 +93,17 @@ class PluginFontmapMixin:
                 width_val = str(int(info))
                 
             self.font_map_table.setItem(idx, 1, QTableWidgetItem(width_val))
+
+        self._initial_font_map = {}
+        for row in range(self.font_map_table.rowCount()):
+            char_item = self.font_map_table.item(row, 0)
+            width_item = self.font_map_table.item(row, 1)
+            if not char_item or not width_item or not char_item.text() or not width_item.text().strip():
+                continue
+            try:
+                self._initial_font_map[char_item.text()] = {"width": int(width_item.text().strip())}
+            except ValueError:
+                continue
             
         self.font_map_table.resizeColumnsToContents()
 
