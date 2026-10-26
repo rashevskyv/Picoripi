@@ -1,6 +1,6 @@
 # tests/test_handlers/test_search_handler_logic.py
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from handlers.search_handler import SearchHandler
 from core.data_store import AppDataStore
 
@@ -60,6 +60,104 @@ def test_search_fuzzy_with_zelda_plus(search_handler, mock_mw):
     result = search_handler.find_next("Острова", case_sensitive=False, search_in_original=True, ignore_tags=True, is_fuzzy=True)
     assert result is True
 
+
+def test_original_tagless_next_starts_at_first_match_and_steps_consistently(
+    search_handler, mock_mw, monkeypatch
+):
+    mock_mw.data_store.data = [
+        ["Opening text", "{scale:80%}Добре ж тобі..."],
+        ["An END match"],
+        ["Another END match"],
+    ]
+    monkeypatch.setattr(search_handler, "_navigate_to_match", lambda *args: None)
+
+    assert search_handler.find_next("END", False, True, True)
+    assert (search_handler.last_found_block, search_handler.last_found_string) == (1, 0)
+    assert search_handler.find_next("END", False, True, True)
+    assert (search_handler.last_found_block, search_handler.last_found_string) == (2, 0)
+
+    assert search_handler.find_previous("END", False, True, True)
+    assert (search_handler.last_found_block, search_handler.last_found_string) == (1, 0)
+
+
+@pytest.mark.parametrize("ignore_tags", [True, False])
+def test_first_next_navigates_physical_match_from_category_view(
+    qtbot, mock_mw, mock_dsp, ignore_tags
+):
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
+    from handlers.list_selection_handler import ListSelectionHandler
+    from core.data_store import ViewKind
+
+    mock_mw.data_store.data = [["No match"], ["An END match", "No match", "No match", "No match", "No match", "Selected text"]]
+    mock_mw.data_store.current_block_idx = 1
+    mock_mw.data_store.physical_block_idx = 1
+    mock_mw.data_store.current_string_idx = 5
+    mock_mw.data_store.current_view_kind = ViewKind.CATEGORY
+    mock_mw.data_store.current_category_name = "dialogue"
+    mock_mw.data_store.displayed_string_indices = [5]
+    mock_mw.is_loading_data = False
+    mock_mw.is_programmatically_changing_text = False
+    mock_mw._restoring_session_state = False
+    mock_mw.editor_operation_handler = MagicMock()
+    mock_mw.project_manager = None
+    mock_mw.string_settings_updater = MagicMock()
+    mock_mw.undo_manager = MagicMock()
+    mock_mw.search_match_block_indices = set()
+
+    tree = QTreeWidget()
+    qtbot.addWidget(tree)
+    physical_0 = QTreeWidgetItem(["Block 0"])
+    physical_0.setData(0, Qt.ItemDataRole.UserRole, 0)
+    physical_1 = QTreeWidgetItem(["Block 1"])
+    physical_1.setData(0, Qt.ItemDataRole.UserRole, 1)
+    tree.addTopLevelItems([physical_0, physical_1])
+    tree.setCurrentItem(physical_1)
+    mock_mw.block_list_widget = tree
+
+    def populate_strings(block_idx, _category_name):
+        mock_mw.data_store.displayed_string_indices = list(
+            range(len(mock_mw.data_store.data[block_idx]))
+        )
+
+    ui_updater = MagicMock()
+    ui_updater.populate_strings_for_block.side_effect = populate_strings
+    mock_mw.ui_updater = ui_updater
+    selection_handler = ListSelectionHandler(mock_mw, mock_dsp, ui_updater)
+
+    def select_displayed_string(relative_idx, *_args, **_kwargs):
+        selected = mock_mw.data_store.displayed_string_indices[relative_idx]
+        if isinstance(selected, tuple):
+            mock_mw.data_store.current_block_idx, mock_mw.data_store.current_string_idx = selected
+        else:
+            mock_mw.data_store.current_string_idx = selected
+
+    selection_handler.string_selected_from_preview = select_displayed_string
+    mock_mw.list_selection_handler = selection_handler
+
+    # The old absolute-index route cannot select an item from this sparse category view.
+    selection_handler.select_string_by_absolute_index(0)
+    assert mock_mw.data_store.current_string_idx == 5
+    mock_mw.data_store.current_string_idx = 5
+
+    for name in ("preview_text_edit", "original_text_edit", "edited_text_edit"):
+        editor = MagicMock()
+        editor.objectName.return_value = name
+        editor.highlightManager.clear_search_match_highlights = MagicMock()
+        editor.document.return_value.blockCount.return_value = 1
+        block = editor.document.return_value.findBlockByNumber.return_value
+        block.isValid.return_value = True
+        block.text.return_value = "An END match"
+        block.position.return_value = 0
+        setattr(mock_mw, name, editor)
+
+    handler = SearchHandler(mock_mw, mock_dsp, ui_updater)
+    with patch("handlers.search_handler.QTextCursor", MagicMock()):
+        assert handler.find_next("END", False, True, ignore_tags)
+
+    assert mock_mw.data_store.current_view_kind is ViewKind.PHYSICAL
+    assert (mock_mw.data_store.current_block_idx, mock_mw.data_store.current_string_idx) == (1, 0)
+    assert tree.currentItem() is physical_1
 
 # --- Unit tests for _find_in_text tuple return ---
 

@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Search: select the correct physical row on the first Next or Prev from category and virtual views.
 - Settings: add a Tools tab for multiple named script toolbar buttons with editable text or emoji badges; migrate the previous single script path automatically.
 - Settings: rescan issues only when detection inputs change; endpoint, appearance, auto-fix and unchanged settings no longer trigger a full scan.
 - Glossary: restore source-term underlines in Original after selecting a string, alongside translated-term underlines in Editable.

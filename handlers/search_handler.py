@@ -2,9 +2,7 @@
 # handlers/search_handler.py
 import re
 from typing import Any, List, Tuple
-from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QTextCursor
-from PyQt6.QtWidgets import QTreeWidgetItemIterator
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug
 from utils.utils import remove_curly_tags, convert_raw_to_display_text, prepare_text_for_tagless_search, is_fuzzy_match, find_smart_matches
@@ -252,24 +250,10 @@ class SearchHandler(BaseHandler):
         log_debug(f"Navigating. Data: B:{block_idx_match_in_data}, S:{string_idx_match_in_data}. SearchTextPos:{char_pos_in_search_text}, SearchTextLen:{match_len_in_search_text}, TaglessNLSearch:{was_search_tagless_and_newline_agnostic}")
         self.clear_all_search_highlights()
         
-        # Set target block/string idx on list selection handler to override block restoration
-        self.mw.list_selection_handler._target_block_idx = block_idx_match_in_data
-        self.mw.list_selection_handler._target_string_idx = string_idx_match_in_data
-        
-        try:
-            if self.mw.data_store.current_block_idx != block_idx_match_in_data:
-                iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
-                while iterator.value():
-                    item = iterator.value()
-                    if item.data(0, Qt.UserRole) == block_idx_match_in_data:
-                        self.mw.block_list_widget.setCurrentItem(item)
-                        break
-                    iterator += 1
-            
-            self.mw.list_selection_handler.select_string_by_absolute_index(string_idx_match_in_data)
-        finally:
-            self.mw.list_selection_handler._target_block_idx = None
-            self.mw.list_selection_handler._target_string_idx = None
+        if not self.mw.list_selection_handler.navigate_to_physical_string(
+            block_idx_match_in_data, string_idx_match_in_data
+        ):
+            return
 
         # Get relative index for preview_text_edit highlights
         rel_idx = -1

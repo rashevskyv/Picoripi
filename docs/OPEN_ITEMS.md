@@ -1,14 +1,19 @@
 ---
 status: current
-updated: 2026-10-20
+updated: 2026-10-26
 owns: unfinished work
-tokens: 72.3k
+tokens: 72.5k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## Quick find follow-ups (2026-10-26)
+
+- `handlers/search_handler.py::_find`: Prev repeats a match at character zero because `-1` also means the end-of-string sentinel; reproduce with two matching strings before changing the reverse-search offset.
+- `handlers/list_selection/physical_selection_mixin.py::select_string_by_absolute_index`: when an active physical-view filter excludes the target, the absolute-index fallback can select a different visible row; define how navigation reveals filtered results. Hide empty strings cannot hide a nonempty original match with a valid empty cache.
 
 ## Luigi's Mansion, GameCube and 3DS (`plugins/luigis_mansion_1_gc`, `plugins/luigis_mansion_1_3ds`, 2026-10-22, branch `feat/luigis-mansion`)
 

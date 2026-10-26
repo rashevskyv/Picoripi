@@ -42,10 +42,6 @@ class TestSearchHandler(unittest.TestCase):
         self.patcher_cursor = patch('handlers.search_handler.QTextCursor')
         self.patcher_cursor.start()
         
-        self.patcher_tree_iter = patch('handlers.search_handler.QTreeWidgetItemIterator')
-        mock_tree_iter_cls = self.patcher_tree_iter.start()
-        mock_tree_iter_cls.return_value.value.return_value = None
-
         self.ctx = MockContext()
         self.data_processor = MagicMock()
         self.data_processor.get_current_string_text.side_effect = lambda b, s: (self.ctx.data_store.data[b][s], None)
@@ -54,7 +50,6 @@ class TestSearchHandler(unittest.TestCase):
 
     def tearDown(self):
         self.patcher_cursor.stop()
-        self.patcher_tree_iter.stop()
 
 
     def test_search_basic(self):

@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-25
+updated: 2026-10-26
 owns: feature inventory
 tokens: 15.1k
 purpose: Every feature in detail; the wiki wins on a conflict
@@ -232,6 +232,7 @@ page and a wiki page disagree, the wiki page is right and this page needs the fi
 - **Live Simulator**: Renders real-time text layouts to test custom kerning.
 
 ## Smart Search & Navigation
+- **Exact Result Navigation**: Quick find opens the match's physical block and selects its row when starting from category or virtual views.
 - **Punctuation-Insensitive Match**: If the search query contains punctuation marks (like commas, periods, exclamation points, etc.), the match is strictly mapped to the exact punctuation layout. If no punctuation is typed in the search query, the engine ignores any punctuation present in the target strings, seamlessly matching across commas, quotes, and hyphens.
 - **Word-Level Case Sensitivity**: Case sensitivity is evaluated on a per-word basis. Typing a word with a capital letter (e.g. `Link`) makes that specific word's match case-sensitive, while words typed in lowercase (e.g. `sword`) remain case-insensitive.
 - **Search Focus Preservation**: Pressing the Enter key while the search input panel is active cycles to the next result, updating the text editor and highlighting the text, but keeps keyboard focus active on the search input itself. This allows for fluid, continuous "Next" traversal without manual mouse focus restoration.
