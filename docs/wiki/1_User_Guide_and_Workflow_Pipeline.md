@@ -282,6 +282,7 @@ Tree toolbar (bottom of the panel; buttons start disabled):
 With the glossary enabled, Original underlines source terms and Editable underlines their translated forms. After selecting another string, both editors restore glossary underlines when deferred highlighting finishes.
 
 **Glossary Dialog Layout & Controls**:
+- **Mouse wheel**: Term tables, proposed variants, and occurrences scroll in small pixel steps, so tall cards do not set the wheel speed.
 - **Left Panel (Terms & Categories)**:
   - Top: Search bar for filtering terms in real time.
   - Middle: Category tabs (`_tab_widget`) organizing entries into semantic domains ("Characters", "Items", "Locations", etc.).

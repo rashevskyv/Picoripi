@@ -2,6 +2,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Glossary: use small pixel steps for mouse-wheel scrolling in term tables, proposed variants, and occurrences, independent of card height.
+
 - Glossary: occurrence cards show the current Ukrainian message translation, including unsaved edits, alongside the original and reference text.
 
 - Search: select the correct physical row on the first Next or Prev from category and virtual views.

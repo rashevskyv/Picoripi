@@ -151,6 +151,7 @@ page and a wiki page disagree, the wiki page is right and this page needs the fi
 
 
 ## Glossary & Terminology Subsystem
+- **Gentle Wheel Scrolling**: Term tables, proposed variants, and occurrences use small pixel steps independent of card height.
 - **One Automatic Glossary Route**: Structural game data and Script Markup seeds, incremental AI discovery, context descriptions, and translation variants now run in one uninterrupted pass. The project defaults to all blocks but exposes a per-block checklist, keeps confirmed user choices intact, and offers an explicit full re-scan when fresh evidence is needed.
 - **Separate AI Review Notes**: The glossary keeps its clean translation description separate from sweep observations, alternative rationales, speaker-identity evidence, and conservative possible-duplicate proposals. Ambiguities remain actionable without blocking text translation.
 - **Backlog Report Instead of “Done”**: Completion reports show review, ambiguity, untranslated, undescribed, and duplicate counts with direct actions to review the glossary or continue in the editor.

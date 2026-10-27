@@ -152,6 +152,8 @@ class TableMixin:
     def _make_glossary_table(self) -> QTableWidget:
         table = _GlossaryTermTable(self)
         table.setAutoScroll(False)
+        table.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+        table.verticalScrollBar().setSingleStep(20)
         table.setColumnCount(4)
         table.setHorizontalHeaderLabels([
             tr('Term'),
