@@ -1,7 +1,7 @@
 """Glossary term table tabs, selection, filter, and reload."""
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QBrush
@@ -478,6 +478,7 @@ class TableMixin:
         reference_data: Optional[Dict[Tuple[int, int], str]] = None,
         reference_language: Optional[str] = None,
         source_data: Optional[Any] = None,
+        translation_callback: Optional[Callable[[int, int], Optional[str]]] = None,
     ) -> None:
         """Hot-reload entries and occurrences from external source and refresh UI."""
         if reference_data is not None:
@@ -486,6 +487,8 @@ class TableMixin:
             self._reference_language = reference_language
         if source_data is not None:
             self._source_data = source_data
+        if translation_callback is not None:
+            self._translation_callback = translation_callback
         self._all_entries = list(entries)
         self._duplicate_pairs = possible_duplicate_pairs(self._all_entries)
         self._occurrences = occurrence_map

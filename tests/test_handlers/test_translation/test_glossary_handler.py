@@ -144,10 +144,16 @@ def test_gh_show_glossary_dialog(mock_box, mock_dialog, mock_worker_cls, mock_pr
     mock_box.reset_mock()
     
     # Success
-    gh.mw.data_store.data = [[]]
+    gh.mw.data_store.data = [["English source"]]
+    gh.data_processor.get_current_string_text.return_value = (
+        "Український переклад", "edited_data (in-memory)"
+    )
+    gh.data_processor.is_string_translated.return_value = True
     gh.show_glossary_dialog("initial")
     assert gh.dialog == mock_dialog_inst
     mock_dialog_inst.show.assert_called_once()
+    translation_callback = mock_dialog.call_args.kwargs["translation_callback"]
+    assert translation_callback(0, 0) == "Український переклад"
     
     # Already shown
     mock_dialog_inst.isVisible.return_value = True

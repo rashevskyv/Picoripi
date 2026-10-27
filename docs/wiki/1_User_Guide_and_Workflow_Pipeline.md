@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-25
+updated: 2026-10-26
 owns: ui/, components/, dialogs/
-tokens: 11.5k
+tokens: 11.6k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -293,7 +293,7 @@ With the glossary enabled, Original underlines source terms and Editable underli
   - **Description & Notes**: The section title, **AI Variations** button, and **Profiled via AI** checkbox use separate header rows. The checkbox tooltip explains character speech profiling status.
   - **Collapsible Sections**: Description, AI Notes, and Occurrences panels feature collapse/expand toggle buttons (`[▼]/[▶]`) to optimize vertical space. Their headers retain enough height for visible buttons and checkboxes when you resize the panels or change the font or theme.
   - **Granular Occurrence Filtering**: Independent checkboxes for **Mentions** (text references) and **Spoken** (lines spoken by this character).
-  - **Reference Line Preview & Occurrence Alignment**: For each dialogue occurrence, the preview shows the complete original message and the full corresponding reference record for that (block, string) without trimming surrounding lines. Long previews scroll vertically, even when there is only one occurrence. The occurrence is highlighted within the full original text, and matching reference terms are highlighted within the reference lines while preserving all line breaks. The `RU:` block is displayed only when the reference is explicitly identified as Russian; other reference languages provide evidence to the AI translator without displaying an `RU:` badge in occurrences.
+  - **Reference Line Preview & Occurrence Alignment**: For each dialogue occurrence, the preview shows the complete original message, the current Ukrainian translation when one exists, and the full corresponding reference record for that (block, string) without trimming surrounding lines. Long previews scroll vertically, even when there is only one occurrence. The occurrence is highlighted within the full original text, and matching reference terms are highlighted within the reference lines while preserving all line breaks. The `UK:` block uses the current saved or edited translation and is omitted when no translation exists. The `RU:` block is displayed only when the reference is explicitly identified as Russian; other reference languages provide evidence to the AI translator without displaying an `RU:` badge in occurrences.
   - **In-Place Variant Application & Double-Click**: Double-clicking any proposed variant or clicking **Apply selected variant** inserts the candidate translation and updates notes in place without advancing to the next row. Confirmation and progression to the next term are strictly decoupled and triggered by clicking **Confirm translation**. Reference variants from external patches are styled distinctly (cyan/italic) and protected from double-click application.
 - **Glossary translation updates**: The review dialog lists each translated string once when it contains the contiguous full old translation phrase, ignoring case and requiring word boundaries. Editing the old phrase refreshes the list. Apply, batch replacement, and AI actions use only matching strings. Quick replacement preserves surrounding punctuation and game tags.
 - **Bottom Toolbar**: Contains **Force Retranslate...** (highlighted in orange `#ea580c`, creates automatic `glossary.json.bak` backup before AI re-translates entries) and **`[☁ Companion Sync...]`** for 1-click push and pull synchronization with [Picoripi Companion](12_Picoripi_Companion.md).

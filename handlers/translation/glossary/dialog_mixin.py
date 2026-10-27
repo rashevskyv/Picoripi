@@ -169,6 +169,7 @@ class DialogMixin:
                 reference_data=ref_data,
                 reference_language=ref_lang,
                 source_data=data_source,
+                translation_callback=self._get_current_translation_for_occurrence,
                 transfer_callback=self._promote_to_series,
                 transfer_label=tr('Promote to Series Glossary'),
                 series_menu_callback=self._show_series_glossary_menu,
@@ -242,6 +243,7 @@ class DialogMixin:
             reference_data=ref_data,
             reference_language=ref_lang,
             source_data=data_source,
+            translation_callback=self._get_current_translation_for_occurrence,
         )
         self._refresh_series_conflicts()
 
@@ -293,6 +295,17 @@ class DialogMixin:
         return self.data_processor._get_string_from_source(
             block_idx, string_idx, getattr(self.mw.data_store, "data", None), "original_for_translation"
         )
+
+    def _get_current_translation_for_occurrence(
+        self, block_idx: int, string_idx: int
+    ) -> Optional[str]:
+        """Return the current translated value, excluding original source fallbacks."""
+        text, provenance = self.data_processor.get_current_string_text(block_idx, string_idx)
+        if provenance not in ("edited_data (in-memory)", "edited_file_data"):
+            return None
+        if text and text.strip() and not self.data_processor.is_string_translated(block_idx, string_idx):
+            return None
+        return text
 
     def _get_original_block(self, block_idx: int) -> List[str]:
         """Internal helper to get the original block."""

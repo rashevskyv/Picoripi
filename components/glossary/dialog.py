@@ -82,6 +82,7 @@ class GlossaryDialog(
         reference_data: Optional[Dict[Tuple[int, int], str]] = None,
         reference_language: Optional[str] = None,
         source_data: Optional[Any] = None,
+        translation_callback: Optional[Callable[[int, int], Optional[str]]] = None,
         transfer_callback: Optional[Callable[[List[GlossaryEntry]], None]] = None,
         transfer_label: str = "",
         series_menu_callback: Optional[Callable[[], None]] = None,
@@ -153,6 +154,7 @@ class GlossaryDialog(
         self._reference_data: Dict[Tuple[int, int], str] = dict(reference_data) if reference_data else {}
         self._reference_language: Optional[str] = reference_language
         self._source_data = source_data
+        self._translation_callback = translation_callback
         if self._source_data is None and parent is not None:
             data_store = getattr(parent, "data_store", None)
             if data_store is not None:

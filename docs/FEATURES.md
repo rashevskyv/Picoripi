@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-26
 owns: feature inventory
-tokens: 15.1k
+tokens: 15.2k
 purpose: Every feature in detail; the wiki wins on a conflict
 ---
 # Picoripi features
@@ -169,7 +169,7 @@ page and a wiki page disagree, the wiki page is right and this page needs the fi
 - **Granular Occurrence Filtering**: Features independent checkboxes to filter term occurrences by Mentions (direct text matches) and Spoken lines (dialogue spoken by character).
 - **Relocated "Needs Review" Filter**: The unconfirmed terms filter checkbox has been relocated from the search bar directly beneath the terms and categories table (`_tab_widget`), preserving all vertical space for term details while visually grouping it with the table it filters.
 - **Context-Enriched AI Discussion**: Opens an interactive AI chat window directly from the entry toolbar or table context menu with comprehensive context automatically compiled into the prompt (category, original term, translation, external wiki reference link, confirmed speaker codes, description notes, and in-game dialogue occurrences with script line quotes).
-- **Reference Patch Occurrences Context**: For every dialogue occurrence, the glossary dialog displays the complete original source message and the full corresponding reference record for that (block, string) without trimming surrounding lines. The occurrence is highlighted within the full original message, and matching reference terms are highlighted within the reference lines while preserving all line breaks and HTML formatting. The `RU:` preview is shown only when the loaded reference is explicitly identified as Russian (other loaded reference languages provide context to the AI translator without being labeled as RU). If the reference record is absent or empty, the `RU:` block is omitted.
+- **Reference Patch Occurrences Context**: For every dialogue occurrence, the glossary dialog displays the complete original source message, the current Ukrainian translation when available, and the full corresponding reference record for that (block, string) without trimming surrounding lines. The occurrence is highlighted within the full original message, and matching reference terms are highlighted within the reference lines while preserving all line breaks and HTML formatting. The `RU:` preview is shown only when the loaded reference is explicitly identified as Russian (other loaded reference languages provide context to the AI translator without being labeled as RU). If the reference record is absent or empty, the `RU:` block is omitted. The `UK:` block reads the current edited or saved translation for the exact message, preserves all line breaks, and is omitted for empty values or untranslated source copies.
 - **Force Retranslate with AI & Safe Backup**:
   - Dedicated **"Force Retranslate..."** button in the Glossary dialog bottom toolbar (styled with distinct orange highlight `#ea580c`) allowing users to re-translate all glossary entries using AI with the latest prompts, orthography, and transcription rules.
   - Automatically creates a durable safety backup copy (`glossary.json.bak`) prior to starting.

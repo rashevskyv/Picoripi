@@ -314,3 +314,100 @@ def test_single_long_occurrence_can_scroll_to_bottom(qtbot):
     assert bar.isVisible()
     bar.setValue(bar.maximum())
     assert bar.value() == bar.maximum()
+
+
+def test_current_uk_translation_uses_exact_location_and_refreshes(qtbot):
+    entry = _entry("Master Sword")
+    occurrences = [
+        GlossaryOccurrence(
+            entry=entry, block_idx=2, string_idx=1, line_idx=0,
+            start=0, end=12, line_text="Master Sword",
+        ),
+        GlossaryOccurrence(
+            entry=entry, block_idx=2, string_idx=3, line_idx=0,
+            start=0, end=12, line_text="Master Sword",
+        ),
+    ]
+    current = {(2, 1): "Перший рядок\r\nДругий <рядок>&", (2, 3): "Інший переклад"}
+    dialog = GlossaryDialog(
+        entries=[entry], occurrence_map={entry.original: occurrences},
+        parent=None, jump_callback=lambda _occ: None,
+        source_data={(2, 1): "Master Sword EN", (2, 3): "Master Sword EN"},
+        translation_callback=lambda block, string: current.get((block, string)),
+    )
+    qtbot.addWidget(dialog)
+    dialog.focus_term(entry.original)
+
+    first = dialog._occurrence_list.item(0).data(Qt.ItemDataRole.DisplayRole)
+    second = dialog._occurrence_list.item(1).data(Qt.ItemDataRole.DisplayRole)
+    assert "UK:</b> Перший рядок<br>Другий &lt;рядок&gt;&amp;" in first
+    assert "UK:</b> Інший переклад" in second
+
+    current[(2, 1)] = "Оновлений переклад"
+    dialog._repopulate_occurrences_filter()
+    first = dialog._occurrence_list.item(0).data(Qt.ItemDataRole.DisplayRole)
+    assert "UK:</b> Оновлений переклад" in first
+    assert "Перший рядок" not in first
+
+
+def test_current_uk_translation_omits_missing_and_empty_values(qtbot):
+    entry = _entry("Master Sword")
+    occ = GlossaryOccurrence(
+        entry=entry, block_idx=0, string_idx=0, line_idx=0,
+        start=0, end=12, line_text="Master Sword",
+    )
+    current = {"value": ""}
+    dialog = GlossaryDialog(
+        entries=[entry], occurrence_map={entry.original: [occ]},
+        parent=None, jump_callback=lambda _occ: None,
+        source_data={(0, 0): "Master Sword EN"},
+        translation_callback=lambda _block, _string: current["value"],
+    )
+    qtbot.addWidget(dialog)
+    dialog.focus_term(entry.original)
+    html = dialog._occurrence_list.item(0).data(Qt.ItemDataRole.DisplayRole)
+    assert "UK:" not in html
+    assert "EN:</b>" in html
+
+    current["value"] = None
+    dialog._repopulate_occurrences_filter()
+    html = dialog._occurrence_list.item(0).data(Qt.ItemDataRole.DisplayRole)
+    assert "UK:" not in html
+    assert "EN:</b>" in html
+
+
+def test_glossary_translation_callback_excludes_original_fallback():
+    from types import SimpleNamespace
+
+    from core.data_processor.query_mixin import QueryMixin
+    from core.data_processor.ui_msg_mixin import UiMsgMixin
+    from handlers.translation.glossary.dialog_mixin import DialogMixin
+
+    class DataProcessor(QueryMixin, UiMsgMixin):
+        pass
+
+    data_store = SimpleNamespace(
+        edited_data={(3, 5): "Незбережена правка"},
+        edited_file_data=[[], [], [], ["", "", "", "", "", "Збережений переклад"]],
+        data=[[], [], [], ["", "", "", "", "", "English source"]],
+    )
+    processor = DataProcessor()
+    processor.mw = SimpleNamespace(data_store=data_store)
+    handler = SimpleNamespace(data_processor=processor)
+
+    assert processor.get_current_string_text(3, 5) == ("Незбережена правка", "edited_data (in-memory)")
+    assert processor.is_string_translated(3, 5)
+    assert DialogMixin._get_current_translation_for_occurrence(handler, 3, 5) == "Незбережена правка"
+    data_store.edited_data.clear()
+    assert DialogMixin._get_current_translation_for_occurrence(handler, 3, 5) == "Збережений переклад"
+    data_store.edited_file_data[3][5] = "English source"
+    assert DialogMixin._get_current_translation_for_occurrence(handler, 3, 5) is None
+    data_store.edited_file_data[3][5] = "Збережений переклад"
+    data_store.edited_data[(3, 5)] = ""
+    assert DialogMixin._get_current_translation_for_occurrence(handler, 3, 5) == ""
+    data_store.edited_data.clear()
+    assert DialogMixin._get_current_translation_for_occurrence(handler, 3, 5) == "Збережений переклад"
+    data_store.edited_file_data[3][5] = ""
+    assert DialogMixin._get_current_translation_for_occurrence(handler, 3, 5) == ""
+    data_store.edited_file_data = []
+    assert DialogMixin._get_current_translation_for_occurrence(handler, 3, 5) is None

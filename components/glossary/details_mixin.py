@@ -237,6 +237,18 @@ class DetailsMixin:
             en_html = "<br>".join(rendered_en)
             preview_html = f"<div style='margin-top: 2px;'><b style='color: #94a3b8;'>EN:</b> {en_html}</div>"
 
+            translation_callback = getattr(self, "_translation_callback", None)
+            uk_block = ""
+            if callable(translation_callback):
+                translated = translation_callback(occ.block_idx, occ.string_idx)
+                if translated is not None and str(translated).strip():
+                    uk_lines = str(translated).replace("\r\n", "\n").replace("\r", "\n").split("\n")
+                    uk_html = "<br>".join(escape(line) for line in uk_lines)
+                    uk_block = (
+                        f"<div style='margin-top: 4px;'><b style='color: #16a34a;'>"
+                        f"{tr('UK:')}</b> {uk_html}</div>"
+                    )
+
             ru_block = ""
             if is_ru_ref:
                 ru_raw = ref_data.get((occ.block_idx, occ.string_idx))
@@ -249,10 +261,7 @@ class DetailsMixin:
                         f"background-color: rgba(56, 189, 248, 0.12); border-radius: 3px;'>"
                         f"<b style='color: #0284c7;'>RU:</b> {ru_html}</div>"
                     )
-            if ru_block:
-                item_content = f"{header_html}<br>{preview_html}{ru_block}"
-            else:
-                item_content = f"{header_html}<br>{preview_html}"
+            item_content = f"{header_html}<br>{preview_html}{uk_block}{ru_block}"
 
             item = QListWidgetItem()
             item.setData(Qt.ItemDataRole.DisplayRole, item_content)
