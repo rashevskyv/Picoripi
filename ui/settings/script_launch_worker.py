@@ -33,8 +33,9 @@ class ScriptLaunchWorker(WorkerThread):
             if self.isInterruptionRequested():
                 return
             if os.name == "nt":
+                # Doubled outer quotes survive cmd's /k quote stripping, so "&" and spaces stay in the path.
                 subprocess.Popen(
-                    ["cmd.exe", "/k", str(resolved_path)],
+                    f'cmd.exe /k ""{resolved_path}""',
                     cwd=str(path.parent.resolve()),
                     creationflags=0x00000010,
                 )

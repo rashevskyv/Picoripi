@@ -224,7 +224,11 @@ def test_script_launch_worker_reports_success_without_running_a_script(qapp, qtb
 
         assert signal.args[0] == worker.worker_id
         assert signal.args[1:] == ["Build", "", True]
-        assert launched[0][0][0][-1] == str(script.resolve())
+        command = launched[0][0][0]
+        if isinstance(command, str):
+            assert command == f'cmd.exe /k ""{script.resolve()}""'
+        else:
+            assert command[-1] == str(script.resolve())
         assert launched[0][1]["cwd"] == str(tmp_path)
     finally:
         if worker.isRunning():
