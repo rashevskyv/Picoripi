@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from PyQt6.QtCore import Qt, QEvent
+from PyQt6.QtCore import QPoint, Qt, QEvent
 from PyQt6.QtGui import QAction, QKeyEvent
 from PyQt6.QtWidgets import QComboBox, QCompleter, QLineEdit, QWidget
 from PyQt6.QtTest import QTest
@@ -126,18 +126,33 @@ def test_MainWindowEventFilter_routes_speaker_popup_redo_to_app_action(qapp):
 
 def test_speaker_click_selects_all_existing_text(qapp, qtbot):
     mw = QWidget()
+    other = QLineEdit(mw)
     mw.speaker_combobox = QComboBox(mw)
     mw.speaker_combobox.setEditable(True)
     mw.speaker_combobox.setCurrentText("System")
     line_edit = mw.speaker_combobox.lineEdit()
     filter_obj = MainWindowEventFilter(mw)
-    line_edit.installEventFilter(filter_obj)
+    qapp.installEventFilter(filter_obj)
     qtbot.addWidget(mw)
     mw.show()
     qtbot.waitExposed(mw)
+    mw.activateWindow()
+    qapp.setActiveWindow(mw)
+    qtbot.waitActive(mw)
+    other.setFocus()
+    assert other.hasFocus()
 
     QTest.mouseClick(line_edit, Qt.MouseButton.LeftButton)
     qtbot.waitUntil(lambda: line_edit.selectedText() == "System", timeout=3000)
+
+    click_point = QPoint(
+        line_edit.fontMetrics().horizontalAdvance("Sys"), line_edit.height() // 2
+    )
+    expected_position = line_edit.cursorPositionAt(click_point)
+    QTest.mouseClick(line_edit, Qt.MouseButton.LeftButton, pos=click_point)
+    qtbot.wait(1)
+    assert line_edit.selectedText() == ""
+    assert line_edit.cursorPosition() == expected_position
 
 
 def test_speaker_autocomplete_is_prefix_based_and_case_insensitive(qapp):
@@ -177,14 +192,157 @@ def test_all_search_fields_select_existing_text_on_click(
     search.setText("Midna")
     if marked:
         search.setProperty("selectAllOnClick", True)
+    other = QLineEdit(mw)
     filter_obj = MainWindowEventFilter(mw)
-    search.installEventFilter(filter_obj)
+    qapp.installEventFilter(filter_obj)
+    qtbot.addWidget(mw)
+    mw.show()
+    qtbot.waitExposed(mw)
+    mw.activateWindow()
+    qapp.setActiveWindow(mw)
+    qtbot.waitActive(mw)
+    other.setFocus()
+    assert other.hasFocus()
+
+    QTest.mouseClick(search, Qt.MouseButton.LeftButton)
+    qtbot.waitUntil(lambda: search.selectedText() == "Midna", timeout=3000)
+
+    click_point = QPoint(
+        search.fontMetrics().horizontalAdvance("Mid"), search.height() // 2
+    )
+    expected_position = search.cursorPositionAt(click_point)
+    QTest.mouseClick(search, Qt.MouseButton.LeftButton, pos=click_point)
+    qtbot.wait(1)
+    assert search.selectedText() == ""
+    assert search.cursorPosition() == expected_position
+
+
+def test_search_click_selects_again_after_blur(qapp, qtbot):
+    mw = QWidget()
+    search = QLineEdit(mw)
+    search.setPlaceholderText("Search entries")
+    search.setText("Midna")
+    other = QLineEdit(mw)
+    filter_obj = MainWindowEventFilter(mw)
+    qapp.installEventFilter(filter_obj)
+    qtbot.addWidget(mw)
+    mw.show()
+    qtbot.waitExposed(mw)
+    mw.activateWindow()
+    qapp.setActiveWindow(mw)
+    qtbot.waitActive(mw)
+    other.setFocus()
+    assert other.hasFocus()
+
+    QTest.mouseClick(search, Qt.MouseButton.LeftButton)
+    qtbot.waitUntil(lambda: search.selectedText() == "Midna", timeout=3000)
+    QTest.mouseClick(other, Qt.MouseButton.LeftButton)
+    QTest.mouseClick(search, Qt.MouseButton.LeftButton)
+    qtbot.waitUntil(lambda: search.selectedText() == "Midna", timeout=3000)
+
+
+def test_first_click_double_click_keeps_native_word_selection(qapp, qtbot):
+    mw = QWidget()
+    search = QLineEdit(mw)
+    search.setPlaceholderText("Search entries")
+    search.setText("Midna Fado")
+    other = QLineEdit(mw)
+    filter_obj = MainWindowEventFilter(mw)
+    qapp.installEventFilter(filter_obj)
+    qtbot.addWidget(mw)
+    mw.show()
+    qtbot.waitExposed(mw)
+    mw.activateWindow()
+    qapp.setActiveWindow(mw)
+    qtbot.waitActive(mw)
+    other.setFocus()
+    assert other.hasFocus()
+
+    click_point = QPoint(
+        search.fontMetrics().horizontalAdvance("Midna F"), search.height() // 2
+    )
+    QTest.mouseClick(search, Qt.MouseButton.LeftButton, pos=click_point)
+    QTest.mouseDClick(search, Qt.MouseButton.LeftButton, pos=click_point)
+    QTest.mouseRelease(search, Qt.MouseButton.LeftButton, pos=click_point)
+    qtbot.wait(1)
+
+    assert search.selectedText() == "Fado"
+
+
+def test_first_click_drag_keeps_user_selection(qapp, qtbot):
+    mw = QWidget()
+    search = QLineEdit(mw)
+    search.setPlaceholderText("Search entries")
+    search.setText("Midna Fado")
+    other = QLineEdit(mw)
+    filter_obj = MainWindowEventFilter(mw)
+    qapp.installEventFilter(filter_obj)
+    qtbot.addWidget(mw)
+    mw.show()
+    qtbot.waitExposed(mw)
+    mw.activateWindow()
+    qapp.setActiveWindow(mw)
+    qtbot.waitActive(mw)
+    other.setFocus()
+    assert other.hasFocus()
+
+    start = QPoint(
+        search.fontMetrics().horizontalAdvance("M"), search.height() // 2
+    )
+    end = QPoint(
+        search.fontMetrics().horizontalAdvance("Mid"), search.height() // 2
+    )
+    QTest.mousePress(search, Qt.MouseButton.LeftButton, pos=start)
+    QTest.mouseMove(search, end, delay=20)
+    QTest.mouseRelease(search, Qt.MouseButton.LeftButton, pos=end)
+    qtbot.wait(1)
+
+    assert search.selectedText()
+    assert search.selectedText() != search.text()
+
+
+def test_right_click_focus_does_not_select_all_on_next_left_click(qapp, qtbot):
+    mw = QWidget()
+    search = QLineEdit(mw)
+    search.setPlaceholderText("Search entries")
+    search.setText("Midna Fado")
+    other = QLineEdit(mw)
+    filter_obj = MainWindowEventFilter(mw)
+    qapp.installEventFilter(filter_obj)
+    qtbot.addWidget(mw)
+    mw.show()
+    qtbot.waitExposed(mw)
+    mw.activateWindow()
+    qapp.setActiveWindow(mw)
+    qtbot.waitActive(mw)
+    other.setFocus()
+    assert other.hasFocus()
+
+    QTest.mouseClick(search, Qt.MouseButton.RightButton)
+    assert search.hasFocus()
+    if qapp.activePopupWidget() is not None:
+        QTest.keyClick(qapp.activePopupWidget(), Qt.Key.Key_Escape)
+    qtbot.wait(1)
+    QTest.mouseClick(search, Qt.MouseButton.LeftButton)
+    qtbot.wait(1)
+
+    assert search.selectedText() == ""
+
+
+def test_ordinary_line_edit_click_does_not_select_all(qapp, qtbot):
+    mw = QWidget()
+    editor = QLineEdit(mw)
+    editor.setPlaceholderText("Speaker name")
+    editor.setText("Midna")
+    filter_obj = MainWindowEventFilter(mw)
+    qapp.installEventFilter(filter_obj)
     qtbot.addWidget(mw)
     mw.show()
     qtbot.waitExposed(mw)
 
-    QTest.mouseClick(search, Qt.MouseButton.LeftButton)
-    qtbot.waitUntil(lambda: search.selectedText() == "Midna", timeout=3000)
+    QTest.mouseClick(editor, Qt.MouseButton.LeftButton)
+
+    assert editor.selectedText() == ""
 
 
 def test_speaker_enter_commits_only_first_qcombobox_signal(qapp):

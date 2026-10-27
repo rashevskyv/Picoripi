@@ -41,7 +41,7 @@ Read the row, then open only the document you need.
 | `docs/wiki/README.md` (+uk) | Wiki index and reading order | 1.1k | current | docs/wiki |
 | `docs/wiki/Recipes.md` (+uk) | Short task recipes: what to press, in order, for each common goal, with a link to the full page | 2.9k | current | docs/wiki |
 | `docs/wiki/Saving_and_Recovery.md` (+uk) | Saving, undo, backups, session recovery, revert and moving a project. | 2.2k | current | core/data_processor/save_mixin.py, core/data_processor/session_manager.py, core/data_processor/revert_manager.py, core/saved_translations_manager.py, core/undo_manager.py |
-| `docs/wiki/Search_Bookmarks.md` (+uk) | Quick find, Advanced Search & Replace, search history and bookmarks. | 1.9k | current | components/search_panel.py, handlers/search_handler.py, dialogs/search_review/, handlers/bookmark_handler.py |
+| `docs/wiki/Search_Bookmarks.md` (+uk) | Quick find, Advanced Search & Replace, search history and bookmarks. | 2.0k | current | components/search_panel.py, handlers/search_handler.py, dialogs/search_review/, handlers/bookmark_handler.py |
 | `docs/wiki/Supported_Games.md` (+uk) | Table of every game plugin with platforms, wizard needs and build targets. | 12.4k | current | plugins/ |
 | `docs/wiki/Troubleshooting.md` (+uk) | Symptom, cause and fix tables for the problems a new user meets, plus how to read the log and report a bug. | 2.8k | current | handlers/ and ui/ (messages and dialogs) |
 | `docs/wiki/Warnings_and_Autofix.md` (+uk) | Problem lines, warning colours, navigation, Detection and Auto-fix settings, Fix All Strings, rescans and the spell checker. | 2.1k | current | handlers/issue_scan_handler.py |

@@ -2,6 +2,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Search: select text only when a click enters an unfocused search or filter field; subsequent clicks position the caret.
+
 - Glossary: use small pixel steps for mouse-wheel scrolling in term tables, proposed variants, and occurrences, independent of card height.
 
 - Glossary: occurrence cards show the current Ukrainian message translation, including unsaved edits, alongside the original and reference text.

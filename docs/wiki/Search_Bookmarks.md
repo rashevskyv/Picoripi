@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-26
 owns: components/search_panel.py, handlers/search_handler.py, dialogs/search_review/, handlers/bookmark_handler.py
-tokens: 1.9k
+tokens: 2.0k
 purpose: Quick find, Advanced Search & Replace, search history and bookmarks.
 ---
 # Find, replace and bookmarks
@@ -31,6 +31,7 @@ The boxes next to the search text:
 
 Rules for quick find:
 
+- Clicking an unfocused search or filter box selects its text. Further clicks place the cursor; dragging selects a range.
 - The search covers all blocks in the project.
 - **Next** and **Prev** open the physical block of the match and select its line, including from category or virtual views.
 - The search does not wrap around. At the end it shows `Not found (end)`. Press **Next** again to start from the top.
