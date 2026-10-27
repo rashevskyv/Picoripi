@@ -293,3 +293,18 @@ def test_script_launch_controller_shutdown_suppresses_late_results(qapp):
     assert mw.show_message.call_count == 0
     assert mw.statusBar.showMessage.call_count == 0
     assert controller._workers == {}
+
+
+def test_toolbar_build_shows_saved_tools_at_startup(qapp):
+    mw = QMainWindow()
+    for name in ("save", "undo_typing", "redo_typing", "find", "toggle_preview",
+                 "bfn_editor", "recalculate_widths", "open_settings", "help_shortcuts"):
+        setattr(mw, f"{name}_action", QAction(name, mw))
+    mw.external_tools = [{"name": "Saved tool", "path": "x.bat", "icon": "S"}]
+    mw.actions = SimpleNamespace(run_external_script=lambda index: None)
+
+    ToolBarBuilder(mw).build()
+
+    texts = [a.text() for a in mw.main_toolbar.actions()]
+    assert texts.index("Saved tool") < texts.index(mw.build_rom_action.text())
+    assert mw.run_external_script_action is mw.external_tool_actions[0]
