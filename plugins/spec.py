@@ -54,6 +54,9 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
         Hook("includes_source_file", "Whether a source file (slash path relative to the source folder) becomes a "
              "block. A game keeps only the language it translates; the other files stay for the build and the "
              "reference columns. Default: True.", call=("a.txt",), returns=bool),
+        Hook("parse_table", "Parse one game text table (the bytes of a source or translation file) into an object "
+             "with texts() and build(texts). None: the file is not a table of this game. Default: None.",
+             optional=True),
         Hook("family_plan", "Family of the game: the members (consoles or versions) a list of source folders holds, which links to which, and how each unit is read (core/family_projects/model.py). Gets the sources the user gave; the plugin recognises each by content. None: no family.", optional=True),
         Hook("export_runtime_state", "What the plugin learned while loading and needs again to save (plain JSON data).",
              call=()),

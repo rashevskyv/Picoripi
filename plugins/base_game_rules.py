@@ -171,6 +171,12 @@ class BaseGameRules:
         """
         return True
 
+    def parse_table(self, raw: bytes):
+        """Parse one game text table (the bytes of a source or translation file) into an object with ``texts()``
+        and ``build(texts)``, which returns the file bytes. None: the file is not a table of this game. Default: None.
+        """
+        return None
+
     def family_plan(self, sources: List[str], project_dir: Optional[str] = None) -> Any:
         """Declare a family from the source paths the user gave, or None when the game has no family.
 

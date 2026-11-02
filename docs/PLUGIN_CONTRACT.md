@@ -23,6 +23,7 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | `get_display_name` | Game name shown in the UI. | required |
 | `get_file_formats` | The files the game's text lives in: core.formats.FileFormat(extensions, mode, label) with mode json, text or bytes. |  |
 | `includes_source_file` | Whether a source file (slash path relative to the source folder) becomes a block. A game keeps only the language it translates; the other files stay for the build and the reference columns. Default: True. |  |
+| `parse_table` | Parse one game text table (the bytes of a source or translation file) into an object with texts() and build(texts). None: the file is not a table of this game. Default: None. |  |
 | `family_plan` | Family of the game: the members (consoles or versions) a list of source folders holds, which links to which, and how each unit is read (core/family_projects/model.py). Gets the sources the user gave; the plugin recognises each by content. None: no family. |  |
 | `export_runtime_state` | What the plugin learned while loading and needs again to save (plain JSON data). |  |
 | `restore_runtime_state` | Take back what export_runtime_state returned. |  |
