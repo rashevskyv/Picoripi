@@ -122,12 +122,16 @@ class LunarDialoguePreview(QWidget):
     # -- host interface -------------------------------------------------------------------
 
     def refresh(self) -> None:
+        # The widget can be built before the project folder is known (a plugin loaded at startup); a later
+        # refresh is then the first chance to read the sources.
+        self._start_load()
         self._render()
 
     def update_preview_text(self, text: Any = None, original: Any = None) -> None:
         if text is not None:
             self._text = str(text)
             self._page = 0
+        self._start_load()
         self._render()
 
     def shutdown(self) -> None:
