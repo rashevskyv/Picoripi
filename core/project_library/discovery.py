@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from typing import Callable, Dict, List
 
@@ -15,10 +16,25 @@ PLATFORM_NAMES = {
 }
 
 
+def _platform_of_name(name: str) -> str:
+    """One folder name's platform: an exact name, else the platform word it ends with ("HD - Switch").
+
+    A name with two different platform words ("GC + Wii") stays unknown.
+    """
+    platform = PLATFORM_NAMES.get(name.lower().replace(" ", ""))
+    if platform:
+        return platform
+    words = re.findall(r"[a-z0-9]+", name.lower())
+    found = {PLATFORM_NAMES[word] for word in words if word in PLATFORM_NAMES}
+    if len(found) == 1 and words and words[-1] in PLATFORM_NAMES:
+        return found.pop()
+    return ""
+
+
 def platform_from_parts(parts: List[str]) -> str:
     """The platform named by one of the folder names, nearest first. Empty when none is known."""
     for part in reversed(parts):
-        platform = PLATFORM_NAMES.get(part.lower().replace(" ", ""))
+        platform = _platform_of_name(part)
         if platform:
             return platform
     return ""

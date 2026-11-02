@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Project Manager: a folder named "HD - Switch" (or any name ending in one platform word) now gives the platform Switch, so its series and platform show correctly.
 - Search: select text only when a click enters an unfocused search or filter field; subsequent clicks position the caret.
 
 - Glossary: use small pixel steps for mouse-wheel scrolling in term tables, proposed variants, and occurrences, independent of card height.
