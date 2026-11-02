@@ -821,6 +821,8 @@ class ProjectManagerDialog(QDialog):
         folder_names = {folder["id"]: folder["name"] for folder in self._document["folders"]}
         keys = frozenset(row["key"] for row in shown)
         shape = self._shape_for(shown, view, folder_names, last["key"] if last else None)
+        if query:  # a search shows only the groups that hold a match, so the match is not pushed down by empty ones
+            shape = [section for section in shape if section[2]]
         if self._scan_active and self._frozen is not None and self._frozen[0] == view and self._frozen[1] == keys:
             shape = self._frozen[2]
         self._frozen = (view, keys, shape)

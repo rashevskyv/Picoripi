@@ -130,6 +130,21 @@ def test_list_filters_live_and_hides_groups_without_a_match(qtbot, tmp_path, mon
     assert _headers(dialog) == ["GBA  (1)"]  # the NES group has no match and is gone
 
 
+def test_a_search_hides_empty_folders_so_the_match_is_on_top(qtbot, tmp_path, monkeypatch):
+    dialog, keys = _setup(qtbot, tmp_path, monkeypatch)
+    registry.mutate(tmp_path, lambda reg: reg.create_folder("Empty series"))
+    dialog.reload()
+    qtbot.waitUntil(lambda: dialog._loaded, timeout=5000)
+    dialog._document["view"] = {**dialog._document["view"], "group_by": "folder"}
+    dialog._render()
+    assert "Empty series  (0)" in _headers(dialog)
+
+    _type(qtbot, dialog, "aria")
+
+    qtbot.waitUntil(lambda: set(dialog._items) == {keys["aria"]}, timeout=2000)
+    assert len(_headers(dialog)) == 1
+
+
 def test_group_counts_show_the_matches(qtbot, tmp_path, monkeypatch):
     dialog, keys = _setup(qtbot, tmp_path, monkeypatch)
 
