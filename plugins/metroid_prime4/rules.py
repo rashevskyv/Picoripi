@@ -5,6 +5,7 @@ A project's source folder is the workspace's ``source\\`` (made by ``1_unpack.ba
 ``texture\\<package>\\<name>.txtr``. Each table is one block, each message one string; saving writes the
 table back with every other section unchanged. ``2_build.bat`` puts it into the packages (USEN and EUEN).
 """
+import struct
 from typing import Any, Dict, List, Optional, Tuple
 
 import utils.utils as width_utils
@@ -16,6 +17,31 @@ from utils.utils import clean_spaces
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 from .tags import describe, from_editor, to_editor
+
+
+class MsbtTable:
+    """An MSBT file as the translation import sees it: the editor text of each message, its label as the id."""
+
+    def __init__(self, msbt: Msbt):
+        self.msbt = msbt
+
+    def texts(self) -> List[str]:
+        return [to_editor(tokens, self.msbt.little) for tokens in self.msbt.messages]
+
+    def ids(self) -> List[str]:
+        return [self.msbt.labels.get(index, str(index + 1)) for index in range(len(self.msbt.messages))]
+
+    def build(self, texts: List[str]) -> bytes:
+        if len(texts) != len(self.msbt.messages):
+            raise ValueError(f"The file has {len(self.msbt.messages)} messages, got {len(texts)}")
+        messages = []
+        for original, text in zip(self.msbt.messages, texts):
+            # An untouched message keeps its exact tokens, as in save_data_to_json_obj.
+            if text == to_editor(original, self.msbt.little):
+                messages.append(original)
+            else:
+                messages.append(from_editor(str(text), self.msbt.little))
+        return self.msbt.build(messages)
 
 
 class GameRules(BaseGameRules):
@@ -71,6 +97,13 @@ class GameRules(BaseGameRules):
                 return
             except (ValueError, IndexError) as error:
                 log_warning(f"metroid_prime4: cannot read {context.relative_path}: {error}; trying the next version")
+
+    def parse_table(self, raw: bytes):
+        """The translation import's view of one MSBT file; None when the bytes are not an MSBT table."""
+        try:
+            return MsbtTable(Msbt(raw))
+        except (ValueError, IndexError, struct.error):
+            return None
 
     def reset_runtime_state(self) -> None:
         self._msbt = None
