@@ -186,14 +186,31 @@ def run(mw, project_file: Path, open_project, wait_until, story: str) -> dict:
     story_states = []
     original = updater.populate_blocks
 
+    def record() -> None:
+        # The Story folder as the user sees it once it exists. A staged build (large project open) adds it a few
+        # event-loop turns after populate_blocks returns, so each staged step records too.
+        state = _story_state(tree)
+        if state is None and (not story_states or getattr(updater, "_virtual_build_pending", False)):
+            return   # no Story folder yet, or a staged build is still on its blocks-only step
+        if story_states and story_states[-1] == state:
+            return
+        story_states.append(state)
+
     def recording(*args, **kwargs):
         result = original(*args, **kwargs)
-        state = _story_state(tree)
-        if not story_states or story_states[-1] != state:
-            story_states.append(state)
+        if not getattr(updater, "_virtual_build_pending", False):   # a staged build records at its steps
+            record()
+        return result
+
+    original_step = updater._run_virtual_step
+
+    def recording_step(*args, **kwargs):
+        result = original_step(*args, **kwargs)
+        record()
         return result
 
     updater.populate_blocks = recording
+    updater._run_virtual_step = recording_step
 
     def settled():
         state = _story_state(tree)
@@ -242,6 +259,7 @@ def run(mw, project_file: Path, open_project, wait_until, story: str) -> dict:
     result["unsaved_only"] = [entry["text"] for entry in dump_tree(tree)]
     result["unsaved_only_tree"] = dump_tree(tree)
     updater.populate_blocks = original
+    updater._run_virtual_step = original_step
     return result
 
 

@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Tests: the block-tree review test records the Story folder after each staged build step (a large project open adds it in steps since a7f9642f), so the Loading placeholder is seen again; the golden is unchanged.
 - Tests: the Companion deletion test is skipped when fastapi is missing (companion/server/requirements.txt), as its sibling Companion tests are; it failed on the project venv with ModuleNotFoundError.
 - MCP tests: the stdio round trip gives its headless server a temporary data folder (PICORIPI_HOME); the client passes only a default environment, so the server refused to start.
 - Glossary: the Glossary window accepts the `speaker_photo_save_callback` that series glossary tabs pass; without it every series tab raised TypeError when opened.
