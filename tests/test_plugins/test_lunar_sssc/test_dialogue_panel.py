@@ -58,3 +58,56 @@ def test_widget_names_the_speaker_and_reports_layout_problems(qtbot):
     assert widget._speaker.text().endswith("Nall")
     assert "4 lines" in widget._status.text()
     widget.shutdown()
+
+
+def test_picture_scales_both_ways_and_keeps_the_box_shape(qtbot):
+    widget = LunarDialoguePreview(_Window())
+    qtbot.addWidget(widget)
+    widget._sources = _synthetic_sources()
+    widget.update_preview_text("{FA:6E}AAA")
+    widget.show()
+    qtbot.waitExposed(widget)
+    picture = widget._picture
+    shape = dp.PICTURE_W / dp.PICTURE_H
+    widget.resize(900, 600)
+    qtbot.waitUntil(lambda: picture.pixmap() is not None and picture.pixmap().width() > dp.PICTURE_W)
+    big = picture.pixmap()
+    assert big.width() <= picture.width() and big.height() <= picture.height()
+    assert abs(big.width() / big.height() - shape) < 0.05
+    widget.resize(200, 200)
+    qtbot.waitUntil(lambda: picture.pixmap().width() < big.width())
+    small = picture.pixmap()
+    assert small.width() <= picture.width() and small.height() <= picture.height()
+    assert abs(small.width() / small.height() - shape) < 0.05
+    widget.shutdown()
+
+
+def test_widget_built_before_the_project_loads_its_picture_inside_a_layout(qtbot, monkeypatch):
+    """A widget built at startup, before the project folder is known, draws once the host refreshes it."""
+    from types import SimpleNamespace
+
+    from PyQt6.QtWidgets import QVBoxLayout, QWidget
+
+    from plugins.lunar_sssc import dialogue_panel as dpanel
+
+    monkeypatch.setattr(dpanel, "load_sources", lambda project_dir: _synthetic_sources())
+    manager = SimpleNamespace(project_dir=None)
+    window = SimpleNamespace(project_manager=manager)
+    host = QWidget()
+    qtbot.addWidget(host)
+    layout = QVBoxLayout(host)
+    widget = LunarDialoguePreview(window)
+    layout.addWidget(widget, 1)
+    host.resize(640, 480)
+    host.show()
+    qtbot.waitExposed(host)
+    manager.project_dir = "synthetic project folder"
+    widget.refresh()
+    widget.update_preview_text("{FA:6E}AAA")
+    picture = widget._picture
+    qtbot.waitUntil(lambda: picture.pixmap() is not None and not picture.pixmap().isNull())
+    assert picture.width() > 0 and picture.height() > 0
+    image = picture.pixmap().toImage()
+    assert image.width() > 0 and image.height() > 0
+    assert image.pixelColor(image.width() // 2, image.height() // 2).alpha() > 0   # inside the window box
+    widget.shutdown()

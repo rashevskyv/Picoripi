@@ -9,9 +9,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QImage, QPixmap
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from core.i18n import tr
 from plugins.common.switch_message_preview import source_folder
@@ -21,8 +21,36 @@ from . import dialogue_preview as dp
 from . import portrait_colours as pc
 
 WORKER_STOP_MS = 2000
-ZOOM = 2
 PALETTE_FILE = "PEO.PAL"
+
+
+class ScaledPicture(QLabel):
+    """A picture that fills its space, scaled both ways with its aspect kept and the pixels kept sharp."""
+
+    def __init__(self, parent: Optional[QWidget] = None):
+        super().__init__(parent)
+        self._source = QPixmap()
+        self.setMinimumSize(1, 1)
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+    def set_picture(self, pixmap: QPixmap) -> None:
+        self._source = pixmap
+        self._fit()
+
+    def clear_picture(self) -> None:
+        self._source = QPixmap()
+        self.clear()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._fit()
+
+    def _fit(self) -> None:
+        if self._source.isNull():
+            return
+        self.setPixmap(self._source.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio,
+                                           Qt.TransformationMode.FastTransformation))
 
 
 def load_sources(project_dir: str) -> Dict[str, Any]:
@@ -69,8 +97,7 @@ class LunarDialoguePreview(QWidget):
         self._sources: Optional[Dict[str, Any]] = None
         self._loader: Optional[SourceLoader] = None
         self._source_key = ""
-        self._picture = QLabel(self)
-        self._picture.setMinimumSize(320 * ZOOM, 240 * ZOOM)
+        self._picture = ScaledPicture(self)
         self._picture.setToolTip(tr("Portrait colours come from the plugin table; the project's portrait_colours.json overrides it."))
         self._prev = QPushButton(tr("Previous page"), self)
         self._next = QPushButton(tr("Next page"), self)
@@ -95,12 +122,16 @@ class LunarDialoguePreview(QWidget):
     # -- host interface -------------------------------------------------------------------
 
     def refresh(self) -> None:
+        # The widget can be built before the project folder is known (a plugin loaded at startup); a later
+        # refresh is then the first chance to read the sources.
+        self._start_load()
         self._render()
 
     def update_preview_text(self, text: Any = None, original: Any = None) -> None:
         if text is not None:
             self._text = str(text)
             self._page = 0
+        self._start_load()
         self._render()
 
     def shutdown(self) -> None:
@@ -153,7 +184,7 @@ class LunarDialoguePreview(QWidget):
             return
         layout = dp.parse_pages(self._text)
         if not layout.pages or not layout.pages[0]:
-            self._picture.clear()
+            self._picture.clear_picture()
             self._speaker.clear()
             self._page_label.setText("")
             self._status.setText(tr("The text has no line to draw."))
@@ -166,7 +197,7 @@ class LunarDialoguePreview(QWidget):
             portrait = dp.face_picture(self._sources["files"], self._sources["index"], face,
                                        self._sources["palette"], self._sources["colours"])
         image = dp.render_page(page, self._sources["glyphs"], portrait).convert("RGBA")
-        self._picture.setPixmap(self._pixmap(image))
+        self._picture.set_picture(self._pixmap(image))
         self._page_label.setText(tr("Page {0} of {1}").format(self._page + 1, len(layout.pages)))
         name = dp.speaker_name(face) if face else None
         self._speaker.setText(tr("Speaker: {0}").format(name) if name else "")
@@ -179,4 +210,4 @@ class LunarDialoguePreview(QWidget):
     def _pixmap(image) -> QPixmap:
         raw = image.tobytes("raw", "RGBA")
         qimage = QImage(raw, image.width, image.height, image.width * 4, QImage.Format.Format_RGBA8888).copy()
-        return QPixmap.fromImage(qimage).scaled(image.width * ZOOM, image.height * ZOOM)
+        return QPixmap.fromImage(qimage)

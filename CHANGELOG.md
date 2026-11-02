@@ -13,6 +13,9 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 - Luigi's Mansion (GameCube): the dialogue font inside `sys/main.dol` is an editable font source; Ukrainian letters (Ґ Є І Ї) map to unused cp932 Cyrillic slots in messages; a changed `main.dol` is written in place.
 - Luigi's Mansion (GameCube): event scripts no longer count as message lines (1477 to 1226); Ukrainian letters are written to message tables; add headless `scripts/import_project_translations.py` (dry run by default, backs up the project file).
+- Lunar SSSC: the editor measures each window alone (a page tag starts a new window), the preview draws only the window box at the editor's 280 px limit and scales with its panel, and the speaker comes from the portrait tag where `speaker_names.json` names it.
+
+- Lunar SSSC: `speaker_names.json` names 63 of the 89 portrait numbers, matched to a fan script by dialogue text (two or more agreeing lines, no conflict); a test checks each name is a portrait the script uses.
 
 - Search: select text only when a click enters an unfocused search or filter field; subsequent clicks position the caret.
 

@@ -4,8 +4,13 @@ Facts, measured on a native 1x capture of the USA disc (picture 320x240 at x=15 
 
 - the message window spans the full picture width, rows 160-223 (64 rows);
 - the portrait is a 64x64 picture at (7, 152), drawn over the window's top edge;
-- the text starts at x 80 and uses the 16x16 glyphs of ``SLUS_006.28`` (32 bytes a glyph, 16 rows of big-endian
-  u16, high bit left). Line pitch 16 and the right text limit 316 are estimates from the same capture.
+- the text starts at x 80 when a portrait is shown and uses the 16x16 glyphs of ``SLUS_006.28`` (32 bytes a glyph,
+  16 rows of big-endian u16, high bit left). Line pitch 16 is an estimate from the same capture.
+- without a portrait the text start (``TEXT_X_NO_PORTRAIT``) is an estimate: the original English windows
+  without a portrait are up to 272 px wide, so they cannot start at x 80.
+
+The picture is only the box and the top edge of the portrait (rows 152-223); the scene above is not drawn.
+The line limit is the editor's (``game_dialog_max_width_pixels`` in config.json), so both agree.
 
 A portrait is 8-bit indexed (``FACE_nnn.TIZ``: five 64x64 frames after a 32-byte header whose ID bytes name
 the frame of each index). Its colours come from ``face_palettes.json`` (the owner's colour table, read from a
@@ -24,13 +29,16 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 from PIL import Image
 
+from utils.width import calculate_string_width
+
 HERE = Path(__file__).resolve().parent
 WINDOW_X, WINDOW_Y, WINDOW_W, WINDOW_H = 0, 160, 320, 64
 PORTRAIT_X, PORTRAIT_Y, PORTRAIT = 7, 152, 64
-TEXT_X, TEXT_Y, LINE_PITCH = 80, 168, 16
-TEXT_RIGHT = 316
+TEXT_X, TEXT_X_NO_PORTRAIT, TEXT_Y, LINE_PITCH = 80, 16, 168, 16
 LINES_PER_PAGE = 3
-PICTURE_W, PICTURE_H = 320, 240
+# The picture: the window's rows plus the portrait's top edge above them. Nothing else of the screen.
+PICTURE_X, PICTURE_Y = 0, PORTRAIT_Y
+PICTURE_W, PICTURE_H = 320, WINDOW_Y + WINDOW_H - PORTRAIT_Y
 BACKDROP = (96, 96, 96, 255)     # the preview has no game scene behind the band
 BAND = (0, 0, 0, 128)            # the game's band: black at about half opacity (estimated, see render_page)
 SPACE_WIDTH = 5
@@ -42,6 +50,8 @@ TAG_RE = re.compile(r"\{([^{}]*)\}")
 PAGE_TAGS = {"page", "clear", "close", "end"}
 FONT = json.loads((HERE / "font_sources.json").read_text(encoding="utf-8"))[0]
 WIDTHS = json.loads((HERE / "fonts" / "lunar_font.json").read_text(encoding="utf-8"))
+# The line limit of the editor (its warning and its counter); one number for both.
+LINE_LIMIT = json.loads((HERE / "config.json").read_text(encoding="utf-8"))["game_dialog_max_width_pixels"]
 SPEAKERS = json.loads((HERE / "speaker_names.json").read_text(encoding="utf-8"))
 FACE_COLOURS_FILE = "face_palettes.json"
 
@@ -117,14 +127,14 @@ def parse_pages(text: str) -> Layout:
     for number, page in enumerate(pages, 1):
         if len(page) > LINES_PER_PAGE:
             problems.append(f"page {number}: {len(page)} lines, the window shows {LINES_PER_PAGE}")
-        if any(text_width(line.text) > TEXT_RIGHT - TEXT_X for line in page):
+        if any(text_width(line.text) > LINE_LIMIT for line in page):
             problems.append(f"page {number}: a line is wider than the window")
     return Layout(pages, problems)
 
 
 def text_width(text: str) -> int:
-    """Pixel width of a line in the game font (advance widths of ``fonts/lunar_font.json``)."""
-    return sum(WIDTHS[ch]["width"] if ch in WIDTHS else SPACE_WIDTH for ch in text)
+    """Pixel width of a line in the game font: the editor's measure (``utils.width``, advances of ``lunar_font.json``)."""
+    return calculate_string_width(text, WIDTHS, 6)
 
 
 def decode_glyphs(slus: bytes) -> Dict[str, List[int]]:
@@ -196,20 +206,22 @@ def face_picture(files: Dict[str, bytes], index: Dict[int, Tuple[str, int]], fac
 
 
 def render_page(page: Sequence[Line], glyphs: Dict[str, List[int]], portrait: Optional[Image.Image]) -> Image.Image:
-    """The 320x240 picture of one page: the window, the portrait and the text, at the measured places.
+    """The PICTURE_W x PICTURE_H picture of one page: the window, the portrait and the text, at the measured places.
 
     The game's band is a translucent dark strip over the scene: about half the scene's brightness (row means of
     the native capture: about 155 above the band, about 75 inside). The preview has no scene, so the band is
-    black at alpha 128 over a neutral grey backdrop.
+    black at alpha 128 over a neutral grey backdrop, and only inside the window. Everything else stays transparent.
     """
-    canvas = Image.new("RGBA", (PICTURE_W, PICTURE_H), BACKDROP)
-    band = Image.new("RGBA", (WINDOW_W, WINDOW_H), BAND)
-    canvas.alpha_composite(band, (WINDOW_X, WINDOW_Y))
+    canvas = Image.new("RGBA", (PICTURE_W, PICTURE_H), (0, 0, 0, 0))
+    box = (WINDOW_X - PICTURE_X, WINDOW_Y - PICTURE_Y)
+    canvas.alpha_composite(Image.new("RGBA", (WINDOW_W, WINDOW_H), BACKDROP), box)
+    canvas.alpha_composite(Image.new("RGBA", (WINDOW_W, WINDOW_H), BAND), box)
     if portrait is not None:
-        canvas.alpha_composite(portrait, (PORTRAIT_X, PORTRAIT_Y))
+        canvas.alpha_composite(portrait, (PORTRAIT_X - PICTURE_X, PORTRAIT_Y - PICTURE_Y))
+    text_x = TEXT_X if portrait is not None else TEXT_X_NO_PORTRAIT
     for row, line in enumerate(page[:LINES_PER_PAGE]):
-        x = TEXT_X
-        top = TEXT_Y + row * LINE_PITCH
+        x = text_x
+        top = TEXT_Y - PICTURE_Y + row * LINE_PITCH
         for ch in line.text:
             if ch in glyphs:
                 _blit(canvas, glyphs[ch], x, top)
