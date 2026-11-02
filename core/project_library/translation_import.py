@@ -1,7 +1,8 @@
 """Headless translation import: write a map of translations into a project's translation files.
 
-The plugin builds each file through its own table format (``parse_table`` and ``Table.build``); the host writes it
-atomically (``core.formats.write_file``). The project file is read and never changed.
+The plugin builds each file through its own table format (``parse_table`` and ``Table.build``). The table works on the
+file's bytes, so the host reads and writes the bytes as they are (atomically) whatever the file's format. The project
+file is read and never changed.
 
 A line id of the lines file gives its block by ``file`` (the block's source file) and its string by the table's own
 id, or by ``name:N`` for record N (1-based). A line is written only when the project's English equals the lines file's
@@ -16,8 +17,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from core import formats
 from core.project_library.plugin_facts import default_load_rules
+from utils.atomic_io import atomic_write_bytes
 
 
 def _root(base: Path, value: Any) -> Optional[Path]:
@@ -35,6 +36,13 @@ def _string_index(line_id: str, table: Any) -> Optional[int]:
         return int(number) - 1 if number.isdigit() and 1 <= int(number) <= count else None
     ids = table.ids()
     return ids.index(line_id) if line_id in ids else None
+
+
+def _read_bytes(path: Path) -> Tuple[Optional[bytes], Optional[str]]:
+    try:
+        return path.read_bytes(), None
+    except OSError as error:
+        return None, f"Failed to read {path.name}: {error}"
 
 
 def _backup(project_file: Path) -> Path:
@@ -75,8 +83,8 @@ def import_translations(project_file: Any, lines: Dict[str, Dict[str, Any]], tra
         report["backup"] = str(_backup(project_file))
     for key, entries in groups.items():
         block = blocks[key]
-        content, error = formats.read_file(rules, source_root / block["source_file"])
-        source = rules.parse_table(content) if isinstance(content, (bytes, bytearray)) else None
+        content, error = _read_bytes(source_root / block["source_file"])
+        source = rules.parse_table(content) if content is not None else None
         if source is None:
             report["problems"].append({"file": key, "problem": error or "source is not a text table"})
             continue
@@ -84,8 +92,8 @@ def import_translations(project_file: Any, lines: Dict[str, Dict[str, Any]], tra
         target = translation_root / block["translation_file"]
         table = source
         if target.exists():   # keep the work already in the translation file
-            content, error = formats.read_file(rules, target)
-            table = rules.parse_table(content) if isinstance(content, (bytes, bytearray)) else None
+            content, error = _read_bytes(target)
+            table = rules.parse_table(content) if content is not None else None
             if table is None or len(table.texts()) != len(source_texts):
                 report["problems"].append({"file": key, "problem": "existing translation file does not match the source"})
                 continue
@@ -110,9 +118,10 @@ def import_translations(project_file: Any, lines: Dict[str, Dict[str, Any]], tra
         out = table.build(texts)
         if apply:
             target.parent.mkdir(parents=True, exist_ok=True)
-            ok, error = formats.write_file(rules, target, out)
-            if not ok:
-                report["problems"].append({"file": key, "problem": error or "write failed"})
+            try:
+                atomic_write_bytes(target, out)
+            except OSError as error:
+                report["problems"].append({"file": key, "problem": f"write failed: {error}"})
                 continue
             report["files"].append(str(target))
         report["applied"] += len(accepted)
