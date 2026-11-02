@@ -74,6 +74,7 @@ class GlossaryDialog(
         apply_speaker_name_callback: Optional[Callable[[str, str], None]] = None,
         reassign_speaker_callback: Optional[Callable[[str, str, str], None]] = None,
         speaker_codes_callback: Optional[Callable[[str], Sequence[str]]] = None,
+        speaker_photo_save_callback: Optional[Callable[..., Any]] = None,
         initial_term: Optional[str] = None,
         placeholder_speaker_callback: Optional[Callable[[str], bool]] = None,
         discuss_variant_callback: Optional[Callable[[GlossaryEntry], None]] = None,
@@ -143,6 +144,7 @@ class GlossaryDialog(
         self._apply_speaker_name_callback = apply_speaker_name_callback
         self._reassign_speaker_callback = reassign_speaker_callback
         self._speaker_codes_callback = speaker_codes_callback
+        self._speaker_photo_save_callback = speaker_photo_save_callback
         self._placeholder_speaker_callback = placeholder_speaker_callback
         self._discuss_variant_callback = discuss_variant_callback
         self._external_reference_callback = external_reference_callback

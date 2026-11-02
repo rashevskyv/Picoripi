@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Glossary: the Glossary window accepts the `speaker_photo_save_callback` that series glossary tabs pass; without it every series tab raised TypeError when opened.
 - Plugin hook `parse_table(raw)`: the translation import reads a game text table through the plugin; it was called on the rules object without being declared, which the contract test rejects. Default `None` (not a table).
 
 - Opening a large project no longer freezes the window (Twilight Princess, open from the Project Manager: the longest freeze 14-20 s → about 1.5 s): while the open dialog shows, the Story, Speakers, Items and Windows folders are built step by step and the dialog names each step; the quiet issue check after an open scans a large file in slices instead of the whole file in one tick (a 9 s freeze on a project without a session); selecting a block refreshes its own warning count but no longer walks every virtual folder (about 1 s per click in TP); the speaker pool is not built while the Story projection still loads. Tree icons are looked up once per style, the TP dialogue flow decodes message text only for the AI overview, Story folders resolve once per tree rebuild instead of once per window kind, width guidelines measure only the visible lines, and BFN font sheets decode in one pass instead of pixel by pixel.
