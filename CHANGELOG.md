@@ -4,6 +4,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 - Lunar SSSC: the editor measures each window alone (a page tag starts a new window), the preview draws only the window box at the editor's 280 px limit and scales with its panel, and the speaker comes from the portrait tag where `speaker_names.json` names it.
 
+- Lunar SSSC: `speaker_names.json` names 63 of the 89 portrait numbers, matched to a fan script by dialogue text (two or more agreeing lines, no conflict); a test checks each name is a portrait the script uses.
+
 - Search: select text only when a click enters an unfocused search or filter field; subsequent clicks position the caret.
 
 - Glossary: use small pixel steps for mouse-wheel scrolling in term tables, proposed variants, and occurrences, independent of card height.
