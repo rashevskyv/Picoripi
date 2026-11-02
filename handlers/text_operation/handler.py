@@ -39,6 +39,10 @@ class TextOperationHandler(
         self.preview_update_timer = QTimer(context if isinstance(context, QObject) else None)
         self.preview_update_timer.setSingleShot(True)
         self.preview_update_timer.timeout.connect(self._on_preview_update_timer_timeout)
+        # The message-window preview follows typing on a short delay; the heavy analysis keeps the long one.
+        self.window_preview_timer = QTimer(context if isinstance(context, QObject) else None)
+        self.window_preview_timer.setSingleShot(True)
+        self.window_preview_timer.timeout.connect(self._refresh_window_preview_from_editor)
         self._debounce_block_idx = -1
         self._debounce_string_idx = -1
         # current_scanner is an AsyncIssueScanner (QRunnable) — kept around so

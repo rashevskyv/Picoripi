@@ -11,6 +11,8 @@ from ui.components.custom_preview import custom_preview_of
 # The editor itself stays live; spellcheck, glossary, tags, warnings,
 # BFN and the strings-list preview wait until typing has stopped.
 PREVIEW_UPDATE_DELAY = 1500
+# The message-window preview alone redraws after this shorter gap.
+WINDOW_PREVIEW_DELAY = 150
 
 
 class PreviewMixin:
@@ -207,6 +209,25 @@ class PreviewMixin:
         self._debounce_block_idx = self.mw.data_store.physical_block_idx
         self._debounce_string_idx = self.mw.data_store.current_string_idx
         self.preview_update_timer.start(PREVIEW_UPDATE_DELAY)
+        self.window_preview_timer.start(WINDOW_PREVIEW_DELAY)
+
+    def _refresh_window_preview_from_editor(self) -> None:
+        """Redraw the message-window preview from the editor text, without saving or analysing it."""
+        mw = self.mw
+        edited_edit = getattr(mw, 'edited_text_edit', None)
+        if (edited_edit is None or not mw.current_game_rules or mw.is_loading_data
+                or mw.is_programmatically_changing_text or not self._editor_shows_current_row()
+                or not getattr(mw, 'preview_enabled', True)):
+            return
+        text = convert_dots_to_spaces_from_editor(
+            mw.current_game_rules.convert_editor_text_to_data(edited_edit.toPlainText()))
+        custom_preview = custom_preview_of(mw)
+        if custom_preview is not None:
+            custom_preview.update_preview_text(text)
+        bfn = getattr(mw, 'bfn_preview_widget', None)
+        update_bfn = getattr(bfn, 'update_preview_text', None)
+        if callable(update_bfn):
+            update_bfn(text)
 
     def _on_preview_update_timer_timeout(self) -> None:
         """Internal helper to handle the preview update timer timeout event."""

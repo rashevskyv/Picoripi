@@ -17,6 +17,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 - UI: editor buttons and formatting fields use font-aware heights; glossary section headers remain visible when resized or collapsed, including after font/theme changes; main and popup menus have consistent item spacing.
 - Twilight Princess: dialogue preview ornaments recover after temporary resource-loading failures; frame caches follow each project's resource paths instead of retaining another project's frame.
 - Glossary occurrence updates now include only unique translated strings containing the full old phrase; batch replacement preserves tags, punctuation, and phrase boundaries.
+- Editor: the message-window preview (Zelda and other window plugins) redraws 150 ms after the last key instead of 1.5 s; saving, spellcheck and warnings keep the 1.5 s gap.
 - Project Manager: a search hides the empty folders, so the found project is at the top instead of below empty series.
 - MCP server: `python -m mcp_server` (stdio, read only) gives agents `list_projects`, `get_issue_rules`, `list_issues` (the cached scan) and `scan_string` (plugin rules and tags; width is not measured); design in D50.
 - Containers: `core/containers/grezzo.py` reads Grezzo GAR version 5 (read only; the eight Luigi's Mansion 3DS UI archives parse, 285 entries), checked with a synthetic archive.
