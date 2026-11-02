@@ -1,7 +1,10 @@
 """Glossary storage: ids, deletions that stay deleted, one write for many changes (WP3 3.6)."""
 import json
 import os
+import pytest
 from pathlib import Path
+from PyQt6.QtCore import QByteArray, QBuffer, QIODevice
+from PyQt6.QtGui import QColor, QImage
 
 from companion.server.models import GlossaryEntryUpdate
 from companion.server.storage import StorageManager
@@ -9,6 +12,12 @@ from core.companion_sync import entries_differ, keep_local_deletions, merge_glos
 from core.glossary.models import GlossaryEntry, legacy_entry_id
 from core.glossary_build.pipeline_coordinator import MODE_DRAFT, STORE_BATCH, GlossaryBuildCoordinator
 from core.glossary_manager import STATUS_TRANSLATED, GlossaryManager
+from core.glossary.speaker_photo import (
+    GlossaryPhotoSaveThread,
+    decode_photo_data,
+    photo_data_from_bytes,
+)
+from core.translation.glossary_formatter import GlossaryPromptFormatter
 
 PROMPTS = json.loads(Path("translation_prompts/glossary_pipeline_prompts.json").read_text(encoding="utf-8"))
 
@@ -53,6 +62,204 @@ class TestEntryId:
 
     def test_the_id_is_not_part_of_equality(self):
         assert GlossaryEntry("Zora", "Зора", id="a") == GlossaryEntry("Zora", "Зора", id="b")
+
+
+class TestSpeakerPhotoStorage:
+    def test_photo_and_unknown_metadata_survive_glossary_edit_roundtrip(self, tmp_path):
+        image = QImage(3, 2, QImage.Format.Format_ARGB32)
+        image.fill(QColor("#ff0000"))
+        output = QByteArray()
+        buffer = QBuffer(output)
+        buffer.open(QIODevice.OpenModeFlag.WriteOnly)
+        assert image.save(buffer, "PNG")
+        photo = photo_data_from_bytes(bytes(output))
+        path = tmp_path / "glossary.json"
+        manager = _manager(path, json.dumps([{
+            "original": "Zora", "translation": "Зора", "notes": "Sea-dweller",
+            "unrecognized_field": {"kept": [1, 2]}, "speaker_photo": photo,
+        }]))
+
+        manager.update_entry("Zora", "Зора", "Sea-dweller, updated")
+
+        saved = _stored(path)[0]
+        assert saved["unrecognized_field"] == {"kept": [1, 2]}
+        assert saved["speaker_photo"] == photo
+        reloaded = _manager(path, path.read_text(encoding="utf-8"))
+        assert not decode_photo_data(reloaded.get_entry("Zora").speaker_photo).isNull()
+        prompt = GlossaryPromptFormatter().glossary_entries_to_text(reloaded.get_entries())
+        assert photo not in prompt
+        assert "unrecognized_field" not in prompt
+
+    def test_invalid_or_oversized_photo_falls_back_without_decode(self):
+        assert decode_photo_data("data:image/png;base64,not-base64").isNull()
+        assert decode_photo_data("data:image/png;base64," + "A" * (3 * 1024 * 1024)).isNull()
+        with pytest.raises(ValueError):
+            photo_data_from_bytes(b"not an image")
+
+    def test_photo_snapshot_writes_in_worker_then_installs_on_success(self, tmp_path, qtbot):
+        path = tmp_path / "glossary.json"
+        manager = _manager(path, json.dumps([{
+            "original": "Zora", "translation": "Зора", "notes": "Sea dweller",
+            "unknown": {"kept": True},
+        }]))
+        image = QImage(2, 2, QImage.Format.Format_ARGB32)
+        image.fill(QColor("#0080ff"))
+        output = QByteArray()
+        buffer = QBuffer(output)
+        buffer.open(QIODevice.OpenModeFlag.WriteOnly)
+        assert image.save(buffer, "PNG")
+        photo = photo_data_from_bytes(bytes(output))
+        before_revision = manager._persistence_revision
+        worker = GlossaryPhotoSaveThread(
+            manager,
+            manager.get_entry("Zora"),
+            photo,
+            translation="Зора updated",
+            notes="Sea dweller updated",
+            profiled=False,
+            section="",
+            user_notes="",
+        )
+
+        with qtbot.waitSignal(worker.saved, timeout=5000) as result:
+            worker.start()
+
+        revision, raw_json, error = result.args
+        assert error == ""
+        assert revision == before_revision + 1
+        assert manager.get_entry("Zora").speaker_photo == ""
+        saved = json.loads(path.read_text(encoding="utf-8"))[0]
+        assert saved["speaker_photo"] == photo
+        assert saved["translation"] == "Зора updated"
+        assert saved["notes"] == "Sea dweller updated"
+        assert manager.install_photo_snapshot(
+            revision, worker.entries, raw_json, "Zora", pattern_cache=worker.pattern_cache
+        )
+        assert manager.get_entry("Zora").speaker_photo == photo
+        assert manager.get_entry("Zora").translation == "Зора updated"
+        assert manager.get_entry("Zora").extra_metadata["unknown"] == {"kept": True}
+        assert manager.find_matches("Zora")[0].entry.translation == "Зора updated"
+
+    def test_changed_glossary_revision_rejects_stale_photo_snapshot(self, tmp_path, qtbot):
+        path = tmp_path / "glossary.json"
+        manager = _manager(path)
+        manager.add_entry("Zora", "Зора", "")
+        photo = "data:image/png;base64,AAAA"
+        worker = GlossaryPhotoSaveThread(
+            manager,
+            manager.get_entry("Zora"),
+            photo,
+            translation="Зора",
+            notes="",
+            profiled=False,
+            section="",
+            user_notes="",
+        )
+        manager.add_entry("Goron", "Ґорон", "")
+        latest = path.read_text(encoding="utf-8")
+
+        with qtbot.waitSignal(worker.saved, timeout=5000) as result:
+            worker.start()
+
+        assert result.args[2]
+        assert path.read_text(encoding="utf-8") == latest
+        assert manager.get_entry("Zora").speaker_photo == ""
+
+    def test_cancelled_photo_snapshot_does_not_replace_glossary(self, tmp_path, qtbot):
+        path = tmp_path / "glossary.json"
+        manager = _manager(path)
+        manager.add_entry("Zora", "Зора", "")
+        before = path.read_text(encoding="utf-8")
+        worker = GlossaryPhotoSaveThread(
+            manager,
+            manager.get_entry("Zora"),
+            "data:image/png;base64,AAAA",
+            translation="Зора",
+            notes="",
+            profiled=False,
+            section="",
+            user_notes="",
+        )
+        worker.cancel()
+        worker.start()
+        qtbot.waitUntil(lambda: not worker.isRunning())
+        assert path.read_text(encoding="utf-8") == before
+
+    def test_failed_photo_snapshot_keeps_disk_and_manager_unchanged(self, tmp_path, qtbot, monkeypatch):
+        path = tmp_path / "glossary.json"
+        manager = _manager(path)
+        manager.add_entry("Zora", "Зора", "Sea dweller")
+        before = path.read_text(encoding="utf-8")
+        worker = GlossaryPhotoSaveThread(
+            manager,
+            manager.get_entry("Zora"),
+            "data:image/png;base64,AAAA",
+            translation="Зора changed",
+            notes="changed",
+            profiled=False,
+            section="",
+            user_notes="changed",
+        )
+
+        def fail_write(_path, _raw):
+            raise OSError("disk full")
+
+        monkeypatch.setattr("core.glossary.speaker_photo.atomic_write_text", fail_write)
+        with qtbot.waitSignal(worker.saved, timeout=5000) as result:
+            worker.start()
+
+        assert result.args[2]
+        assert path.read_text(encoding="utf-8") == before
+        current = manager.get_entry("Zora")
+        assert (current.translation, current.notes, current.speaker_photo) == (
+            "Зора", "Sea dweller", ""
+        )
+
+    def test_photo_snapshot_accepts_legacy_json_bom(self, tmp_path, qtbot):
+        path = tmp_path / "glossary.json"
+        raw = "\ufeff" + json.dumps([{
+            "original": "Zora", "translation": "Зора", "notes": "",
+        }])
+        manager = _manager(path, raw)
+        worker = GlossaryPhotoSaveThread(
+            manager,
+            manager.get_entry("Zora"),
+            "data:image/png;base64,AAAA",
+            translation="Зора",
+            notes="",
+            profiled=False,
+            section="",
+            user_notes="",
+        )
+
+        with qtbot.waitSignal(worker.saved, timeout=5000) as result:
+            worker.start()
+
+        assert result.args[2] == ""
+        assert path.read_text(encoding="utf-8").startswith("[")
+
+    def test_photo_snapshot_rejects_changed_legacy_markdown_before_migration(self, tmp_path, qtbot):
+        path = tmp_path / "glossary.md"
+        manager = _manager(path, "| Original | Translation | Notes |\n| --- | --- | --- |\n| Zora | Зора | Sea dweller |\n")
+        worker = GlossaryPhotoSaveThread(
+            manager,
+            manager.get_entry("Zora"),
+            "data:image/png;base64,AAAA",
+            translation="Зора",
+            notes="Sea dweller",
+            profiled=False,
+            section="",
+            user_notes="",
+        )
+        path.write_text(path.read_text(encoding="utf-8") + "\n<!-- external edit -->\n", encoding="utf-8")
+        before = path.read_text(encoding="utf-8")
+
+        with qtbot.waitSignal(worker.saved, timeout=5000) as result:
+            worker.start()
+
+        assert result.args[2]
+        assert path.read_text(encoding="utf-8") == before
+        assert not path.with_suffix(".json").exists()
 
 
 class TestTombstones:

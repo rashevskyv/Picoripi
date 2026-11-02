@@ -277,6 +277,9 @@ def cleanup_qt(qapp):
 def mock_mw(qapp):
     """Provides a mocked MainWindow instance."""
     mw = MockMainWindow()
+    mw.translation_handler = MagicMock()
+    mw.translation_handler._glossary_manager = None
+    mw._glossary_manager = None
     mw.data_store = mw
     mw.data_store.unsaved_changes = False
     # Common UI elements

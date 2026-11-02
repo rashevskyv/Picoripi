@@ -273,6 +273,7 @@ class ActionsMixin:
         if not self._series_page_settled():
             event.ignore()
             return
+        self._cancel_speaker_photo_import()
         self._save_dialog_state()
         parent = getattr(self, "_parent", None)
         if parent:
@@ -295,6 +296,7 @@ class ActionsMixin:
             return
         if not self._series_page_settled():
             return
+        self._cancel_speaker_photo_import()
         self._save_dialog_state()
         parent = getattr(self, "_parent", None)
         if parent:

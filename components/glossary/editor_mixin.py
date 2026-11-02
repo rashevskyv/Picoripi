@@ -12,9 +12,10 @@ from core.glossary_manager import (
     render_notes,
 )
 from core.i18n import tr
+from components.glossary.photo_mixin import SpeakerPhotoMixin
 
 
-class EditorMixin:
+class EditorMixin(SpeakerPhotoMixin):
     """Glossary notes editor dirty/save/delete/context menu/review state."""
 
     def _set_notes_variation_busy(self, busy: bool) -> None:
@@ -79,6 +80,7 @@ class EditorMixin:
             or current_user_notes != entry_user_notes
             or current_profiled != self._current_entry.profiled
             or current_section != (self._current_entry.section or "")
+            or getattr(self, "_speaker_photo_dirty", False)
         )
         self._mark_editor_dirty(has_changes)
 
@@ -89,12 +91,24 @@ class EditorMixin:
 
     def _update_editor_enabled_state(self) -> None:
         """Internal helper to update the editor enabled state."""
-        can_edit = self._update_callback is not None and self._current_entry is not None
+        can_edit = (
+            self._update_callback is not None
+            and self._current_entry is not None
+            and not getattr(self, "_photo_save_in_progress", False)
+        )
         self._translation_edit.setReadOnly(not can_edit)
         self._notes_edit.setReadOnly(not can_edit)
         self._ai_notes_edit.setReadOnly(not can_edit)
         self._profiled_checkbox.setEnabled(can_edit)
         self._category_combo.setEnabled(can_edit)
+        for photo_button in (
+            getattr(self, "_speaker_photo_change_button", None),
+            getattr(self, "_speaker_photo_remove_button", None),
+        ):
+            if photo_button is not None:
+                supported = callable(getattr(self, "_speaker_photo_save_callback", None))
+                photo_button.setVisible(supported)
+                photo_button.setEnabled(can_edit and supported)
         if hasattr(self, '_notes_variation_button'):
             has_callback = self._ai_variation_callback is not None
             self._notes_variation_button.setVisible(has_callback)
@@ -155,9 +169,21 @@ class EditorMixin:
         new_profiled = self._profiled_checkbox.isChecked()
         new_section = self._canonical_category_name(self._category_combo.currentText())
         entry = self._current_entry
+        photo_dirty = bool(getattr(self, "_speaker_photo_dirty", False))
         section_change = (
             new_section if new_section != (entry.section or "") else None
         )
+        if photo_dirty:
+            self._save_speaker_photo_async(
+                entry,
+                self._pending_speaker_photo,
+                translation=new_translation,
+                notes=new_notes,
+                profiled=new_profiled,
+                section=new_section,
+                user_notes=new_user_notes,
+            )
+            return
         if not self._attempt_entry_update(
             entry,
             new_translation,
@@ -167,7 +193,8 @@ class EditorMixin:
             select_after=select_after,
             user_notes=new_user_notes,
         ):
-            self._populate_entry_details(entry)
+            if not getattr(self, "_speaker_photo_dirty", False):
+                self._populate_entry_details(entry)
             return
         self._mark_editor_dirty(False)
 
@@ -178,6 +205,8 @@ class EditorMixin:
             True if navigation or closing can proceed (either no changes, saved, or discarded).
             False if user cancelled navigation or closing.
         """
+        if getattr(self, "_photo_save_in_progress", False):
+            return False
         if not getattr(self, "_editor_dirty", False) or not self._current_entry or not self._update_callback:
             return True
 
@@ -198,8 +227,11 @@ class EditorMixin:
             )
             if reply == QMessageBox.StandardButton.Save:
                 self._save_editor_changes(select_after=target_term)
-                return True
+                return not self._editor_dirty
             elif reply == QMessageBox.StandardButton.Discard:
+                self._cancel_speaker_photo_import()
+                self._speaker_photo_dirty = False
+                self._pending_speaker_photo = self._current_entry.speaker_photo
                 self._mark_editor_dirty(False)
                 return True
             else:  # Cancel
@@ -217,6 +249,7 @@ class EditorMixin:
         section: Optional[str] = None,
         select_after: Optional[str] = None,
         user_notes: Optional[str] = None,
+        speaker_photo: Optional[str] = None,
     ) -> bool:
         """Internal helper to attempt entry update.
 
@@ -234,12 +267,16 @@ class EditorMixin:
             kwargs["status"] = status
         if user_notes is not None:
             kwargs["user_notes"] = user_notes
+        if speaker_photo is not None:
+            kwargs["speaker_photo"] = speaker_photo
         if kwargs:
             try:
                 result = self._update_callback(
                     entry.original, new_translation, new_notes, profiled, **kwargs
                 )
             except TypeError:
+                if "speaker_photo" in kwargs:
+                    return False
                 kwargs.pop("user_notes", None)
                 try:
                     result = self._update_callback(

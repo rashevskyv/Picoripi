@@ -73,6 +73,7 @@ def entries_differ(e1: Dict[str, Any], e2: Dict[str, Any]) -> Tuple[bool, List[s
         "suggested_name",
         "suggested_name_evidence",
         "profiled",
+        "speaker_photo",
     ]
     differing: List[str] = []
     for f in fields:

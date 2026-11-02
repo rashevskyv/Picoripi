@@ -769,6 +769,13 @@ class LayoutBuilder:
         preview_column_layout = QVBoxLayout(self.mw.bfn_preview_column)
         preview_column_layout.setContentsMargins(0, 0, 0, 0)
         preview_column_layout.setSpacing(2)
+        self.mw.speaker_preview_badge = QLabel(self.mw.bfn_preview_column)
+        self.mw.speaker_preview_badge.setFixedHeight(36)
+        self.mw.speaker_preview_badge.setTextFormat(Qt.TextFormat.PlainText)
+        self.mw.speaker_preview_badge.setStyleSheet(
+            "QLabel { background: #202020; color: #eeeeee; padding: 2px 6px; }"
+        )
+        preview_column_layout.addWidget(self.mw.speaker_preview_badge, 0)
         preview_column_layout.addWidget(self.mw.bfn_preview_widget, 1)
         self.mw.bfn_preview_window_bar = BfnPreviewWindowBar(self.mw.bfn_preview_widget)
         preview_column_layout.addWidget(self.mw.bfn_preview_window_bar, 0)

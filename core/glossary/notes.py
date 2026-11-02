@@ -190,4 +190,7 @@ def _entry_to_dict(entry: GlossaryEntry) -> Dict[str, Any]:
         out["aliases"] = list(entry.aliases)
     if entry.id:
         out["id"] = entry.id
+    out.update({key: value for key, value in entry.extra_metadata.items() if key not in out and key != "speaker_photo"})
+    if entry.speaker_photo:
+        out["speaker_photo"] = entry.speaker_photo
     return out

@@ -10,6 +10,7 @@ from core.story_context_overrides import (
     iter_story_context_overrides,
 )
 from core.glossary_manager import render_notes
+from core.glossary.speaker_context import resolve_speaker_entry, speaker_description_html
 from core.i18n import tr
 from utils.logging_utils import log_debug
 
@@ -252,6 +253,14 @@ class StringSettingsUpdater(BaseUIUpdater):
             "Speaker from the current Markup Studio Story Context. "
             "Select another speaker here or open the linked line in Markup Studio."
         )
+        if role == "speaker":
+            manager = getattr(composer_owner, "_glossary_manager", None)
+            if manager is None:
+                manager = getattr(self.mw, "_glossary_manager", None)
+            entry = resolve_speaker_entry(manager, (current, *speakers))
+            details_html = speaker_description_html(entry) if entry else ""
+            if details_html:
+                tooltip += "<br><br>" + details_html
 
         combo = getattr(self.mw, "speaker_combobox", None)
         if combo is not None:
@@ -385,6 +394,10 @@ class StringSettingsUpdater(BaseUIUpdater):
         )
         if studio_button is not None:
             studio_button.setEnabled(block_idx >= 0 and string_idx >= 0)
+        preview_updater = getattr(getattr(self.mw, "ui_updater", None), "preview_updater", None)
+        refresh_badge = getattr(preview_updater, "update_speaker_preview_badge", None)
+        if callable(refresh_badge):
+            refresh_badge()
 
     def update_font_combobox(self):
         """Update the font combobox."""

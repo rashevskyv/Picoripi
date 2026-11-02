@@ -10,6 +10,33 @@ from utils.logging_utils import log_debug
 
 
 class CrudMixin:
+    def _create_glossary_photo_save_worker(self, entry, photo: str, **entry_changes):
+        """Prepare an asynchronous atomic glossary snapshot for a staged portrait."""
+        from core.glossary.speaker_photo import GlossaryPhotoSaveThread
+        worker = GlossaryPhotoSaveThread(
+            self.glossary_manager, entry, photo, **entry_changes
+        )
+        worker.on_saved = lambda updated: self._after_glossary_photo_saved(updated, entry)
+        return worker
+
+    def _after_glossary_photo_saved(self, entry, previous) -> None:
+        """Refresh derived UI state after the worker commits the file and manager."""
+        self.main_handler._cached_glossary = self.glossary_manager.get_raw_text()
+        self._update_glossary_highlighting()
+        self._refresh_series_conflicts()
+        updater = getattr(self.mw, "string_settings_updater", None)
+        refresh = getattr(updater, "update_string_settings_panel", None)
+        if callable(refresh):
+            refresh()
+        if previous is not None and previous.translation != entry.translation and entry.translation.strip():
+            occurrences = self.glossary_manager.get_occurrence_map().get(entry.original, [])
+            if occurrences:
+                self._occurrence_updater.show_translation_update_dialog(
+                    entry=entry,
+                    previous_translation=previous.translation,
+                    occurrences=occurrences,
+                )
+
     def _handle_glossary_entry_update(
         self,
         original: str,
@@ -19,6 +46,7 @@ class CrudMixin:
         status: Optional[str] = None,
         section: Optional[str] = None,
         user_notes: Optional[str] = None,
+        speaker_photo: Optional[str] = None,
     ):
         """Internal helper to handle glossary entry update.
 
@@ -37,6 +65,8 @@ class CrudMixin:
             update_kwargs["section"] = section
         if user_notes is not None:
             update_kwargs["user_notes"] = user_notes
+        if speaker_photo is not None:
+            update_kwargs["speaker_photo"] = speaker_photo
         if self.glossary_manager.update_entry(original, translation, notes, **update_kwargs):
             if not self.glossary_manager._occurrence_index and old_index:
                 self.glossary_manager._occurrence_index = old_index

@@ -925,6 +925,7 @@ def test_speaker_combobox_caching_and_invalidation(qapp, mock_mw):
     mock_mw.ui_updater.block_list_updater._story_projection_cache = projection
     mock_mw.ui_updater.block_list_updater._story_item_mappings_cache = {(0, 0): "Master Sword"}
     mock_mw.translation_handler = MagicMock()
+    mock_mw.translation_handler._glossary_manager = None
     mock_mw.translation_handler.prompt_composer._get_mempalace_client.return_value = client
 
     # Transition to item role

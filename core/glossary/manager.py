@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from threading import RLock
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 import ahocorasick
@@ -61,6 +62,8 @@ class GlossaryManager(
         # transaction(): how deep we are, and whether a write is owed.
         self._transaction_depth = 0
         self._persist_pending = False
+        self._write_lock = RLock()
+        self._persistence_revision = 0
 
         # Optimization structures for fast pattern matching
         self._automaton: Optional[ahocorasick.Automaton] = None

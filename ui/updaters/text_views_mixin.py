@@ -445,6 +445,7 @@ class TextViewsMixin:
             self._sync_bfn_previews(original_text_raw, edited_text_raw)
 
     def _sync_bfn_previews(self, original_text_raw, edited_text_raw) -> None:
+        self.update_speaker_preview_badge()
         preview_enabled = getattr(self.mw, 'preview_enabled', True)
         toggle_action = getattr(self.mw, 'toggle_preview_action', None)
         show_preview = preview_enabled and (toggle_action.isChecked() if toggle_action else True)
@@ -487,4 +488,64 @@ class TextViewsMixin:
                 self.mw._bfn_editor_window = None
             except Exception as exc:
                 log_debug(f"text_views_mixin.TextViewsMixin._sync_bfn_previews: ignored {exc!r}")
+
+    def update_speaker_preview_badge(self) -> None:
+        """Refresh the compact speaker area above the game preview."""
+        from PyQt6.QtGui import QPixmap
+        from core.glossary.speaker_context import resolve_speaker_entry, speaker_description_html
+        from core.glossary.speaker_photo import PhotoDecodeThread
+        from utils.thread_utils import safe_shutdown_thread
+
+        badge = getattr(self.mw, "speaker_preview_badge", None)
+        if badge is None:
+            return
+        combo = getattr(self.mw, "speaker_combobox", None)
+        name = combo.currentText().strip() if combo is not None else ""
+        manager = getattr(getattr(self.mw, "translation_handler", None), "_glossary_manager", None)
+        entry = resolve_speaker_entry(manager, (name,)) if name and name.casefold() != "none" else None
+        project = getattr(self.mw, "project_manager", None)
+        token = (
+            getattr(self.mw, "active_game_plugin", None),
+            str(getattr(project, "project_dir", "") or ""),
+            name,
+            getattr(entry, "id", ""),
+            id(entry) if entry else 0,
+            entry.notes if entry else "",
+            entry.user_notes if entry else "",
+        )
+        thread = getattr(self, "_speaker_photo_thread", None)
+        if getattr(self, "_speaker_photo_token", None) != token:
+            if thread is not None:
+                safe_shutdown_thread(thread, timeout_ms=250)
+            self._speaker_photo_thread = None
+            self._speaker_photo_token = token
+            badge.setPixmap(QPixmap())
+            badge.setText(name if name.casefold() != "none" else "")
+            badge.setToolTip(speaker_description_html(entry) if entry else "")
+            if entry and entry.speaker_photo:
+                thread = PhotoDecodeThread(repr(token), entry.speaker_photo)
+                from PyQt6.QtCore import Qt
+                thread.loaded.connect(self._speaker_photo_loaded, Qt.ConnectionType.QueuedConnection)
+                self._speaker_photo_thread = thread
+                thread.start()
+        elif not entry or not entry.speaker_photo:
+            badge.setPixmap(QPixmap())
+            badge.setText(name if name.casefold() != "none" else "")
+
+    def _speaker_photo_loaded(self, token: str, image) -> None:
+        """Apply a photo only while its speaker remains current."""
+        from PyQt6.QtCore import Qt
+        from PyQt6.QtGui import QPixmap
+
+        try:
+            self.update_speaker_preview_badge()
+            badge = getattr(self.mw, "speaker_preview_badge", None)
+            if badge is None or token != repr(getattr(self, "_speaker_photo_token", None)) or image.isNull():
+                return
+            badge.setText("")
+            badge.setPixmap(QPixmap.fromImage(image).scaled(
+                32, 32, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+            ))
+        except RuntimeError:
+            return
 

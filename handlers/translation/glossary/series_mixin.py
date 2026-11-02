@@ -105,6 +105,9 @@ class SeriesMixin:
                 delete_callback=partial(self._handle_series_entry_delete, manager),
                 transfer_callback=self._copy_series_to_project,
                 transfer_label=tr('Copy to Project Glossary'),
+                speaker_photo_save_callback=partial(
+                    self._create_series_photo_save_worker, manager
+                ),
                 embedded=True,
             )
             self.series_pages.append(page)
@@ -113,6 +116,12 @@ class SeriesMixin:
             for page, manager in zip(self.series_pages, self.series_glossary_managers)
         ])
         self._refresh_series_conflicts()
+
+    @staticmethod
+    def _create_series_photo_save_worker(manager, entry, photo: str, **entry_changes):
+        """Prepare an async portrait save for this series glossary only."""
+        from core.glossary.speaker_photo import GlossaryPhotoSaveThread
+        return GlossaryPhotoSaveThread(manager, entry, photo, **entry_changes)
 
     @staticmethod
     def _series_label(path: Optional[Path]) -> str:

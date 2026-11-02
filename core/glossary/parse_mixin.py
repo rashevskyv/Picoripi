@@ -25,6 +25,8 @@ class ParseMixin:
         raw_text: str,
     ) -> None:
         """Populate glossary from text buffer (either JSON or Markdown)."""
+        with self._write_lock:
+            self._persistence_revision += 1
         self._plugin_name = plugin_name
         self._glossary_path = glossary_path
         sanitized_text = (raw_text or "").replace('\uFEFF', '')
@@ -46,6 +48,8 @@ class ParseMixin:
                 self._section_order = []
                 sections_seen = set()
                 for item in data:
+                    if not isinstance(item, dict):
+                        continue
                     if item.get("deleted_at"):
                         self._tombstones.append({
                             "original": str(item.get("original", "") or ""),
@@ -74,6 +78,13 @@ class ParseMixin:
                             str(alias).strip() for alias in (item.get("aliases") or ()) if str(alias).strip()
                         ),
                         id=str(item.get("id", "") or ""),
+                        speaker_photo=str(item.get("speaker_photo", "") or ""),
+                        extra_metadata={key: value for key, value in item.items() if key not in {
+                            "original", "translation", "notes", "section", "profiled", "status", "icon",
+                            "fragments", "translation_variants", "provisional", "suggested_name",
+                            "suggested_name_evidence", "user_notes", "updated_at", "aliases", "id",
+                            "speaker_photo", "deleted_at",
+                        }},
                     )
                     if entry.is_valid():
                         self._entries.append(entry)
@@ -312,10 +323,13 @@ class ParseMixin:
 
     def _write_file(self, raw_json: str) -> None:
         """Replace the glossary file in one step: a crash mid-write leaves the old file whole."""
-        atomic_write_text(self._glossary_path, raw_json)
+        with self._write_lock:
+            atomic_write_text(self._glossary_path, raw_json)
 
     def _persist(self, write_only: bool = False, *, _now: bool = False) -> None:
         """Internal helper to persist."""
+        with self._write_lock:
+            self._persistence_revision += 1
         if self._transaction_depth and not _now:
             self._persist_pending = True
             return

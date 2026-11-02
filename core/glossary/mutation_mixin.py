@@ -172,6 +172,7 @@ class MutationMixin:
         fragments: Optional[Tuple[DescriptionFragment, ...]] = None,
         translation_variants: Optional[Tuple[TranslationVariant, ...]] = None,
         user_notes: Optional[str] = None,
+        speaker_photo: Optional[str] = None,
     ) -> Optional[GlossaryEntry]:
         """Update the entry, preserving lifecycle fields unless overridden.
 
@@ -210,6 +211,7 @@ class MutationMixin:
             # must not quietly turn a placeholder term into one that
             # looks decided.
             user_notes=user_notes if user_notes is not None else entry.user_notes,
+            speaker_photo=speaker_photo if speaker_photo is not None else entry.speaker_photo,
             updated_at=datetime.now(timezone.utc).isoformat(),
         )
         if section and section not in self._section_order:
@@ -241,6 +243,39 @@ class MutationMixin:
         self._session_changes[original_key] = updated_entry
         self._persist()
         return updated_entry
+
+    def install_photo_snapshot(
+        self, written_revision: int, entries, raw_json: str, original: str, path=None,
+        pattern_cache=None,
+    ) -> bool:
+        """Install a photo snapshot only while the glossary still matches its source revision."""
+        if self._persistence_revision != written_revision:
+            return False
+        candidate = list(entries)
+        updated = next((entry for entry in candidate if entry.original == original), None)
+        if updated is None:
+            return False
+        previous = self.get_entry(original)
+        self._entries = candidate
+        self._session_changes[original] = updated
+        if pattern_cache is not None:
+            (
+                self._compiled_patterns,
+                self._first_word_index,
+                self._non_word_patterns,
+                self._automaton,
+            ) = pattern_cache
+        if previous is not None and previous.section != updated.section:
+            self._occurrence_index.pop(original, None)
+        elif self._occurrence_index.get(original):
+            self._occurrence_index[original] = [
+                replace(occurrence, entry=updated)
+                for occurrence in self._occurrence_index[original]
+            ]
+        self._raw_text = raw_json
+        if path is not None:
+            self._glossary_path = path
+        return True
 
     def rename_original(self, old_original: str, new_original: str) -> Optional[GlossaryEntry]:
         """Rename an entry's original term, merging evidence on collision.

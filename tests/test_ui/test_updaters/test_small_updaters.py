@@ -10,6 +10,9 @@ from ui.updaters.preview_updater import PreviewUpdater
 def mock_mw():
     from conftest import MockMainWindow
     mw = MockMainWindow()
+    mw.translation_handler = MagicMock()
+    mw.translation_handler._glossary_manager = None
+    mw._glossary_manager = None
     mw.data_store = mw
     mw.data_store.json_path = None
     mw.data_store.edited_json_path = None

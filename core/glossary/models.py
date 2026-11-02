@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from typing import Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 
 # Lifecycle status of a glossary entry (roadmap section 3). An empty string is a
@@ -85,6 +85,9 @@ class GlossaryEntry:
     # "one deleted, another added". Not part of equality: two entries that say
     # the same thing are equal whatever their ids.
     id: str = field(default="", compare=False)
+    # Unknown JSON keys survive an edit and export for forward compatibility.
+    extra_metadata: Dict[str, Any] = field(default_factory=dict, compare=False)
+    speaker_photo: str = ""
 
     def is_valid(self) -> bool:
         """Whether the entry should load and appear.
