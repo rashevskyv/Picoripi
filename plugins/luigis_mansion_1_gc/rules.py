@@ -29,7 +29,8 @@ class GameRules(TableRules):
     problem_definitions = PROBLEM_DEFINITIONS
     tag_manager_class = TagManager
     display_name = "Luigi's Mansion (GameCube)"
-    file_formats = (((".csv",), "Luigi's Mansion message table (CSV, Shift-JIS)"),)
+    file_formats = (((".csv",), "Luigi's Mansion message table (CSV, Shift-JIS)"),
+                    ((".txt",), "Luigi's Mansion event script (Shift-JIS, not a text table)"))
     default_script_name = "luigis_mansion_1_script.md"
     lines_per_page = DEFAULT_LINES_PER_PAGE
     spellcheck_ignore = TAG_RE.pattern

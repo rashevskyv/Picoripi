@@ -2,6 +2,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Luigi's Mansion (GameCube): event scripts no longer count as message lines (1477 to 1226); Ukrainian letters are written to message tables; add headless `scripts/import_project_translations.py` (dry run by default, backs up the project file).
+
 - Search: select text only when a click enters an unfocused search or filter field; subsequent clicks position the caret.
 
 - Glossary: use small pixel steps for mouse-wheel scrolling in term tables, proposed variants, and occurrences, independent of card height.
