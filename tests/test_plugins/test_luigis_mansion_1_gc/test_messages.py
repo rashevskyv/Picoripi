@@ -41,3 +41,18 @@ def test_character_without_a_shift_jis_code_is_refused_with_its_record():
 def test_bytes_that_are_not_shift_jis_are_not_a_table():
     with pytest.raises(ValueError):
         Table(b"\x81\x20\x80\xfd\xff\r\n")
+
+
+def test_event_script_is_not_a_message_table():
+    # text/eventNN.txt: Shift-JIS-decodable, but its command tags are not message tags
+    with pytest.raises(ValueError, match="event script"):
+        Table(b"<CANCEL>\r\n<CASE>\"case1\"\r\n<END>\r\n")
+
+
+def test_color_tags_keep_a_message_a_message():
+    assert Table(b"<COLOR>(3)Ghost<COLOR>(0)\r\n").texts() == ["<COLOR>(3)Ghost<COLOR>(0)"]
+
+
+def test_event_script_loads_as_no_strings():
+    from plugins.luigis_mansion_1_gc.rules import GameRules
+    assert GameRules().load_data_from_json_obj(b"<END>\r\n<WAIT>\r\n") == ([[]], {})

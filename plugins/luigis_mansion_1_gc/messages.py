@@ -6,12 +6,14 @@ are ``<TAG>`` or ``<TAG>(n)``. A file that does not decode as Shift-JIS is not a
 """
 from __future__ import annotations
 
+import re
 from typing import List, Sequence
 
 from core.i18n import tr
 
 ENCODING = "cp932"
 RECORD_END = "\r\n"
+TAG_NAME = re.compile(r"<([A-Z][A-Z0-9_]*)>")
 # Ukrainian letters that Shift-JIS lacks: the game's font draws them in unused cp932 Cyrillic slots (char_map.json).
 SLOT_OF = {"Ґ": "Ё", "Є": "Э", "І": "Ы", "Ї": "Ъ", "ґ": "ё", "є": "э", "і": "ы", "ї": "ъ"}
 TO_SLOT = str.maketrans(SLOT_OF)
@@ -31,6 +33,10 @@ class Table:
     def __init__(self, raw: bytes):
         self.raw = bytes(raw)
         text = self.raw.decode(ENCODING).translate(FROM_SLOT)   # ValueError (UnicodeDecodeError) for a file that is not Shift-JIS
+        # A message table uses only <COLOR> tags. An event script (text/eventNN.txt) uses command tags such as <END>.
+        # ponytail: a tag list, checked on the real discs; a new message tag needs it here.
+        if any(tag != "COLOR" for tag in TAG_NAME.findall(text)):
+            raise ValueError("event script, not a message table")
         self.tail = text.endswith(RECORD_END)
         body = text[:-len(RECORD_END)] if self.tail else text
         self._texts: List[str] = body.split(RECORD_END) if text else []
