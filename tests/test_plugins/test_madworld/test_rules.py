@@ -77,6 +77,8 @@ def test_every_font_opens_and_packs_back_unchanged():
 @real
 def test_the_wizard_unpack_of_the_disc_matches_the_workspace_source(tmp_path):
     pytest.importorskip("Crypto", reason="reading the disc needs pycryptodome")
+    if console_keys.path_for("wii") is None:
+        pytest.skip("no Wii key file is set in Picoripi (Settings > Console keys); the disc is encrypted")
     project = tmp_path / "project"
     folder = lb.run_unpack(GameRules(None), {"base": str(ORIGINAL)}, str(project), lambda p, t: None,
                            lambda: False, key_provider=console_keys.path_for)
