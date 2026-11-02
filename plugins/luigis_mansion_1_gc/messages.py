@@ -16,6 +16,13 @@ RECORD_END = "\r\n"
 SLOT_OF = {"Ґ": "Ё", "Є": "Э", "І": "Ы", "Ї": "Ъ", "ґ": "ё", "є": "э", "і": "ы", "ї": "ъ"}
 TO_SLOT = str.maketrans(SLOT_OF)
 FROM_SLOT = str.maketrans({slot: letter for letter, slot in SLOT_OF.items()})
+# Typographic marks with no Shift-JIS code: the nearest Shift-JIS mark is written instead.
+PUNCT_FALLBACK = str.maketrans({"—": "―", "«": "“", "»": "”"})
+
+
+def encode(text: str) -> bytes:
+    """``text`` in the game's encoding (Ukrainian letters and the marks of PUNCT_FALLBACK included)."""
+    return text.translate(TO_SLOT).translate(PUNCT_FALLBACK).encode(ENCODING)
 
 
 class Table:
@@ -43,8 +50,8 @@ class Table:
             if RECORD_END in text:
                 raise ValueError(tr("record {0}: a record break (CRLF) is not allowed inside a message", number))
             try:
-                text.translate(TO_SLOT).encode(ENCODING)
+                encode(text)
             except UnicodeEncodeError as error:
                 raise ValueError(tr("record {0}: the character {1} has no Shift-JIS code", number, repr(text[error.start]))) from None
         body = RECORD_END.join(texts)
-        return (body + RECORD_END if self.tail else body).translate(TO_SLOT).encode(ENCODING)
+        return (body + RECORD_END if self.tail else body).translate(TO_SLOT).translate(PUNCT_FALLBACK).encode(ENCODING)

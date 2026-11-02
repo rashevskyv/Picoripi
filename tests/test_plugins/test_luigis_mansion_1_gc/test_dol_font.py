@@ -65,3 +65,9 @@ def test_changed_executable_is_in_the_build_changes(tmp_path):
     changes = build.changed_files(source, translation)
     assert list(changes) == ["sys/main.dol"]
     assert changes["sys/main.dol"] == _dol(_font(b"\x33"))
+
+
+def test_dash_and_guillemets_take_the_nearest_shift_jis_mark():
+    table = messages.Table(b"one\r\n")
+    raw = table.build(["a \u2014 b \u00abc\u00bb"])
+    assert messages.Table(raw).texts() == ["a \u2015 b \u201cc\u201d"]
