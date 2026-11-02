@@ -409,3 +409,29 @@ def test_speaker_commit_reuses_existing_name_ignoring_case(qapp):
         "Fado"
     )
     assert mw.speaker_combobox.currentText() == "Fado"
+
+
+def test_search_click_selects_again_after_click_on_non_focus_widget(qapp, qtbot):
+    from PyQt6.QtWidgets import QLabel
+
+    mw = QWidget()
+    search = QLineEdit(mw)
+    search.setPlaceholderText("Search entries")
+    search.setText("Midna")
+    label = QLabel("x", mw)
+    label.move(0, 60)
+    filter_obj = MainWindowEventFilter(mw)
+    qapp.installEventFilter(filter_obj)
+    qtbot.addWidget(mw)
+    mw.show()
+    qtbot.waitExposed(mw)
+    mw.activateWindow()
+    qapp.setActiveWindow(mw)
+    qtbot.waitActive(mw)
+
+    QTest.mouseClick(search, Qt.MouseButton.LeftButton)
+    qtbot.waitUntil(lambda: search.selectedText() == "Midna", timeout=3000)
+    QTest.mouseClick(label, Qt.MouseButton.LeftButton)
+    assert search.hasFocus()
+    QTest.mouseClick(search, Qt.MouseButton.LeftButton)
+    qtbot.waitUntil(lambda: search.selectedText() == "Midna", timeout=3000)

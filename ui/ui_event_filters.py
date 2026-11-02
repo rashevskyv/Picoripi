@@ -13,6 +13,13 @@ class TextEditEventFilter(QObject):
         super().__init__(parent)
         self.mw = main_window
 
+    def _press_is_on_clicked_edit(self, event) -> bool:
+        """A press the field ignored (right button) propagates to its parent; it is still a click on the field."""
+        edit = self._clicked_edit
+        if edit is None:
+            return False
+        return edit.rect().contains(edit.mapFromGlobal(event.globalPosition().toPoint()))
+
     def eventFilter(self, obj, event):
         """Eventfilter."""
         if event.type() == QEvent.Type.KeyPress:
@@ -148,6 +155,7 @@ class MainWindowEventFilter(QObject):
         super().__init__(main_window)
         self.mw = main_window
         self._mouse_focus_target = None
+        self._clicked_edit = None
 
     def _is_speaker_combobox_event_source(self, obj) -> bool:
         """Return True when a key event came from the speaker combobox or its popup."""
@@ -243,17 +251,33 @@ class MainWindowEventFilter(QObject):
         if not line_edit.hasSelectedText():
             line_edit.selectAll()
 
+    def _press_is_on_clicked_edit(self, event) -> bool:
+        """A press the field ignored (right button) propagates to its parent; it is still a click on the field."""
+        edit = self._clicked_edit
+        if edit is None:
+            return False
+        return edit.rect().contains(edit.mapFromGlobal(event.globalPosition().toPoint()))
+
     def eventFilter(self, obj, event):
         """Eventfilter."""
-        if event.type() == QEvent.Type.FocusIn:
+        if event.type() == QEvent.Type.MouseButtonPress:
+            # The first click on a field after a click anywhere else (or after
+            # the field lost focus) selects all; the next ones are plain clicks.
             line_edit = self._line_edit_for_click(obj)
-            if (
-                line_edit is not None
-                and event.reason() == Qt.FocusReason.MouseFocusReason
-            ):
-                self._mouse_focus_target = line_edit
-        elif event.type() == QEvent.Type.FocusOut:
-            self._mouse_focus_target = None
+            if line_edit is None:
+                if not self._press_is_on_clicked_edit(event):
+                    self._clicked_edit = None
+                    self._mouse_focus_target = None
+            else:
+                if self._clicked_edit is not line_edit:
+                    self._mouse_focus_target = line_edit
+                self._clicked_edit = line_edit
+        elif (
+            event.type() == QEvent.Type.FocusOut
+            and obj is self._clicked_edit
+            and event.reason() != Qt.FocusReason.PopupFocusReason
+        ):
+            self._clicked_edit = None
 
         if event.type() == QEvent.Type.MouseButtonRelease:
             line_edit = self._line_edit_for_click(obj)
