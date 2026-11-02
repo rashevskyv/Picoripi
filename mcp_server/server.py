@@ -42,3 +42,9 @@ def check_fit(project: str, items: List[Dict[str, Any]]) -> Dict[str, Any]:
 def scan_string(plugin: str, text: str, source_text: str = "") -> Dict[str, Any]:
     """Check one translated string with a plugin's rules (tags, spacing, ...). Width is not measured."""
     return tools.scan_string(plugin, text, source_text)
+
+
+@mcp.tool()
+def get_string_context(project: str, block: int, string: int) -> Dict[str, Any]:
+    """Full translation context for one game string: story structure, speaker, neighbours, existing translation. `project` is the .uiproj path."""
+    return tools.string_context(project, block, string)

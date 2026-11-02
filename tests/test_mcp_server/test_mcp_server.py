@@ -59,5 +59,14 @@ def test_stdio_round_trip(project):
             return names, result.structured_content
 
     names, content = asyncio.run(run())
-    assert names == {"list_projects", "get_issue_rules", "list_issues", "scan_string"}
+    assert names == {"list_projects", "get_issue_rules", "list_issues", "check_fit", "scan_string", "get_string_context"}
     assert content["result"]["total"] == 4 and content["result"]["source"] == "cached"
+
+
+def test_string_context_without_database(project):
+    (project.parent / ".picoripi_session.json").write_text(json.dumps({"edited_file_data": [["a", "b"]]}), encoding="utf-8")
+    result = tools.string_context(str(project), 0, 1)
+    assert result["mempalace"] == "none" and result["structure"] == [] and result["speaker_name"] is None
+    assert result["neighbours"] == [] and result["translation"] == "b"
+    assert not (project.parent / "mempalace_local.db").exists()
+    assert tools.string_context(str(project), 5, 5)["translation"] is None

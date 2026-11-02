@@ -206,3 +206,75 @@ def scan_string(plugin: str, text: str, source_text: str = "", width_threshold: 
         "width_checked": False,
         "problems": [{"id": pid, "definition": definitions.get(pid, {})} for pid in found],
     }
+
+
+_MEMPALACE_CACHE: Dict[str, Any] = {}
+
+
+def _mempalace(project_dir: Path):
+    """One MemPalace client per project directory; None when the project has no database (none is created)."""
+    key = str(project_dir.resolve())
+    if key not in _MEMPALACE_CACHE:
+        client = None
+        if (project_dir / "mempalace_local.db").is_file():
+            try:
+                from core.mempalace.client import MemePalaceClient
+
+                client = MemePalaceClient(str(project_dir))
+            except Exception as error:  # a damaged database must not break the tool
+                log_debug(f"string_context: MemPalace not opened: {error}")
+        _MEMPALACE_CACHE[key] = client
+    return _MEMPALACE_CACHE[key]
+
+
+def _json_part(part: Any) -> Any:
+    if isinstance(part, str):
+        return part
+    return {key: (value.hex() if isinstance(value, (bytes, bytearray)) else value) for key, value in dict(part).items()}
+
+
+def string_context(project: str, block: int, string: int) -> Dict[str, Any]:
+    """Everything known about one string for a translator: story path, speaker, source neighbours, saved translation.
+
+    Reads files only. Each part that cannot be read is reported as ``none`` and does not fail the call.
+    """
+    project_dir = _project_dir(project)
+    result: Dict[str, Any] = {"block": block, "string": string, "mempalace": "none", "structure": [], "speaker_name": None}
+    client = _mempalace(project_dir)
+    if client is not None:
+        try:
+            contexts = client.get_story_string_contexts(str(block), string)
+            if contexts:
+                first = contexts[0]
+                result.update(mempalace="found", structure=list(first.path), speaker_name=first.speaker)
+        except Exception as error:
+            log_debug(f"string_context: MemPalace query failed: {error}")
+    result["neighbours"] = []
+    uiproj = Path(project)
+    if uiproj.is_file():
+        try:
+            key = str(uiproj.resolve())
+            fit = _FIT_CACHE.get(key)
+            if fit is None:
+                fit = _FIT_CACHE[key] = _FitProject(uiproj)
+            bmg = fit.source_bmg(block)
+            if bmg is not None:
+                to_text = getattr(fit.rules, "msg_to_editor_text", None)
+                for index in range(max(0, string - 2), min(len(bmg.messages), string + 3)):
+                    msg = bmg.messages[index]
+                    result["neighbours"].append({
+                        "string": index,
+                        "text": to_text(msg) if to_text else "",
+                        "parts": [_json_part(part) for part in msg.parts],
+                    })
+        except Exception as error:
+            log_debug(f"string_context: source neighbours not read: {error}")
+    result["translation"] = None
+    session_path = project_dir / ".picoripi_session.json"
+    if session_path.is_file():
+        try:
+            data = json.loads(session_path.read_text(encoding="utf-8")).get("edited_file_data") or []
+            result["translation"] = data[block][string]
+        except Exception as error:
+            log_debug(f"string_context: session translation not read: {error}")
+    return result
