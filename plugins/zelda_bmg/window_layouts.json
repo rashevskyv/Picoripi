@@ -8,8 +8,9 @@
         "kind entries override it for other windows. Explicit per-string",
         "overrides always win. font_file picks the BFN font for the kind",
         "(empty = default font).",
-        "lines_per_page follows non-JP getLineMax: kanban kinds 2/6/15 -> 7,",
-        "staff 7 -> 10, save 16 -> 6, all others including jimaku/place/boss -> 4.",
+        "lines_per_page follows non-JP getLineMax for message windows: kanban kinds 2/6/15 -> 7,",
+        "staff 7 -> 10, save 16 -> 6, other message kinds -> 4. Kind 11 ItemExplain is a separate",
+        "inventory-menu pane: 445x162 text box, 20 px lines (8 fit), 24 px BFN cells -> 445 * 24 / 20 = 534.",
         "Kind 15 is Talk visuals with kanban pagination (not a wooden sign).",
         "An optional 'name' labels the kind in the editor (preview badge and the",
         "Window: label). Unknown kinds show as 'Dialogue (kind N)' - to classify",
@@ -67,9 +68,9 @@
             "name": "Item get"
         },
         "11": {
-            "warn_width": 410,
-            "max_width": 435,
-            "lines_per_page": 4,
+            "warn_width": 515,
+            "max_width": 534,
+            "lines_per_page": 8,
             "name": "Item info"
         },
         "12": {

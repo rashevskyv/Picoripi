@@ -1,7 +1,8 @@
 """Read, edit and write Nintendo BFN bitmap fonts; convert one to a font map."""
 import struct
 from typing import Dict, Any, List, Tuple, Optional
-from PyQt6.QtGui import QImage, QColor
+from PyQt6.QtGui import QImage
+from core.texture_formats import bti, pixels, surface
 from utils.logging_utils import log_error
 
 def align_to(value: int, alignment: int) -> int:
@@ -410,74 +411,44 @@ class BfnCore:
         texture_format = gly["texture_format"]
         sheets_binary = gly.get("sheets_binary", [])
 
+        if texture_format not in (0, 1, 2, 3):   # I4, I8, IA4, IA8
+            log_error(f"Unsupported BFN texture format during QImage conversion: {texture_format}")
+            for _sheet in sheets_binary:
+                img = QImage(texture_width, texture_height, QImage.Format.Format_ARGB32)
+                img.fill(0)
+                self._qimages_cache.append(img)
+            return self._qimages_cache
+        # The shared GX codec decodes a whole sheet at once; a pixel-by-pixel setPixel loop took most of a second
+        # per sheet on the first paint of a project. Data cut short decodes as transparent.
+        codec = pixels.codec(f"gx:{bti.FORMATS[texture_format]}")
+        need = surface.surface_bytes(codec, texture_width, texture_height)
         for sheet_bin in sheets_binary:
-            img = QImage(texture_width, texture_height, QImage.Format.Format_ARGB32)
-            img.fill(0) # Start with fully transparent transparent black
-
-            if texture_format == 0:  # I4 (intensity 4 bits, tiles of 8x8)
-                tiles_x = texture_width // 8
-                tiles_y = texture_height // 8
-                idx = 0
-                for ty in range(tiles_y):
-                    for tx in range(tiles_x):
-                        for y in range(8):
-                            for x_byte in range(4):
-                                if idx >= len(sheet_bin):
-                                    break
-                                val = sheet_bin[idx]
-                                idx += 1
-                                
-                                val1 = (val >> 4) & 0x0F
-                                val2 = val & 0x0F
-                                
-                                c1 = val1 * 17
-                                c2 = val2 * 17
-                                
-                                px1 = tx * 8 + x_byte * 2
-                                py1 = ty * 8 + y
-                                px2 = tx * 8 + x_byte * 2 + 1
-                                py2 = ty * 8 + y
-                                
-                                if px1 < texture_width and py1 < texture_height:
-                                    img.setPixel(px1, py1, QColor(c1, c1, c1, c1).rgba())
-                                if px2 < texture_width and py2 < texture_height:
-                                    img.setPixel(px2, py2, QColor(c2, c2, c2, c2).rgba())
-
-            elif texture_format == 2:  # IA4 (intensity/alpha 4 bits, tiles of 8x4)
-                tiles_x = texture_width // 8
-                tiles_y = texture_height // 4
-                idx = 0
-                for ty in range(tiles_y):
-                    for tx in range(tiles_x):
-                        for y in range(4):
-                            for x in range(8):
-                                if idx >= len(sheet_bin):
-                                    break
-                                val = sheet_bin[idx]
-                                idx += 1
-                                
-                                intensity = (val & 0x0F) * 17
-                                alpha = ((val >> 4) & 0x0F) * 17
-                                
-                                px = tx * 8 + x
-                                py = ty * 4 + y
-                                
-                                if px < texture_width and py < texture_height:
-                                    img.setPixel(px, py, QColor(intensity, intensity, intensity, alpha).rgba())
-            elif texture_format in GX_8BIT:
-                for (px, py), (intensity, alpha) in gx8_texels(texture_format, texture_width, texture_height, sheet_bin):
-                    img.setPixel(px, py, QColor(intensity, intensity, intensity, alpha).rgba())
-            else:
-                log_error(f"Unsupported BFN texture format during QImage conversion: {texture_format}")
-
+            data = bytes(sheet_bin[:need]).ljust(need, b"\0")
+            rgba = surface.read(data, 0, codec, texture_width, texture_height).tobytes()
+            img = QImage(rgba, texture_width, texture_height, texture_width * 4,
+                         QImage.Format.Format_RGBA8888).convertToFormat(QImage.Format.Format_ARGB32)
             self._qimages_cache.append(img)
 
         return self._qimages_cache
 
+    @staticmethod
+    def _advance_of(char, scale, glyph_of, translation_map, first_code, packets, end_glyph,
+                    default_width, cell_w) -> float:
+        """Width a glyph adds to the line, without the char spacing."""
+        glyph_idx = glyph_of.get(char, -1)
+        if glyph_idx == -1 and translation_map:
+            glyph_idx = glyph_of.get(translation_map.get(char) or "", -1)
+        if glyph_idx == -1 or glyph_idx > end_glyph:
+            return default_width * scale
+        wid_idx = glyph_idx - first_code
+        width = packets[wid_idx]["width"] if 0 <= wid_idx < len(packets) else cell_w
+        return width * scale
+
     def layout_text(self, text: str, translation_map: Optional[Dict[str, str]] = None, line_spacing: float = 10,
                     char_spacing: float = 0, colors: Optional[List[Optional[str]]] = None,
                     scales: Optional[List[float]] = None,
-                    icons: Optional[Dict[int, Dict[str, Any]]] = None) -> Tuple[List[Dict[str, Any]], int, int]:
+                    icons: Optional[Dict[int, Dict[str, Any]]] = None,
+                    wrap_width: Optional[float] = None) -> Tuple[List[Dict[str, Any]], int, int]:
         """
         Compute layout positions for each character in text based on current BFN font metrics.
 
@@ -502,6 +473,13 @@ class BfnCore:
         icons: optional dict mapping character index in `text` to an inline icon
         drawing spec; such characters become icon glyphs advancing by the spec's
         "width" (default 24 px, the game's do_outfont icon size) times scale.
+
+        wrap_width: optional text box width in font pixels. Like the game's text box, a character
+        that would end past it starts a new line (a space never does). An icon never wraps itself
+        (the game moves the cursor with a CR escape). Icons are drawn by the message processor,
+        which only knows explicit newlines: an icon keeps the x of the unwrapped line and the y of
+        its logical line, so after a wrap it stays behind while the text moves down (this is why
+        a list bullet can land one row above the text it belongs to).
 
         Returns:
             - List of dictionaries representing laid out glyphs.
@@ -567,6 +545,8 @@ class BfnCore:
             if line_no > 0:
                 abs_idx += 1  # the '\n' consumed by split
             current_x = float(pad)
+            wrap_shift = 0.0  # x consumed on rows before the current one
+            logical_baseline = pad + ascent + line_no * line_advance
             for char in line:
                 color = None
                 if colors and abs_idx < len(colors):
@@ -582,6 +562,15 @@ class BfnCore:
                 icon_spec = icons.get(abs_idx) if icons else None
                 abs_idx += 1
 
+                if wrap_width and icon_spec is None and char not in (' ', '	') and current_x > pad:
+                    advance = self._advance_of(char, scale, glyph_of, translation_map,
+                                               first_code, packets, end_glyph, default_width, cell_w)
+                    if current_x - pad + advance > wrap_width + 0.01:
+                        total_width = max(total_width, current_x - pad)
+                        wrap_shift += current_x - pad
+                        baseline += line_advance
+                        current_x = float(pad)
+
                 if icon_spec is not None:
                     # Inline icon (game do_outfont): 24x24 px box (times scale),
                     # vertically centered on the line, advance = width*scale
@@ -590,14 +579,14 @@ class BfnCore:
                     except (TypeError, ValueError):
                         icon_w = 24.0
                     size = icon_w * scale
-                    center_y = (baseline - ascent) + cell_h / 2.0
+                    center_y = (logical_baseline - ascent) + cell_h / 2.0
                     glyphs_layout.append({
                         "char": char,
                         "glyph_idx": -1,
                         "sheet_idx": -1,
                         "cell_x": 0,
                         "cell_y": 0,
-                        "draw_x": current_x,
+                        "draw_x": current_x + wrap_shift,
                         "draw_y": center_y - size / 2.0,
                         "width": icon_w,
                         "kerning": 0,

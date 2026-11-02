@@ -9,7 +9,7 @@ from plugins.zelda_bmg.window_kinds import (
 
 
 def _info(msg_id=0, fuki_kind=0, se_speaker=0, output_type=0, pos_type=0,
-          se_mood=0, camera=0, base_anm=0, face_anm=0):
+          item_no=0, se_mood=0, camera=0, base_anm=0, face_anm=0):
     """Build INF1 attribute bytes (msg.info layout, JMSMesgEntry_c from +4)."""
     data = bytearray(16)
     data[0] = (msg_id >> 8) & 0xFF
@@ -18,6 +18,7 @@ def _info(msg_id=0, fuki_kind=0, se_speaker=0, output_type=0, pos_type=0,
     data[5] = fuki_kind
     data[6] = output_type
     data[7] = pos_type
+    data[8] = item_no
     data[10] = se_mood
     data[11] = camera
     data[12] = base_anm
@@ -70,12 +71,12 @@ def test_window_styles_per_kind():
     assert item["frame"]["style"] == "item"
     assert item["item_icon"]["size"] == 48.0
 
-    # kind 11 is pause-menu item copy on the Talk screen, not Item get
+    # kind 11 is the inventory ItemExplain panel, not the Item get window
     info = window_style_for_kind(11)
     assert info["kind_name"] == "Item info"
-    assert info["frame"]["style"] == "talk"
-    assert info["screen_class"] == "talk"
-    assert "item_icon" not in info
+    assert info["frame"]["style"] == "paper"
+    assert info["screen_class"] == "item_info"
+    assert info["item_icon"]["size"] == 52.0
 
     # cutscene subtitles: no frame at all
     jimaku = window_style_for_kind(1)
@@ -200,7 +201,7 @@ def test_boss_names_are_excluded_from_automatic_story_matching(bmg_rules):
     (15, 410, 435, 7),   # Dialogue (kanban): Talk widths, kanban lines
     (7, 400, 420, 10),   # staff credits
     (9, 340, 360, 4),    # item window
-    (11, 410, 435, 4),   # item info (Talk)
+    (11, 515, 534, 8),   # ItemExplain menu viewport
     (16, 410, 435, 6),   # descriptions / save
     (12, 420, 440, 4),   # location name
     (19, 420, 440, 4),   # boss name
@@ -385,6 +386,24 @@ def test_unknown_kind_shows_number_and_json_can_name_it():
 def test_save_window_kind_16():
     assert window_kind_name(16) == "Descriptions / save"
     assert window_style_for_kind(16)["frame"]["style"] == "talk"
+
+
+def test_item_info_is_separate_from_talk_and_has_eight_line_menu_pane():
+    from plugins.zelda_bmg.window_frame_loader import screen_class_for_kind
+    from ui.components.bfn_preview.paging_mixin import BfnPreviewPagingMixin
+
+    style = window_style_for_kind(11)
+    assert style["screen_class"] == "item_info"
+    assert style["frame"]["style"] == "paper"
+    assert style["default_text_color"] == "#29251d"
+    assert style["lines_per_page"] == 8
+    assert screen_class_for_kind(11, style) == "item_info"
+    assert window_style_for_kind(0)["screen_class"] == "talk"
+    description = "A simple rod.\nSet it to A or B.\nFace the water.\nCast it out.\nRaise the rod.\nUse bait to catch\nmore kinds of fish."
+    rendered, _, _, _, page_count = BfnPreviewPagingMixin._slice_page(
+        description, None, None, None, style["lines_per_page"], 0)
+    assert rendered == description
+    assert page_count == 1
 
 
 def test_bmg_block_resolution_is_cached(bmg_rules):
@@ -623,3 +642,104 @@ def test_dump_talk_frame_loads_when_msgres_present(qapp, tmp_path):
     mid = img.pixelColor(max(0, min(img.width() - 1, cx)),
                          max(0, min(img.height() - 1, cy)))
     assert 20 < mid.alpha() < 250, mid.alpha()
+
+
+def test_dump_item_info_uses_its_own_blo_geometry(qapp):
+    from plugins.zelda_bmg.window_frame_loader import load_window_frame
+
+    candidates = (
+        romhacking_root.under(r"TP_wii\unpacked\files\res\Layout"),
+        romhacking_root.under(r"Zelda\Twilight Princess\GC + Wii\ISO\ENG\root\res\Layout"),
+    )
+    layout = next((path for path in candidates if (path / "itmInfRes.arc").is_file()), None)
+    if layout is None:
+        pytest.skip("retail Twilight Princess Layout dump not available")
+
+    class PreviewContext:
+        zelda_game_root = str(layout)
+
+    frame = load_window_frame("item_info", PreviewContext())
+    assert frame is not None
+    assert frame.screen == (604, 448)
+    assert frame.text[2:] == (445.0, 162.0)
+    assert frame.text[1] == 129.0
+    assert frame.box == (32.5, 30.0, 545.0, 323.0)
+    assert frame.text[1] + frame.text[3] <= frame.box[1] + frame.box[3]
+    assert frame.icon_slot is not None
+    assert frame.icon_slot[0] > frame.text[0]
+    assert frame.text_metrics["line_space"] * 8 <= frame.text[3]
+    assert frame.image.pixelColor(40, 160).alpha() > 0
+
+
+def test_item_info_preview_renders_description_lines_and_real_icon(qapp, bmg_rules, tmp_path):
+    from core.containers.rarc_container import RarcContainer
+    from core.bfn_core import BfnCore
+    from ui.components.bfn_preview_widget import BfnPreviewWidget
+
+    candidates = (
+        romhacking_root.under(r"TP_wii\unpacked\files\res\Layout"),
+        romhacking_root.under(r"Zelda\Twilight Princess\GC + Wii\ISO\ENG\root\res\Layout"),
+    )
+    layout = next((path for path in candidates
+                   if (path / "itmInfRes.arc").is_file() and (path / "itemicon.arc").is_file()), None)
+    if layout is None:
+        pytest.skip("retail Twilight Princess preview assets not available")
+    font_arc = layout.parent / "Fontus" / "fontres.arc"
+    if not font_arc.is_file():
+        pytest.skip("retail Twilight Princess font archive not available")
+    bmg_rules.last_loaded_bmg = _FakeBmg([
+        _FakeMsg(_info(msg_id=0x02AF, fuki_kind=11, item_no=0x4A)),
+    ])
+    mw = _wire_preview_mw(bmg_rules, bmg_rules.last_loaded_bmg.messages[0])
+    mw.zelda_game_root = str(layout)
+    description = (
+        "A simple, bobber-style fishing rod.\n"
+        "Set it to A or B and face the water to\n"
+        "use it. Press and hold A and raise the\n"
+        "rod.\n"
+        "Set it with bait from a bottle to catch\n"
+        "a variety of fish.\n"
+        "Enjoy your fishing!"
+    )
+    bfn = BfnCore()
+    font_resources = RarcContainer(font_arc.read_bytes())
+    bfn.load(font_resources.read_file("rodan_b_24_22.bfn"))
+    mw.all_bfn_fonts = {"tp.bfn": bfn}
+    mw.default_font_file = "tp.bfn"
+    widget = BfnPreviewWidget(mw)
+    widget.resize(640, 448)
+    widget.text = description
+    style = widget._get_game_window_style()
+    assert style["lines_per_page"] == 8
+    assert style["geometry"]["asset_frame"] is True
+    assert widget._window_frame_image is not None and not widget._window_frame_image.isNull()
+    widget.show()
+    try:
+        rendered = widget.grab().toImage()
+    finally:
+        widget.hide()
+    output = tmp_path / "item-info-preview.png"
+    assert rendered.save(str(output))
+    visible_rows = []
+    for row in range(7):
+        dark_pixels = 0
+        top = int(129 + row * 20)
+        for y in range(top, min(top + 20, rendered.height())):
+            for x in range(75, min(540, rendered.width())):
+                color = rendered.pixelColor(x, y)
+                if color.alpha() and color.red() < 120 and color.green() < 120 and color.blue() < 120:
+                    dark_pixels += 1
+        visible_rows.append(dark_pixels)
+    assert all(count > 5 for count in visible_rows), visible_rows
+
+    # A line longer than the 445 px text box is broken by the game; the preview must break it too.
+    widget.text = "Hold down A and aim with the control stick until the bobber lands far away,\nok"
+    widget.show()
+    try:
+        widget.grab()
+    finally:
+        widget.hide()
+    glyphs = widget._glyph_layout_cache[1][4]
+    limit = 445.0 * bfn.gly1[0]["cell_height"] / 20.0
+    assert max(g["draw_x"] + g["width"] for g in glyphs) <= 15 + limit + 24
+    assert len({round(g["draw_y"]) for g in glyphs}) >= 3

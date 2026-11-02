@@ -159,6 +159,10 @@ def test_bfn_core_get_sheets_qimages():
     assert len(sheets) == 1
     assert sheets[0].width() == 8
     assert sheets[0].height() == 8
+    # I4: the high nibble is the left texel, drawn white with alpha = intensity (0x5 * 17, 0xA * 17)
+    from PyQt6.QtGui import QColor
+    assert QColor.fromRgba(sheets[0].pixel(0, 0)).getRgb() == (85, 85, 85, 85)
+    assert QColor.fromRgba(sheets[0].pixel(1, 0)).getRgb() == (170, 170, 170, 170)
     
     # Check cached retrieval
     sheets_cached = bfn.get_sheets_qimages()

@@ -1553,8 +1553,7 @@ def test_preview_initial_scale_with_background_fits_viewport_proportionally(qapp
 
 def test_preview_preset_transform_falls_back_to_viewport_fit_without_visible_background(qapp):
     """With bg_scale != 100 and nonzero bg_offset, verify that hiding or removing the background
-    image returns preset frame and text to ordinary viewport-fit coordinates; showing it again
-    restores the background-linked transform.
+    image keeps the zoom but drops the pan; showing it again restores the background-linked pan.
     """
     from plugins.zelda_bmg.window_kinds import window_style_for_kind
 
@@ -1581,19 +1580,21 @@ def test_preview_preset_transform_falls_back_to_viewport_fit_without_visible_bac
     # Ordinary viewport-fit coordinates from _window_fit_transform
     base_ox, base_oy, base_fit = widget._window_fit_transform(geom)
     expected_fit_frame = widget._map_game_xywh(geom["box"], base_ox, base_oy, base_fit, base_fit)
-    expected_fit_text = widget._map_game_xywh(geom["text"], base_ox, base_oy, base_fit, base_fit).toRect()
 
     # Configure zoom and pan on widget
     widget.bg_scale = 140
     widget.bg_offset_x = 35.0
     widget.bg_offset_y = -25.0
 
-    # 1. No background image loaded: must use ordinary viewport-fit coordinates
+    # 1. No background image loaded: zoom applies about the viewport centre, pan is ignored
     widget.bg_image = None
     widget.bg_hidden = False
     text_rect_no_bg, frame_rect_no_bg, _ = widget._preset_text_and_frame_rects(style)
-    assert frame_rect_no_bg == expected_fit_frame
-    assert text_rect_no_bg == expected_fit_text
+    assert frame_rect_no_bg != expected_fit_frame
+    assert frame_rect_no_bg.width() == pytest.approx(expected_fit_frame.width() * 1.4)
+    assert frame_rect_no_bg.center().x() == pytest.approx(
+        widget._preview_viewport_rect().center().x()
+        + (expected_fit_frame.center().x() - widget._preview_viewport_rect().center().x()) * 1.4)
 
     # 2. Visible background image: applies background-linked zoom and pan
     bg_img = QImage(608, 448, QImage.Format.Format_ARGB32)
@@ -1602,11 +1603,11 @@ def test_preview_preset_transform_falls_back_to_viewport_fit_without_visible_bac
     assert frame_rect_with_bg != expected_fit_frame
     assert frame_rect_with_bg.width() > expected_fit_frame.width()
 
-    # 3. Background hidden (bg_hidden=True): returns to ordinary viewport-fit coordinates
+    # 3. Background hidden (bg_hidden=True): same as no background
     widget.bg_hidden = True
     text_rect_hidden_bg, frame_rect_hidden_bg, _ = widget._preset_text_and_frame_rects(style)
-    assert frame_rect_hidden_bg == expected_fit_frame
-    assert text_rect_hidden_bg == expected_fit_text
+    assert frame_rect_hidden_bg == frame_rect_no_bg
+    assert text_rect_hidden_bg == text_rect_no_bg
 
     # 4. Showing background again (bg_hidden=False): restores background-linked transform
     widget.bg_hidden = False

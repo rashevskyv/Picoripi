@@ -33,6 +33,7 @@ class J2DPane:
     scale_y: float = 1.0
     visible: bool = True
     tex_index: Optional[int] = None
+    origin: int = 4  # J2D base position: 3 * row + column, 0 = top-left, 4 = centre, 8 = bottom-right
     colors: Tuple[int, int, int, int] = (255, 255, 255, 255)
     children: List["J2DPane"] = field(default_factory=list)
 
@@ -106,7 +107,7 @@ def _parse_pane(tag: str, section: bytes) -> J2DPane:
     scale_x, scale_y = struct.unpack_from(">ff", data, 0x20)
     x, y = struct.unpack_from(">ff", data, 0x34)
     visible = True
-    _ = flags
+    origin = flags & 0xFF
     tex_index = None
     colors = (255, 255, 255, 255)
     if tag == "PIC2" and len(section) >= 128:
@@ -114,7 +115,7 @@ def _parse_pane(tag: str, section: bytes) -> J2DPane:
         if len(extra) >= 16:
             c = struct.unpack_from(">I", extra, len(extra) - 16)[0]
             colors = ((c >> 24) & 0xFF, (c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF)
-    return J2DPane(tag, name, width, height, x, y, scale_x, scale_y, visible, tex_index, colors)
+    return J2DPane(tag, name, width, height, x, y, scale_x, scale_y, visible, tex_index, origin, colors)
 
 
 def pick_texture_name(pane_name: str, tex_names: List[str]) -> Optional[str]:

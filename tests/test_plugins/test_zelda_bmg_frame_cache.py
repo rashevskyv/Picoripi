@@ -187,7 +187,16 @@ def test_frame_cache_and_layout_root_are_isolated_between_projects(monkeypatch, 
 
 
 def test_dialogue_window_kinds_share_talk_frame_class():
-    kinds = (0, 3, 4, 8, 10, 11, 13, 14, 15, 16, 18)
+    kinds = (0, 3, 4, 8, 10, 13, 14, 15, 16, 18)
 
     assert {loader.screen_class_for_kind(kind) for kind in kinds} == {"talk"}
+    assert loader.screen_class_for_kind(11) == "item_info"
     assert loader.screen_class_for_kind(loader.EXPLAIN_PRESET_KEY) == "explain"
+
+
+def test_item_texture_table_matches_the_game_item_numbers():
+    from plugins.zelda_bmg.window_frame_loader import _ITEM_TEXTURE
+
+    assert len(_ITEM_TEXTURE) == 255
+    assert _ITEM_TEXTURE[0x4B] == 91  # slingshot -> st_pachinko
+    assert _ITEM_TEXTURE[0x4A] == 24  # fishing rod -> im_fishing_48

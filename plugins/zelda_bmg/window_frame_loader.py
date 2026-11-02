@@ -8,7 +8,7 @@ from time import monotonic
 from typing import Dict, Optional, Tuple
 
 from PyQt6.QtCore import QRectF, Qt
-from PyQt6.QtGui import QColor, QImage, QPainter
+from PyQt6.QtGui import QColor, QImage, QPainter, QPen
 
 from core.containers.rarc_container import RarcContainer
 
@@ -22,6 +22,7 @@ _SCREEN_RES = {
     "wood": ("msgres02.arc", "scrn/zelda_kanban_wood_a.blo"),
     "stone": ("msgres02.arc", "scrn/zelda_kanban_stone_a.blo"),
     "item": ("msgres03.arc", "scrn/zelda_item_get_window.blo"),
+    "item_info": ("itmInfRes.arc", "scrn/zelda_item_screen_info.blo"),
     "place": ("msgres04F.arc", "scrn/zelda_stage_title_foreign.blo"),
     "boss": ("msgres04F.arc", "scrn/zelda_boss_name.blo"),
     "howl": ("msgres05.arc", "scrn/zelda_wolf_howl.blo"),
@@ -30,10 +31,10 @@ _SCREEN_RES = {
 }
 
 _KIND_CLASS = {
-    0: "talk", 3: "talk", 4: "talk", 8: "talk", 10: "talk", 11: "talk",
+    0: "talk", 3: "talk", 4: "talk", 8: "talk", 10: "talk",
     13: "talk", 14: "talk", 15: "talk", 16: "talk", 18: "talk",
     2: "wood", 6: "stone", 9: "item", 12: "place", 19: "boss",
-    17: "howl", 7: "staff",
+    17: "howl", 7: "staff", 11: "item_info",
 }
 _NO_FRAME = {"jimaku"}
 _CLASS_ALIAS = {"tree": "wood", "kanban": "stone"}
@@ -61,13 +62,13 @@ def _under(base: Path, text: str) -> Path:
 # dItem_data::item_resource[i].mTexture — itemicon.arc file_id
 _ITEM_TEXTURE = (
     45,45,45,45,45,45,45,45,45,45,12,12,12,12,83,83,83,83,92,45,45,45,13,13,13,13,11,11,11,11,45,45,
-    110,80,81,113,111,40,33,38,112,66,116,64,60,34,107,107,65,77,46,45,40,71,72,73,80,80,80,80,114,45,42,89,
-    36,98,43,32,105,106,37,22,44,108,66,24,91,22,45,45,86,85,85,86,45,74,75,76,45,78,12,89,25,27,26,28,
-    29,17,17,17,17,17,18,17,17,17,17,17,17,17,17,108,108,12,13,11,17,17,17,17,17,17,17,17,17,17,19,19,
-    19,90,84,88,93,93,45,45,45,45,45,45,45,45,45,45,45,34,34,45,45,45,45,45,45,45,45,45,45,108,17,17,
-    17,45,82,82,82,82,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,
-    17,48,47,8,7,56,55,6,5,59,58,10,9,52,51,95,94,54,53,97,96,4,3,50,49,45,45,45,45,45,45,45,45,62,45,45,
-    45,45,45,45,45,45,79,79,79,38,45,110,17,17,17,17,110,41,21,63,60,108,67,69,70,110,23,110,
+    110,80,81,113,111,40,33,38,112,66,116,64,60,34,107,107,65,77,45,40,71,72,73,80,80,80,80,114,45,42,89,36,
+    98,43,32,105,106,37,22,44,108,66,24,91,22,45,45,86,85,85,86,45,74,75,76,45,78,12,89,25,27,26,28,29,
+    17,17,17,17,17,18,17,17,17,17,17,17,17,17,108,108,12,13,11,17,17,17,17,17,17,17,17,17,17,19,19,19,
+    90,84,88,93,93,45,45,45,45,45,45,45,45,45,45,45,34,34,45,45,45,45,45,45,45,45,45,45,108,17,17,17,
+    45,82,82,82,82,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,17,
+    48,47,8,7,56,55,6,5,59,58,10,9,52,51,95,94,54,53,97,96,4,3,50,49,45,45,45,45,45,45,45,45,
+    62,45,45,45,45,45,45,45,45,79,79,79,38,45,110,17,17,17,17,110,41,21,63,60,108,67,69,70,110,23,110
 )
 
 
@@ -217,6 +218,8 @@ def load_window_frame(screen_class: str, mw=None) -> Optional[WindowFrame]:
         return None
     arc_name, blo_path = _SCREEN_RES[screen_class]
     arc_path = layout / arc_name
+    if not arc_path.is_file() and screen_class == "item_info":
+        arc_path = layout / "itemres.arc"
     if not arc_path.is_file() and screen_class in ("place", "boss"):
         arc_path = layout / "msgres04.arc"
         blo_path = ("scrn/zelda_stage_title.blo" if screen_class == "place"
@@ -231,10 +234,27 @@ def load_window_frame(screen_class: str, mw=None) -> Optional[WindowFrame]:
             if path.lower().endswith(".bti"):
                 textures[Path(path).stem] = bti_to_qimage(arc.read_file(path))
         root, _names, size = parse_blo(arc.read_file(blo_path))
-        box = _root_child_rect(root, "n_all") or (24.0, 280.0, 560.0, 140.0)
-        icon_slot = _nested_rect(root, "n_all", "set_it_n")
-        text = _text_pane_rect(screen_class, box, icon_slot)
-        image = _compose(screen_class, size, box, textures)
+        if screen_class == "item_info":
+            info = ("n_all", "info_n")
+            sub = info + ("n_all1", "info_n1")
+            # The parchment is the full-width sheet plus its bottom bar; the title band is the
+            # label strip plus the item-name text pane that sits inside it.
+            box = _rect_union(_named_pane_rect(root, info + ("i_haji03",)),
+                              _named_pane_rect(root, info + ("i_haji10",)))
+            title_box = _rect_union(_named_pane_rect(root, sub + ("center_n", "label_n")),
+                                    _named_pane_rect(root, sub + ("center_n", "label_n", "itemn_n")))
+            icon_back = _named_pane_rect(root, sub + ("i_i_back",))
+            icon_slot = _named_pane_rect(root, sub + ("i_icon_p",))
+            text = _named_pane_rect(root, sub + ("infotxtn",))
+            if text:
+                # The i_text1 text box (non-JP) hangs from the top of infotxtn and is 162 high.
+                text = (text[0], text[1], text[2], 162.0)
+            image = _compose_item_info(size, box, title_box, icon_back, textures)
+        else:
+            box = _root_child_rect(root, "n_all") or (24.0, 280.0, 560.0, 140.0)
+            icon_slot = _nested_rect(root, "n_all", "set_it_n")
+            text = _text_pane_rect(screen_class, box, icon_slot)
+            image = _compose(screen_class, size, box, textures)
         metrics = _TEXT_METRICS.get(screen_class)
         frame = WindowFrame(
             image=image, screen=size, box=box, text=text, icon_slot=icon_slot,
@@ -305,6 +325,7 @@ _TEXT_PANE = {
     "talk": (443.0, 114.0),
     "explain": (443.0, 114.0),
     "item": (400.0, 95.0),
+    "item_info": (445.0, 162.0),
     "wood": (427.0, 187.0),
     "stone": (427.0, 187.0),
     # zelda_boss_name.blo sfont00 / zelda_stage_title_foreign.blo sfont00
@@ -319,6 +340,7 @@ _TEXT_METRICS = {
     "talk": {"font_x": 23.0, "font_y": 22.0, "line_space": 23.0, "char_space": 1.0},
     "explain": {"font_x": 23.0, "font_y": 22.0, "line_space": 23.0, "char_space": 1.0},
     "item": {"font_x": 23.0, "font_y": 23.0, "line_space": 23.0, "char_space": 1.0},
+    "item_info": {"font_x": 20.0, "font_y": 20.0, "line_space": 20.0, "char_space": 0.0},  # i_text1 in zelda_item_screen_info.blo
     "wood": {"font_x": 25.0, "font_y": 23.0, "line_space": 23.0, "char_space": 1.0},
     "stone": {"font_x": 25.0, "font_y": 23.0, "line_space": 23.0, "char_space": 1.0},
     "boss": {"font_x": 34.0, "font_y": 34.0, "line_space": 24.0, "char_space": 1.0},
@@ -351,6 +373,40 @@ def _nested_rect(root: J2DPane, parent_name: str, child_name: str):
             w, h = child.width, child.height
             return (pcx + child.x - w / 2.0, pcy + child.y - h / 2.0, w, h)
     return None
+
+
+def _named_pane_rect(root: J2DPane, path: Tuple[str, ...]):
+    """Screen rectangle of the pane reached by a named path.
+
+    A pane's x/y places its origin point (``origin`` = 3 * row + column: 0 top-left, 1 top-centre,
+    4 centre, 7 bottom-centre ...) at that offset from the parent's centre; direct children of the
+    root are placed in screen coordinates.
+    """
+    pane = root
+    cx, cy = float(root.width) / 2.0, float(root.height) / 2.0
+    rect = None
+    for depth, name in enumerate(path):
+        child = next((item for item in pane.children if item.name == name), None)
+        if child is None:
+            return None
+        width, height = child.width * child.scale_x, child.height * child.scale_y
+        ax, ay = (child.x, child.y) if depth == 0 else (cx + child.x, cy + child.y)
+        col, row = child.origin % 3, child.origin // 3
+        left, top = ax - width * col / 2.0, ay - height * row / 2.0
+        rect = (left, top, width, height)
+        pane, cx, cy = child, left + width / 2.0, top + height / 2.0
+    return rect
+
+
+def _rect_union(*rects):
+    valid = [rect for rect in rects if rect]
+    if not valid:
+        return None
+    left = min(rect[0] for rect in valid)
+    top = min(rect[1] for rect in valid)
+    right = max(rect[0] + rect[2] for rect in valid)
+    bottom = max(rect[1] + rect[3] for rect in valid)
+    return (left, top, right - left, bottom - top)
 
 
 def _alpha_tint(src: QImage, color: QColor) -> QImage:
@@ -387,6 +443,41 @@ def _compose(screen_class: str, size, box, textures: Dict[str, QImage]) -> QImag
     finally:
         p.end()
     return canvas
+
+
+def _compose_item_info(size, box, title_box, icon_back, textures: Dict[str, QImage]) -> QImage:
+    """Paint the inventory parchment with its source frame texture and paper colors."""
+    image = QImage(int(size[0]), int(size[1]), QImage.Format.Format_ARGB32_Premultiplied)
+    image.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(image)
+    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+    try:
+        rect = QRectF(*box)
+        painter.setPen(QPen(QColor("#705831"), 2.0))
+        painter.setBrush(QColor("#e5d9b5"))
+        painter.drawRoundedRect(rect, 7.0, 7.0)
+        painter.setPen(QPen(QColor(255, 246, 212, 210), 1.0))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawRoundedRect(rect.adjusted(4.0, 4.0, -4.0, -4.0), 5.0, 5.0)
+        band_top = title_box[1] if title_box else rect.y() + 8.0
+        band_height = title_box[3] if title_box else 34.0
+        band = QRectF(rect.x() + 8.0, band_top, rect.width() - 16.0, band_height)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor("#c6b27e"))
+        painter.drawRoundedRect(band, 4.0, 4.0)
+        ornament = textures.get("tt_kazari_kani_00")
+        if ornament is not None and not ornament.isNull():
+            painter.setOpacity(0.28)
+            painter.drawImage(band, _alpha_tint(ornament, QColor("#765b31")))
+            painter.setOpacity(1.0)
+        if icon_back:
+            x, y, width, height = icon_back
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor(255, 250, 225, 90))
+            painter.drawEllipse(QRectF(x, y, width, height))
+    finally:
+        painter.end()
+    return image
 
 
 def _paint_talk_like(p: QPainter, box, textures, item=False):

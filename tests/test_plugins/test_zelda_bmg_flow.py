@@ -106,6 +106,27 @@ def test_msg_flow_context_renders_per_line_and_overview():
     assert '[msg 400]' in overview and '[msg 402]' in overview
 
 
+def test_msg_flow_context_labels_messages_only_for_the_overview():
+    """Labels decode message text; the speaker lookup reads only the graph, so building the context labels nothing."""
+    flw1, fli1 = _sample_sections()
+    flow = parse_flow_sections(flw1, fli1)
+    labelled = []
+
+    def label(i):
+        labelled.append(i)
+        return f"[msg {400 + i}]"
+
+    ctx = MsgFlowContext(flow, msg_label=label)
+    assert labelled == []
+    assert ctx.flows_for_message(1) == [0x152]
+
+    ctx.overview_for_messages([0])
+    assert sorted(set(labelled)) == [0, 1, 2]
+    calls = len(labelled)
+    ctx.overview_for_messages([0])
+    assert len(labelled) == calls   # labelled once
+
+
 class _FakeBmg:
     def __init__(self, other_sections, messages=(), trailing_data=b"", endianness=">"):
         self.other_sections = other_sections

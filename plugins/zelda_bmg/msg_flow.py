@@ -15,7 +15,7 @@ This module parses those sections and renders compact, English conversation
 outlines used as extra context in AI translation prompts.
 """
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 import struct
 from utils.logging_utils import log_debug
 
@@ -210,6 +210,25 @@ class Conversation:
     msg_conditions: Dict[int, List[str]] = field(default_factory=dict)
     # msg_index -> list of event strings directly following the message
     msg_events: Dict[int, List[str]] = field(default_factory=dict)
+    # (outline position, indent, msg_index) of message lines still showing "line #N"
+    unlabelled: List[Tuple[int, str, int]] = field(default_factory=list)
+
+    def apply_labels(self, msg_label) -> None:
+        """Put msg_label's text on the message lines walked without one. Runs once."""
+        for pos, indent, msg_index in self.unlabelled:
+            self.outline[pos] = f"{indent}{_message_label(msg_label, msg_index)}"
+        self.unlabelled = []
+
+
+def _message_label(msg_label, msg_index: int) -> str:
+    if msg_label:
+        try:
+            text = msg_label(msg_index)
+            if text:
+                return text
+        except Exception as exc:
+            log_debug(f"msg_flow._message_label: ignored {exc!r}")
+    return f"line #{msg_index}"
 
 
 def _branch_arity(node: FlowNode) -> int:
@@ -231,20 +250,11 @@ def build_conversation(flow: FlowData, flow_id: int, msg_label=None,
     """Walk one conversation graph into a readable outline.
 
     msg_label: optional callable msg_index -> str used for outline lines
-    (e.g. injecting message IDs or text snippets).
+    (e.g. injecting message IDs or text snippets). Without one the message
+    lines read "line #N" until ``Conversation.apply_labels``.
     """
     conv = Conversation(flow_id=flow_id)
     entry = flow.flows.get(flow_id, 0xFFFF)
-
-    def label_for(msg_index: int) -> str:
-        if msg_label:
-            try:
-                text = msg_label(msg_index)
-                if text:
-                    return text
-            except Exception as exc:
-                log_debug(f"msg_flow.build_conversation.label_for: ignored {exc!r}")
-        return f"line #{msg_index}"
 
     visited: Set[int] = set()
     steps = 0
@@ -264,7 +274,9 @@ def build_conversation(flow: FlowData, flow_id: int, msg_label=None,
 
             if node.kind == NODE_MESSAGE:
                 msg_index = node.arg
-                conv.outline.append(f"{indent}{label_for(msg_index)}")
+                if not msg_label:
+                    conv.unlabelled.append((len(conv.outline), indent, msg_index))
+                conv.outline.append(f"{indent}{_message_label(msg_label, msg_index)}")
                 if msg_index not in conv.msg_indices:
                     conv.msg_indices.append(msg_index)
                     if conditions:
@@ -308,9 +320,11 @@ class MsgFlowContext:
         self.conversations: List[Conversation] = []
         self._by_msg: Dict[int, List[Conversation]] = {}
         self._actor_map = actor_map or {}
+        # Labels decode message text: only the AI overview reads them, the speaker lookup reads the graph alone.
+        self._msg_label = msg_label
         if flow:
             for flow_id in sorted(flow.flows):
-                conv = build_conversation(flow, flow_id, msg_label=msg_label)
+                conv = build_conversation(flow, flow_id)
                 if conv.msg_indices:
                     self.conversations.append(conv)
                     for m in conv.msg_indices:
@@ -375,6 +389,7 @@ class MsgFlowContext:
 
         blocks: List[str] = []
         for conv in picked:
+            conv.apply_labels(self._msg_label)
             lines = conv.outline[:max_lines]
             body = "\n".join("  " + ln for ln in lines)
             if len(conv.outline) > max_lines:

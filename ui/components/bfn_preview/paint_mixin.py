@@ -284,16 +284,13 @@ class BfnPreviewPaintMixin:
         if fit <= 0:
             return 0.0, 0.0, 1.0, 1.0
 
-        if not has_bg:
-            return base_ox, base_oy, fit, fit
-
         bg_s = (bg_scale / 100.0) if bg_scale > 0 else 1.0
         fit_eff = fit * bg_s
         vp = self._preview_viewport_rect()
         cx = vp.center().x()
         cy = vp.center().y()
-        pan_x = float(getattr(self, "bg_offset_x", 0.0) or 0.0)
-        pan_y = float(getattr(self, "bg_offset_y", 0.0) or 0.0)
+        pan_x = float(getattr(self, "bg_offset_x", 0.0) or 0.0) if has_bg else 0.0
+        pan_y = float(getattr(self, "bg_offset_y", 0.0) or 0.0) if has_bg else 0.0
         origin_x = cx + (base_ox - cx) * bg_s + pan_x
         origin_y = cy + (base_oy - cy) * bg_s + pan_y
         return origin_x, origin_y, fit_eff, fit_eff
@@ -481,6 +478,7 @@ class BfnPreviewPaintMixin:
         layout_line_spacing = self.line_spacing
         layout_char_spacing = getattr(self.mw, 'preview_char_spacing', 0)
         game_font_y = game_line_space = None
+        wrap_width = None
         if used_preset and isinstance(metrics, dict):
             try:
                 game_font_y = float(metrics["font_y"])
@@ -495,6 +493,10 @@ class BfnPreviewPaintMixin:
                 # baseline step equals BLO lineSpace * fit.
                 layout_line_spacing = game_line_space * cell_h / game_font_y - leading
                 layout_char_spacing = game_char_space * cell_h / game_font_y
+                # The game breaks a line that would pass the text box (BLO width in game units).
+                text_rect = geom.get("text") if isinstance(geom, dict) else None
+                if isinstance(text_rect, (list, tuple)) and len(text_rect) >= 3 and text_rect[2] > 0:
+                    wrap_width = float(text_rect[2]) * cell_h / game_font_y
 
         row_token = self._current_string_token() if hasattr(self, "_current_string_token") else None
         layout_key = (
@@ -505,6 +507,7 @@ class BfnPreviewPaintMixin:
             id(self.translation_map) if self.translation_map else 0,
             round(float(layout_line_spacing or 0), 5),
             round(float(layout_char_spacing or 0), 5),
+            round(float(wrap_width or 0), 3),
             getattr(self, "_window_preset_override", None),
             bool(used_preset),
         )
@@ -529,7 +532,8 @@ class BfnPreviewPaintMixin:
                 char_spacing=layout_char_spacing,
                 colors=char_colors,
                 scales=char_scales,
-                icons=char_icons
+                icons=char_icons,
+                wrap_width=wrap_width,
             )
             self._glyph_layout_cache = (
                 layout_key,
@@ -655,7 +659,22 @@ class BfnPreviewPaintMixin:
 
             painter.save()
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-            if fr_style in ("wood", "stone"):
+            if fr_style == "paper":
+                fill = QColor(fr.get("fill", "#e6dab3"))
+                fill.setAlpha(int(fr.get("fill_alpha", 255)))
+                painter.setPen(QPen(border, 1.5))
+                painter.setBrush(fill)
+                painter.drawRoundedRect(frame_rect, radius, radius)
+                band = QColor(fr.get("title_band", "#b8a16d"))
+                band.setAlpha(int(fr.get("fill_alpha", 255)))
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(band)
+                band_height = min(30.0 * scale_factor, frame_rect.height())
+                painter.drawRoundedRect(QRectF(frame_rect.x(), frame_rect.y(),
+                                               frame_rect.width(), band_height), radius, radius)
+                painter.fillRect(QRectF(frame_rect.x(), frame_rect.y() + band_height - radius,
+                                        frame_rect.width(), radius), band)
+            elif fr_style in ("wood", "stone"):
                 # signs: vertical material gradient with a solid dark border
                 from PyQt6.QtGui import QLinearGradient
                 grad = QLinearGradient(frame_rect.topLeft(), frame_rect.bottomLeft())
@@ -673,7 +692,8 @@ class BfnPreviewPaintMixin:
                 fill.setAlpha(int(fr.get("fill_alpha", 216)))
                 painter.setPen(QPen(border, 1.5))
                 painter.setBrush(fill)
-            painter.drawRoundedRect(frame_rect, radius, radius)
+            if fr_style != "paper":
+                painter.drawRoundedRect(frame_rect, radius, radius)
             painter.restore()
 
         self._last_frame_rect = QRectF(frame_rect)

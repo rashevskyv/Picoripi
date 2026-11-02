@@ -76,6 +76,7 @@ _HALO_GREEN = {"color": "#469600", "alpha": 150, "radius_ratio": 0.9}
 # Non-JP mg_e4lin TBX2 (fontSize / lineSpace / charSpace).
 _METRICS_TALK = {"font_x": 23.0, "font_y": 22.0, "line_space": 23.0, "char_space": 1.0}
 _METRICS_ITEM = {"font_x": 23.0, "font_y": 23.0, "line_space": 23.0, "char_space": 1.0}
+_METRICS_ITEM_INFO = {"font_x": 20.0, "font_y": 20.0, "line_space": 20.0, "char_space": 0.0}
 _METRICS_SIGN = {"font_x": 25.0, "font_y": 23.0, "line_space": 23.0, "char_space": 1.0}
 # zelda_boss_name.blo sfont00 TBX2 (ruby font); ctor forces charSpace 1.0 on non-JP.
 _METRICS_BOSS = {"font_x": 34.0, "font_y": 34.0, "line_space": 24.0, "char_space": 1.0}
@@ -116,6 +117,10 @@ _GEOM_TALK = _geometry((76, 292, 410, 118), hio_xy=(1.2, 1.0),
 _GEOM_ITEM = _geometry((70, 280, 360, 130), hio_xy=(1.05, 0.97),
                        text_pane_widen=1.2, pad_xy=(22.0, 12.0),
                        metrics=_METRICS_ITEM)
+# The inventory ItemExplain panel uses its own BLO and is not the talk box or
+# the item-get screen. The asset loader replaces these fallback rectangles.
+_GEOM_ITEM_INFO = _geometry((32, 30, 545, 323), pad_xy=(12.0, 10.0),
+                             metrics=_METRICS_ITEM_INFO)
 _GEOM_WOOD = _geometry((120, 70, 360, 260), hio_xy=(1.0, 1.0),
                        text_pane_widen=1.2, pad_xy=(26.0, 14.0),
                        metrics=_METRICS_SIGN)
@@ -213,6 +218,18 @@ _ITEM_FRAME = {
     "pad_y": 12.0,
 }
 
+_ITEM_INFO_FRAME = {
+    "style": "paper",
+    "fill": "#e6dab3",
+    "fill_alpha": 255,
+    "border": "#927b4e",
+    "border_alpha": 220,
+    "radius": 8.0,
+    "pad_x": 12.0,
+    "pad_y": 32.0,
+    "title_band": "#b8a16d",
+}
+
 _PLATE_FRAME = {
     "style": "plate",
     "fill": "#000000",
@@ -258,8 +275,11 @@ WINDOW_KIND_STYLES: Dict[int, Dict[str, Any]] = {
               item_icon={"size": 48.0, "gap": 10.0}, geometry=_GEOM_ITEM,
               screen_class="item"),
     # Pause-menu / collection description. talkStartInit falls through to
-    # Talk (not Item). item_no in INF1 names the collectible; no get-window icon.
-    11: _talk("Item info"),
+    # Talk in game dialogue; the preview models the separate inventory panel.
+    11: _style("Item info", _ITEM_INFO_FRAME, halo=None, shadow=None,
+               default_text_color="#29251d", item_icon={"size": 52.0, "gap": 0.0},
+               geometry=_GEOM_ITEM_INFO,
+               screen_class="item_info"),
     # location name plate
     12: _style("Location name", _PLATE_FRAME, halo=None, geometry=_GEOM_PLACE,
               screen_class="place", text_align="left"),
@@ -296,6 +316,7 @@ DEFAULT_LINES_PER_PAGE: Dict[int, int] = {
     7: 10,
     15: 7,
     16: 6,
+    11: 8,
 }
 
 # Preview-only cycle order: Auto, then supported screen presets, then Explain.

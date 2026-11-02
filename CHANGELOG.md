@@ -5,7 +5,11 @@ All notable changes to the **Picoripi** project will be documented in this file.
 - Opening a large project no longer freezes the window (Twilight Princess, open from the Project Manager: the longest freeze 14-20 s → about 1.5 s): while the open dialog shows, the Story, Speakers, Items and Windows folders are built step by step and the dialog names each step; the quiet issue check after an open scans a large file in slices instead of the whole file in one tick (a 9 s freeze on a project without a session); selecting a block refreshes its own warning count but no longer walks every virtual folder (about 1 s per click in TP); the speaker pool is not built while the Story projection still loads. Tree icons are looked up once per style, the TP dialogue flow decodes message text only for the AI overview, Story folders resolve once per tree rebuild instead of once per window kind, width guidelines measure only the visible lines, and BFN font sheets decode in one pass instead of pixel by pixel.
 - MCP server: `check_fit` measures translated lines in the project's translation font against each message's window (also `python -m mcp_server.check_fit`).
 - Search: the first click on a search or filter field after a click elsewhere selects all text; later clicks position the caret.
+- Preview: list bullets and other icons stay on their logical line when the game wraps text, as in the game (icons are placed by explicit newlines only; icons no longer wrap themselves).
+- Preview: mouse-wheel zoom (Ctrl+wheel) now also works when no background image is shown.
 
+- Zelda TP preview: a character that would pass the BLO text box width starts a new line, as in the game (the comma after the ZL icon in the slingshot text).
+- Zelda TP: preview kind 11 with the inventory ItemExplain panel at its BLO size (545x323 sheet, 445x162 text box, 20 px lines, 8 lines, 534 px width limit), the correct item icon (the item-number-to-texture table was shifted by one from item 50 on).
 - Glossary: use small pixel steps for mouse-wheel scrolling in term tables, proposed variants, and occurrences, independent of card height.
 
 - Glossary: occurrence cards show the current Ukrainian message translation, including unsaved edits, alongside the original and reference text.

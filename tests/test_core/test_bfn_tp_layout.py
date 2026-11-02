@@ -578,3 +578,23 @@ def test_tp_ai_runtime_names_are_explicit_and_instant_is_not_link(bmg_rules):
     assert bmg_rules.replace_runtime_names_for_ai(text) == (
         "Link and Epona; Link's horse; Epona's rider; {escape:0:0001}"
     )
+
+
+def test_wrap_width_moves_the_overflowing_character_to_a_new_line():
+    bfn = _build_bfn(widths=[(0, 6), (0, 20)] + [(0, 10)] * 8)
+    glyphs, _, _ = bfn.layout_text("!!!", line_spacing=0, wrap_width=50)
+    assert glyphs[2]["draw_x"] == glyphs[0]["draw_x"]
+    assert glyphs[2]["draw_y"] > glyphs[0]["draw_y"]
+    spaced, _, _ = bfn.layout_text("!  !", line_spacing=0, wrap_width=20)
+    assert [g["draw_y"] > spaced[0]["draw_y"] for g in spaced] == [False, False, False, True]  # spaces never wrap
+
+
+def test_wrapped_text_leaves_icons_at_their_logical_line():
+    bfn = _build_bfn(widths=[(0, 6), (0, 20)] + [(0, 10)] * 8)
+    spec = {"width": 24}
+    plain, _, _ = bfn.layout_text("!!!?\n!", line_spacing=0, icons={3: spec})
+    wrapped, _, _ = bfn.layout_text("!!!?\n!", line_spacing=0, icons={3: spec}, wrap_width=50)
+    icon_plain = next(g for g in plain if g.get("icon"))
+    icon_wrapped = next(g for g in wrapped if g.get("icon"))
+    assert (icon_wrapped["draw_x"], icon_wrapped["draw_y"]) == (icon_plain["draw_x"], icon_plain["draw_y"])
+    assert wrapped[2]["draw_y"] > plain[2]["draw_y"]
