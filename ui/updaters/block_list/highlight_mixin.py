@@ -10,8 +10,11 @@ from core.i18n import tr
 class HighlightMixin:
     """Problem highlighting and chapters worker completion handlers."""
 
-    def update_block_item_text_with_problem_count(self, block_idx: int):
-        """Update the block item text with problem count."""
+    def update_block_item_text_with_problem_count(self, block_idx: int, include_virtual: bool = True):
+        """Update the block item text with problem count, and the virtual folders that hold its rows.
+
+        ``include_virtual=False`` leaves the virtual folders: selecting a block changes no count, and walking every
+        folder of a large project (Story and Windows hold thousands) took a second per click."""
         if not hasattr(self.mw, 'block_list_widget'):
             return
 
@@ -49,7 +52,7 @@ class HighlightMixin:
                 self._apply_issues_and_tooltip(item, base_display_name, block_problem_counts, problem_definitions)
 
             iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
-            while iterator.value():
+            while include_virtual and iterator.value():
                 virtual_item = iterator.value()
                 mappings = virtual_item.data(0, Qt.ItemDataRole.UserRole + 13)
                 if isinstance(mappings, (list, tuple)):
@@ -112,8 +115,8 @@ class HighlightMixin:
             self._chapter_mappings_cache = mappings
         self._is_loading_chapters = False
         self._chapters_load_worker = None
-        self.populate_blocks()
-        self._notify_virtual_blocks_ready()
+        self.populate_blocks()   # completes the tree, at once or in staged steps
+        self._virtual_tree_complete()
 
     def _on_chapters_load_failed(self, error_msg):
         """Slot for failed async loading of MemePalace chapters."""
@@ -121,4 +124,4 @@ class HighlightMixin:
         self._is_loading_chapters = False
         self._chapters_load_worker = None
         self.populate_blocks()
-        self._notify_virtual_blocks_ready()
+        self._virtual_tree_complete()

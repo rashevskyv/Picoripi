@@ -2,13 +2,18 @@
 from __future__ import annotations
 
 import re
+from contextlib import contextmanager
+from functools import partial
 from PyQt6.QtCore import QObject, Qt, pyqtSlot
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QTreeWidgetItem, QStyle
 from pathlib import Path
 from core.mempalace.story_timeline import StoryVirtualProjection
 from core.manual_story_structures import apply_manual_story_structures
+from core.i18n import tr
+from utils import app_mode
 from utils.logging_utils import log_error
+from utils.thread_utils import single_shot
 
 
 class _ChapterLoadRelay(QObject):
@@ -34,82 +39,149 @@ class _ChapterLoadRelay(QObject):
 class PopulateMixin:
     """Full block-tree population: project blocks, then the Story, Speakers and projection roots."""
 
+    _stage_reporter = None          # stage_virtual_build: build the virtual roots over several turns
+    _virtual_build_pending = False  # a staged rebuild still adds virtual roots
+    _virtual_build_generation = 0   # one per rebuild; a queued step of an older one stops
+
+    def stage_virtual_build(self, reporter) -> None:
+        """Build the virtual roots of the following rebuilds over several event-loop turns; None: in one go again.
+
+        ``reporter(text)`` hears the label of each step. A project open turns this on while its dialog shows: the
+        Story, Speakers and Windows roots of a large project are thousands of folders, and built in one go they froze
+        the window for seconds. Headless runs build in one go: tests read the tree right after populate_blocks.
+        """
+        self._stage_reporter = reporter
+
+    @property
+    def virtual_tree_pending(self) -> bool:
+        """The Story projection still loads, or a staged rebuild has not added every virtual root yet."""
+        return self._is_loading_chapters or self._virtual_build_pending
+
     def populate_blocks(self, override_folder_id=None, override_block_idx=None):
         """Rebuild the whole tree, keeping the selection and the scroll position."""
-        self._story_context_overrides_cache = None
-        self._story_structure_overrides_cache = None
-        self._story_override_index_cache = None
+        self._story_rows_cache = {}
         if not hasattr(self.mw, 'block_list_widget') or not self.mw.block_list_widget:
             return  # Sometimes called during initialization before block_list_widget is created
-        self._cache_story_overrides = True
+        self._virtual_build_generation += 1   # a step of an earlier staged rebuild that is still queued stops
+        self._virtual_build_pending = False
+        staged = self._stage_reporter is not None and not app_mode.headless
 
         selected_block_idx, selected_folder_id = self._selection_to_restore(override_folder_id, override_block_idx)
 
         # Save scroll position
         v_scroll = self.mw.block_list_widget.verticalScrollBar().value()
 
-        # Don't let signals trigger more refreshes while we are rebuilding
-        self.mw.block_list_widget.blockSignals(True)
-        self.mw.block_list_widget._is_programmatic_expansion = True
-        self.mw.block_list_widget.setUpdatesEnabled(False)
-
-        try:
+        steps = None
+        filled = False
+        with self._tree_rebuild_guard():
             plugin_folder_key = self._selected_plugin_folder_key()
             self.mw.block_list_widget.clear()
             self._block_items_cache.clear()
-            if not self.mw.data_store.data:
-                return
+            if self.mw.data_store.data:
+                filled = True
+                steps = self._fill_tree(selected_block_idx, selected_folder_id)
+                if not staged:
+                    for _label in steps:
+                        pass
+                    steps = None
+                # Select again the plugin folder that was selected: the strings list keeps its rows.
+                self._select_plugin_folder(plugin_folder_key)
 
-            problem_definitions = {}
-            if self.mw.current_game_rules:
-                problem_definitions = self.mw.current_game_rules.get_problem_definitions()
+        if steps is not None:
+            self._virtual_build_pending = True
+            self._run_virtual_step(self._virtual_build_generation, steps, v_scroll)
+        else:
+            self._finish_rebuild(v_scroll, filled)
 
-            # Hide categorization toggles during tree rebuild; they will be
-            # shown by populate_strings_for_block only when the selected block
-            # actually has categories.
-            if hasattr(self.mw, 'highlight_categorized_checkbox'):
-                self.mw.highlight_categorized_checkbox.setVisible(False)
-            if hasattr(self.mw, 'hide_categorized_checkbox'):
-                self.mw.hide_categorized_checkbox.setVisible(False)
-
-            problem_counts = self._problem_counts_per_block()
-
-            if self._has_virtual_structure():
-                self._add_virtual_structure(problem_definitions, problem_counts, selected_block_idx, selected_folder_id)
-            else:
-                self._add_physical_structure(problem_definitions, problem_counts, selected_block_idx)
-
-            # 3. Add the Story hierarchy from MemePalace if game rows are loaded.
-            try:
-                self._add_story_root(selected_block_idx)
-            except Exception as e:
-                log_error(f"Error populating Chapters folder: {e}", exc_info=True)
-
-            # 4. Add virtual Speakers folder hierarchy
-            try:
-                self._add_speakers_and_projection_roots(selected_block_idx)
-            except Exception as e:
-                log_error(f"Error populating Speakers folder: {e}", exc_info=True)
-
-            # 5. Select again the plugin folder that was selected: the strings list keeps its rows.
-            self._select_plugin_folder(plugin_folder_key)
+    @contextmanager
+    def _tree_rebuild_guard(self):
+        """No signals, no repaints and the per-rebuild override caches while the tree is changed."""
+        widget = self.mw.block_list_widget
+        self._cache_story_overrides = True
+        widget.blockSignals(True)   # don't let signals trigger more refreshes while we are rebuilding
+        widget._is_programmatic_expansion = True
+        widget.setUpdatesEnabled(False)
+        try:
+            yield
         finally:
+            # The override caches answer even when caching is off: nothing may read them between two steps.
             self._cache_story_overrides = False
             self._story_context_overrides_cache = None
             self._story_structure_overrides_cache = None
             self._story_override_index_cache = None
-            self.mw.block_list_widget._is_programmatic_expansion = False
-            self.mw.block_list_widget.blockSignals(False)
-            self.mw.block_list_widget.setUpdatesEnabled(True)
-            scroll_bar = self.mw.block_list_widget.verticalScrollBar()
-            if v_scroll > scroll_bar.maximum():
-                # The rebuilt tree gets its scroll range on the next layout; without it the value clamps to 0.
-                self.mw.block_list_widget.doItemsLayout()
-            scroll_bar.setValue(v_scroll)
+            widget._is_programmatic_expansion = False
+            widget.blockSignals(False)
+            widget.setUpdatesEnabled(True)
 
-        self.mw.block_list_widget.viewport().update()
-        if not isinstance(self._story_projection_cache, StoryVirtualProjection):
-            self._update_string_statistics(self._all_game_rows() - self._window_bound_rows())
+    def _run_virtual_step(self, generation, steps, v_scroll) -> None:
+        """One step of a staged rebuild; the next runs on a later event-loop turn, so the window keeps painting."""
+        if generation != self._virtual_build_generation:   # a later rebuild cleared the tree these steps fill
+            steps.close()
+            return
+        with self._tree_rebuild_guard():
+            try:
+                label = next(steps, None)
+            except Exception as e:
+                log_error(f"Error building the virtual folders: {e}", exc_info=True)
+                label = None
+        if label is None:
+            self._virtual_build_pending = False
+            self._finish_rebuild(v_scroll, True)
+            return
+        if self._stage_reporter is not None:
+            self._stage_reporter(label)
+        # A few milliseconds, not 0: the dialog's repaint must come before the next step.
+        single_shot(5, self.mw.block_list_widget, partial(self._run_virtual_step, generation, steps, v_scroll))
+
+    def _finish_rebuild(self, v_scroll, filled: bool) -> None:
+        self._story_rows_cache = {}
+        scroll_bar = self.mw.block_list_widget.verticalScrollBar()
+        if v_scroll > scroll_bar.maximum():
+            # The rebuilt tree gets its scroll range on the next layout; without it the value clamps to 0.
+            self.mw.block_list_widget.doItemsLayout()
+        scroll_bar.setValue(v_scroll)
+        if filled:
+            self.mw.block_list_widget.viewport().update()
+            if not isinstance(self._story_projection_cache, StoryVirtualProjection):
+                self._update_string_statistics(self._all_game_rows() - self._window_bound_rows())
+        self._virtual_tree_complete()
+
+    def _fill_tree(self, selected_block_idx, selected_folder_id):
+        """Add the project blocks now; the generator that is returned adds the virtual roots, one step per item."""
+        problem_definitions = {}
+        if self.mw.current_game_rules:
+            problem_definitions = self.mw.current_game_rules.get_problem_definitions()
+
+        # Hide categorization toggles during tree rebuild; they will be
+        # shown by populate_strings_for_block only when the selected block
+        # actually has categories.
+        if hasattr(self.mw, 'highlight_categorized_checkbox'):
+            self.mw.highlight_categorized_checkbox.setVisible(False)
+        if hasattr(self.mw, 'hide_categorized_checkbox'):
+            self.mw.hide_categorized_checkbox.setVisible(False)
+
+        problem_counts = self._problem_counts_per_block()
+
+        if self._has_virtual_structure():
+            self._add_virtual_structure(problem_definitions, problem_counts, selected_block_idx, selected_folder_id)
+        else:
+            self._add_physical_structure(problem_definitions, problem_counts, selected_block_idx)
+        return self._virtual_root_steps(selected_block_idx)
+
+    def _virtual_root_steps(self, selected_block_idx):
+        """Add the Story, Speakers, Items and Windows roots. Each ``yield`` names the step that follows it; a staged
+        rebuild lets the event loop run there."""
+        yield tr("Building Story folders…")
+        try:
+            self._add_story_root(selected_block_idx)
+        except Exception as e:
+            log_error(f"Error populating Chapters folder: {e}", exc_info=True)
+
+        yield tr("Building speaker folders…")
+        try:
+            yield from self._speaker_and_projection_steps(selected_block_idx)
+        except Exception as e:
+            log_error(f"Error populating Speakers folder: {e}", exc_info=True)
 
     # ------------------------------------------------------------ preparation
 
@@ -409,7 +481,7 @@ class PopulateMixin:
 
     # ------------------------------------------- speakers, items, windows
 
-    def _add_speakers_and_projection_roots(self, current_selection_block_idx) -> None:
+    def _speaker_and_projection_steps(self, current_selection_block_idx):
         # Query MemePalace for speakers as well
         client = None
         composer = getattr(self.mw, "translation_handler", None)
@@ -423,10 +495,16 @@ class PopulateMixin:
         combined_speakers = self._speaker_groups(prompt_composer, normalized_story_active)
         self._add_speakers_root(combined_speakers, current_selection_block_idx)
         if normalized_story_active and client is not None:
-            self._add_projection_roots(client, combined_speakers)
+            yield from self._projection_root_steps(client, combined_speakers)
 
     def _speaker_groups(self, prompt_composer, normalized_story_active: bool) -> dict:
         """``{speaker name: [(block, string), ...]}`` for every row; rows nobody speaks are under "None"."""
+        if self._is_loading_chapters:
+            # Do not flash the legacy partial Speakers tree while the normalized Story projection is still loading:
+            # the complete facet tree is added together when the worker finishes. The pool is not built either: it
+            # would read the same projection again on this thread. The editor field uses its own ladder meanwhile.
+            self._speaker_pool_cache = None
+            return {}
         projection = (
             self._story_projection_cache if normalized_story_active else None
         )
@@ -485,12 +563,6 @@ class PopulateMixin:
                 insert_at = min(max(retained_index, 0), len(speaker_mappings))
                 speaker_mappings.insert(insert_at, retained_tuple)
                 combined_speakers[retained_speaker] = speaker_mappings
-
-        # Do not flash the legacy partial Speakers tree while the normalized
-        # Story projection is still loading. The complete facet tree is added
-        # together when the worker finishes.
-        if self._is_loading_chapters:
-            combined_speakers.clear()
         return combined_speakers
 
     def _add_speakers_root(self, combined_speakers: dict, current_selection_block_idx) -> None:
@@ -541,10 +613,11 @@ class PopulateMixin:
                 self.mw.block_list_widget.setCurrentItem(selected_speaker_item)
                 selected_speaker_item.setSelected(True)
 
-    def _add_projection_roots(self, client, combined_speakers: dict) -> None:
+    def _projection_root_steps(self, client, combined_speakers: dict):
         """Items, Notated, the global "None" and Windows: the facets of the normalized Story projection."""
+        yield tr("Building item folders…")
         if self._reference_item_groups_cache is None:
-            item_mappings, _reverse_items = self._reference_item_mappings(
+            item_mappings, _reverse_items = yield from self._reference_item_mapping_steps(
                 client, self._story_projection_cache.document_id
             )
             self._reference_item_groups_cache = item_mappings
@@ -594,7 +667,7 @@ class PopulateMixin:
             global_none_item.setData(
                 0, Qt.ItemDataRole.UserRole + 17, "unbound"
             )
-        self._add_windows_projection_root(
+        yield from self._windows_projection_steps(
             tree_root,
             self._story_projection_cache,
             combined_speakers,

@@ -89,7 +89,7 @@ class TreeStateMixin:
 
         self._tree_state_restore_pending = True
 
-        if self._is_loading_chapters and not state.get("_virtual_ready_retry"):
+        if self.virtual_tree_pending and not state.get("_virtual_ready_retry"):
             retry_state = dict(state)
             retry_state["_virtual_ready_retry"] = True
             self.when_virtual_blocks_ready(

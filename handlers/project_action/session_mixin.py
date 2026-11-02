@@ -156,6 +156,30 @@ class SessionMixin:
         if closed:
             self.mw._bfn_editor_window = None
 
+    def _block_updater(self):
+        """The block tree's updater, or None (tests give the handler a stand-in UI updater)."""
+        block_updater = getattr(self.ui_updater, "block_list_updater", None)
+        try:
+            from ui.updaters.block_list_updater import BlockListUpdater
+        except ImportError:
+            return None
+        return block_updater if isinstance(block_updater, BlockListUpdater) else None
+
+    def _stage_tree_build(self) -> None:
+        """While the open dialog shows, the tree builds its virtual folders step by step and the dialog names each
+        step: built in one go, the Story, Speakers and Windows folders of a large project froze the window for
+        seconds. ``_close_open_dialog`` turns it off."""
+        dialog = self._open_dialog
+        block_updater = self._block_updater()
+        if dialog is None or block_updater is None:
+            return
+
+        def report(text: str) -> None:
+            if self._open_dialog is dialog:
+                dialog.setLabelText(text)
+
+        block_updater.stage_virtual_build(report)
+
     def _populate_blocks_from_project(self, on_completed=None) -> None:
         """Populate block list from current project and load data asynchronously."""
         self._populate_failed = False
@@ -201,6 +225,7 @@ class SessionMixin:
 
             wait_for_virtual_blocks(virtual_ready)
 
+        self._stage_tree_build()
         if self._restore_project_session_fast_path():
             self._report_startup(96, "Restoring virtual blocks…")
 
@@ -385,6 +410,7 @@ class SessionMixin:
                 self.ui_updater.preview_updater.schedule_pre_cache()
 
             # Update UI
+            self._stage_tree_build()
             self.ui_updater.populate_blocks()
             self.ui_updater.update_statusbar_paths()
 

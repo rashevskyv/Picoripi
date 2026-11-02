@@ -43,6 +43,7 @@ class BlockListUpdater(
         self._story_context_overrides_cache = None
         self._story_structure_overrides_cache = None
         self._story_override_index_cache = None
+        self._story_rows_cache = {}   # one rebuild: story folder id -> its rows (the Windows roots repeat the tree)
         self._cache_story_overrides = False
         self._chapters_cache_wing_name = None
         self._chapters_load_error = None

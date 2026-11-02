@@ -94,10 +94,15 @@ class ReadyMixin:
         """Run callback once the complete virtual facet tree is available."""
         if not callable(callback):
             return
-        if not self._is_loading_chapters:
+        if not self.virtual_tree_pending:
             callback()
             return
         self._virtual_ready_callbacks.append(callback)
+
+    def _virtual_tree_complete(self) -> None:
+        """Run the waiting callbacks once nothing loads and no staged rebuild is still adding roots."""
+        if not self.virtual_tree_pending:
+            self._notify_virtual_blocks_ready()
 
     def _notify_virtual_blocks_ready(self) -> None:
         callbacks, self._virtual_ready_callbacks = self._virtual_ready_callbacks, []

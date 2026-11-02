@@ -56,6 +56,7 @@ Messages are quoted as Picoripi shows them in English.
 | The row shows **Needs attention**. | A path or a file of the project is wrong. The detail panel names the problem. | Read the text under the list. For example, `The original files path does not exist.` Fix that path. |
 | The row shows **Missing** or **Unreadable**. | The project file is gone, or it cannot be read. | Restore the project file from a copy. |
 | `N blocks have no translation file yet.` | The project is new, or some blocks are not saved yet. | This is normal for a new project. Translate the blocks and save. |
+| The open dialog shows **Building Story folders…**, **Building speaker folders…**, **Building window folders: …** for some seconds. | A large project has thousands of virtual folders. Picoripi builds them step by step, so the window keeps responding. | Wait. The dialog closes when the tree is complete. The status bar can show `Checking issues: N of M files` after that; you can already work. |
 
 ## Editor
 

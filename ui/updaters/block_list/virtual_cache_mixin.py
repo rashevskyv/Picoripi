@@ -10,6 +10,7 @@ from core.mempalace.story_timeline import (
 from core.story_context_overrides import iter_story_context_overrides
 from core.manual_story_structures import apply_manual_story_structures
 from core.mempalace.dialogue_mapping import canonicalize_dialogue_text
+from core.i18n import tr
 
 class VirtualCacheMixin:
     """Virtual folder cache restore/persist and story row helpers."""
@@ -108,10 +109,24 @@ class VirtualCacheMixin:
 
     def _reference_item_mappings(self, client, document_id):
         """Derive conservative exact/contained links for the non-dialogue item catalogue."""
+        steps = self._reference_item_mapping_steps(client, document_id)
+        while True:
+            try:
+                next(steps)
+            except StopIteration as done:
+                return done.value
+
+    _ITEM_MATCH_STEP = 300   # strings matched against the catalogue between two steps of a staged rebuild
+
+    def _reference_item_mapping_steps(self, client, document_id):
+        """``_reference_item_mappings`` as rebuild steps: a ``yield`` every few hundred strings; returns the result."""
         item_mappings = {}
         reverse = {}
         if client is None or document_id is None:
             return item_mappings, reverse
+        data = getattr(self.mw.data_store, "data", [])
+        total = sum(len(block) for block in data)
+        matched = 0
         references = client.get_reference_items(document_id)
         prepared = []
         for reference in references:
@@ -119,8 +134,11 @@ class VirtualCacheMixin:
             description = self._item_match_text(reference.description)
             combined = " ".join(part for part in (name, description) if part)
             prepared.append((reference.name, tuple(x for x in (name, description, combined) if x)))
-        for block_idx, block in enumerate(getattr(self.mw.data_store, "data", [])):
+        for block_idx, block in enumerate(data):
             for string_idx, raw in enumerate(block):
+                matched += 1
+                if matched % self._ITEM_MATCH_STEP == 0:
+                    yield tr("Building item folders: {0} of {1} strings", matched, total)
                 game = self._item_match_text(raw)
                 if len(game) < 3:
                     continue
@@ -212,7 +230,23 @@ class VirtualCacheMixin:
         scope = set(allowed_rows) if allowed_rows is not None else self._all_game_rows()
         return {row for row in scope if not self._is_blank_row(*row)}
 
+    def _story_folder_rows(self, folder) -> list[tuple[int, int]]:
+        """The non-blank rows a Story folder holds, after the manual overrides. Read once per tree rebuild."""
+        rows = self._story_rows_cache.get(folder.id) if self._cache_story_overrides else None
+        if rows is None:
+            overridden_rows, rows_by_structure = self._story_override_index()
+            rows = [row for row in self._story_mapping_indices(folder.mappings) if row not in overridden_rows]
+            rows = list(dict.fromkeys(rows + list(rows_by_structure.get(folder.id, ()))))
+            rows = [row for row in rows if not self._is_blank_row(*row)]
+            if self._cache_story_overrides:
+                self._story_rows_cache[folder.id] = rows
+        return rows
+
     def _story_linked_rows(self, projection: StoryVirtualProjection) -> set[tuple[int, int]]:
+        key = ("linked", id(projection))
+        cached = self._story_rows_cache.get(key) if self._cache_story_overrides else None
+        if cached is not None:
+            return cached
         linked = set()
 
         def visit(folder):
@@ -227,4 +261,6 @@ class VirtualCacheMixin:
         for (block_idx, string_idx), assignment in overrides.items():
             if assignment.get("structure_id") not in (None, "story:none"):
                 linked.add((block_idx, string_idx))
+        if self._cache_story_overrides:
+            self._story_rows_cache[key] = linked
         return linked

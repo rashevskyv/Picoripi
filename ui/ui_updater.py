@@ -38,9 +38,9 @@ class UIUpdater:
         self.block_list_updater.invalidate_mempalace_story_cache()
         self.block_list_updater.populate_blocks()
 
-    def update_block_item_text_with_problem_count(self, block_idx: int):
-        """Update the block item text with problem count."""
-        self.block_list_updater.update_block_item_text_with_problem_count(block_idx)
+    def update_block_item_text_with_problem_count(self, block_idx: int, include_virtual: bool = True):
+        """Update the block item text with problem count (and, unless told not to, the virtual folders)."""
+        self.block_list_updater.update_block_item_text_with_problem_count(block_idx, include_virtual=include_virtual)
 
     def refresh_block_tree_indicators(self, block_idx=None):
         """Refresh stars/progress/warnings without rebuilding the block tree."""

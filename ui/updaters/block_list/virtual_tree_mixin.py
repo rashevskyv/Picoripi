@@ -26,6 +26,8 @@ def _row_pairs(values) -> list:
 class VirtualTreeMixin:
     """Build virtual projection roots and related tree helpers."""
 
+    _style_icon_cache = None   # (style, {standard pixmap: QIcon}) of _set_item_style_icon
+
     def _add_virtual_role_leaf(
         self,
         parent,
@@ -126,15 +128,8 @@ class VirtualTreeMixin:
         hide_empty: bool = False,
     ) -> bool:
         """Add one normalized story folder recursively and restore selection when possible."""
-        mappings = self._story_mapping_indices(folder.mappings)
-        overridden_rows, rows_by_structure = self._story_override_index()
-        mappings = [row for row in mappings if row not in overridden_rows]
-        for row in rows_by_structure.get(folder.id, ()):
-            if row not in mappings:
-                mappings.append(row)
-        if allowed_rows is not None:
-            mappings = [row for row in mappings if row in allowed_rows]
-        mappings = [row for row in mappings if not self._is_blank_row(*row)]
+        mappings = self._story_folder_rows(folder)
+        mappings = [row for row in mappings if allowed_rows is None or row in allowed_rows]
         if getattr(self.mw.data_store, "show_unsaved_blocks_only", False):
             own_unsaved = any(item in self.mw.data_store.edited_data for item in mappings)
         else:
@@ -361,6 +356,15 @@ class VirtualTreeMixin:
         speakers: dict[str, list[tuple[int, int]]],
         item_mappings: dict[str, list[tuple[int, int]]],
     ):
+        steps = self._windows_projection_steps(parent, projection, speakers, item_mappings)
+        while True:
+            try:
+                next(steps)
+            except StopIteration as done:
+                return done.value
+
+    def _windows_projection_steps(self, parent, projection, speakers, item_mappings):
+        """Build the Windows root one window kind per step (a ``yield`` names the next kind); returns the root."""
         windows_root = QTreeWidgetItem([tr("Windows")])
         self._set_item_style_icon(windows_root, 0, QStyle.StandardPixmap.SP_DirIcon)
         windows_root.setFlags(windows_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
@@ -371,6 +375,7 @@ class VirtualTreeMixin:
         }
         item_rows = {row for rows in item_mappings.values() for row in rows}
         for kind_name, rows in sorted(self._window_kind_groups().items(), key=lambda x: x[0].casefold()):
+            yield tr("Building window folders: {0}", tr(kind_name))
             kind_root = QTreeWidgetItem([tr(kind_name)])
             self._set_item_style_icon(kind_root, 0, QStyle.StandardPixmap.SP_DirIcon)
             kind_root.setFlags(kind_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
@@ -492,10 +497,17 @@ class VirtualTreeMixin:
             iterator += 1
 
     def _set_item_style_icon(self, item: QTreeWidgetItem, column: int, standard_icon_enum) -> None:
-        """Internal helper to set the item style icon."""
+        """Set a standard style icon. Icons are cached per style: with a stylesheet each lookup costs about a
+        millisecond, and a large project builds tens of thousands of tree items on the UI thread."""
         try:
-            if hasattr(self.mw, 'style') and self.mw.style():
-                icon = self.mw.style().standardIcon(standard_icon_enum)
+            style = self.mw.style() if hasattr(self.mw, 'style') else None
+            if style:
+                cache = self._style_icon_cache
+                if cache is None or cache[0] is not style:
+                    cache = self._style_icon_cache = (style, {})
+                icon = cache[1].get(standard_icon_enum)
+                if icon is None:
+                    icon = cache[1][standard_icon_enum] = style.standardIcon(standard_icon_enum)
                 from PyQt6.QtGui import QIcon
                 if isinstance(icon, QIcon) and not icon.isNull():
                     item.setIcon(column, icon)

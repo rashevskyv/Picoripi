@@ -178,7 +178,7 @@ class PhysicalSelectionMixin:
                     _refresh_string_settings_panel(self.mw)
 
             self.ui_updater.update_statusbar_paths()
-            self.ui_updater.update_block_item_text_with_problem_count(block_index)
+            self.ui_updater.update_block_item_text_with_problem_count(block_index, include_virtual=False)
 
         if hasattr(self.mw, 'string_settings_updater'):
             self.mw.string_settings_updater.update_font_combobox()

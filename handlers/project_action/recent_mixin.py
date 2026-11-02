@@ -71,6 +71,9 @@ class RecentMixin:
         dialog, self._open_dialog = self._open_dialog, None
         if dialog is not None:
             dialog.close()
+            block_updater = self._block_updater()
+            if block_updater is not None:
+                block_updater.stage_virtual_build(None)   # later rebuilds build in one go again
 
     def _sync_project_files_then(self, done) -> None:
         """Match the blocks with the files on disk, on a worker while the dialog shows, then call *done*."""

@@ -168,9 +168,12 @@ class GuidelinesMixin:
         sequences = getattr(main_window, 'icon_sequences', []) if main_window else []
         default_tag_mappings = getattr(main_window, 'default_tag_mappings', {}) if main_window else {}
 
+        # Visible lines only: the paint computes any other line when it scrolls into view. A block preview holds
+        # thousands of strings, and measuring all of them blocked the UI for seconds after each project open.
         block = self.firstVisibleBlock()
-
-        while block.isValid():
+        offset = self.contentOffset()
+        bottom = self.viewport().height()
+        while block.isValid() and self.blockBoundingGeometry(block).translated(offset).top() <= bottom:
             self.calculate_block_guidelines(block, font_map, sequences, limit_px, default_tag_mappings=default_tag_mappings)
             block = block.next()
         self.viewport().update()

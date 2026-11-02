@@ -163,6 +163,137 @@ def test_manual_story_none_suppresses_normalized_story_link(mock_mw, mock_dp):
     assert updater._add_story_folder_item(parent, folder, None, hide_empty=True) is False
 
 
+def _normalized_story(updater):
+    """A Story projection, its speaker and two window kinds: every virtual root of a project has something to show."""
+    mapping = StoryVirtualMapping("1", "zel_01_Str_1", 1)
+    scene = StoryVirtualFolder(30, "scene", "Scene One", (), (mapping,))
+    projection = StoryVirtualProjection(1, (scene,), (StoryVirtualSpeaker("MIDNA", (mapping,)),))
+    client = MagicMock()
+    client.get_story_virtual_projection.return_value = projection
+    client.get_reference_items.return_value = ()
+    composer = MagicMock()
+    composer.prompt_composer._get_mempalace_client.return_value = client
+    composer.prompt_composer._get_wing_name.return_value = "tp"
+    updater.mw.translation_handler = composer
+    updater.mw.data_store.current_block_idx = -1
+    updater.mw.data_store.current_chapter_id = None
+    updater.mw.data_store.current_speaker_name = None
+    updater.mw.data_store.show_unsaved_blocks_only = False
+    updater.mw.data_store.edited_data = {}
+    updater.mw.current_game_rules.get_preview_window_style.side_effect = (
+        lambda block_idx, string_idx: {"kind_name": "Dialogue" if block_idx else "Descriptions / save"}
+    )
+    updater.mw.project_manager.project.blocks[0].metadata = {}
+
+
+def _root_labels(updater):
+    widget = updater.mw.block_list_widget
+    return [folder_label(widget.topLevelItem(i)) for i in range(widget.topLevelItemCount())]
+
+
+def test_staged_rebuild_adds_the_virtual_roots_over_several_event_loop_turns(updater, qtbot, monkeypatch):
+    from core.i18n import tr
+    from utils import app_mode
+
+    _normalized_story(updater)
+    updater.populate_blocks()
+    complete = _root_labels(updater)
+    assert {"Story", "Speakers", "Windows"} <= set(complete)
+
+    monkeypatch.setattr(app_mode, "headless", False)
+    labels = []
+    ready = []
+    updater.stage_virtual_build(labels.append)
+    updater.populate_blocks()
+
+    assert updater.virtual_tree_pending
+    assert "Windows" not in _root_labels(updater)
+    updater.when_virtual_blocks_ready(lambda: ready.append(True))
+    assert ready == []
+
+    qtbot.waitUntil(lambda: not updater.virtual_tree_pending, timeout=5000)
+    assert ready == [True]
+    assert _root_labels(updater) == complete
+    assert labels[0] == tr("Building Story folders…")
+    assert tr("Building window folders: {0}", tr("Dialogue")) in labels
+
+
+def test_a_rebuild_during_a_staged_one_leaves_one_tree_and_one_ready_call(updater, qtbot, monkeypatch):
+    from utils import app_mode
+
+    _normalized_story(updater)
+    updater.populate_blocks()
+    complete = _root_labels(updater)
+
+    monkeypatch.setattr(app_mode, "headless", False)
+    ready = []
+    updater.stage_virtual_build(lambda _text: None)
+    updater.populate_blocks()
+    updater.when_virtual_blocks_ready(lambda: ready.append(True))
+    updater.populate_blocks()   # the first rebuild's queued steps must not add a second set of roots
+
+    qtbot.waitUntil(lambda: not updater.virtual_tree_pending, timeout=5000)
+    qtbot.wait(50)
+    assert ready == [True]
+    assert _root_labels(updater) == complete
+
+
+def test_story_folder_rows_are_resolved_once_per_tree_rebuild(mock_mw, mock_dp):
+    """The Windows roots repeat the Story tree once per window kind; its folders resolve once per rebuild."""
+    updater = BlockListUpdater(mock_mw, mock_dp)
+    mock_mw.project_manager.project.blocks[0].metadata = {}
+    mock_mw.data_store.show_unsaved_blocks_only = False
+    mappings = (StoryVirtualMapping("1", "Block One_Str_0", 0), StoryVirtualMapping("1", "Block One_Str_1", 1))
+    folder = StoryVirtualFolder(10, "scene", "Scene", (), mappings)
+    resolved = []
+    resolve = updater._story_mapping_indices
+    updater._story_mapping_indices = lambda rows: resolved.append(rows) or resolve(rows)
+
+    updater._cache_story_overrides = True
+    try:
+        whole = QTreeWidgetItem(["Story"])
+        updater._add_story_folder_item(whole, folder, None)
+        scoped = QTreeWidgetItem(["Story"])
+        updater._add_story_folder_item(scoped, folder, None, allowed_rows={(1, 1)})
+    finally:
+        updater._cache_story_overrides = False
+        updater._story_rows_cache = {}
+
+    assert len(resolved) == 1
+    assert whole.child(0).data(0, Qt.UserRole + 13) == [(1, 0), (1, 1)]
+    assert scoped.child(0).data(0, Qt.UserRole + 13) == [(1, 1)]
+
+
+def test_style_icons_are_looked_up_once_per_style(mock_mw, mock_dp):
+    from PyQt6.QtGui import QIcon, QPixmap
+    from PyQt6.QtWidgets import QStyle
+
+    class CountingStyle:
+        def __init__(self):
+            self.lookups = 0
+
+        def standardIcon(self, _which):   # noqa: N802 - Qt's name
+            self.lookups += 1
+            pixmap = QPixmap(4, 4)
+            pixmap.fill(Qt.GlobalColor.red)
+            return QIcon(pixmap)
+
+    style = CountingStyle()
+    mock_mw.style = lambda: style
+    updater = BlockListUpdater(mock_mw, mock_dp)
+    items = [QTreeWidgetItem([str(i)]) for i in range(50)]
+    for item in items:
+        updater._set_item_style_icon(item, 0, QStyle.StandardPixmap.SP_DirIcon)
+
+    assert style.lookups == 1
+    assert all(not item.icon(0).isNull() for item in items)
+
+    other = CountingStyle()   # a theme change brings another style: its icons are looked up again
+    mock_mw.style = lambda: other
+    updater._set_item_style_icon(items[0], 0, QStyle.StandardPixmap.SP_DirIcon)
+    assert other.lookups == 1
+
+
 def test_virtual_leaf_and_parent_get_warning_counts(updater):
     updater.mw.data_store.data = [["Hero line", "Broken line"]]
     updater.mw.data_store.problems_per_subline = {(0, 1, 0): {"prob1"}}
