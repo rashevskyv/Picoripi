@@ -90,6 +90,7 @@ def test_a_deeper_patch_table_is_refused():
 
 def test_sword_wizard_unpack_matches_the_workspace_source(tmp_path):
     _need(SWORD_BASE, SWORD_UPDATE)
+    romhacking_root.needs_scratch(14)
     if not (SWORD / "source").is_dir():
         pytest.skip("the workspace source is not on disk")
     folder = _run_wizard({"base": str(SWORD_BASE), "update": str(SWORD_UPDATE)}, tmp_path / "project")
@@ -136,6 +137,7 @@ def test_arceus_packs_without_the_oodle_path_are_an_error(tmp_path, monkeypatch)
 
 def test_a_missing_update_is_an_error_not_a_silent_unpack(tmp_path):
     _need(SWORD_BASE)
+    romhacking_root.needs_scratch(11)
     with pytest.raises(ImageError):
         _run_wizard({"base": str(SWORD_BASE)}, tmp_path / "project")
 

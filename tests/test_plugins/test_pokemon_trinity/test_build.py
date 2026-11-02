@@ -55,6 +55,7 @@ def test_scarlet_and_violet_builds_move_the_changed_file_out_of_each_index(tmp_p
     images = [SCARLET["base"], SCARLET["update"], VIOLET["base"], VIOLET["update"]]
     if not all(p.is_file() for p in images) or _switch_key_path() is None or _provider("oodle") is None:
         pytest.skip("the owner's Scarlet and Violet packages, the key path or the Oodle library are not on disk")
+    romhacking_root.needs_scratch(25)
     rules = load_rules("pokemon_trinity")
     sources = {"base": str(SCARLET["base"]), "update": str(SCARLET["update"]),
                "other_base": str(VIOLET["base"]), "other_update": str(VIOLET["update"])}

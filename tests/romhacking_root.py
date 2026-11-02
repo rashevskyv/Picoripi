@@ -4,12 +4,21 @@ Set ``PICORIPI_ROMHACKING`` to the workspace root (the folder that holds the gam
 missing under it, the test skips with the reason. The repository keeps no personal paths.
 """
 import os
+import shutil
+import tempfile
 from pathlib import Path
 from typing import Optional
 
 import pytest
 
 ENV = "PICORIPI_ROMHACKING"
+
+
+def needs_scratch(gb: int) -> None:
+    """Skip unless the temp folder has ``gb`` GB free: an unpack of a real game writes that much project data there."""
+    free = shutil.disk_usage(tempfile.gettempdir()).free
+    if free < gb * 2**30:
+        pytest.skip(f"an unpack here needs {gb} GB free in the temp folder; {free // 2**30} GB is free")
 
 
 def root() -> Optional[Path]:

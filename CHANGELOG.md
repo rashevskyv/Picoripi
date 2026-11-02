@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Tests: the Pokémon real-data unpack and build tests skip when the temp folder lacks the room an unpack of that game needs (10-25 GB); they failed with ValueError on a drive with 8 GB free.
 - Tests: the MadWorld wizard unpack test skips when no Wii key file is set in Picoripi (the owner's disc is encrypted); it failed with KeyFileError on machines without the key.
 - Tests: the prompt budget gate follows the Ukrainian style rules (96dd4435): total 5400 (measured 5380), 40-string input 20900 (measured 20806).
 - Tests: the block-tree review test records the Story folder after each staged build step (a large project open adds it in steps since a7f9642f), so the Loading placeholder is seen again; the golden is unchanged.

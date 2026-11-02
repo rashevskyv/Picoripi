@@ -64,6 +64,7 @@ def test_identify_tells_base_from_update(tmp_path):
 
 def test_the_wizard_unpack_writes_the_text_like_the_workspace(tmp_path):
     _need()
+    romhacking_root.needs_scratch(13)
     if not (SV / "source").is_dir():
         pytest.skip("the workspace source is not on disk")
     rules = load_rules("pokemon_trinity")

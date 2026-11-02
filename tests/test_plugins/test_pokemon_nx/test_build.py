@@ -58,6 +58,7 @@ def _edit_one(source: Path, rel: str, tmp_path: Path, data: bytes) -> Path:
 def test_sword_build_writes_the_changed_file_for_both_title_ids(tmp_path):
     if not (SWORD_BASE.is_file() and SWORD_UPDATE.is_file()) or _switch_key_path() is None:
         pytest.skip("the owner's Sword packages or the Switch key path are not on disk")
+    romhacking_root.needs_scratch(14)
     folder = _unpack(SWORD_BASE, SWORD_UPDATE, tmp_path)
     rel = next(p.relative_to(folder).as_posix() for p in (folder / "bin" / "message" / "English").rglob("*.dat"))
     original = (folder / rel).read_bytes()
