@@ -3,6 +3,27 @@
 Desktop translation editor (Python, PyQt6) with game plugins. This file is the only place agent rules live;
 `CLAUDE.md` and `GEMINI.md` are stubs that point here. Version: `utils/constants.py` only.
 
+## Agent loop (one agent, one context)
+- The agent that writes the plan executes it: put the plan in context on the first turn, revise it as results
+  arrive. No "reviewer", "tester" or domain subagents — they hand back lossy summaries and add latency.
+- Subagents only for a broad read-only search whose file dumps would bloat this context, or for independent
+  pieces that run in parallel in a throw-away context. Each returns a compact result; the conversation never
+  moves to it. Split by context, never by task type.
+- State a budget at the start of each task (edits, test runs); when it is spent, stop at a checkpoint and
+  report instead of drifting.
+- This file is the only always-loaded context. Procedures live in `.agents/skills/*` (loaded when triggered),
+  reference in `docs/` (read the section the task names). Hard limits live in tools, not sentences:
+  `python tasks.py check`, the test suite, the Graphify session hook.
+  When a rule can become a check, add the check to the tooling instead of a sentence here.
+
+## Session start (≈3k tokens)
+1. `git status --short`, `git log --oneline -5`.
+2. `plan.md` — the current work package only (full plan: `docs/audit/2026-10-01/PLAN.md` + `TASKS.md`).
+3. `head -20 CHANGELOG.md`.
+4. Graph: in Claude Code the SessionStart hook prints `Graphify: current|updated` — trust it. Other agents run
+   `graphify update .` only if source is newer than `graphify-out/GRAPH_REPORT.md`.
+Read nothing else until the task names it.
+
 ## Hard rules
 
 1. **Protect user work.** Start with `git status --short`. Never revert, bulk-checkout or delete files you did
@@ -27,8 +48,8 @@ Desktop translation editor (Python, PyQt6) with game plugins. This file is the o
 11. **One `CHANGELOG.md` line per change.** Bump the version (`scripts/bump_version.py`) only when the user
     asks for a commit/release, or once at the end of a work package — not per task.
 12. **Graphify first for navigation**: `graphify query "<question>"`, `graphify explain "<Name>"`,
-    `graphify path "A" "B"`. Read source files only to confirm details. Run `graphify update .` after code
-    edits (free, AST-only).
+    `graphify path "A" "B"`. Read source files only to confirm details. The session hook refreshes the graph
+    at start, `python tasks.py check` at the end; in between run `graphify update .` after structural edits.
 
 **Do not read whole** (grep only): `translation_prompts/glossary.json`, `graphify-out/GRAPH_REPORT.md`,
 `docs/history/`, `CHANGELOG.md` below `[Unreleased]`.
@@ -47,6 +68,7 @@ python tasks.py lint
 python tasks.py smoke         # import main offscreen + validate every plugin
 python tasks.py docs-check    # document headers, docs/INDEX.md, tests/test_docs
 python tasks.py graph
+python tasks.py check         # pre-report gate: lint, docs-check, deslop, smoke, git diff --check, graph
 ```
 
 `tasks.py` picks the project's environment (`venv`/`.venv`) itself; `python tasks.py` lists every command
@@ -75,6 +97,6 @@ Tests: focused unit tests for logic; real `pytest-qt` lifecycle tests for worker
    `docs/wiki/3_Plugin_Developer_Guide.md` (EN and UK) and `plugins/default_plugin/AI_PLUGIN_ASSISTANT_PROMPT.md`
    Q8 — describe the mechanism, not game constants — or state "single-game" in the report.
 5. Closed or opened a TODO? Update `docs/OPEN_ITEMS.md`.
-6. Tests added or updated, suite and `ruff check .` green, `git diff --check` clean.
-7. `python tasks.py deslop`: fix or suppress (with a reason) each new finding; never raise the baseline.
-8. `graphify update .` last. Report what changed, what was verified and what risk remains.
+6. Tests added or updated; `python tasks.py test` green; then `python tasks.py check` green — fix or suppress
+   (with a reason) each new deslop finding, never raise the baseline.
+7. Report what changed, what was verified and what risk remains.

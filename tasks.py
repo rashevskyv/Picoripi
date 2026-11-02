@@ -8,6 +8,7 @@
     docs-check    document headers, docs/INDEX.md, the plugin contract page, tests/test_docs
     docs-index    refresh token counts and rebuild docs/INDEX.md
     graph         refresh the code graph (graphify update .)
+    check         the pre-report gate: lint, docs-check, deslop, smoke, git diff --check, graph (all run; first failure wins)
     deslop        new slop findings over tools/deslop/baseline.json; --all lists every finding (arguments pass through)
     bump          next development version (scripts/bump_version.py)
     new-plugin    scaffold a plugin (tools/new_plugin.py <id> "<Name>" --prefix XX)
@@ -122,6 +123,21 @@ def deslop(run: Runner, extra: List[str]) -> int:
     return run([project_python(), "-m", "tools.deslop", *extra])
 
 
+def check(run: Runner, extra: List[str]) -> int:
+    """Every mechanical pre-report check in one command, so no agent has to remember the list."""
+    steps = [
+        ("lint", lambda: lint(run, [])),
+        ("docs-check", lambda: docs_check(run, [])),
+        ("deslop", lambda: deslop(run, [])),
+        ("smoke", lambda: smoke(run, [])),
+        ("git diff --check", lambda: run(["git", "diff", "--check"])),
+        ("graph", lambda: graph(run, [])),
+    ]
+    failed = [name for name, step in steps if step() != 0]
+    print("check: " + ("all green" if not failed else "FAILED: " + ", ".join(failed)))
+    return 1 if failed else 0
+
+
 def bump(run: Runner, extra: List[str]) -> int:
     return run([project_python(), "scripts/bump_version.py", *extra])
 
@@ -144,6 +160,7 @@ COMMANDS: Dict[str, Callable[[Runner, List[str]], int]] = {
     "docs-check": docs_check,
     "docs-index": docs_index,
     "graph": graph,
+    "check": check,
     "deslop": deslop,
     "bump": bump,
     "new-plugin": new_plugin,
