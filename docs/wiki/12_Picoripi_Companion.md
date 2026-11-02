@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/companion_sync.py, companion/
-tokens: 1.9k
+tokens: 2.2k
 purpose: Companion server and glossary sync
 ---
 # Picoripi Companion (Mobile PWA & Sync)
@@ -109,6 +109,27 @@ The companion backend runs on Python 3.10+ (FastAPI + Uvicorn) and stores projec
 - Do not expose the Companion server to the public internet with the default token `picoripi`. Set a custom `PICORIPI_COMPANION_TOKEN`.
 - Do not edit the same term simultaneously on desktop and mobile without syncing first.
 - Do not disable `companion_auto_sync` if you frequently review terms on your phone while keeping Picoripi open on desktop.
+
+---
+
+## 6. MCP server for agents (read only)
+
+`python -m mcp_server` starts a local MCP server on stdin/stdout. An AI agent (Claude Code, for example) uses it to read your projects. It does not change anything.
+
+Add it to the agent's MCP configuration with the command `python -m mcp_server` and the Picoripi folder as the working directory.
+
+| Tool | What it returns |
+|---|---|
+| `list_projects` | The projects of the Project Manager: path, id, platform |
+| `get_issue_rules(plugin)` | The warning rules of a game plugin |
+| `list_issues(project)` | The warnings from the last scan, counted by rule and block (read from `issues_cache.json`) |
+| `scan_string(plugin, text, source_text)` | The warnings of one string: tags and the plugin rules |
+| `check_fit(project, items)` | For each `{block, string, text}`: the width of every line in the translation font, the window limits of that message, lines per page, the plugin warnings and the tag check |
+
+- The server reads files on disk. Edits that Picoripi has not saved are not visible.
+- `list_issues` shows the last scan, with its time. It does not scan again. Open the project in Picoripi to refresh it.
+- `scan_string` does not measure line width, because the font map is not loaded. `check_fit` measures it: it reads the project's translation font and the original message.
+- The same check runs without MCP: `python -m mcp_server.check_fit <project.uiproj> <items.json> [--failed]`.
 
 <!-- wiki-nav -->
 ---

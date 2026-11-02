@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-14
 owns: decisions and their reasons
-tokens: 29.7k
+tokens: 30.1k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -1227,3 +1227,21 @@ table, stored / zero / LZ4 blocks). The LZ4 decoder is in Python, with every off
 
 **Cost.** Pure-Python LZ4 is slower than a C decoder; a full unpack of a large compressed RomFS is minutes. A compressed
 update patch and a compressed ExeFS are still refused. The system key is not checked on a real system title.
+
+## D50. An MCP server for agents: read only first (2026-10-23)
+
+**Context.** Agents work on Picoripi projects through scripts and `python -c`. They need typed access to projects,
+issues (warnings) and the plugin rules. The Companion server is not that access: it is a sync store with its own copy
+of the glossary, not the project files and not the running window.
+
+**Decision.** `mcp_server/` is a separate stdio process (`python -m mcp_server`, SDK `mcp` 2.x, `MCPServer`). It reads
+files on disk and calls Qt-free code (`core/project_library/registry.py`, `plugin_facts.default_load_rules`, the plugin
+analyzer). The first version has four tools: `list_projects`, `get_issue_rules`, `list_issues` (reads
+`issues_cache.json`, answers `source: cached` with the file time) and `scan_string` (plugin rules and the tag check).
+Nothing writes.
+
+**Why read only first.** A write while the window is open can destroy user work. The right lock depends on how the
+window saves a project; that is the next change (write through `DataStateProcessor` with a project lock).
+
+**Cost.** Unsaved edits in an open window are invisible. `scan_string` does not measure width: that needs the
+project's font map, and the editor builds it from window state. Strings of a project are not exposed yet.

@@ -13,3 +13,4 @@ numpy>=2.3
 pycryptodome==3.23.0
 # zstd for compressed 3DS images (Azahar Z3DS, core/containers/z3ds.py). Python 3.14 has it in the standard library.
 zstandard==0.23.0; python_version < "3.14"
+mcp>=2,<3
