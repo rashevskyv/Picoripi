@@ -131,10 +131,10 @@ def test_an_empty_project_still_reports_its_scan_finished(handler, mock_mw):
 def test_a_quiet_scan_works_in_short_ticks_and_refreshes_the_tree_once(handler, mock_mw):
     """The editor is open while it runs: a tick ends at its time budget, the status bar counts, the tree refreshes at the end."""
     mock_mw.data_store.data = [["line"] for _ in range(3)]
-    handler._SCAN_TICK_SECONDS = 0   # every tick scans one block, then yields to the event loop
+    handler._SCAN_TICK_SECONDS = 0   # every tick scans one slice, then yields to the event loop
     scanned = []
 
-    with patch.object(handler, '_perform_issues_scan_for_block', new=lambda block_idx: scanned.append(block_idx)):
+    with patch.object(handler, '_perform_issues_scan_for_block', new=lambda block_idx, **_slice: scanned.append(block_idx)):
         handler._perform_initial_silent_scan_all_issues(force=True, quiet=True)
         handler._scan_timer.stop()
         assert handler._progress_dialog is None
@@ -152,3 +152,36 @@ def test_a_quiet_scan_works_in_short_ticks_and_refreshes_the_tree_once(handler, 
     assert scanned == [0, 1, 2]
     mock_mw.statusBar.clearMessage.assert_called_once()
     handler.ui_updater.refresh_block_tree_indicators.assert_called_once()
+
+
+def test_a_quiet_scan_goes_through_a_large_block_in_slices(handler, mock_mw):
+    """A Twilight Princess file holds 5000 strings: a quiet tick stops inside the block and the next one resumes."""
+    mock_mw.data_store.data = [["line"] * 60, ["line"]]
+    handler._SCAN_TICK_SECONDS = 0
+    handler._SCAN_SLICE_STRINGS = 25
+    slices = []
+
+    with patch.object(handler, '_perform_issues_scan_for_block',
+                      new=lambda block_idx, strings=None: slices.append((block_idx, strings))):
+        handler._perform_initial_silent_scan_all_issues(force=True, quiet=True)
+        handler._scan_timer.stop()
+        for _tick in range(4):
+            handler._scan_next_batch()
+            if handler._scan_timer is not None:
+                handler._scan_timer.stop()
+
+    assert slices == [(0, range(0, 25)), (0, range(25, 50)), (0, range(50, 60)), (1, range(0, 1))]
+
+
+def test_a_slice_keeps_the_problems_found_earlier_in_its_block(handler, mock_mw):
+    analyzer = MagicMock()
+    mock_mw.current_game_rules.problem_analyzer = analyzer
+    analyzer.analyze_data_string.return_value = [{"TOO_LONG"}]
+    mock_mw.data_processor.get_current_string_text.return_value = ("text", False)
+    mock_mw.data_store.data = [["a", "b", "c"]]
+    mock_mw.data_store.problems_per_subline = {}
+
+    handler._perform_issues_scan_for_block(0, strings=range(0, 2))
+    handler._perform_issues_scan_for_block(0, strings=range(2, 3))
+
+    assert sorted(mock_mw.data_store.problems_per_subline) == [(0, 0, 0), (0, 1, 0), (0, 2, 0)]

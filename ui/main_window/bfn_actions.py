@@ -150,8 +150,9 @@ class BfnActions:
         
         # Proactively trigger silent project-wide recalculation after changes in glyphs
         if hasattr(self.mw, 'issue_scan_handler'):
-            self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues()
-            
+            # Quiet: a modal progress dialog over the open editor stalled at 0% and restarted on every edit.
+            self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues(quiet=True)
+
         log_info("Font Editor: font metrics reloaded and silent full project recalculation started.")
 
     def export_current_bmg_to_json(self):

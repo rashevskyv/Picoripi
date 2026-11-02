@@ -129,24 +129,26 @@ class IssueScanHandler(BaseHandler):
             log_error(f"Failed to load issues cache: {e}", exc_info=True)
             return None
 
-    def _perform_issues_scan_for_block(self, block_idx: int, is_single_block_scan: bool = False, use_default_mappings_in_scan: bool = False):
-        """Internal helper to perform issues scan for block."""
+    def _perform_issues_scan_for_block(self, block_idx: int, is_single_block_scan: bool = False, use_default_mappings_in_scan: bool = False,
+                                       strings: Optional[range] = None):
+        """Scan a block's strings for issues. ``strings``: only these (a quiet scan goes through a large block in
+        slices); the block's old problems are cleared by the slice that starts at string 0."""
         if not self.mw.current_game_rules or not (0 <= block_idx < len(self.mw.data_store.data)):
             return
 
-        # Clear existing problems for this block
-        keys_to_remove = [k for k in self.mw.data_store.problems_per_subline if k[0] == block_idx]
-        for key in keys_to_remove:
-            del self.mw.data_store.problems_per_subline[key]
-        
+        if strings is None or strings.start == 0:
+            keys_to_remove = [k for k in self.mw.data_store.problems_per_subline if k[0] == block_idx]
+            for key in keys_to_remove:
+                del self.mw.data_store.problems_per_subline[key]
+
         block_data = self.mw.data_store.data[block_idx]
         if not isinstance(block_data, list):
             return
 
         # Use problem_analyzer if it exists, otherwise use the game rules object itself
         analyzer = getattr(self.mw.current_game_rules, 'problem_analyzer', self.mw.current_game_rules)
-        
-        for string_idx, _ in enumerate(block_data):
+
+        for string_idx in (strings if strings is not None else range(len(block_data))):
             text, _ = self.data_processor.get_current_string_text(block_idx, string_idx)
             if text is None: continue
             
@@ -205,6 +207,8 @@ class IssueScanHandler(BaseHandler):
     # -----------------------------------------------------------------------
     _SCAN_BATCH_SIZE = 5   # blocks per timer tick
     _SCAN_TICK_SECONDS = 0.04   # a tick of a quiet scan stops after this long, so the window keeps painting
+    _SCAN_SLICE_STRINGS = 25    # a quiet tick checks the clock after this many strings (a TP file holds 5000)
+    _scan_string_cursor = 0     # quiet scan: the next string of the first pending block
 
     def _show_scan_progress_dialog(self, pending_scan_indices: list):
         """Internal helper to show scan progress dialog."""
@@ -233,6 +237,7 @@ class IssueScanHandler(BaseHandler):
         
         # Save indices to scan
         self._scan_pending_indices = list(pending_scan_indices)
+        self._scan_string_cursor = 0
         self._scan_total_count = len(pending_scan_indices)
         
         # Set up timer for chunked scanning
@@ -261,6 +266,10 @@ class IssueScanHandler(BaseHandler):
         if hasattr(self, '_scan_timer') and self._scan_timer is not None:
             self._scan_timer.stop()
             self._scan_timer = None
+        if getattr(self, '_progress_dialog', None) is not None:
+            # A restarted scan must not leave the old dialog open behind the new one.
+            self._progress_dialog.close()
+            self._progress_dialog = None
 
         if force:
             cache_path = self._get_cache_path()
@@ -332,6 +341,25 @@ class IssueScanHandler(BaseHandler):
         log_info(f"Scanning {len(pending_scan_indices)} blocks for issues (not found or outdated in cache).")
         self._show_scan_progress_dialog(pending_scan_indices)
 
+    def _scan_quiet_slices(self) -> None:
+        """One tick of a quiet scan: slices of strings until the tick's time is up, resuming inside a block."""
+        started = time.monotonic()
+        data = self.mw.data_store.data
+        while self._scan_pending_indices:
+            block_idx = self._scan_pending_indices[0]
+            block = data[block_idx] if block_idx < len(data) else None
+            count = len(block) if isinstance(block, list) else 0
+            stop = min(count, self._scan_string_cursor + self._SCAN_SLICE_STRINGS)
+            if count:
+                self._perform_issues_scan_for_block(block_idx, strings=range(self._scan_string_cursor, stop))
+            if stop >= count:
+                self._scan_pending_indices = self._scan_pending_indices[1:]
+                self._scan_string_cursor = 0
+            else:
+                self._scan_string_cursor = stop
+            if time.monotonic() - started >= self._SCAN_TICK_SECONDS:
+                break
+
     def _scan_next_batch(self):
         """Process one batch of blocks and schedule the next batch."""
         if not hasattr(self, '_scan_pending_indices') or not self._scan_pending_indices:
@@ -355,17 +383,17 @@ class IssueScanHandler(BaseHandler):
             return
 
         quiet = getattr(self, '_scan_quiet', False)
-        started = time.monotonic()
-        done = 0
-        for block_idx in self._scan_pending_indices:
-            if block_idx < len(self.mw.data_store.data):
-                self._perform_issues_scan_for_block(block_idx)
-            done += 1
-            if quiet and time.monotonic() - started >= self._SCAN_TICK_SECONDS:
-                break
-            if not quiet and done >= self._SCAN_BATCH_SIZE:
-                break
-        self._scan_pending_indices = self._scan_pending_indices[done:]
+        if quiet:
+            self._scan_quiet_slices()
+        else:
+            done = 0
+            for block_idx in self._scan_pending_indices:
+                if block_idx < len(self.mw.data_store.data):
+                    self._perform_issues_scan_for_block(block_idx)
+                done += 1
+                if done >= self._SCAN_BATCH_SIZE:
+                    break
+            self._scan_pending_indices = self._scan_pending_indices[done:]
         if quiet and self._scan_pending_indices and getattr(self.mw, 'statusBar', None) is not None:
             self.mw.statusBar.showMessage(
                 tr("Checking issues: {0} of {1} files", self._scan_total_count - len(self._scan_pending_indices),
