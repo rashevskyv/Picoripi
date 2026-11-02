@@ -26,7 +26,8 @@ tools/i18n-translate/failures.log
 font_tool/
 build_gemini_dir.py
 /gemini/
-.claude
+.claude/settings.local.json
+.claude/worktrees/
 /app_debug.txt
 /app_debug.txt.*
 
@@ -75,3 +76,5 @@ pytest-of-Administrator/
 /picoripi_home.json
 
 /_site/
+
+!.claude/settings.json
