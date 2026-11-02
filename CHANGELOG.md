@@ -2,6 +2,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Font editor: the Luigi's Mansion dialogue font inside `sys/main.dol` opens and saves through the `resfont` backend (FONTbfn1); glyph sheets export and import with `python -m core.font_formats.sheet_io`.
+
 - Luigi's Mansion (GameCube): the dialogue font inside `sys/main.dol` is an editable font source; Ukrainian letters (Ґ Є І Ї) map to unused cp932 Cyrillic slots in messages; a changed `main.dol` is written in place.
 
 - Search: select text only when a click enters an unfocused search or filter field; subsequent clicks position the caret.
