@@ -52,7 +52,11 @@ def test_issue_rules_lists_definitions():
 
 def test_stdio_round_trip(project):
     async def run():
-        params = StdioServerParameters(command=sys.executable, args=["-m", "mcp_server"], cwd=ROOT)
+        # A headless server must name its data folder; the client passes only a default environment to the child.
+        home = project.parent / "home"
+        params = StdioServerParameters(
+            command=sys.executable, args=["-m", "mcp_server"], cwd=ROOT, env={"PICORIPI_HOME": str(home)}
+        )
         async with Client(params) as client:
             names = {tool.name for tool in (await client.list_tools()).tools}
             result = await client.call_tool("list_issues", {"project": str(project)})
