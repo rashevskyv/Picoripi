@@ -58,3 +58,25 @@ def test_widget_names_the_speaker_and_reports_layout_problems(qtbot):
     assert widget._speaker.text().endswith("Nall")
     assert "4 lines" in widget._status.text()
     widget.shutdown()
+
+
+def test_picture_scales_both_ways_and_keeps_the_box_shape(qtbot):
+    widget = LunarDialoguePreview(_Window())
+    qtbot.addWidget(widget)
+    widget._sources = _synthetic_sources()
+    widget.update_preview_text("{FA:6E}AAA")
+    widget.show()
+    qtbot.waitExposed(widget)
+    picture = widget._picture
+    shape = dp.PICTURE_W / dp.PICTURE_H
+    widget.resize(900, 600)
+    qtbot.waitUntil(lambda: picture.pixmap() is not None and picture.pixmap().width() > dp.PICTURE_W)
+    big = picture.pixmap()
+    assert big.width() <= picture.width() and big.height() <= picture.height()
+    assert abs(big.width() / big.height() - shape) < 0.05
+    widget.resize(200, 200)
+    qtbot.waitUntil(lambda: picture.pixmap().width() < big.width())
+    small = picture.pixmap()
+    assert small.width() <= picture.width() and small.height() <= picture.height()
+    assert abs(small.width() / small.height() - shape) < 0.05
+    widget.shutdown()

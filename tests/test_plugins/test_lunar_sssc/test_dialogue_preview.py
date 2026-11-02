@@ -102,10 +102,28 @@ def test_render_page_places_the_window_portrait_and_text():
     glyphs = {"A": [0x8000] * 16}
     portrait = Image.new("RGBA", (64, 64), (255, 0, 0, 255))
     picture = dp.render_page([dp.Line("A")], glyphs, portrait)
-    assert picture.size == (320, 240)
-    assert picture.getpixel((dp.PORTRAIT_X + 1, dp.PORTRAIT_Y + 1)) == (255, 0, 0, 255)
-    assert picture.getpixel((dp.TEXT_X, dp.TEXT_Y)) == (255, 255, 255, 255)
-    assert picture.getpixel((dp.TEXT_X + 1, dp.TEXT_Y)) != (255, 255, 255, 255)
+    top = dp.TEXT_Y - dp.PICTURE_Y
+    assert picture.size == (320, 72)
+    assert picture.getpixel((dp.PORTRAIT_X + 1, 1)) == (255, 0, 0, 255)
+    assert picture.getpixel((dp.TEXT_X, top)) == (255, 255, 255, 255)
+    assert picture.getpixel((dp.TEXT_X + 1, top)) != (255, 255, 255, 255)
+
+
+def test_picture_is_the_box_and_the_portrait_edge_only():
+    glyphs = {"A": [0x8000] * 16}
+    picture = dp.render_page([dp.Line("A")], glyphs, None)
+    assert picture.getpixel((0, 0)) == (0, 0, 0, 0)               # above the box, no portrait: transparent
+    assert picture.getpixel((200, 0)) == (0, 0, 0, 0)
+    assert picture.getpixel((200, dp.WINDOW_Y - dp.PICTURE_Y)) != (0, 0, 0, 0)   # the box's top row is drawn
+    assert picture.getpixel((dp.TEXT_X_NO_PORTRAIT, dp.TEXT_Y - dp.PICTURE_Y)) == (255, 255, 255, 255)
+
+
+def test_the_limit_is_the_editor_limit_and_the_real_english_line_fits():
+    assert dp.LINE_LIMIT == 280
+    # "The White Dragon Cave, Alex?" measures 219 px in the game font (the editor's own count of the window).
+    assert dp.text_width("The White Dragon Cave, Alex?") == 219
+    assert dp.parse_pages("The White Dragon Cave, Alex?{page}I knew something was wrong").problems == []
+    assert any("wider" in p for p in dp.parse_pages("W" * 60).problems)
 
 
 def test_text_width_and_speaker_name():
