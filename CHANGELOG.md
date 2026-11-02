@@ -8,6 +8,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 - Search: the first click on a search or filter field after a click elsewhere selects all text; later clicks position the caret.
 - Preview: list bullets and other icons stay on their logical line when the game wraps text, as in the game (icons are placed by explicit newlines only; icons no longer wrap themselves).
 - Preview: mouse-wheel zoom (Ctrl+wheel) now also works when no background image is shown.
+- Project Manager: a folder named "HD - Switch" (or any name ending in one platform word) now gives the platform Switch, so its series and platform show correctly.
+- Search: select text only when a click enters an unfocused search or filter field; subsequent clicks position the caret.
 
 - Zelda TP preview: a character that would pass the BLO text box width starts a new line, as in the game (the comma after the ZL icon in the slingshot text).
 - Zelda TP: preview kind 11 with the inventory ItemExplain panel at its BLO size (545x323 sheet, 445x162 text box, 20 px lines, 8 lines, 534 px width limit), the correct item icon (the item-number-to-texture table was shifted by one from item 50 on).

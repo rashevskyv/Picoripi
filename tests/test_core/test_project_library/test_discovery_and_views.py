@@ -39,6 +39,8 @@ def test_platform_is_the_nearest_known_folder_name():
     assert platform_from_parts(["Wii U"]) == "Wii U"
     assert platform_from_parts(["3DS", "Switch"]) == "Switch"
     assert platform_from_parts(["Aria of Sorrow"]) == ""
+    assert platform_from_parts(["HD - Switch"]) == "Switch"
+    assert platform_from_parts(["GC + Wii"]) == ""
 
 
 def test_readiness_and_text_buckets():
