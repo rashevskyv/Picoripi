@@ -76,8 +76,16 @@ class SimGlyphItem(QtWidgets.QGraphicsItem):
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         if event.button() == QtCore.Qt.MouseButton.LeftButton:
+            # The first click only selects the glyph; width and kerning handles work on an already selected one,
+            # so a click on a glyph edge cannot change its metrics by accident.
+            was_selected = getattr(self.viewer, 'selected_sim_item', None) is self
             self.viewer.select_sim_glyph(self)
-            
+            if not was_selected:
+                self._dragging_handle = None
+                self._drag_start_scene_x = None
+                event.accept()
+                return
+
             p = event.pos()
             kerning, width = self._wid_entry()
 

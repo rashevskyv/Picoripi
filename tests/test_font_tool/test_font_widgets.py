@@ -184,3 +184,64 @@ def test_render_font_dialog_preview_and_scaling(qapp, dummy_bfn_bytes):
     
     editor.clear_temp()
     editor.close()
+
+
+class _FakeSimViewer:
+    """The viewer parts a simulation glyph item reads on a mouse press."""
+
+    cell_w, cell_h, first_code = 12, 12, 32
+    metadata = {"WID1": [{"packets": [{"kerning": 0, "width": 40}]}]}
+    selected_sim_item = None
+    _dragging_in_sim = False
+
+    class sim_view:
+        _scale = 1.0
+
+    def select_sim_glyph(self, item):
+        self.selected_sim_item = item
+
+
+class _Press:
+    """A left-button press at scene x, with the calls the item makes on its event."""
+
+    def __init__(self, x):
+        self._point = QtCore.QPointF(x, 5)
+
+    def button(self):
+        return QtCore.Qt.MouseButton.LeftButton
+
+    def pos(self):
+        return self._point
+
+    def scenePos(self):
+        return self._point
+
+    def accept(self):
+        pass
+
+
+def _press_at(item, x):
+    item.mousePressEvent(_Press(x))
+
+
+def test_first_click_on_a_glyph_edge_only_selects_it(qapp):
+    from tools.bfn_editor.sim_view import SimGlyphItem
+    viewer = _FakeSimViewer()
+    item = SimGlyphItem(32, " ", 0, 0, 0, 0, 0, 0, viewer)
+    _press_at(item, 40)                    # on the width line
+    assert viewer.selected_sim_item is item
+    assert item._dragging_handle is None
+    _press_at(item, 40)                    # selected now: the same click grabs the width handle
+    assert item._dragging_handle == "width"
+
+
+def test_rescan_keeps_plugin_and_in_memory_fonts(qapp):
+    window = BfnEditorWindow()
+    window.font_sources = {
+        "plugin.bfn": {"type": "plugin", "path": "", "files": {"plugin.bfn": None}},
+        "mem.bfn": {"type": "in_memory", "path": "", "files": {"mem.bfn": b""}},
+        "disk.bfn": {"type": "disk_loose", "path": "", "files": {}},
+    }
+    window.scan_fonts_directories()
+    assert sorted(window.font_sources) == ["mem.bfn", "plugin.bfn"]
+    window.deleteLater()

@@ -19,7 +19,8 @@ class WindowTreeMixin:
     def scan_fonts_directories(self):
         """Scan active plugin fonts directory and custom fonts directory for archives and loose fonts."""
         # Preserve existing in-memory sources
-        in_memory_sources = {k: v for k, v in self.font_sources.items() if v["type"] == "in_memory"}
+        # Plugin fonts stay: their listing is a background job, so a re-show would otherwise empty the tree.
+        in_memory_sources = {k: v for k, v in self.font_sources.items() if v["type"] in ("in_memory", "plugin")}
         self.font_sources = in_memory_sources
         
         parent = self.parent()
