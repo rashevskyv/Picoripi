@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Tests: the Companion deletion test is skipped when fastapi is missing (companion/server/requirements.txt), as its sibling Companion tests are; it failed on the project venv with ModuleNotFoundError.
 - MCP tests: the stdio round trip gives its headless server a temporary data folder (PICORIPI_HOME); the client passes only a default environment, so the server refused to start.
 - Glossary: the Glossary window accepts the `speaker_photo_save_callback` that series glossary tabs pass; without it every series tab raised TypeError when opened.
 - Plugin hook `parse_table(raw)`: the translation import reads a game text table through the plugin; it was called on the rules object without being declared, which the contract test rejects. Default `None` (not a table).

@@ -17,7 +17,9 @@ from core.glossary.models import legacy_entry_id
 
 from ._rq_wp3_helpers import REAL_GLOSSARY, companion_server, glossary_copy, load
 
+# The Companion server needs companion/server/requirements.txt (fastapi), which the project venv does not install.
 pytest.importorskip("uvicorn")
+pytest.importorskip("fastapi")
 TOKEN = "pin-1234"
 PROJECT = "TP"
 
