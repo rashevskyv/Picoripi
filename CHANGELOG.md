@@ -9,6 +9,10 @@ All notable changes to the **Picoripi** project will be documented in this file.
 - Preview: list bullets and other icons stay on their logical line when the game wraps text, as in the game (icons are placed by explicit newlines only; icons no longer wrap themselves).
 - Preview: mouse-wheel zoom (Ctrl+wheel) now also works when no background image is shown.
 - Project Manager: a folder named "HD - Switch" (or any name ending in one platform word) now gives the platform Switch, so its series and platform show correctly.
+- Font editor: the Luigi's Mansion dialogue font inside `sys/main.dol` opens and saves through the `resfont` backend (FONTbfn1); glyph sheets export and import with `python -m core.font_formats.sheet_io`.
+
+- Luigi's Mansion (GameCube): the dialogue font inside `sys/main.dol` is an editable font source; Ukrainian letters (Ґ Є І Ї) map to unused cp932 Cyrillic slots in messages; a changed `main.dol` is written in place.
+
 - Search: select text only when a click enters an unfocused search or filter field; subsequent clicks position the caret.
 
 - Zelda TP preview: a character that would pass the BLO text box width starts a new line, as in the game (the comma after the ZL icon in the slingshot text).

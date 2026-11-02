@@ -35,7 +35,7 @@ def test_crlf_inside_a_record_is_refused():
 
 def test_character_without_a_shift_jis_code_is_refused_with_its_record():
     with pytest.raises(ValueError, match="record 2"):
-        Table(b"one\r\ntwo\r\n").build(["one", "\u0457"])
+        Table(b"one\r\ntwo\r\n").build(["one", "\u0452"])   # Serbian dje: no cp932 code, no Ukrainian slot
 
 
 def test_bytes_that_are_not_shift_jis_are_not_a_table():

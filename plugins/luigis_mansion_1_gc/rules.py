@@ -5,16 +5,19 @@ block; ``messages.py`` reads and writes it. Unpack writes the whole disc (``sys/
 folded into a folder. Build target: ``gc_iso``, the translated disc image.
 
 The English slot is the only one this plugin edits; the Japanese script in ``text/eventNN.txt`` is not a text table.
-Fonts: ``system/system.arc/font_12.bfn`` (``font_sources.json``). The executable's copy of the font is not edited yet.
+Fonts: ``system/system.arc/font_12.bfn`` and the dialogue font inside ``sys/main.dol`` (``font_sources.json``;
+the executable member is ``dol_font.py``).
 """
 from typing import Any, Callable, Dict, List, Optional, Set
 
+from core.containers import ContainerManager
 from core.i18n import tr
 from core.project_library import images
 from plugins.common.disc_source import write_source_mark
 from plugins.common.table_rules import TableRules
 
 from . import build, messages
+from .dol_font import DolFont
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TAG_RE, TagManager
 
@@ -24,6 +27,10 @@ REVISION = 0
 
 class GameRules(TableRules):
     """Luigi's Mansion (GameCube, USA)."""
+
+    def __init__(self, main_window_ref=None):
+        super().__init__(main_window_ref)
+        ContainerManager.register(DolFont, (".dol",))   # the dialogue font inside sys/main.dol
 
     problem_prefix = PLUGIN_PREFIX
     problem_definitions = PROBLEM_DEFINITIONS
