@@ -7,7 +7,7 @@ Read the row, then open only the document you need.
 | Document | What it is the home of | ~tokens | Status | Owns |
 |---|---|---|---|---|
 | `docs/ARCHITECTURE.md` | Layers, data flow, facades, and where to change what | 2.2k | current | layering, data flow |
-| `docs/DECISIONS.md` | Why the code is the way it is: one short record per decision | 29.7k | current | decisions and their reasons |
+| `docs/DECISIONS.md` | Why the code is the way it is: one short record per decision | 30.1k | current | decisions and their reasons |
 | `docs/ENGINEERING.md` | Habits behind the rules: threads, performance, persistence, tests | 2.0k | current | engineering practice |
 | `docs/FEATURES.md` | Every feature in detail; the wiki wins on a conflict | 15.2k | current | feature inventory |
 | `docs/MEMPALACE_CONTEXT_MANIFESTO.md` | MemPalace contract: principles, data flow, stage status | 2.3k | design | core/mempalace, ui/mempalace |
@@ -20,7 +20,7 @@ Read the row, then open only the document you need.
 | `docs/TRANSLATION_PROMPTING_STRATEGY.md` | Target design of translation context and prompts (Ukrainian) | 6.2k | design | handlers/translation/prompt_composer |
 | `docs/wiki/0_Getting_Started.md` (+uk) | First start to the first saved line: install, first start, new project, first translation, where to read next | 1.5k | current | ui/project_manager/wizard.py |
 | `docs/wiki/11_AI_Translation.md` (+uk) | Providers, prompts, chunks, run memory, translation memory | 6.0k | current | handlers/translation, core/translation |
-| `docs/wiki/12_Picoripi_Companion.md` (+uk) | Companion server and glossary sync | 1.9k | current | core/companion_sync.py, companion/ |
+| `docs/wiki/12_Picoripi_Companion.md` (+uk) | Companion server and glossary sync | 2.2k | current | core/companion_sync.py, companion/ |
 | `docs/wiki/13_Working_Together.md` (+uk) | Rooms, roles, claims, comments | 2.9k | current | core/collab |
 | `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (+uk) | Main window, menus, filters, settings tabs, shortcuts | 11.6k | current | ui/, components/, dialogs/ |
 | `docs/wiki/2_API_Reference.md` (+uk) | Which Python file implements which control | 0.8k | current | module map |
@@ -31,7 +31,7 @@ Read the row, then open only the document you need.
 | `docs/wiki/7_Maintaining_This_Wiki.md` (+uk) | Which page owns which fact; how to update EN and UK | 1.1k | current | docs/wiki |
 | `docs/wiki/8_Localization_Pipeline.md` (+uk) | Pipeline wizard: script, glossary build, reconcile | 4.7k | current | core/glossary_build, core/glossary |
 | `docs/wiki/9_Script_Markup.md` (+uk) | Script Markup Studio | 1.9k | current | core/script_markup, ui/script_markup |
-| `docs/wiki/Build_and_Test.md` (+uk) | Build a mod from saved files, export it, run it in an emulator, and test it per platform | 2.1k | current | core/project_library/build.py |
+| `docs/wiki/Build_and_Test.md` (+uk) | Build a mod from saved files, export it, run it in an emulator, and test it per platform | 2.2k | current | core/project_library/build.py |
 | `docs/wiki/Editor_Basics.md` (+uk) | Main window map, Blocks tree, Strings list, editors, status bar, and how to translate one line | 2.5k | current | ui/builders/ |
 | `docs/wiki/Fonts_and_Textures.md` (+uk) | Edit game fonts and textures, add Ukrainian letters, and set the fonts folders and default font of a project | 1.8k | current | tools/bfn_editor/ and ui/texture_window.py |
 | `docs/wiki/Game_Notes.md` (+uk) | Per-game technical notes: source folders, file formats, tags, previews, build steps | 48.0k | current | plugins |
