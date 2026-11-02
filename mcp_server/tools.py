@@ -246,7 +246,7 @@ def string_context(project: str, block: int, string: int) -> Dict[str, Any]:
             contexts = client.get_story_string_contexts(str(block), string)
             if contexts:
                 first = contexts[0]
-                result.update(mempalace="found", structure=list(first.path), speaker_name=first.speaker)
+                result.update(mempalace="found", structure=list(first.structure_path), speaker_name=first.speaker_name)
         except Exception as error:
             log_debug(f"string_context: MemPalace query failed: {error}")
     result["neighbours"] = []
