@@ -1,4 +1,6 @@
 [
-  {"label": "System font, BFN1 (system.arc; the copy inside main.dol is not listed)", "format": "bfn",
-   "path": "files/system/system.arc/font_12.bfn"}
+  {"label": "System font, BFN1 (system.arc)", "format": "bfn",
+   "path": "files/system/system.arc/font_12.bfn"},
+  {"label": "Dialogue font (in sys/main.dol)", "format": "bfn",
+   "path": "sys/main.dol", "member": "*.bfn"}
 ]

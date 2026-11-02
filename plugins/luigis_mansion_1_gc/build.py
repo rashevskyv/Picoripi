@@ -6,8 +6,9 @@ RARC) and ``files/system/system.arc/font_12.bfn``. The disc itself is never chan
 path in ``.picoripi_disc.json`` and the build copies it through ``write_disc``.
 
 A changed member is written into a copy of its archive (read from the disc). The wrapper stays the same kind: Yay0 for
-``.szp`` (``yay0.compress``, literal bytes only), Yaz0 when the disc has it, or none for a plain RARC. ``sys/main.dol`` is
-never written: the Luigi's Mansion Recompiled port checks its hash, and its text tables are archives.
+``.szp`` (``yay0.compress``, literal bytes only), Yaz0 when the disc has it, or none for a plain RARC. ``sys/main.dol`` changes
+only in its dialogue font (``dol_font.py``), in place. Luigi's Mansion Recompiled refuses any changed ``main.dol``
+(it checks the SHA-1 of the whole file).
 """
 import os
 from pathlib import Path
