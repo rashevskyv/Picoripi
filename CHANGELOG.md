@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Luigi's Mansion (GameCube): a character with no Shift-JIS code (a Latin accent such as è) is written as its base letter (è -> e), or `?` with no base letter; the import reports one warning per line instead of refusing the line. The 3DS table is UTF-8 and is unchanged.
 - Recent Projects menu: each entry shows the project name (the game) and the date its file last changed, not the folder name (`picoripi` for many projects); entries opened before this change show their last two folders until opened again.
 - Search panel: the Prev/Next/Advanced buttons grow to their label (the Ukrainian label was clipped); the query field keeps the size the combo box gives it after a font change (no adjustSize on a combo-managed child); the "Advance" button is now "Advanced" (uk: "Розширений").
 - Lunar: the preview shows one speaker label under the box (the name, or `Speaker code xx` when no name is known), one page row, and the status line only when there is a problem; the portrait-colour tooltip is gone.

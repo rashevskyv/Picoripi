@@ -7,7 +7,9 @@ are ``<TAG>`` or ``<TAG>(n)``. A file that does not decode as Shift-JIS is not a
 from __future__ import annotations
 
 import re
-from typing import List, Sequence
+import unicodedata
+import warnings
+from typing import List, Sequence, Tuple
 
 from core.i18n import tr
 
@@ -22,9 +24,29 @@ FROM_SLOT = str.maketrans({slot: letter for letter, slot in SLOT_OF.items()})
 PUNCT_FALLBACK = str.maketrans({"—": "―", "«": "“", "»": "”"})
 
 
+def _game_text(text: str) -> Tuple[str, List[Tuple[str, str]]]:
+    """``text`` as the game can code it, and the (character, written) pairs of the characters that had no code.
+
+    A character with no Shift-JIS code (a Latin accent such as è, the dialogue font has no glyph for it) is written as
+    its base letter (è -> e). A character with no base letter (for example Serbian dje) is written as "?".
+    """
+    out: List[str] = []
+    replaced: List[Tuple[str, str]] = []
+    for char in text.translate(TO_SLOT).translate(PUNCT_FALLBACK):
+        try:
+            char.encode(ENCODING)
+        except UnicodeEncodeError:
+            base = unicodedata.normalize("NFKD", char)[:1]
+            written = base if base.isascii() and base.isalpha() else "?"
+            replaced.append((char, written))
+            char = written
+        out.append(char)
+    return "".join(out), replaced
+
+
 def encode(text: str) -> bytes:
-    """``text`` in the game's encoding (Ukrainian letters and the marks of PUNCT_FALLBACK included)."""
-    return text.translate(TO_SLOT).translate(PUNCT_FALLBACK).encode(ENCODING)
+    """``text`` in the game's encoding (Ukrainian letters and the marks of PUNCT_FALLBACK included; see _game_text)."""
+    return _game_text(text)[0].encode(ENCODING)
 
 
 class Table:
@@ -52,12 +74,14 @@ class Table:
             return self.raw
         if len(texts) != len(self._texts):
             raise ValueError(tr("the message file holds {0} records, {1} were given", len(self._texts), len(texts)))
+        records: List[str] = []
         for number, text in enumerate(texts, 1):
             if RECORD_END in text:
                 raise ValueError(tr("record {0}: a record break (CRLF) is not allowed inside a message", number))
-            try:
-                encode(text)
-            except UnicodeEncodeError as error:
-                raise ValueError(tr("record {0}: the character {1} has no Shift-JIS code", number, repr(text[error.start]))) from None
-        body = RECORD_END.join(texts)
-        return (body + RECORD_END if self.tail else body).translate(TO_SLOT).translate(PUNCT_FALLBACK).encode(ENCODING)
+            game, replaced = _game_text(text)
+            for char, written in replaced:   # a warning, not an error: the import keeps the line (see translation_import)
+                warnings.warn(tr("record {0}: the character {1} has no Shift-JIS code; written as {2}",
+                                 number, repr(char), repr(written)), stacklevel=2)
+            records.append(game)
+        body = RECORD_END.join(records)
+        return (body + RECORD_END if self.tail else body).encode(ENCODING)

@@ -58,10 +58,17 @@ def test_id_missing_from_the_lines_file_is_reported(tmp_path):
     assert report["problems"] == [{"id": "event01:9", "problem": "id not in the lines file"}]
 
 
-def test_a_line_whose_text_does_not_encode_is_refused_and_its_block_mate_is_written(tmp_path):
+def test_a_character_without_a_code_is_substituted_with_a_warning_and_the_line_is_written(tmp_path):
     project = _project(tmp_path)
-    report = import_translations(project, _lines(), {"event01:1": "Їжа", "event01:2": "ђ"}, apply=True)   # no code
-    assert report["applied"] == 1
-    assert report["problems"] == [{"id": "event01:2", "problem": report["problems"][0]["problem"]}]
-    assert "record 2" in report["problems"][0]["problem"]
-    assert Table((tmp_path / "translation" / SOURCE).read_bytes()).texts() == ["Їжа", "two"]
+    report = import_translations(project, _lines(), {"event01:1": "Їжа", "event01:2": "Zen trè"}, apply=True)
+    assert report["applied"] == 2 and report["problems"] == []
+    assert report["warnings"] == [{"id": "event01:2",
+                                   "warning": "record 2: the character 'è' has no Shift-JIS code; written as 'e'"}]
+    assert Table((tmp_path / "translation" / SOURCE).read_bytes()).texts() == ["Їжа", "Zen tre"]
+
+
+def test_a_character_with_no_base_letter_is_written_as_question_mark_with_a_warning(tmp_path):
+    project = _project(tmp_path)
+    report = import_translations(project, _lines(), {"event01:2": "ђ"}, apply=False)
+    assert report["applied"] == 1 and report["problems"] == []
+    assert [item["id"] for item in report["warnings"]] == ["event01:2"]
