@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-21
 owns: plugins
-tokens: 62.2k
+tokens: 62.9k
 ---
 # Нотатки по іграх
 

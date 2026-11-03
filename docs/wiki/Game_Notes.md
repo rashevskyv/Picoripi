@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-21
 owns: plugins
-tokens: 48.0k
+tokens: 48.5k
 purpose: Per-game technical notes: source folders, file formats, tags, previews, build steps
 ---
 # Game notes

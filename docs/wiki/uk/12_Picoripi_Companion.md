@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/companion_sync.py, companion/
-tokens: 3.1k
+tokens: 3.3k
 ---
 # Picoripi Companion (мобільний PWA та синхронізація)
 

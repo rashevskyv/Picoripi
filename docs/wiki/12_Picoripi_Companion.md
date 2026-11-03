@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/companion_sync.py, companion/
-tokens: 2.2k
+tokens: 2.3k
 purpose: Companion server and glossary sync
 ---
 # Picoripi Companion (Mobile PWA & Sync)

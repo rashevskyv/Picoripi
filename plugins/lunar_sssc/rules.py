@@ -16,7 +16,7 @@ from core.i18n import tr
 from core.translation.layout_class import LINES, layout_class_for
 from utils.utils import clean_spaces
 
-from . import doc, subtitle_timing, voice
+from . import doc, game_script, subtitle_timing, voice
 from . import dialogue_preview
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .subtitle_timing import Timing
@@ -158,6 +158,80 @@ class GameRules(BaseGameRules):
         pages = dialogue_preview.parse_pages(text).pages
         face = pages[0][0].face if pages and pages[0] else 0
         return dialogue_preview.speaker_name(face) if face else None
+
+    # -- game script: the scene, speaker and place of each message (game_script.py) -------
+
+    def _script_index(self) -> Dict[str, Any]:
+        """The aligned game-script index in the workspace's script folder; {} when missing. Reloaded when the file changes."""
+        project_dir = self._project_dir()
+        if not project_dir:
+            return {}
+        path = Path(project_dir).parent / "script" / game_script.INDEX_NAME
+        try:
+            stamp = (str(path), path.stat().st_mtime)
+        except OSError:
+            return {}
+        if getattr(self, "_script_stamp", None) != stamp:
+            self._script_stamp = stamp
+            self._script_data = game_script.load_index(path)
+        return self._script_data
+
+    def _block_base(self, block_idx: int) -> Optional[str]:
+        """The address prefix of a TEXT block, ``TEXT005/0`` (game_script.messages); None for other blocks."""
+        mapping = getattr(self.mw, "block_to_project_file_map", None) or {}
+        project_idx = mapping.get(block_idx)
+        project = getattr(getattr(self.mw, "project_manager", None), "project", None)
+        blocks = getattr(project, "blocks", None) or []
+        if project_idx is None or not (0 <= project_idx < len(blocks)):
+            return None
+        relative = str(blocks[project_idx].source_file)
+        if not relative.upper().startswith("LUNADATA/TEXT"):
+            return None
+        siblings = sorted(block for block, owner in mapping.items() if owner == project_idx)
+        return f"{Path(relative).stem}/{siblings.index(block_idx)}"
+
+    def _scene_of(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
+        base = self._block_base(block_idx)
+        index = self._script_index()
+        if base is None or not index:
+            return None
+        return game_script.scene_of(index, f"{base}/{int(string_idx)}")
+
+    def get_scene_context_for_string(self, block_idx: int, string_idx: int) -> Dict[str, Any]:
+        found = self._scene_of(block_idx, string_idx)
+        if not found:
+            return {}
+        result: Dict[str, Any] = {"scene": found["scene"], "location_candidates": {"count": 1, "stages": [found["place"]]},
+                                  "flow_summary": game_script.describe(found)}
+        if found["speaker"]:
+            result["candidate_actors"] = [found["speaker"]]
+        return result
+
+    def get_ai_flow_context_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
+        found = self._scene_of(block_idx, string_idx)
+        return game_script.describe(found) if found else None
+
+    def get_ai_flow_group_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
+        found = self._scene_of(block_idx, string_idx)
+        return f"lunar:{found['scene']}" if found else None
+
+    def get_ai_flow_overview(self, block_idx: int, string_indices) -> Optional[str]:
+        base = self._block_base(block_idx)
+        index = self._script_index()
+        if base is None or not index:
+            return None
+        scenes = [found["scene"] for found in (game_script.scene_of(index, f"{base}/{int(i)}") for i in string_indices)
+                  if found]
+        return game_script.outline(index, scenes) or None
+
+    def get_virtual_folders(self, block_idx: int, text_of) -> List[Dict[str, Any]]:
+        """Places and their scenes for a TEXT block, then the messages no scene holds (game_script.folder_nodes)."""
+        base = self._block_base(block_idx)
+        index = self._script_index()
+        data = getattr(getattr(self.mw, "data_store", None), "data", None) or []
+        if base is None or not index or not (0 <= block_idx < len(data)):
+            return []
+        return game_script.folder_nodes(index, base, len(data[block_idx]), block_idx)
 
     # -- voice clips (Tools -> Voice clips) ---------------------------------------
 
