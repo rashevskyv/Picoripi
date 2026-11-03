@@ -134,7 +134,6 @@ def test_the_glyph_table_font_packs_back():
 # ---------------------------------------------------------------- real data
 
 @needs_data
-@pytest.mark.xfail(strict=True, reason="known bug: voice_subtitles has a fixed anchor 0x444E in TEXT001.DAT that the rebuild does not follow")
 def test_every_script_and_table_rebuilds_byte_for_byte_and_takes_edits():
     rules = load_rules(PLUGIN)
     files = sorted((SOURCE / "LUNADATA").glob("TEXT*.DAT")) + [SOURCE / "LUNADATA" / "SYSTEM.DAT" / "00_0001.bin"]
