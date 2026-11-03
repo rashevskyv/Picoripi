@@ -47,6 +47,28 @@ def cells(line: str) -> int:
     return len(_TAG.sub("#", line))
 
 
+class TextTable:
+    """A ``text.json`` as a table: one string per item, in group order (the import's ``texts``/``ids``/``build``)."""
+
+    def __init__(self, doc: Dict[str, Any]):
+        self._doc = doc
+        self._items = [item for group in doc["groups"] for item in group["items"]]
+
+    def texts(self) -> List[str]:
+        return [str(item["text"]) for item in self._items]
+
+    def ids(self) -> List[str]:
+        return [str(item["id"]) for item in self._items]
+
+    def build(self, texts: List[str]) -> bytes:
+        if len(texts) != len(self._items):
+            raise ValueError(f"expected {len(self._items)} texts, got {len(texts)}")
+        doc = json.loads(json.dumps(self._doc))
+        for item, text in zip((i for g in doc["groups"] for i in g["items"]), texts):
+            item["text"] = str(text)
+        return render_text_file(doc).encode("utf-8")
+
+
 class GameRules(BaseGameRules):
     """Super Metroid (SNES), PC port sm_rewrite."""
 
@@ -66,6 +88,13 @@ class GameRules(BaseGameRules):
 
     def get_display_name(self) -> str:
         return self.game_name
+
+    def parse_table(self, raw: bytes):
+        """The import's table of a ``text.json`` (the bytes of a source or translation file); None: not one."""
+        try:
+            return TextTable(parse_text_file(bytes(raw).decode("utf-8-sig")))
+        except (ValueError, KeyError, TypeError):
+            return None
 
     def get_file_formats(self) -> list:
         from core.formats import FileFormat
