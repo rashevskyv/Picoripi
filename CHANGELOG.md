@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 - Lunar: a game script (GameFAQs text, local only) is aligned to the TEXT messages by `python -m plugins.lunar_sssc.game_script`; the index in the workspace `script` folder gives the block tree folders by place and scene (unplaced messages in their own folder) and the scene line for the AI prompt and the Story Timeline. Reference and method: `docs/VIRTUAL_FOLDERS_AND_SCRIPTS.md`; tests in `tests/test_plugins/test_lunar_sssc/test_game_script.py`.
+- Lunar: the preview has the BFN preview structure: a dark strip on top with the speaker name (the only place the name is drawn; `Speaker code xx` when unknown), the picture, and a dark bottom bar with the < > page arrows and `Page N of M`.
 - Recent Projects menu: each entry shows the project name (the game) and the date its file last changed, not the folder name (`picoripi` for many projects); entries opened before this change show their last two folders until opened again.
 - Search panel: the Prev/Next/Advanced buttons grow to their label (the Ukrainian label was clipped); the query field keeps the size the combo box gives it after a font change (no adjustSize on a combo-managed child); the "Advance" button is now "Advanced" (uk: "Розширений").
 - Lunar: the preview shows one speaker label under the box (the name, or `Speaker code xx` when no name is known), one page row, and the status line only when there is a problem; the portrait-colour tooltip is gone.

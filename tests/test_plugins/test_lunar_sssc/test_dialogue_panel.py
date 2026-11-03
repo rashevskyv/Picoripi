@@ -4,6 +4,8 @@ import zlib
 
 import romhacking_root  # noqa: F401  (path setup for the repository's packages)
 
+from PyQt6.QtWidgets import QLabel
+
 from plugins.lunar_sssc import dialogue_preview as dp
 from plugins.lunar_sssc.dialogue_panel import LunarDialoguePreview
 
@@ -122,4 +124,19 @@ def test_speaker_is_one_label_and_shows_the_code_when_no_name_is_known(qtbot):
     assert widget._status.isHidden()                   # no layout problem: no status line takes room
     widget.update_preview_text("{FA:6E}AAA")
     assert widget._speaker.text() == "Nall"
+    widget.shutdown()
+
+
+def test_layout_is_strip_picture_bar_like_the_bfn_preview_and_the_name_is_drawn_once(qtbot):
+    widget = LunarDialoguePreview(_Window())
+    qtbot.addWidget(widget)
+    widget._sources = _synthetic_sources()
+    widget.update_preview_text("{FA:6E}AAA{page}BBB")
+    order = [widget.layout().itemAt(i).widget() for i in range(widget.layout().count())]
+    assert order[:3] == [widget._strip, widget._picture, widget._bar]
+    assert widget._speaker.parentWidget() is widget._strip
+    assert widget._speaker.text() == "Nall"
+    labels = [label.text() for label in widget.findChildren(QLabel)]
+    assert labels.count("Nall") == 1                    # the name is drawn once, in the strip
+    assert widget._prev.parentWidget() is widget._bar and widget._next.parentWidget() is widget._bar
     widget.shutdown()

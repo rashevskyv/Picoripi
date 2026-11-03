@@ -9,12 +9,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import QSize, Qt, pyqtSignal
 from PyQt6.QtGui import QImage, QPixmap
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from core.i18n import tr
 from plugins.common.switch_message_preview import source_folder
+from ui.components.bfn_preview.helpers import _preview_icon
 from utils.thread_utils import WorkerThread, safe_shutdown_thread
 
 from . import dialogue_preview as dp
@@ -22,6 +23,23 @@ from . import portrait_colours as pc
 
 WORKER_STOP_MS = 2000
 PALETTE_FILE = "PEO.PAL"
+STRIP_HEIGHT = 28
+# The dark strip and bar of the BFN preview (ui/components/bfn_preview/chrome.py, BfnPreviewWindowBar).
+BAR_STYLE = (
+    "QFrame {"
+    "  background: #181818;"
+    "  border: 1px solid #2a2a2a;"
+    "  border-radius: 4px;"
+    "}"
+    "QPushButton {"
+    "  background: #1e1e1e;"
+    "  color: #cccccc;"
+    "  border: 1px solid #3a3a3a;"
+    "  border-radius: 4px;"
+    "}"
+    "QPushButton:hover { background: #2d2d2d; color: #ffffff; }"
+    "QLabel { color: #c8c8c8; font-size: 11px; border: none; background: transparent; }"
+)
 
 
 class ScaledPicture(QLabel):
@@ -98,28 +116,49 @@ class LunarDialoguePreview(QWidget):
         self._loader: Optional[SourceLoader] = None
         self._source_key = ""
         self._picture = ScaledPicture(self)
-        self._prev = QPushButton(tr("Previous page"), self)
-        self._next = QPushButton(tr("Next page"), self)
+        # Same structure as the BFN preview (ui/components/bfn_preview/chrome.py): a dark strip on top with the
+        # title, the picture, and a dark bar at the bottom with the < > page arrows and the page count.
+        self._strip = QFrame(self)
+        self._strip.setObjectName("lunar_preview_strip")
+        self._strip.setFixedHeight(STRIP_HEIGHT)
+        self._strip.setStyleSheet(BAR_STYLE)
+        self._speaker = QLabel(self._strip)          # the one speaker name, shown in the strip
+        self._speaker.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        strip_layout = QHBoxLayout(self._strip)
+        strip_layout.setContentsMargins(6, 2, 6, 2)
+        strip_layout.addWidget(self._speaker)
+        self._bar = QFrame(self)
+        self._bar.setObjectName("lunar_preview_bar")
+        self._bar.setFixedHeight(STRIP_HEIGHT)
+        self._bar.setStyleSheet(BAR_STYLE)
+        self._prev = QPushButton(self._bar)
+        self._next = QPushButton(self._bar)
+        for button, kind, tip in ((self._prev, "prev", "Previous page"), (self._next, "next", "Next page")):
+            button.setFixedSize(24, 22)
+            button.setIcon(_preview_icon(kind, 12))
+            button.setIconSize(QSize(12, 12))
+            button.setToolTip(tr(tip))
         self._prev.clicked.connect(lambda: self._turn(-1))
         self._next.clicked.connect(lambda: self._turn(1))
-        self._page_label = QLabel(self)
+        self._page_label = QLabel(self._bar)
         self._page_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._speaker = QLabel(self)                 # the one speaker label, under the box
-        self._speaker.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        bar_layout = QHBoxLayout(self._bar)
+        bar_layout.setContentsMargins(6, 2, 6, 2)
+        bar_layout.setSpacing(4)
+        bar_layout.addStretch(1)
+        bar_layout.addWidget(self._prev)
+        bar_layout.addWidget(self._page_label)
+        bar_layout.addWidget(self._next)
+        bar_layout.addStretch(1)
         self._status = QLabel(self)
         self._status.setWordWrap(True)
         self._status.hide()                          # shown only while there is a message to show
-        buttons = QHBoxLayout()
-        buttons.setSpacing(4)
-        buttons.addWidget(self._prev)
-        buttons.addWidget(self._page_label, 1)
-        buttons.addWidget(self._next)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(2)
+        layout.addWidget(self._strip)
         layout.addWidget(self._picture, 1)
-        layout.addWidget(self._speaker)
-        layout.addLayout(buttons)
+        layout.addWidget(self._bar)
         layout.addWidget(self._status)
         self._start_load()
 
