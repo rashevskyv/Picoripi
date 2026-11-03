@@ -1,0 +1,302 @@
+{
+  "source": "real data census: 8,527 messages, 25,194 tags (TEXT*.DAT, project source)",
+  "tags": [
+    {
+      "pattern": "{page}",
+      "name": "Page break: wait for a button, then a new page",
+      "status": "confirmed from game code",
+      "game": "Codec control 0x0B (codec.py: from the game's decoder, SLUS 0x8005A884); round trip is byte-exact.",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep; it may move inside the message, never delete (it sets the page count).",
+      "count": 11568,
+      "distinct": 1,
+      "example": "{page}"
+    },
+    {
+      "pattern": "{FA:xx}",
+      "name": "Left speaker: portrait number (00 removes it)",
+      "status": "confirmed from data (portrait), inferred (name)",
+      "game": "Number selects the FACE_nnn portrait (FACE header ids); names come from a fan script (speaker_names.json), not checked on screen. Preview and name alias use it.",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep the code; a translator may move it inside a message but must not change the number (it picks the speaker).",
+      "count": 7145,
+      "distinct": 95,
+      "example": "{FA:39}"
+    },
+    {
+      "pattern": "{FB:xx}",
+      "name": "Right speaker: portrait number (00 removes it)",
+      "status": "inferred",
+      "game": "Same number space as FA; the game puts it on the right side (not checked on screen). Preview draws the left one first; name alias uses it.",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep the code, same rule as FA.",
+      "count": 2193,
+      "distinct": 93,
+      "example": "{FB:03}"
+    },
+    {
+      "pattern": "{raw:HH}",
+      "name": "One-byte glyph of the game's table (raw mode)",
+      "status": "confirmed from game code",
+      "game": "codec.py: outside a compressed run any byte below 0xD6 is one table glyph; kept as {raw:HH}. Each byte's picture is unknown.",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep as it is; the editor shows the byte; never edit by hand.",
+      "count": 1332,
+      "distinct": 106,
+      "example": "{raw:03}"
+    },
+    {
+      "pattern": "{end}",
+      "name": "End of message without a wait (byte 0xFF)",
+      "status": "confirmed from game code",
+      "game": "Terminator 0xFF after a raw message (codec.py); the editor shows it at the end only.",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep at the end; not written by the translator.",
+      "count": 1068,
+      "distinct": 1,
+      "example": "{end}"
+    },
+    {
+      "pattern": "{EE:xx}",
+      "name": "Two-byte control EE (unknown)",
+      "status": "unknown",
+      "game": "Not modelled: the codec keeps its two bytes as they are (a two-byte control from 0xD6 up).",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep as it is; do not edit.",
+      "count": 891,
+      "distinct": 42,
+      "example": "{EE:17}"
+    },
+    {
+      "pattern": "{FC:xx}",
+      "name": "Text colour (00 = normal)",
+      "status": "inferred",
+      "game": "Four values seen; the colour is a guess from the code number, not checked on screen.",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep; do not invent values.",
+      "count": 309,
+      "distinct": 4,
+      "example": "{FC:02}"
+    },
+    {
+      "pattern": "{F8:xx}",
+      "name": "Pause in frames",
+      "status": "inferred",
+      "game": "Used by the subtitle timing as frames (the timing code is ours); the game's own use is not checked.",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep; the pause length is the timing's.",
+      "count": 173,
+      "distinct": 15,
+      "example": "{F8:1E}"
+    },
+    {
+      "pattern": "{F9:xx}",
+      "name": "Move the pen right by N pixels",
+      "status": "inferred",
+      "game": "Moves the text pen; the amount is read as pixels; not checked against the game's renderer. The preview does not apply it.",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep; the preview does not show its effect.",
+      "count": 153,
+      "distinct": 50,
+      "example": "{F9:3B}"
+    },
+    {
+      "pattern": "{E0:xx}",
+      "name": "Two-byte control E0 (unknown)",
+      "status": "unknown",
+      "game": "Not modelled: the codec keeps its two bytes as they are (a two-byte control from 0xD6 up).",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep as it is; do not edit.",
+      "count": 105,
+      "distinct": 5,
+      "example": "{E0:55}"
+    },
+    {
+      "pattern": "{EC:xx}",
+      "name": "Two-byte control EC (unknown)",
+      "status": "unknown",
+      "game": "Not modelled: the codec keeps its two bytes as they are (a two-byte control from 0xD6 up).",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep as it is; do not edit.",
+      "count": 52,
+      "distinct": 10,
+      "example": "{EC:A4}"
+    },
+    {
+      "pattern": "{E8:xx}",
+      "name": "Two-byte control E8 (unknown)",
+      "status": "unknown",
+      "game": "Not modelled: the codec keeps its two bytes as they are (a two-byte control from 0xD6 up).",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep as it is; do not edit.",
+      "count": 23,
+      "distinct": 4,
+      "example": "{E8:87}"
+    },
+    {
+      "pattern": "{EA:xx}",
+      "name": "Two-byte control EA (unknown)",
+      "status": "unknown",
+      "game": "Not modelled: the codec keeps its two bytes as they are (a two-byte control from 0xD6 up).",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep as it is; do not edit.",
+      "count": 23,
+      "distinct": 6,
+      "example": "{EA:FB}"
+    },
+    {
+      "pattern": "{E6:xx}",
+      "name": "Two-byte control E6 (unknown)",
+      "status": "unknown",
+      "game": "Not modelled: the codec keeps its two bytes as they are (a two-byte control from 0xD6 up).",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep as it is; do not edit.",
+      "count": 22,
+      "distinct": 6,
+      "example": "{E6:90}"
+    },
+    {
+      "pattern": "{wait}",
+      "name": "Wait for a button on the same page",
+      "status": "confirmed from game code",
+      "game": "Codec control 0x06 (codec.py).",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep; may move.",
+      "count": 20,
+      "distinct": 1,
+      "example": "{wait}"
+    },
+    {
+      "pattern": "{ED:xx}",
+      "name": "Two-byte control ED (unknown)",
+      "status": "unknown",
+      "game": "Not modelled: the codec keeps its two bytes as they are (a two-byte control from 0xD6 up).",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep as it is; do not edit.",
+      "count": 20,
+      "distinct": 2,
+      "example": "{ED:59}"
+    },
+    {
+      "pattern": "{F6:xx}",
+      "name": "Two-byte control F6 (unknown)",
+      "status": "unknown",
+      "game": "Not modelled: the codec keeps its two bytes as they are (a two-byte control from 0xD6 up).",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep as it is; do not edit.",
+      "count": 19,
+      "distinct": 1,
+      "example": "{F6:6B}"
+    },
+    {
+      "pattern": "{EB:xx}",
+      "name": "Two-byte control EB (unknown)",
+      "status": "unknown",
+      "game": "Not modelled: the codec keeps its two bytes as they are (a two-byte control from 0xD6 up).",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep as it is; do not edit.",
+      "count": 15,
+      "distinct": 6,
+      "example": "{EB:B2}"
+    },
+    {
+      "pattern": "{E3:xx}",
+      "name": "Two-byte control E3 (unknown)",
+      "status": "unknown",
+      "game": "Not modelled: the codec keeps its two bytes as they are (a two-byte control from 0xD6 up).",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep as it is; do not edit.",
+      "count": 13,
+      "distinct": 6,
+      "example": "{E3:6F}"
+    },
+    {
+      "pattern": "{E5:xx}",
+      "name": "Two-byte control E5 (unknown)",
+      "status": "unknown",
+      "game": "Not modelled: the codec keeps its two bytes as they are (a two-byte control from 0xD6 up).",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep as it is; do not edit.",
+      "count": 10,
+      "distinct": 5,
+      "example": "{E5:F2}"
+    },
+    {
+      "pattern": "{E4:xx}",
+      "name": "Two-byte control E4 (unknown)",
+      "status": "unknown",
+      "game": "Not modelled: the codec keeps its two bytes as they are (a two-byte control from 0xD6 up).",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep as it is; do not edit.",
+      "count": 10,
+      "distinct": 5,
+      "example": "{E4:E3}"
+    },
+    {
+      "pattern": "{DE:xx}",
+      "name": "Two-byte control DE (unknown)",
+      "status": "unknown",
+      "game": "Not modelled: the codec keeps its two bytes as they are (a two-byte control from 0xD6 up).",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep as it is; do not edit.",
+      "count": 10,
+      "distinct": 4,
+      "example": "{DE:79}"
+    },
+    {
+      "pattern": "{E9:xx}",
+      "name": "Two-byte control E9 (unknown)",
+      "status": "unknown",
+      "game": "Not modelled: the codec keeps its two bytes as they are (a two-byte control from 0xD6 up).",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep as it is; do not edit.",
+      "count": 8,
+      "distinct": 4,
+      "example": "{E9:D3}"
+    },
+    {
+      "pattern": "{DF:xx}",
+      "name": "Two-byte control DF (unknown)",
+      "status": "unknown",
+      "game": "Not modelled: the codec keeps its two bytes as they are (a two-byte control from 0xD6 up).",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep as it is; do not edit.",
+      "count": 6,
+      "distinct": 3,
+      "example": "{DF:AF}"
+    },
+    {
+      "pattern": "{E1:xx}",
+      "name": "Two-byte control E1 (unknown)",
+      "status": "unknown",
+      "game": "Not modelled: the codec keeps its two bytes as they are (a two-byte control from 0xD6 up).",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep as it is; do not edit.",
+      "count": 2,
+      "distinct": 1,
+      "example": "{E1:B4}"
+    },
+    {
+      "pattern": "{DD:xx}",
+      "name": "Two-byte control DD (unknown)",
+      "status": "unknown",
+      "game": "Not modelled: the codec keeps its two bytes as they are (a two-byte control from 0xD6 up).",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep as it is; do not edit.",
+      "count": 2,
+      "distinct": 1,
+      "example": "{DD:C4}"
+    },
+    {
+      "pattern": "{E7:xx}",
+      "name": "Two-byte control E7 (unknown)",
+      "status": "unknown",
+      "game": "Not modelled: the codec keeps its two bytes as they are (a two-byte control from 0xD6 up).",
+      "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
+      "translator": "Keep as it is; do not edit.",
+      "count": 2,
+      "distinct": 1,
+      "example": "{E7:6B}"
+    }
+  ]
+}

@@ -1,6 +1,8 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Lunar: the preview shows one speaker label under the box (the name, or `Speaker code xx` when no name is known), one page row, and the status line only when there is a problem; the portrait-colour tooltip is gone.
+- Lunar: speaker codes show as name aliases in the editor (`{FA:39}` as `{Nall#39}`, `{FB:39}` as `{Nall#FB39}`), through the plugin's existing tag-alias table; typed aliases are stored as their codes. A tag catalogue (`plugins/lunar_sssc/tags.json`, Game Notes) lists every tag family with its real-data count and status.
 - Lunar: the AI translation wrap (`fit_text_to_window`) and `check_fit` use the preview's window measure: a continuation line gets its window's portrait start; a new `line_widths` hook (default None) gives one width per line of a whole message.
 - Lunar 2: keeps its own width measure (the per-window font-map count); it had inherited the Lunar 1 preview measure, which does not match its font, window or 224 px limit.
 - Lunar: the opening monologue's subtitle block follows the clip-start op when an edit before it changes the script's length (the op was fixed at 0x444E, so a longer earlier message put the subtitles in the wrong place); TEXT001.DAT round-trips with edits (the xfail is removed).

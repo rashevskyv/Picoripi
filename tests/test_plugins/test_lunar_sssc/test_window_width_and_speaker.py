@@ -9,6 +9,7 @@ import pytest
 import romhacking_root  # noqa: F401  (path setup for the repository's packages)
 
 from plugins.lunar_sssc import dialogue_preview as dp
+from plugins.lunar_sssc import doc as doc_module
 from plugins.testing import load_rules
 
 FONT = json.loads((Path(dp.__file__).parent / "fonts" / "lunar_font.json").read_text(encoding="utf-8"))
@@ -176,3 +177,74 @@ def test_fit_text_leaves_table_strings_to_the_generic_path():
     rules.mw = SimpleNamespace(data_store=SimpleNamespace(data=[[OWNER_MESSAGE]]), current_game_rules=None)
     fitted = rules.fit_text_to_window(OWNER_MESSAGE, 0, 0)
     assert isinstance(fitted, str) and fitted != ""
+
+
+def _rules_with_aliases():
+    rules = load_rules("lunar_sssc")
+    config = json.loads((Path(dp.__file__).parent / "config.json").read_text(encoding="utf-8"))
+    rules.mw = SimpleNamespace(default_tag_mappings=config["default_tag_mappings"])
+    return rules
+
+
+def test_speaker_codes_show_as_names_and_go_back_to_the_same_bytes():
+    rules = _rules_with_aliases()
+    data = "{FA:39}Hi{page}{FB:39}Bye{FA:03}x{FA:6E}y"
+    shown = rules.get_text_representation_for_editor(data)
+    assert "{Nall#39}Hi" in shown and "{Nall#FB39}Bye" in shown
+    assert "{FA:03}x" in shown                         # no name for 03: the code stays visible
+    assert rules.convert_editor_text_to_data(shown) == data
+    assert rules.convert_editor_text_to_data("{Nall#FA39}") == "{Nall#FA39}"   # not an alias: kept as typed
+
+
+def test_the_alias_table_matches_the_speaker_names():
+    config = json.loads((Path(dp.__file__).parent / "config.json").read_text(encoding="utf-8"))["default_tag_mappings"]
+    assert len(config) == 2 * len(NAMES)
+    for code, name in NAMES.items():
+        assert config.get("{%s#%s}" % (name, code)) == "{FA:%s}" % code or config.get("{%s}" % name) == "{FA:%s}" % code
+        assert config["{%s#FB%s}" % (name, code)] == "{FB:%s}" % code
+
+
+def _families_of_real_data():
+    """Tag families of the real scripts: 'FA', 'raw', '{page}' … (the key the catalogue uses)."""
+    families = set()
+    for path in sorted((SOURCE / "LUNADATA").glob("TEXT*.DAT")):
+        blocks, _ = doc_module.read(path.read_bytes())
+        for block in blocks:
+            for text in block:
+                for tag in re.findall(r"\{[^{}]*\}", text):
+                    if re.fullmatch(r"\{[0-9A-F]{2}:[0-9A-F]{2}\}", tag):
+                        families.add(tag[1:3])
+                    elif tag.startswith("{raw:"):
+                        families.add("raw")
+                    else:
+                        families.add(tag)
+    return families
+
+
+@needs_data
+def test_every_speaker_number_the_script_uses_has_a_portrait_file():
+    files = {path.name: path.read_bytes() for path in sorted((SOURCE / "LUNADATA").glob("FACE_*.TIZ"))}
+    index = dp.index_faces(files)
+    used = set()
+    for path in sorted((SOURCE / "LUNADATA").glob("TEXT*.DAT")):
+        blocks, _ = doc_module.read(path.read_bytes())
+        for block in blocks:
+            for text in block:
+                used.update(int(v, 16) for _k, v in re.findall(r"\{(FA|FB):([0-9A-F]{2})\}", text) if v != "00")
+    assert used and used <= set(index), sorted(hex(v) for v in used - set(index))
+
+
+@needs_data
+def test_the_tag_catalogue_names_every_tag_family_of_the_real_data():
+    catalogue = json.loads((Path(dp.__file__).parent / "tags.json").read_text(encoding="utf-8"))["tags"]
+    names = set()
+    for row in catalogue:
+        pattern = row["pattern"]
+        if pattern.startswith("{raw:"):
+            names.add("raw")
+        elif re.fullmatch(r"\{[0-9A-F]{2}:xx\}", pattern):
+            names.add(pattern[1:3])
+        else:
+            names.add(pattern)
+    assert _families_of_real_data() <= names, sorted(_families_of_real_data() - names)
+    assert all(row["count"] > 0 and row["name"] and row["translator"] for row in catalogue)

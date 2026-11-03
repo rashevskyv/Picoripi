@@ -651,6 +651,16 @@ This page holds the technical notes of each game plugin: which folder is the **S
   The line limit is the preview box: the box's right edge (320 px) less where the text starts (80 px with a portrait, 16 px without). The width counter and the line warning use the same measure as the preview, per window (a page tag starts a new window). A window with no `{FA:xx}` or `{FB:xx}` tag at its start has no portrait. The speaker is named from the window's first tag, `{FA:xx}` (left) before `{FB:xx}` (right), only where `speaker_names.json` names it (`{FA:6E}` = Nall); the other portrait messages stay unnamed until the names are added.
   The opening script (`TEXT001.DAT`) also has a block **Voice subtitles**: one line per speech segment of the opening monologue (8 lines; an empty line shows nothing). Each line appears in a text window for its segment while the voice plays. The lines go after the script op that starts the clip, so `2_build.bat` builds them with the script.
   Portrait colours table: to rebuild it, run `python scripts/lunar_portrait_colours.py <LUNADATA folder> <sheet.png> plugins/lunar_sssc/face_palettes.json`. A `portrait_colours.json` in the project folder, if present, overrides the table.
+  **Tags.** The full catalogue, with counts from the project's scripts, is `plugins/lunar_sssc/tags.json`. In the editor a speaker code shows as its name alias: `{FA:39}` shows as `{Nall#39}`, `{FB:39}` as `{Nall#FB39}`. A code with no name in `speaker_names.json` stays as `{FA:03}`. A typed alias is stored as its code, so the bytes do not change.
+
+  | Tag | Meaning | Status |
+  |---|---|---|
+  | `{page}`, `{wait}`, `{clear}`, `{close}`, `{end}` | window control: page break, wait, clear, close, end | confirmed from the game's decoder notes in `codec.py`; round trip byte-exact |
+  | `{FA:xx}`, `{FB:xx}` | left and right speaker portrait (00 removes it) | portrait confirmed: every number the scripts use has a `FACE_nnn.TIZ` file; names inferred from a fan script |
+  | `{FC:xx}`, `{F8:xx}`, `{F9:xx}` | text colour, pause in frames, pen move | inferred, not checked on screen |
+  | `{raw:HH}` | one table glyph outside a compressed run | confirmed from the decoder notes; the glyph's picture is unknown |
+  | other two-byte codes (`{EE:xx}`, `{E0:xx}` …) | not modelled; kept byte for byte | unknown |
+
 - `lunar_ebc` — Lunar 2: Eternal Blue Complete (PlayStation, USA, 3 discs). **Source:** the workspace's
   `source` folder (`1_unpack.bat`, files of `DATA.PAK`): `DATA\EVENT` (event scripts), `DATA\PEOPLE` (what
   people on a map say), `DATA\SYSTEM\2499\05-12.bin` (items, spells, menus, memory-card messages),
