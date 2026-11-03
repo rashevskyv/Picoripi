@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Super Metroid: the message-box font has 21 drawn Ukrainian capitals (Б Г Ґ Д Є Ж З И Ї Й Л П У Ф Ц Ч Ш Щ Ь Ю Я) in the translation copy of `gfx/bg3_font.bin` (a first version; the 12 look-alikes keep the Latin tiles, 4 spare cells); `sheet_io project-export` / `project-import` export and import a plugin font by its label through the font editor's own write, keeping the old copy as `.bak_<time>`.
 - Recent Projects menu: each entry shows the project name (the game) and the date its file last changed, not the folder name (`picoripi` for many projects); entries opened before this change show their last two folders until opened again.
 - Search panel: the Prev/Next/Advanced buttons grow to their label (the Ukrainian label was clipped); the query field keeps the size the combo box gives it after a font change (no adjustSize on a combo-managed child); the "Advance" button is now "Advanced" (uk: "Розширений").
 - Lunar: the preview shows one speaker label under the box (the name, or `Speaker code xx` when no name is known), one page row, and the status line only when there is a problem; the portrait-colour tooltip is gone.
