@@ -21,8 +21,8 @@ def test_width_counter_measures_the_widest_window_not_the_sum_across_a_page_tag(
     rules = load_rules("lunar_sssc")
     line = "{FB:1A}The White Dragon Cave, Alex?{page}{FB:1E}I knew something was wrong"
     # The two windows measure 219 and 209 px; the line as one run measured 428 px (the bug).
-    assert rules.calculate_string_width_override(line, FONT, 6) == 219
-    assert rules.calculate_string_width_override("abc", FONT, 6) == dp.text_width("abc")
+    assert rules.calculate_string_width_override(line, FONT, 6) == dp.TEXT_X + max(dp.text_width("The White Dragon Cave, Alex?"), dp.text_width("I knew something was wrong"))
+    assert rules.calculate_string_width_override("abc", FONT, 6) == dp.TEXT_X_NO_PORTRAIT + dp.text_width("abc")
 
 
 def test_speaker_comes_from_the_portrait_of_the_first_line():
@@ -83,3 +83,52 @@ def test_every_portrait_of_the_owner_message_is_in_the_face_files():
     index = dp.index_faces(files)
     for face in (0x38, 0x1D, 0x1A, 0x39):
         assert face in index, hex(face)
+
+
+def test_the_fit_check_is_the_preview_measure_without_the_widget():
+    # The measure is pure: it must not need Qt or the preview widget (the editor and check_fit run headless).
+    source = Path(dp.__file__).read_text(encoding="utf-8")
+    assert "PyQt6" not in source and "dialogue_panel" not in source
+    assert dp.measure("{FA:6E}" + "W" * 40)[0].limit == dp.WINDOW_X + dp.WINDOW_W - dp.TEXT_X
+    assert dp.measure("plain")[0].limit == dp.WINDOW_X + dp.WINDOW_W - dp.TEXT_X_NO_PORTRAIT
+    rules = load_rules("lunar_sssc")
+    assert rules.calculate_string_width_override("{FA:6E}" + "W" * 40, FONT, 6) > 320   # a line past the box edge
+
+
+def _ink_right(glyphs, text, start):
+    """The rightmost lit pixel of a line as the preview blits it (glyph bits, not advances)."""
+    x = start
+    best = start
+    for ch in text:
+        if ch in glyphs:
+            for ry, word in enumerate(glyphs[ch]):
+                for rx in range(16):
+                    if word >> (15 - rx) & 1:
+                        best = max(best, x + rx + 1)
+        x += dp.advance(ch)
+    return best
+
+
+@needs_data
+def test_the_warning_is_red_exactly_when_the_preview_draws_outside_the_box():
+    glyphs = dp.decode_glyphs((SOURCE / "SLUS_006.28").read_bytes())
+    rules = load_rules("lunar_sssc")
+    flagged = []
+    checked = 0
+    for path in sorted((SOURCE / "LUNADATA").glob("TEXT*.DAT")):
+        blocks, _ = rules.load_data_from_json_obj(path.read_bytes())
+        for bi, block in enumerate(blocks):
+            for si, text in enumerate(block):
+                for page in dp.parse_pages(text).pages:
+                    for line, m in zip(page[:dp.LINES_PER_PAGE], dp.measure_page(page)):
+                        checked += 1
+                        if m.right < dp.WINDOW_X + dp.WINDOW_W - 16:
+                            assert not m.over    # far inside the box: no glyph can reach the edge
+                            continue
+                        ink_over = _ink_right(glyphs, line.text, m.start) > dp.WINDOW_X + dp.WINDOW_W
+                        assert m.over == ink_over, (path.name, bi, si, line.text[:40])
+                        if m.over:
+                            flagged.append(f"{path.name}:{bi}:{si}")
+    assert checked > 40000
+    # The real English lines that leave the box in the preview too (see the report); no other line.
+    assert len(flagged) == 10, flagged

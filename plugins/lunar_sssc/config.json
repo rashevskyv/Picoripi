@@ -16,8 +16,8 @@
     "space_dot_color_hex": "#808080",
     "preview_wrap_lines": false,
     "editors_wrap_lines": false,
-    "game_dialog_max_width_pixels": 280,
-    "line_width_warning_threshold_pixels": 272,
+    "game_dialog_max_width_pixels": 320,
+    "line_width_warning_threshold_pixels": 320,
     "autofix_enabled": {
         "LUN_TAG_WARNING": false,
         "LUN_WIDTH_EXCEEDED": false,
