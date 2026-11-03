@@ -31,6 +31,26 @@ def test_every_string_table_saves_back_byte_for_byte_and_keeps_an_edit(path):
         assert Strg(saved).count == Strg(raw).count
 
 
+@pytest.mark.parametrize("path", _files("text", "*.strg"), ids=lambda p: f"{p.parent.name}-{p.stem}")
+def test_every_source_table_reads_as_an_import_table_and_builds_back_byte_for_byte(path):
+    raw = path.read_bytes()
+    table = GameRules().parse_table(raw)
+    assert table is not None and len(table.ids()) == len(table.texts()), path
+    assert table.build(table.texts()) == raw, path
+
+
+TRANSLATION = Path(romhacking_root.under('Metroid\\Prime (GC + PC port)\\translation'))
+
+
+@pytest.mark.parametrize("path", sorted((TRANSLATION / "text").rglob("*.strg")) if (TRANSLATION / "text").exists() else [],
+                         ids=lambda p: f"{p.parent.name}-{p.stem}")
+def test_every_translated_table_written_by_the_import_builds_back_byte_for_byte(path):
+    raw = path.read_bytes()
+    table = GameRules().parse_table(raw)
+    assert table is not None, path
+    assert table.build(table.texts()) == raw, path
+
+
 @pytest.mark.parametrize("path", _files("font", "*.font"), ids=lambda p: p.stem)
 def test_every_font_packs_back_and_keeps_an_edit(path):
     data = path.read_bytes()

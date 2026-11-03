@@ -12,6 +12,7 @@ table with the edited text as every language (``strg.Strg.build``); an unedited 
 Prime 1 text here is the Trilogy version of Metroid Prime; a Metroid Prime Remastered plugin can take its
 translation over by the English strings (the same text in most tables).
 """
+import struct
 from typing import Any, Dict, List, Optional, Tuple
 
 from plugins.base_game_rules import BaseGameRules
@@ -23,6 +24,22 @@ from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .strg import Strg
 from .tag_manager import TagManager
 from .tags import describe, from_editor, to_editor
+
+
+class StrgTable:
+    """A STRG table as the translation import sees it: the editor text of each string, its record number as the id."""
+
+    def __init__(self, strg: Strg):
+        self.strg = strg
+
+    def texts(self) -> List[str]:
+        return [to_editor(text) for text in self.strg.english]
+
+    def ids(self) -> List[str]:
+        return [str(number) for number in range(1, self.strg.count + 1)]
+
+    def build(self, texts: List[str]) -> bytes:
+        return self.strg.build([from_editor(str(text)) for text in texts])
 
 
 class GameRules(BaseGameRules):
@@ -78,6 +95,13 @@ class GameRules(BaseGameRules):
                 return
             except (ValueError, IndexError) as error:
                 log_warning(f"metroid_prime_trilogy: cannot read {context.relative_path}: {error}; trying the next version")
+
+    def parse_table(self, raw: bytes):
+        """The translation import's view of one STRG file; None when the bytes are not a STRG table."""
+        try:
+            return StrgTable(Strg(raw))
+        except (ValueError, IndexError, struct.error):
+            return None
 
     def reset_runtime_state(self) -> None:
         self._strg = None

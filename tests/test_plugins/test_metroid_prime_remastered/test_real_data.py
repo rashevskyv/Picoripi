@@ -43,6 +43,17 @@ def test_every_english_table_saves_back_byte_for_byte():
     assert messages == 3132
 
 
+def test_every_english_table_reads_as_an_import_table_and_builds_back_byte_for_byte():
+    files = sorted(_need(WS / "source" / "text").glob("*.msbt"))
+    assert len(files) == 27
+    rules = GameRules()
+    for path in files:
+        raw = path.read_bytes()
+        table = rules.parse_table(raw)
+        assert table is not None and len(table.ids()) == len(table.texts()), path
+        assert table.build(table.texts()) == raw, path
+
+
 def test_an_edited_message_keeps_its_tags_and_labels():
     rules = GameRules()
     blocks, names = rules.load_data_from_json_obj(_need(WS / "source" / "text" / "TEXT_MPT_FrontEnd.msbt").read_bytes())
