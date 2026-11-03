@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -66,7 +67,7 @@ def import_translations(project_file: Any, lines: Dict[str, Dict[str, Any]], tra
     blocks = {str(block.get("source_file") or "").replace("\\", "/"): block for block in data.get("blocks") or []}
 
     report: Dict[str, Any] = {"lines": len(translations), "applied": 0, "same_as_english": 0,
-                              "files": [], "problems": []}
+                              "files": [], "problems": [], "warnings": []}
     groups: Dict[str, List[Tuple[str, str, str]]] = {}
     for line_id, text in translations.items():
         line = lines.get(line_id)
@@ -107,10 +108,13 @@ def import_translations(project_file: Any, lines: Dict[str, Dict[str, Any]], tra
             trial = list(texts)
             trial[index] = text
             try:   # a line whose text the format cannot hold is refused alone; its block still goes in
-                table.build(trial)
+                with warnings.catch_warnings(record=True) as notes:   # a substitution is a warning, the line stays
+                    warnings.simplefilter("always")
+                    table.build(trial)
             except ValueError as error:
                 report["problems"].append({"id": line_id, "problem": str(error)})
                 continue
+            report["warnings"] += [{"id": line_id, "warning": str(note.message)} for note in notes]
             texts = trial
             accepted.append((line_id, en, text))
         if not accepted:

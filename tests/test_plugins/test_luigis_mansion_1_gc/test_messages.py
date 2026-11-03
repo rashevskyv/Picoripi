@@ -33,9 +33,23 @@ def test_crlf_inside_a_record_is_refused():
         Table(b"one\r\ntwo\r\n").build(["one", "a\r\nb"])
 
 
-def test_character_without_a_shift_jis_code_is_refused_with_its_record():
-    with pytest.raises(ValueError, match="record 2"):
-        Table(b"one\r\ntwo\r\n").build(["one", "\u0452"])   # Serbian dje: no cp932 code, no Ukrainian slot
+def test_latin_accent_without_a_glyph_is_written_as_its_base_letter_with_a_warning():
+    # The GC dialogue font has no glyph for a Latin accent: the letter is written without it, and the line stays.
+    with pytest.warns(UserWarning, match="record 2: the character '\u00e8' has no Shift-JIS code; written as 'e'"):
+        raw = Table(b"one\r\ntwo\r\n").build(["one", "Zen tr\u00e8s bien"])
+    assert Table(raw).texts() == ["one", "Zen tres bien"]
+
+
+def test_character_without_a_base_letter_is_written_as_question_mark_with_a_warning():
+    with pytest.warns(UserWarning, match="record 2"):
+        raw = Table(b"one\r\ntwo\r\n").build(["one", "\u0452"])   # Serbian dje: no cp932 code, no base letter
+    assert Table(raw).texts() == ["one", "?"]
+
+
+def test_every_accent_of_french_and_german_words_encodes_without_error():
+    with pytest.warns(UserWarning):
+        raw = Table(b"one\r\n").build(["\u00e0\u00e8\u00e9\u00ea\u00e7\u00f9\u00fc\u00f6\u00e4\u00df\u00f1"])
+    assert Table(raw).texts() == ["aeeecuuoa?n"]   # the sharp s has no base letter: "?"
 
 
 def test_bytes_that_are_not_shift_jis_are_not_a_table():
