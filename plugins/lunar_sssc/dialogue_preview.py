@@ -92,6 +92,7 @@ def parse_pages(text: str) -> Layout:
     """
     pages: List[List[Line]] = []
     current: List[Line] = []
+    left = right = 0      # {FA:xx} is the left speaker, {FB:xx} the right one; the window shows the left first
     face = 0
     line_text = ""
     pos = 0
@@ -105,14 +106,19 @@ def parse_pages(text: str) -> Layout:
         pos = match.end()
         tag = match.group(1)
         if tag.startswith("FA:"):
-            face = int(tag[3:], 16)
-        elif tag in PAGE_TAGS:
+            left = int(tag[3:], 16)
+        elif tag.startswith("FB:"):
+            right = int(tag[3:], 16)
+        face = left or right
+        if tag in PAGE_TAGS:
             if line_text:
                 current.append(Line(line_text, face))
                 line_text = ""
             if current:
                 pages.append(current)
                 current = []
+            # A window with no speaker tag at its start has no portrait: the game's state is not carried over (no proof otherwise).
+            left = right = face = 0
     for ch in text[pos:]:
         if ch == "\n":
             current.append(Line(line_text, face))
