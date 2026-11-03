@@ -96,6 +96,14 @@ def test_control_codes_with_the_argument_sizes_of_this_game_round_trip():
     assert decode(raw) == text
 
 
+def test_latin_accents_round_trip_because_the_table_is_utf8():
+    # The 3DS format codes every character; the game's own French table uses these accents, so its font has them.
+    from plugins.luigis_mansion_1_3ds.gmsg import decode
+
+    text = "Zen très bien, céla à Château über ça"
+    assert decode(encode(text)) == text
+
+
 def test_prune_keeps_the_english_tables_the_region_archives_and_the_mark(tmp_path):
     keep = ["romfs/Region_US/English/main.gmsg", "romfs/Region_US/English/UIMansion.gar",
             "romfs/Region_US/main.gzf", ".picoripi_disc.json"]
