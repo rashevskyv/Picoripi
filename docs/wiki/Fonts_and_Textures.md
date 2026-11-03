@@ -91,6 +91,17 @@ The list of default fonts holds the fonts of the game plugin. It also holds the 
 
 Translators do not write this part. The plugin author lists the fonts in `font_sources.json` and the textures in `texture_sources.json`. The author can also return the lists from code. Each entry gives a file, a format and a label. If a game has no entry, the Font Editor and the Textures window show nothing for it. The author's details are in the [Plugin Developer Guide](3_Plugin_Developer_Guide.md).
 
+## Edit a font from the command line
+
+An agent or a script can export a plugin font as PNG sheets and import them back. Run this from the Picoripi folder:
+
+```
+python -m core.font_formats.sheet_io project-export <project.uiproj> "<label>" <folder>
+python -m core.font_formats.sheet_io project-import <project.uiproj> "<label>" <folder>
+```
+
+`<label>` is the font's label in `font_sources.json`, or a unique start of it. The export reads the translation copy if it exists, else the game's file. The import writes the translation copy in the same way as the Font Editor, and keeps the old copy as `<file>.bak_<time>`. It uses the font's own game constants, so a texture grid keeps its cell size and characters.
+
 ## Common situations
 
 - **Letters show as squares.** The font has no glyph for that letter. Add the letter as shown above. Check that **Default Font for Project** is the right font.

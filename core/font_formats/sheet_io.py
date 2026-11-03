@@ -7,25 +7,37 @@ also writes ``<name>_cells.json``: for each glyph, its sheet, cell position and 
 ``import_sheets`` reads the clean PNG files back and packs them over the original font with the format's own writer.
 The preview files are never read.
 
+A font of a project is named by its label in the plugin's ``font_sources.json`` (a unique prefix is enough). The
+project commands read the project's current font (the translation copy, else the game's file), and the import writes
+it with the font editor's own write (``FontSource.write``); the old translation copy is kept as ``<file>.bak_<time>``.
+
 CLI (an agent can run it; the paths are the caller's):
 
     python -m core.font_formats.sheet_io export <format> <font file> <folder> [--name NAME] [--offset N --size N]
     python -m core.font_formats.sheet_io import <format> <font file> <folder> <out file> [--name NAME] [--offset N --size N]
+    python -m core.font_formats.sheet_io project-export <project.uiproj> <label> <folder>
+    python -m core.font_formats.sheet_io project-import <project.uiproj> <label> <folder>
 
-``--offset`` and ``--size`` read the font from a slice of a file, e.g. the dialogue font inside a DOL.
+``--offset`` and ``--size`` read the font from a slice of a file, e.g. the dialogue font inside a DOL. The file
+commands take no game constants: a format that needs them (a texture grid's cell size and characters) is run through
+the project commands.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import re
+import shutil
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from PIL import Image, ImageDraw
 
 from core.font_formats import char_map, extract, pack
+from core.font_formats.sources import FontSource, resolve
+from utils.constants import user_plugin_file_or_shipped
 
 
 def _stem(name: str) -> str:
@@ -99,6 +111,46 @@ def _slice(path: Path, offset: Optional[int], size: Optional[int]) -> bytes:
     return data[offset:offset + size] if size else data[offset:]
 
 
+def _stamp() -> str:
+    return datetime.now().strftime("%Y%m%d-%H%M%S")
+
+
+def project_source(project_file: Path, label: str) -> FontSource:
+    """The font file of a project that the plugin describes with this label (a unique prefix of it is enough).
+
+    The descriptors are the plugin's ``font_sources.json`` (the user's copy if there is one), resolved the way the
+    font editor resolves them.
+    """
+    project = json.loads(Path(project_file).read_text(encoding="utf-8"))
+    descriptors = json.loads(user_plugin_file_or_shipped(project["plugin_name"], "font_sources.json")
+                             .read_text(encoding="utf-8"))
+    return find_source(resolve(descriptors, project.get("metadata") or {}), label)
+
+
+def find_source(sources: List[FontSource], label: str) -> FontSource:
+    exact = [source for source in sources if source.label == label]
+    matches = exact or [source for source in sources if source.label.startswith(label)]
+    if len(matches) != 1:
+        raise ValueError(f"{len(matches)} font files match the label {label!r}; give the full label")
+    return matches[0]
+
+
+def export_source(source: FontSource, folder: Path) -> List[Path]:
+    """The font as it is now in the project (the translation copy, else the game's file), as sheets in ``folder``."""
+    return export_sheets(source.format, source.read_current(), folder, source.name, source.params)
+
+
+def import_source(source: FontSource, folder: Path) -> Path:
+    """Write the sheets in ``folder`` over the project's current font. The old translation copy is kept as
+    ``<file>.bak_<time>`` first; the write itself is the font editor's (``FontSource.write``)."""
+    data = import_sheets(source.format, source.read_current(), folder, source.name, source.params)
+    target = Path(source.translation_path)
+    if target.is_file():
+        shutil.copy2(target, target.with_name(f"{target.name}.bak_{_stamp()}"))
+    source.write(data)
+    return target
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m core.font_formats.sheet_io")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -112,7 +164,20 @@ def main(argv: Optional[List[str]] = None) -> int:
         p.add_argument("--name", default="font")
         p.add_argument("--offset", type=lambda v: int(v, 0), default=None)
         p.add_argument("--size", type=lambda v: int(v, 0), default=None)
+    for command in ("project-export", "project-import"):
+        p = sub.add_parser(command)
+        p.add_argument("project", help="the project file (.uiproj)")
+        p.add_argument("label", help="the font's label in the plugin's font_sources.json (or a unique prefix)")
+        p.add_argument("folder")
     args = parser.parse_args(argv)
+    if args.command.startswith("project-"):
+        source = project_source(Path(args.project), args.label)
+        if args.command == "project-export":
+            for path in export_source(source, Path(args.folder)):
+                print(path)
+        else:
+            print(import_source(source, Path(args.folder)))
+        return 0
     data = _slice(Path(args.font), args.offset, args.size)
     if args.command == "export":
         for path in export_sheets(args.format, data, Path(args.folder), args.name):
