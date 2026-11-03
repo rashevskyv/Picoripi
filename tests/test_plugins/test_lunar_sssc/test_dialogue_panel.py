@@ -111,3 +111,15 @@ def test_widget_built_before_the_project_loads_its_picture_inside_a_layout(qtbot
     assert image.width() > 0 and image.height() > 0
     assert image.pixelColor(image.width() // 2, image.height() // 2).alpha() > 0   # inside the window box
     widget.shutdown()
+
+
+def test_speaker_is_one_label_and_shows_the_code_when_no_name_is_known(qtbot):
+    widget = LunarDialoguePreview(_Window())
+    qtbot.addWidget(widget)
+    widget._sources = _synthetic_sources()
+    widget.update_preview_text("{FA:03}AAA")          # 03 has no name in speaker_names.json
+    assert widget._speaker.text() == "Speaker code 03"
+    assert widget._status.isHidden()                   # no layout problem: no status line takes room
+    widget.update_preview_text("{FA:6E}AAA")
+    assert widget._speaker.text() == "Nall"
+    widget.shutdown()
