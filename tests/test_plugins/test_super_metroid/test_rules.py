@@ -269,14 +269,14 @@ def test_the_story_window_has_a_cell_for_every_ukrainian_capital():
     assert window["params"]["texture_params"]["height"] // 8 * 16 == 96
     chars = window["params"]["chars"]
     assert len(chars) == 96 and chars[:21] == list("БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ")
-    assert set(chars[21:]) == {""}
+    assert chars[21] == "-" and set(chars[22:]) == {""}
 
 
 def test_real_story_window_cells_match_the_zt_table(zt_sm):
     sm, data = zt_sm
     rules = check_loads(PLUGIN)
     window = _font(rules, "Intro story pages: Ukrainian")["params"]["chars"]
-    assert sm.STORY_FIRST_TILE == 0x30 and len(sm.STORY_UA) == 21
+    assert sm.STORY_FIRST_TILE == 0x30 and len(sm.STORY_UA) == 22
     for ch, tile in sm.STORY_UA.items():
         assert window[tile - sm.STORY_FIRST_TILE] == ch
 

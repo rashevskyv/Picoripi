@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Super Metroid: the story pages have a hyphen glyph (story window tile 0x45), so "МАТІР-МОЗОК" keeps its hyphen on the first intro page
 - Super Metroid: the big menu, credits (small and names), story, first intro screen, small menu and pause fonts get the Ukrainian capitals the translation uses (first version, drawn into free cells; the plugin's cell lists name them); an apostrophe in the credits font; five lines reworded to fit (`intro.page1` hyphen; four lines of `options.special`), so the full ROM builds with no validation error.
 - Lunar: a game script (GameFAQs text, local only) is aligned to the TEXT messages by `python -m plugins.lunar_sssc.game_script`; the index in the workspace `script` folder gives the block tree folders by place and scene (unplaced messages in their own folder) and the scene line for the AI prompt and the Story Timeline. Reference and method: `docs/VIRTUAL_FOLDERS_AND_SCRIPTS.md`; tests in `tests/test_plugins/test_lunar_sssc/test_game_script.py`.
 - Lunar: the preview has the BFN preview structure: a dark strip on top with the speaker name (the only place the name is drawn; `Speaker code xx` when unknown), the picture, and a dark bottom bar with the < > page arrows and `Page N of M`.
