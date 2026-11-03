@@ -92,6 +92,8 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
              call=None, optional=True),
         Hook("calculate_string_width_override", "Pixel width of a string when the game measures it its own way.",
              call=("text", {}, 6), returns=int, optional=True),
+        Hook("line_widths", "Width of each line of a whole message in the game's window context (one number per "
+             "line); None: each line is measured alone.", call=("text", {}), returns=list, optional=True),
         Hook("get_font_for_block", "Font override for a block: {'original_font_name', 'font_name'}.",
              call=(0,), returns=dict, optional=True),
         Hook("get_font_sources", "The game's bitmap fonts for the font editor: [{label, format (bfn, n64, g1t, "

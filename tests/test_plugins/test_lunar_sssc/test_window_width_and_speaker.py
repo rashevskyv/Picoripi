@@ -132,3 +132,47 @@ def test_the_warning_is_red_exactly_when_the_preview_draws_outside_the_box():
     assert checked > 40000
     # The real English lines that leave the box in the preview too (see the report); no other line.
     assert len(flagged) == 10, flagged
+
+
+def _words_up_to(words, limit):
+    line = ""
+    for word in words:
+        if dp.text_width((line + " " + word).strip()) > limit:
+            break
+        line = (line + " " + word).strip()
+    return line
+
+
+def test_a_continuation_line_of_a_portrait_window_is_measured_with_the_portrait_start():
+    # The second line has no tag of its own; its window has a portrait, so it starts at x 80 and is too wide.
+    second = _words_up_to("I think I'm going to lie down before I get any worse and then some".split(), 262)
+    assert 240 < dp.text_width(second) <= 304
+    text = "{FA:6E}Short line.\n" + second
+    rights = dp.line_rights(text)
+    assert rights[1] == dp.TEXT_X + dp.text_width(second) and rights[1] > dp.BOX_RIGHT
+    assert dp.measure(text)[1].over is True
+    rules = load_rules("lunar_sssc")
+    assert rules.line_widths(text, FONT) == rights
+
+
+def test_fit_text_wraps_a_message_inside_each_window_and_keeps_its_tags():
+    paragraph = ("What's the matter, Luna? You look awful! Do you have to hurl on deck? I do feel seasick, Nall, "
+                 "now that you mention it, and I think I'm going to lie down before I get any worse. Besides, I want "
+                 "to be ready when we arrive in Meribia, I can't wait!")
+    text = "{FB:38}" + paragraph + "{page}{FA:1D}" + paragraph
+    fitted = dp.fit_lines(text)
+    assert [m.over for p in dp.parse_pages(fitted).pages for m in dp.measure_page(p)].count(True) == 0
+    strip = lambda s: re.sub(r"\{[^{}]*\}|\s", "", s)
+    assert strip(fitted) == strip(text)                  # the same words and tags, only spaces moved
+    assert dp.parse_pages(fitted).pages[0][0].face == 0x38
+    assert dp.parse_pages(fitted).pages[-1][0].face == 0x1D      # the second paragraph keeps its portrait
+    assert dp.fit_lines("{FA:6E}Hi.") == "{FA:6E}Hi."
+
+
+def test_fit_text_leaves_table_strings_to_the_generic_path():
+    rules = load_rules("lunar_sssc")
+    rules.mw = SimpleNamespace(data_store=SimpleNamespace(data=[["Attack"]]), current_game_rules=None)
+    assert rules.fit_text_to_window("Attack", 0, 0) is None
+    rules.mw = SimpleNamespace(data_store=SimpleNamespace(data=[[OWNER_MESSAGE]]), current_game_rules=None)
+    fitted = rules.fit_text_to_window(OWNER_MESSAGE, 0, 0)
+    assert isinstance(fitted, str) and fitted != ""

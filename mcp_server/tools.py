@@ -169,8 +169,13 @@ def check_fit(project: str, items: List[Dict[str, Any]]) -> Dict[str, Any]:
         warn, hard = resolve_width_limits({}, rules, block, string, default_warn, default_max)
         font_map = fit.font_maps.get(str(layout.get("font_file") or ""), first_font)
         lines = []
-        for line in text.split("\n"):
-            width = rules.calculate_string_width_override(line, font_map) if hasattr(rules, "calculate_string_width_override") else None
+        # A game with window context measures the whole message at once (one number per line); else each line alone.
+        whole = rules.line_widths(text, font_map) if hasattr(rules, "line_widths") else None
+        for index, line in enumerate(text.split("\n")):
+            if whole is not None and index < len(whole):
+                width = whole[index]
+            else:
+                width = rules.calculate_string_width_override(line, font_map) if hasattr(rules, "calculate_string_width_override") else None
             if width is None:
                 width = calculate_string_width(line, font_map)
             lines.append({"text": line, "px": int(width), "over_warn": width > warn, "over_max": width > hard})

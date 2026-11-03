@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_debug, log_warning
 from core.i18n import tr
+from core.translation.layout_class import LINES, layout_class_for
 from utils.utils import clean_spaces
 
 from . import doc, subtitle_timing, voice
@@ -123,6 +124,26 @@ class GameRules(BaseGameRules):
         in ``config.json``. The font map is not used: the plugin's advance table is the one the preview draws with.
         """
         return max((m.right for m in dialogue_preview.measure(text)), default=0)
+
+    def line_widths(self, text: str, font_map: dict) -> Optional[List[int]]:
+        """Each line of a whole message with its window's portrait context (``check_fit`` passes the message)."""
+        return dialogue_preview.line_rights(text)
+
+    def fit_text_to_window(self, text: str, block_idx: Optional[int], string_idx: Optional[int]) -> Optional[str]:
+        """The AI translation wrapped inside each window's box (``dialogue_preview.fit_lines``).
+
+        Table strings (names, menus: ``LINES``) keep the generic path, so None is returned for them.
+        """
+        mw = getattr(self, "mw", None)
+        if mw is not None and block_idx is not None and string_idx is not None:
+            data = getattr(getattr(mw, "data_store", None), "data", None)
+            try:
+                source = str(data[block_idx][string_idx])
+            except (TypeError, IndexError, KeyError):
+                source = text
+            if layout_class_for(mw, block_idx, string_idx, source) == LINES:
+                return None
+        return dialogue_preview.fit_lines(text)
 
     def is_placeholder_speaker(self, name: str) -> bool:
         return False    # the names come from speaker_names.json, already display names

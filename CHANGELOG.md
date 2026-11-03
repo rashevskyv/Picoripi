@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Lunar: the AI translation wrap (`fit_text_to_window`) and `check_fit` use the preview's window measure: a continuation line gets its window's portrait start; a new `line_widths` hook (default None) gives one width per line of a whole message.
 - Lunar 2: keeps its own width measure (the per-window font-map count); it had inherited the Lunar 1 preview measure, which does not match its font, window or 224 px limit.
 - Lunar: the opening monologue's subtitle block follows the clip-start op when an edit before it changes the script's length (the op was fixed at 0x444E, so a longer earlier message put the subtitles in the wrong place); TEXT001.DAT round-trips with edits (the xfail is removed).
 - Lunar: the width counter and the line warning use the preview's own measure (`dialogue_preview.measure`): the limit is the box's right edge (320 px) less the text start (80 px with a portrait, 16 px without), so a line warns exactly when the preview draws it outside the box; 10 real English lines of 43,756 flag (9 before, one of them a false alarm; two portrait windows now flagged).
