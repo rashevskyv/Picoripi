@@ -1,6 +1,9 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Super Metroid: the file select exit label reads ВИХІД (five cells) instead of ВИХ.; its list moved from ROM 0x81B4EE to 0x81EF1A (free bytes of bank 81; `relocate_exit` in zt `sm.py`).
+- Super Metroid: the story letters Б Г Ґ Д Є Ж З И Ї Й Л П У Ф Ц Ч Ш Щ Ь Ю Я and the hyphen are drawn at the story window index tile minus 0x30 (`story_window.bin` index 0x00-0x15); they were at 0x30-0x45, so the page DMA showed them as blanks.
+- Super Metroid: the intro routine Func20 (ROM 0x8B8D23, port `sm_8b.c`) returns at once; it wrote Japanese subtitle tiles into the story buffer that the story letters share.
 - Super Metroid: the story pages have a hyphen glyph (story window tile 0x45), so "МАТІР-МОЗОК" keeps its hyphen on the first intro page
 - Super Metroid: the big menu, credits (small and names), story, first intro screen, small menu and pause fonts get the Ukrainian capitals the translation uses (first version, drawn into free cells; the plugin's cell lists name them); an apostrophe in the credits font; five lines reworded to fit (`intro.page1` hyphen; four lines of `options.special`), so the full ROM builds with no validation error.
 - Lunar: a game script (GameFAQs text, local only) is aligned to the TEXT messages by `python -m plugins.lunar_sssc.game_script`; the index in the workspace `script` folder gives the block tree folders by place and scene (unplaced messages in their own folder) and the scene line for the AI prompt and the Story Timeline. Reference and method: `docs/VIRTUAL_FOLDERS_AND_SCRIPTS.md`; tests in `tests/test_plugins/test_lunar_sssc/test_game_script.py`.

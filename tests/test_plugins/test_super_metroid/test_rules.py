@@ -1,5 +1,6 @@
 """Super Metroid (sm_rewrite PC port) plugin: text.json round trip, cells, context, real fonts, textures and ROM text."""
 import hashlib
+import struct
 import json
 import shutil
 import sys
@@ -17,7 +18,7 @@ PLUGIN = "super_metroid"
 SM = ("Metroid", "Super Metroid")
 SCRIPT_FILE = ("_shared", "scripts", "zt", "sm.py")
 ROM_SHA256 = "12b77c4bc9c1832cee8881244659065ee1d84c70c3d29e6eaf92e6798cc2ca72"   # Super Metroid (Japan, USA) (En,Ja)
-SM_PY_SHA256 = "ea3c9590a279c78616579a1ae1d4cd4c1072866a415b94fd26762eb089db43d3"
+SM_PY_SHA256 = "ae3daa193890fa4556d366cef628ba287f10f2bb047fd55da5d3d6038b6514b4"
 SAMPLE = json.dumps({"format": sm_rules.FORMAT, "groups": [
     {"name": "Message boxes", "items": [{"id": "msg.01.EnergyTank", "text": "ENERGY TANK", "width": 19, "lines": 1,
                                          "symbol": "kMessageBox_1_EnergyTank"}]},
@@ -160,7 +161,9 @@ def test_real_rom_unchanged_text_and_sheets_build_the_same_rom(zt_sm, tmp_path):
     rom = sm.Rom(data)
     texts = {it["id"]: it["text"] for g in json.loads(sm.dump_text(rom))["groups"] for it in g["items"]}
     assert sm.apply_text(rom, texts, dict(texts)) == []
-    assert bytes(rom.data) == data                      # unchanged text: the same bytes
+    changed = {i for i in range(len(data)) if rom.data[i] != data[i]}
+    documented = {i for c in sm.EXIT_CALLS for i in (c, c + 1)} | set(range(sm.lo(0x81EF1A), sm.lo(0x81EF1A) + 12))
+    assert changed <= documented                        # unchanged text: only the exit label list moved
     sm.blank_freed_intro(rom, data)                     # the build's own first steps: freed intro tiles, JP switch
     sm.blank_freed_menu(rom)                            # freed menu tiles (the Japanese option art)
     sm.patch_japanese_toggle(rom)
@@ -371,7 +374,8 @@ def test_real_rom_the_first_screen_text_is_an_item_and_moves_to_free_space_when_
     assert all(again[k] == v for k, v in texts.items() if k != "intro.prologue")
     raw, room = sm.decompress(data, sm.lo(sm.PROLOGUE))
     assert len(sm.compress(raw)) <= room                      # the unchanged block still fits as it was
-    diff = [i for i in range(len(data)) if data[i] != moved[i]]
+    exit_bytes = {i for c in sm.EXIT_CALLS for i in (c, c + 1)} | set(range(sm.lo(0x81EF1A), sm.lo(0x81EF1A) + 12))
+    diff = [i for i in range(len(data)) if data[i] != moved[i] and i not in exit_bytes]
     spaces = [sm.lo(a) for a in sm.PROLOGUE_SPACE]
     assert all(spaces[0] <= i < spaces[1] or sm.PROLOGUE_CODE <= i < sm.PROLOGUE_CODE + 8 or sm.lo(sm.PROLOGUE) <= i
                < sm.lo(sm.PROLOGUE) + 226 for i in diff)
@@ -434,3 +438,27 @@ def test_a_pause_label_takes_the_ukrainian_capital_in_cell_2_from_tile_14(zt_sm)
     out = sm.encode(sm.FONTS["pause"], cells, "Б UA TES", "area0")
     assert (out[2] & 0x3FF) == 14
     assert (out[2] & 0xFC00) == (cells[2] & 0xFC00)
+
+
+def test_the_story_glyphs_sit_at_the_window_index_of_their_tile(zt_sm):
+    """The story window DMA starts at VRAM tile 0x30: the capitals and the hyphen are at file index tile - 0x30."""
+    sm, _data = zt_sm
+    window = romhacking_root.path(*SM, "translation", "gfx", "story_window.bin")
+    if not window.is_file():
+        pytest.skip("no translation copy of story_window.bin")
+    raw = window.read_bytes()
+    for ch, tile in sm.STORY_UA.items():
+        at = (tile - sm.STORY_FIRST_TILE) * 16
+        assert any(raw[at:at + 16]), f"empty glyph for {ch!r}"
+
+
+def test_exit_label_list_moves_to_five_cells(zt_sm):
+    sm, data = zt_sm
+    rom = bytearray(data)
+    orig = struct.unpack_from("<4H", rom, sm.lo(0x81B4EE))
+    sm.relocate_exit(rom)
+    words = struct.unpack_from("<6H", rom, sm.lo(0x81EF1A))
+    assert words == orig + (0x200F, 0xFFFF)   # the English EXIT cells, a blank, the list end
+    assert bytes(rom[sm.EXIT_CALLS[0]:sm.EXIT_CALLS[0] + 2]) == bytes([0x1A, 0xEF])
+    sm.relocate_exit(rom)                                              # a second run changes nothing
+    assert struct.unpack_from("<6H", rom, sm.lo(0x81EF1A)) == words
