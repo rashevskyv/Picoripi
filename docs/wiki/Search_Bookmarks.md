@@ -39,7 +39,7 @@ Rules for quick find:
 - Quick find only moves the cursor. It does not change any text.
 - If the box is empty, the status label asks for a query.
 
-Click **Advance** to open Advanced Search with the same text and boxes.
+Click **Advanced** to open Advanced Search with the same text and boxes.
 
 ## Advanced Search & Replace
 

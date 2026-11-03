@@ -202,12 +202,11 @@ class SearchPanelWidget(QWidget):
         
         self.find_next_button = QPushButton(tr('Next'), self)
         self.find_previous_button = QPushButton(tr('Prev'), self)
-        self.advanced_button = QPushButton(tr('Advance'), self)
+        self.advanced_button = QPushButton(tr('Advanced'), self)
         
-        button_width = 75 
-        self.find_next_button.setFixedWidth(button_width)
-        self.find_previous_button.setFixedWidth(button_width)
-        self.advanced_button.setFixedWidth(button_width)
+        # Minimum, not fixed: a translated label must never be clipped.
+        for button in (self.find_next_button, self.find_previous_button, self.advanced_button):
+            button.setMinimumWidth(75)
         
         self.case_sensitive_checkbox = QCheckBox(tr('Aa'), self)
         self.case_sensitive_checkbox.setToolTip(tr('Case sensitive'))

@@ -71,8 +71,9 @@ class MainWindowUIHandler:
                 
         if self.mw.search_panel_widget:
             general_ui_widgets.extend([
+                # The combo box lays its line edit out itself; adjustSize() on the
+                # edit would shrink it. Its font is set below, without adjustSize().
                 self.mw.search_panel_widget.search_query_edit,
-                self.mw.search_panel_widget.search_query_edit.lineEdit(),
                 self.mw.search_panel_widget.find_next_button,
                 self.mw.search_panel_widget.find_previous_button,
                 self.mw.search_panel_widget.advanced_button,
@@ -144,6 +145,8 @@ class MainWindowUIHandler:
             try:
                 line_edit = self.mw.search_panel_widget.search_query_edit.lineEdit()
                 if line_edit:
+                    # A widget with a style sheet does not inherit the combo box font.
+                    line_edit.setFont(general_font)
                     fm = line_edit.fontMetrics()
                     needed_height = fm.height() + 10
                     line_edit.setMinimumHeight(needed_height)
