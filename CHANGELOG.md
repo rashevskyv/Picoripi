@@ -1,10 +1,13 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Super Metroid: the intro follows the language choice. The ROM is 4 MB; banks E0-E2 hold the English copies of banks 8C and 8B, the English story window and the English first-screen block; the port reads them while WRAM 0x9E8 is not 0 (`RomPtr_8B`/`RomPtr_8C` in `sm_rtl.h`, `sm_8b.c`). The ROM's own intro code still shows the Ukrainian intro.
+- Super Metroid: the seven pause area labels are 17 cells (`pause.area3` РОЗБИТИЙ КОРАБЕЛЬ); the labels move to free bank 82 (0x82F740, 34 bytes each); the label DMA and copy loop follow in ROM and port.
+- Super Metroid: the ROM highlights the MOON WALK row 9 and 8 cells (УВІМКНЕНО, ВИМКНЕНО) like the port, through two helpers at 0x82F720 and 0x82F730; the other rows keep 6 cells.
 - Super Metroid: the options menu has two choices, УКРАЇНСЬКИЙ ТЕКСТ (row 10, default) and АНГЛІЙСЬКИЙ ТЕКСТ (row 13); the choice is WRAM 0x9E8 (ROM toggle at 0x82EDDA, port `english_text_flag`); the row 10-11 highlight is 17 cells wide.
 - Super Metroid: the big menu font has a drawn Ukrainian Ї (I with two dots, tiles 272 and 288 of `menu_tiles.bin`; registered as `BIG_UA_MENU` in zt `sm.py`).
 - Super Metroid: no abbreviations in the options: `options.special.r07c00` СКАСУВАННЯ ІКОНОК, `r13c00` УВІМКНЕНО and ВИМКНЕНО; the highlight tables move (ROM 0x82F149/F151, port `kLeft/RightOptionTilemapIndex`), the MOON WALK row highlights 9 and 8 cells in the port.
-- Super Metroid: the pause area label of the wrecked ship reads КОРАБЕЛЬ (was РОЗБ. КОРАБ.); РОЗБИТИЙ КОРАБЕЛЬ needs 17-cell pause labels (not done).
+- Super Metroid: the pause area label of the wrecked ship reads КОРАБЕЛЬ (was РОЗБ. КОРАБ.); РОЗБИТИЙ КОРАБЕЛЬ needs 17-cell pause labels (done 2026-11-03, see below).
 - Super Metroid: the file select exit label reads ВИХІД (five cells) instead of ВИХ.; its list moved from ROM 0x81B4EE to 0x81EF1A (free bytes of bank 81; `relocate_exit` in zt `sm.py`).
 - Super Metroid: the story letters Б Г Ґ Д Є Ж З И Ї Й Л П У Ф Ц Ч Ш Щ Ь Ю Я and the hyphen are drawn at the story window index tile minus 0x30 (`story_window.bin` index 0x00-0x15); they were at 0x30-0x45, so the page DMA showed them as blanks.
 - Super Metroid: the intro routine Func20 (ROM 0x8B8D23, port `sm_8b.c`) returns at once; it wrote Japanese subtitle tiles into the story buffer that the story letters share.
