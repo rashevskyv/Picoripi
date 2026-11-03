@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Recent Projects menu: each entry shows the project name (the game) and the date its file last changed, not the folder name (`picoripi` for many projects); entries opened before this change show their last two folders until opened again.
 - Search panel: the Prev/Next/Advanced buttons grow to their label (the Ukrainian label was clipped); the query field keeps the size the combo box gives it after a font change (no adjustSize on a combo-managed child); the "Advance" button is now "Advanced" (uk: "Розширений").
 - Tests: the Pokémon real-data unpack and build tests skip when the temp folder lacks the room an unpack of that game needs (10-25 GB); they failed with ValueError on a drive with 8 GB free.
 - Tests: the MadWorld wizard unpack test skips when no Wii key file is set in Picoripi (the owner's disc is encrypted); it failed with KeyFileError on machines without the key.

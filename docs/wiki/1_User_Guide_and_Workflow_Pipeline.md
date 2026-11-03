@@ -71,7 +71,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
 |---------|----------|----------------|
 | New Project… | Ctrl+N | Wizard above |
 | Open Project… | Ctrl+O | Load a `project.uiproj` |
-| Recent Projects | | Last workspaces |
+| Recent Projects | | Last workspaces: project name and the date its file last changed |
 | Project Manager… | Ctrl+Shift+M | The list of added projects. See below |
 | Close Project | | Unload. Disabled until a project is open |
 | Import Block… | | Add one file. **Project mode only** (tooltip: “only available in Project mode”) |

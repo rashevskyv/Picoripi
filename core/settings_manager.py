@@ -135,9 +135,9 @@ class SettingsManager:
         """Load all font maps."""
         self.font_map_loader.load_all_font_maps()
 
-    def add_recent_project(self, project_path: str, max_recent: int = 10):
+    def add_recent_project(self, project_path: str, max_recent: int = 10, name: str = ""):
         """Add recent project."""
-        self.recent_projects_manager.add_recent_project(project_path, max_recent)
+        self.recent_projects_manager.add_recent_project(project_path, max_recent, name)
 
     def remove_recent_project(self, project_path: str):
         """Remove recent project."""

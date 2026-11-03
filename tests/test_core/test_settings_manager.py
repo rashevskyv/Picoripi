@@ -194,7 +194,7 @@ def test_SettingsManager_add_recent_project(mocker):
     sm = SettingsManager(MagicMock())
     sm.recent_projects_manager.add_recent_project = MagicMock()
     sm.add_recent_project("path/to/proj")
-    sm.recent_projects_manager.add_recent_project.assert_called_once_with("path/to/proj", 10)
+    sm.recent_projects_manager.add_recent_project.assert_called_once_with("path/to/proj", 10, "")
 
 def test_SettingsManager_remove_recent_project(mocker):
     mocker.patch('core.settings_manager.GlobalSettings')

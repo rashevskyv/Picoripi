@@ -1,4 +1,5 @@
 """Project actions: the recent projects menu."""
+from datetime import datetime
 from functools import partial
 from pathlib import Path
 from typing import List
@@ -10,6 +11,16 @@ from utils import app_mode
 from utils.logging_utils import log_error, log_info, log_debug
 from utils.thread_utils import single_shot
 from core.i18n import tr
+
+
+def recent_project_label(project_path: str, name: str = "") -> str:
+    """The project name; without one (opened before names were kept), the last two folders, e.g. 'Lunar / picoripi'."""
+    if name:
+        return name
+    p = Path(project_path)
+    if p.stem != "project":
+        return p.stem
+    return " / ".join(part for part in (p.parent.parent.name, p.parent.name) if part)
 
 
 class RecentMixin:
@@ -30,18 +41,17 @@ class RecentMixin:
             no_recent_action.setEnabled(False)
             return
 
+        names = getattr(self.mw, 'recent_projects_names', None) or {}
         # Add action for each recent project
         for project_path in recent_projects:
-            # Check if file exists
             p = Path(project_path)
-            if p.exists():
-                # Get project name from path
-                project_name = p.stem
-                if project_name == "project":
-                    # Use directory name if file is named "project.uiproj"
-                    project_name = p.parent.name
-
-                action = self.mw.recent_projects_menu.addAction(project_name)
+            try:
+                changed = datetime.fromtimestamp(p.stat().st_mtime).strftime('%Y-%m-%d')
+            except OSError:
+                changed = None
+            if changed:
+                action = self.mw.recent_projects_menu.addAction(
+                    f"{recent_project_label(project_path, names.get(project_path, ''))}  ·  {changed}")
                 action.setToolTip(project_path)
                 # Use lambda with default argument to capture current project_path
                 action.triggered.connect(lambda checked=False, path=project_path: self._open_recent_project(path))

@@ -56,6 +56,7 @@ class GlobalSettings:
             "auto_sleep_idle_delay_seconds": 300,
             "last_browse_dir": str(Path.home()),
             "recent_projects": [],
+            "recent_projects_names": {},
             "translation_ai": {
                 "provider": "OpenAI", "api_key": "", "model": "gpt-4o"
             },
@@ -251,6 +252,7 @@ class GlobalSettings:
             "last_opened_path": getattr(self.mw, 'last_opened_path', ""),
             "prompt_editor_enabled": getattr(self.mw, 'prompt_editor_enabled', True),
             "recent_projects": getattr(self.mw, 'recent_projects', []),
+            "recent_projects_names": getattr(self.mw, 'recent_projects_names', {}) if isinstance(getattr(self.mw, 'recent_projects_names', {}), dict) else {},
             "translation_ai": translation_ai_to_save,
             "translation_config": translation_config_to_save,
             "translation_presets": getattr(self.mw, 'translation_presets', {}) if isinstance(getattr(self.mw, 'translation_presets', {}), dict) else {},

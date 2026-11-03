@@ -9,7 +9,13 @@ class RecentProjectsManager:
         """Initialize a new instance."""
         self.mw = main_window
 
-    def add_recent_project(self, project_path: str, max_recent: int = 10) -> None:
+    def _names(self) -> dict:
+        """Project names by path, so the menu shows the game, not the folder (often 'picoripi')."""
+        if not isinstance(getattr(self.mw, 'recent_projects_names', None), dict):
+            self.mw.recent_projects_names = {}
+        return self.mw.recent_projects_names
+
+    def add_recent_project(self, project_path: str, max_recent: int = 10, name: str = "") -> None:
         """Add a project to the recent projects list."""
         if not hasattr(self.mw, 'recent_projects'):
             self.mw.recent_projects = []
@@ -26,6 +32,11 @@ class RecentProjectsManager:
 
         # Limit to max_recent
         self.mw.recent_projects = self.mw.recent_projects[:max_recent]
+        names = self._names()
+        if name:
+            names[project_path] = name
+        for path in [p for p in names if p not in self.mw.recent_projects]:
+            del names[path]
         log_debug(f"Added '{project_path}' to recent projects")
 
     def remove_recent_project(self, project_path: str) -> None:
@@ -34,6 +45,7 @@ class RecentProjectsManager:
             return
 
         project_path = str(Path(project_path).resolve())
+        self._names().pop(project_path, None)
         if project_path in self.mw.recent_projects:
             self.mw.recent_projects.remove(project_path)
             log_debug(f"Removed '{project_path}' from recent projects")
@@ -41,4 +53,5 @@ class RecentProjectsManager:
     def clear_recent_projects(self) -> None:
         """Clear all recent projects."""
         self.mw.recent_projects = []
+        self.mw.recent_projects_names = {}
         log_debug("Cleared all recent projects")

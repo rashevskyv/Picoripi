@@ -100,7 +100,8 @@ class LifecycleMixin:
         if hasattr(self.mw, 'settings_manager'):
             if project_file not in (getattr(self.mw, 'recent_projects', None) or []):
                 self._added_to_recent.add(project_file)
-            self.mw.settings_manager.add_recent_project(project_file)
+            project = getattr(getattr(self.mw, 'project_manager', None), 'project', None)
+            self.mw.settings_manager.add_recent_project(project_file, name=getattr(project, 'name', '') or '')
             self.mw.settings_manager.save_settings(save_project_settings=save_project_settings)
             self._update_recent_projects_menu()
 

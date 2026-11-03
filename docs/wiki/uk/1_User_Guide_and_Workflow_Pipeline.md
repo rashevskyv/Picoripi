@@ -70,7 +70,7 @@ tokens: 15.7k
 |---------|---------|-----------|
 | New Project… | Ctrl+N | Майстер вище |
 | Open Project… | Ctrl+O | Завантажити `project.uiproj` |
-| Recent Projects | | Останні робочі простори |
+| Recent Projects | | Останні робочі простори: назва проєкту й дата останньої зміни його файлу |
 | Project Manager… | Ctrl+Shift+M | Список доданих проєктів. Див. нижче |
 | Close Project | | Вивантажити. Неактивне, поки немає проєкту |
 | Import Block… | | Додати один файл. **Лише режим проєкту** (підказка: “only available in Project mode”) |
