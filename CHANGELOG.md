@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Lunar 2: keeps its own width measure (the per-window font-map count); it had inherited the Lunar 1 preview measure, which does not match its font, window or 224 px limit.
 - Lunar: the opening monologue's subtitle block follows the clip-start op when an edit before it changes the script's length (the op was fixed at 0x444E, so a longer earlier message put the subtitles in the wrong place); TEXT001.DAT round-trips with edits (the xfail is removed).
 - Lunar: the width counter and the line warning use the preview's own measure (`dialogue_preview.measure`): the limit is the box's right edge (320 px) less the text start (80 px with a portrait, 16 px without), so a line warns exactly when the preview draws it outside the box; 10 real English lines of 43,756 flag (9 before, one of them a false alarm; two portrait windows now flagged).
 - Lunar: the speaker and portrait come from `{FB:xx}` (the right speaker) as well as `{FA:xx}`, and a window with no speaker tag at its start has no portrait (the state is not carried to the next window); 537 of 2916 messages with an unresolved speaker tag now name their speaker.

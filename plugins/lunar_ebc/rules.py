@@ -8,9 +8,14 @@ The project's source folder is the ``source`` folder the workspace's unpack step
 same files into the translation folder; the build step puts them back on the three discs.
 Load and save are those of ``lunar_sssc`` with this game's text module (``doc``).
 """
+import re
+
 from plugins.lunar_sssc.rules import GameRules as LunarRules
+from utils.width import calculate_string_width
 
 from . import doc
+
+_PAGE_BREAK = re.compile(r"(\{(?:page|clear|close|end)\})")
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
@@ -39,6 +44,11 @@ class GameRules(LunarRules):
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
         return [FileFormat((".bin",), "bytes", "Lunar 2 text data"), *DEFAULT_FORMATS]
+
+    def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 6):
+        """The widest window measured with this game's font map (its own window and limit, not the Lunar 1 preview)."""
+        parts = _PAGE_BREAK.split(text)[::2]
+        return max((calculate_string_width(part, font_map, default_char_width) for part in parts), default=0)
 
     def get_editor_page_size(self) -> int:
         return DEFAULT_LINES_PER_PAGE
