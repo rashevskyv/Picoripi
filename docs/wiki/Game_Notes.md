@@ -648,9 +648,19 @@ This page holds the technical notes of each game plugin: which folder is the **S
   insert-disc screens). Tags: `{wait}`, `{page}`, `{clear}`, `{close}`, `{end}`, `{FA:39}`-style codes.
   A longer message moves the script code after it; `2_build.bat` rebuilds both discs.
   The preview draws only the window box (and the top edge of the portrait) at the game's place, scaled to its panel, in the game font, with the portrait of the `{FA:xx}` tag from the `LUNADATA\FACE_nnn.TIZ` files (`1_unpack.bat` copies them; they are not in older workspaces). Portrait colours come from the table `plugins/lunar_sssc/face_palettes.json`; a project's `portrait_colours.json` overrides it; `PEO.PAL` covers indices with no colour. The window's band is a translucent dark strip drawn over a neutral grey backdrop, because the game's scene is not drawn. The speaker name is shown only for the portrait numbers in `speaker_names.json` (63 numbers; `{FA:6E}` is Nall). The names come from a fan script, matched by dialogue text; they were not checked on screen.
-  The line limit is the editor's 280 px, measured per window (a page tag starts a new window); the preview uses the same limit. The speaker is named from the first line's portrait only where `speaker_names.json` names it (`{FA:6E}` = Nall); the other portrait messages stay unnamed until the names are added.
+  The line limit is the preview box: the box's right edge (320 px) less where the text starts (80 px with a portrait, 16 px without). The width counter and the line warning use the same measure as the preview, per window (a page tag starts a new window). A window with no `{FA:xx}` or `{FB:xx}` tag at its start has no portrait. The speaker is named from the window's first tag, `{FA:xx}` (left) before `{FB:xx}` (right), only where `speaker_names.json` names it (`{FA:6E}` = Nall); the other portrait messages stay unnamed until the names are added.
   The opening script (`TEXT001.DAT`) also has a block **Voice subtitles**: one line per speech segment of the opening monologue (8 lines; an empty line shows nothing). Each line appears in a text window for its segment while the voice plays. The lines go after the script op that starts the clip, so `2_build.bat` builds them with the script.
   Portrait colours table: to rebuild it, run `python scripts/lunar_portrait_colours.py <LUNADATA folder> <sheet.png> plugins/lunar_sssc/face_palettes.json`. A `portrait_colours.json` in the project folder, if present, overrides the table.
+  **Tags.** The full catalogue, with counts from the project's scripts, is `plugins/lunar_sssc/tags.json`. In the editor a speaker code shows as its name alias: `{FA:39}` shows as `{Nall#39}`, `{FB:39}` as `{Nall#FB39}`. A code with no name in `speaker_names.json` stays as `{FA:03}`. A typed alias is stored as its code, so the bytes do not change.
+
+  | Tag | Meaning | Status |
+  |---|---|---|
+  | `{page}`, `{wait}`, `{clear}`, `{close}`, `{end}` | window control: page break, wait, clear, close, end | confirmed from the game's decoder notes in `codec.py`; round trip byte-exact |
+  | `{FA:xx}`, `{FB:xx}` | left and right speaker portrait (00 removes it) | portrait confirmed: every number the scripts use has a `FACE_nnn.TIZ` file; names inferred from a fan script |
+  | `{FC:xx}`, `{F8:xx}`, `{F9:xx}` | text colour, pause in frames, pen move | inferred, not checked on screen |
+  | `{raw:HH}` | one table glyph outside a compressed run | confirmed from the decoder notes; the glyph's picture is unknown |
+  | other two-byte codes (`{EE:xx}`, `{E0:xx}` …) | not modelled; kept byte for byte | unknown |
+
 - `lunar_ebc` — Lunar 2: Eternal Blue Complete (PlayStation, USA, 3 discs). **Source:** the workspace's
   `source` folder (`1_unpack.bat`, files of `DATA.PAK`): `DATA\EVENT` (event scripts), `DATA\PEOPLE` (what
   people on a map say), `DATA\SYSTEM\2499\05-12.bin` (items, spells, menus, memory-card messages),

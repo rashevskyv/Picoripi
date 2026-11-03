@@ -24,21 +24,57 @@ _PARTS = re.compile(r"^((?:%s)*)(.*?)((?:%s)*)\{close\}((?:%s)*)\{end\}$" % (_PA
 _MAP_TOLERANCE = 2                     # frames a message may start away from its cue (a stale file)
 
 
-def present(data: bytes, anchor: int = ANCHOR) -> bool:
-    """True when the file has the clip-start op at ``anchor`` followed by the original op or subtitles."""
-    if len(data) < anchor + 4 or data[anchor:anchor + 2] != b"\x53\x00":
-        return False
-    follow = data[anchor + 2:anchor + 6]
-    return follow == FOLLOW or follow[:2] == b"\x02\x00"
-
-
-def span(data: bytes, anchor: int = ANCHOR) -> Tuple[int, int]:
-    """``(start, end)`` of the subtitle messages: the messages between the anchor op and the next op."""
+def _span_at(data: bytes, anchor: int) -> Tuple[int, int]:
+    """``(start, end)`` of the subtitle messages after the op at ``anchor``: the messages up to the next op."""
     start = anchor + 2
     o = start
     while o < len(data) and data[o:o + 2] == b"\x02\x00":
         o += script.length(data, o)
     return start, o
+
+
+def _is_anchor(data: bytes, o: int) -> bool:
+    """True when the op at ``o`` starts the clip: 0x53, then subtitle messages (maybe none), then the original op."""
+    if o < 0 or data[o:o + 2] != b"\x53\x00":
+        return False
+    try:
+        _start, end = _span_at(data, o)
+    except (ValueError, IndexError, script.ScriptError):
+        return False
+    return data[end:end + 4] == FOLLOW
+
+
+def locate(data: bytes, hint: int = ANCHOR) -> Optional[int]:
+    """Offset of the clip-start op, or None. The game's file has it at ``ANCHOR``; an edit that changes the length
+    of an earlier message moves it, so otherwise it is the only op boundary whose subtitles end at the follow op."""
+    if _is_anchor(data, hint):
+        return hint
+    o = script.HEADER
+    try:
+        while o + 2 <= len(data):
+            if _is_anchor(data, o):
+                return o
+            o += script.length(data, o)
+    except (ValueError, IndexError, script.ScriptError):
+        return None
+    return None
+
+
+def _need(data: bytes, anchor: Optional[int]) -> int:
+    found = locate(data, ANCHOR if anchor is None else anchor)
+    if found is None:
+        raise ValueError("no clip-start op in this script")
+    return found
+
+
+def present(data: bytes, anchor: Optional[int] = None) -> bool:
+    """True when the file has the clip-start op (at ``anchor`` or where an edit moved it)."""
+    return locate(data, ANCHOR if anchor is None else anchor) is not None
+
+
+def span(data: bytes, anchor: Optional[int] = None) -> Tuple[int, int]:
+    """``(start, end)`` of the subtitle messages: the messages between the clip-start op and the next op."""
+    return _span_at(data, _need(data, anchor))
 
 
 def _pauses(frames: int) -> str:
@@ -88,7 +124,7 @@ def build(lines: Sequence[str], timing: Optional[Timing] = None) -> bytes:
     return out
 
 
-def _parse(data: bytes, anchor: int) -> List[Tuple[int, str]]:
+def _parse(data: bytes, anchor: Optional[int]) -> List[Tuple[int, str]]:
     """``(begin frame, text)`` of each subtitle message, begin frames from the file's own pauses."""
     start, end = span(data, anchor)
     found: List[Tuple[int, str]] = []
@@ -117,7 +153,7 @@ def _cue_of(found: List[Tuple[int, str]], starts: List[int]) -> Optional[List[in
     return index if len(set(index)) == len(index) else None
 
 
-def lines_of(data: bytes, timing: Optional[Timing] = None, anchor: int = ANCHOR) -> List[str]:
+def lines_of(data: bytes, timing: Optional[Timing] = None, anchor: Optional[int] = None) -> List[str]:
     """One line per cue of ``timing``: the message whose start is nearest to the cue's start.
 
     A file saved with another timing is read by the defaults; when neither fits, the messages are read
@@ -138,13 +174,16 @@ def lines_of(data: bytes, timing: Optional[Timing] = None, anchor: int = ANCHOR)
     return lines
 
 
-def without(data: bytes, anchor: int = ANCHOR) -> bytes:
+def without(data: bytes, anchor: Optional[int] = None) -> bytes:
     """The file with its subtitle messages removed (the same bytes when there were none)."""
+    if not present(data, anchor):
+        return bytes(data)
     start, end = span(data, anchor)
     return script.splice(data, start, end, b"") if end > start else bytes(data)
 
 
-def with_lines(data: bytes, lines: Sequence[str], timing: Optional[Timing] = None, anchor: int = ANCHOR) -> bytes:
-    """``data`` (with no subtitle messages) plus the subtitle messages of ``lines`` after the anchor op."""
+def with_lines(data: bytes, lines: Sequence[str], timing: Optional[Timing] = None, anchor: Optional[int] = None) -> bytes:
+    """``data`` (with no subtitle messages) plus the subtitle messages of ``lines`` after the clip-start op."""
+    at = _need(data, anchor) + 2
     region = build(lines, timing) if any(text.strip() for text in lines) else b""
-    return script.splice(data, anchor + 2, anchor + 2, region)
+    return script.splice(data, at, at, region)

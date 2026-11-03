@@ -7,15 +7,14 @@ The project's source folder is the ``source`` folder the workspace's unpack step
 writes the same files into the translation folder; the build step puts them back on both discs.
 """
 import tempfile
-import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_debug, log_warning
 from core.i18n import tr
+from core.translation.layout_class import LINES, layout_class_for
 from utils.utils import clean_spaces
-from utils.width import calculate_string_width
 
 from . import doc, subtitle_timing, voice
 from . import dialogue_preview
@@ -24,8 +23,6 @@ from .subtitle_timing import Timing
 from .tag_manager import TagManager
 
 SUBTITLE_SCRIPT = "LUNADATA/TEXT001.DAT"    # the event script that holds the opening monologue's subtitles
-# A page tag clears the window: the text after it is another window (the capture of the game's own messages).
-PAGE_BREAK = re.compile(r"(\{(?:page|clear|close|end)\})")
 
 TAG_TIPS = {
     "{wait}": "Wait for a button, then go on on the same page.",
@@ -120,13 +117,33 @@ class GameRules(BaseGameRules):
         return LunarDialoguePreview(main_window)
 
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 6) -> Optional[int]:
-        """The widest window of a line: the editor's width counter and line warning measure each window alone.
+        """The rightmost pixel any line of the text reaches in its window (the box's right edge is the limit).
 
-        The editor line may run on past a page tag into the next window; the game clears the window there, so
-        the widths of the parts are compared, not their sum.
+        Same measure as the preview (``dialogue_preview.measure``): the text starts after the portrait of its
+        window, so the number is the text start plus the line width. A line is too wide when it passes the limit
+        in ``config.json``. The font map is not used: the plugin's advance table is the one the preview draws with.
         """
-        parts = PAGE_BREAK.split(text)[::2]
-        return max((calculate_string_width(part, font_map, default_char_width) for part in parts), default=0)
+        return max((m.right for m in dialogue_preview.measure(text)), default=0)
+
+    def line_widths(self, text: str, font_map: dict) -> Optional[List[int]]:
+        """Each line of a whole message with its window's portrait context (``check_fit`` passes the message)."""
+        return dialogue_preview.line_rights(text)
+
+    def fit_text_to_window(self, text: str, block_idx: Optional[int], string_idx: Optional[int]) -> Optional[str]:
+        """The AI translation wrapped inside each window's box (``dialogue_preview.fit_lines``).
+
+        Table strings (names, menus: ``LINES``) keep the generic path, so None is returned for them.
+        """
+        mw = getattr(self, "mw", None)
+        if mw is not None and block_idx is not None and string_idx is not None:
+            data = getattr(getattr(mw, "data_store", None), "data", None)
+            try:
+                source = str(data[block_idx][string_idx])
+            except (TypeError, IndexError, KeyError):
+                source = text
+            if layout_class_for(mw, block_idx, string_idx, source) == LINES:
+                return None
+        return dialogue_preview.fit_lines(text)
 
     def is_placeholder_speaker(self, name: str) -> bool:
         return False    # the names come from speaker_names.json, already display names

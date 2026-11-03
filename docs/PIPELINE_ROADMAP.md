@@ -76,6 +76,8 @@ purpose: Pipeline design of record (Ukrainian); shipped vs planned on top
 
 Контекст перевірки — не хук, а протокол аналізатора: `_current_scan_block_idx` і `_current_scan_string_idx` задає програма навколо кожного аналізу рядка, на кожен потік окремо, поза аналізом вони `None` (`handlers/analyzer_context.py`, `plugins/common/problem_analyzer.py`; опис у `docs/PLUGIN_CONTRACT.md`).
 
+`line_widths(text, font_map)` (added for Lunar's windows): the width of each line of a whole message in the game's window context (a portrait moves the text start). `check_fit` uses it; without it each line is measured alone. The AI wrap uses `fit_text_to_window` (above); Lunar implements it with the same window measure.
+
 ### 2.2 Хуки можливостей (зроблено в M3–M4)
 
 ```python

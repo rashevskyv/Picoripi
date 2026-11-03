@@ -98,24 +98,28 @@ class LunarDialoguePreview(QWidget):
         self._loader: Optional[SourceLoader] = None
         self._source_key = ""
         self._picture = ScaledPicture(self)
-        self._picture.setToolTip(tr("Portrait colours come from the plugin table; the project's portrait_colours.json overrides it."))
         self._prev = QPushButton(tr("Previous page"), self)
         self._next = QPushButton(tr("Next page"), self)
         self._prev.clicked.connect(lambda: self._turn(-1))
         self._next.clicked.connect(lambda: self._turn(1))
         self._page_label = QLabel(self)
-        self._speaker = QLabel(self)
+        self._page_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._speaker = QLabel(self)                 # the one speaker label, under the box
+        self._speaker.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._status = QLabel(self)
         self._status.setWordWrap(True)
+        self._status.hide()                          # shown only while there is a message to show
         buttons = QHBoxLayout()
+        buttons.setSpacing(4)
         buttons.addWidget(self._prev)
         buttons.addWidget(self._page_label, 1)
         buttons.addWidget(self._next)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)
         layout.addWidget(self._picture, 1)
-        layout.addLayout(buttons)
         layout.addWidget(self._speaker)
+        layout.addLayout(buttons)
         layout.addWidget(self._status)
         self._start_load()
 
@@ -149,7 +153,7 @@ class LunarDialoguePreview(QWidget):
     def _start_load(self) -> None:
         project_dir = self._project_dir()
         if not project_dir:
-            self._status.setText(tr("Open a game project to see the message window."))
+            self._show_status(tr("Open a game project to see the message window."))
             return
         if project_dir == self._source_key:
             return
@@ -158,22 +162,27 @@ class LunarDialoguePreview(QWidget):
         self._loader = SourceLoader(project_dir)
         self._loader.loaded.connect(self._on_loaded)
         self._loader.start()
-        self._status.setText(tr("Reading the game font and portraits..."))
+        self._show_status(tr("Reading the game font and portraits..."))
 
     def _on_loaded(self, payload: Any) -> None:
         project_dir, result = payload
         if project_dir != self._source_key:
             return
         if isinstance(result, str):
-            self._status.setText(tr("The game's font or portrait files are not in this project: {0}").format(result))
+            self._show_status(tr("The game's font or portrait files are not in this project: {0}").format(result))
             return
         if result["palette"] is None:
             result["palette"] = [(v, v, v) for v in range(256)]
-            self._status.setText(tr("The portrait palette file is missing; portraits are drawn in grey."))
+            self._show_status(tr("The portrait palette file is missing; portraits are drawn in grey."))
         self._sources = result
         self._render()
 
     # -- drawing ----------------------------------------------------------------------------
+
+    def _show_status(self, text: str) -> None:
+        """A message line under the page row; an empty text takes no room."""
+        self._status.setText(text)
+        self._status.setVisible(bool(text))
 
     def _turn(self, step: int) -> None:
         self._page += step
@@ -187,7 +196,7 @@ class LunarDialoguePreview(QWidget):
             self._picture.clear_picture()
             self._speaker.clear()
             self._page_label.setText("")
-            self._status.setText(tr("The text has no line to draw."))
+            self._show_status(tr("The text has no line to draw."))
             return
         self._page = min(max(self._page, 0), len(layout.pages) - 1)
         page = layout.pages[self._page]
@@ -200,9 +209,12 @@ class LunarDialoguePreview(QWidget):
         self._picture.set_picture(self._pixmap(image))
         self._page_label.setText(tr("Page {0} of {1}").format(self._page + 1, len(layout.pages)))
         name = dp.speaker_name(face) if face else None
-        self._speaker.setText(tr("Speaker: {0}").format(name) if name else "")
+        if name:
+            self._speaker.setText(name)
+        else:
+            self._speaker.setText(tr("Speaker code {0}").format(f"{face:02X}") if face else "")
         problems = list(layout.problems)
-        self._status.setText("\n".join(problems))
+        self._show_status("\n".join(problems))
         self._prev.setEnabled(self._page > 0)
         self._next.setEnabled(self._page < len(layout.pages) - 1)
 

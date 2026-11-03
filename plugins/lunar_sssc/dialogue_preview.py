@@ -10,7 +10,7 @@ Facts, measured on a native 1x capture of the USA disc (picture 320x240 at x=15 
   without a portrait are up to 272 px wide, so they cannot start at x 80.
 
 The picture is only the box and the top edge of the portrait (rows 152-223); the scene above is not drawn.
-The line limit is the editor's (``game_dialog_max_width_pixels`` in config.json), so both agree.
+The fit check is ``measure_page``: the box right edge less the text start, the same advances this picture uses.
 
 A portrait is 8-bit indexed (``FACE_nnn.TIZ``: five 64x64 frames after a 32-byte header whose ID bytes name
 the frame of each index). Its colours come from ``face_palettes.json`` (the owner's colour table, read from a
@@ -29,7 +29,6 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 from PIL import Image
 
-from utils.width import calculate_string_width
 
 HERE = Path(__file__).resolve().parent
 WINDOW_X, WINDOW_Y, WINDOW_W, WINDOW_H = 0, 160, 320, 64
@@ -50,8 +49,6 @@ TAG_RE = re.compile(r"\{([^{}]*)\}")
 PAGE_TAGS = {"page", "clear", "close", "end"}
 FONT = json.loads((HERE / "font_sources.json").read_text(encoding="utf-8"))[0]
 WIDTHS = json.loads((HERE / "fonts" / "lunar_font.json").read_text(encoding="utf-8"))
-# The line limit of the editor (its warning and its counter); one number for both.
-LINE_LIMIT = json.loads((HERE / "config.json").read_text(encoding="utf-8"))["game_dialog_max_width_pixels"]
 SPEAKERS = json.loads((HERE / "speaker_names.json").read_text(encoding="utf-8"))
 FACE_COLOURS_FILE = "face_palettes.json"
 
@@ -84,57 +81,221 @@ class Layout:
     problems: List[str]
 
 
-def parse_pages(text: str) -> Layout:
-    """Split an editor text into pages.
 
-    ``\\n`` ends a line; ``{page}``, ``{clear}``, ``{close}`` and ``{end}`` end a page; ``{FA:xx}`` sets the
-    portrait (00 removes it). Other tags take no room in the window.
+
+@dataclass
+class _Piece:
+    """One printed piece of a text: its characters, its line (segment), its window and the portrait at its end."""
+
+    segment: int
+    window: int
+    text: str
+    face: int
+
+
+def _pieces(text: str) -> List[_Piece]:
+    """The pieces of an editor text as the window reads them (the one walk all the fit code uses).
+
+    ``\\n`` ends a piece and a line; ``{page}``, ``{clear}``, ``{close}`` and ``{end}`` end a piece and its window.
+    ``{FA:xx}`` is the left speaker and ``{FB:xx}`` the right one; the window shows the left one first. A window
+    with no speaker tag at its start has no portrait: the game's state is not carried over (no proof otherwise).
+    Other tags take no room in the window.
     """
-    pages: List[List[Line]] = []
-    current: List[Line] = []
-    face = 0
-    line_text = ""
+    pieces: List[_Piece] = []
+    segment = window = 0
+    left = right = face = 0
+    buf = ""
     pos = 0
     for match in TAG_RE.finditer(text):
         for ch in text[pos:match.start()]:
             if ch == "\n":
-                current.append(Line(line_text, face))
-                line_text = ""
+                pieces.append(_Piece(segment, window, buf, face))
+                buf = ""
+                segment += 1
             else:
-                line_text += ch
+                buf += ch
         pos = match.end()
         tag = match.group(1)
         if tag.startswith("FA:"):
-            face = int(tag[3:], 16)
-        elif tag in PAGE_TAGS:
-            if line_text:
-                current.append(Line(line_text, face))
-                line_text = ""
-            if current:
-                pages.append(current)
-                current = []
+            left = int(tag[3:], 16)
+        elif tag.startswith("FB:"):
+            right = int(tag[3:], 16)
+        face = left or right
+        if tag in PAGE_TAGS:
+            if buf:
+                pieces.append(_Piece(segment, window, buf, face))
+                buf = ""
+            window += 1
+            left = right = face = 0
     for ch in text[pos:]:
         if ch == "\n":
-            current.append(Line(line_text, face))
-            line_text = ""
+            pieces.append(_Piece(segment, window, buf, face))
+            buf = ""
+            segment += 1
         else:
-            line_text += ch
-    if line_text:
-        current.append(Line(line_text, face))
-    if current:
-        pages.append(current)
+            buf += ch
+    if buf:
+        pieces.append(_Piece(segment, window, buf, face))
+    return pieces
+
+
+def parse_pages(text: str) -> Layout:
+    """Split an editor text into pages (the windows of ``_pieces``) and name the layout problems."""
+    groups: Dict[int, List[Line]] = {}
+    for piece in _pieces(text):
+        groups.setdefault(piece.window, []).append(Line(piece.text, piece.face))
+    pages = list(groups.values())
     problems: List[str] = []
     for number, page in enumerate(pages, 1):
         if len(page) > LINES_PER_PAGE:
             problems.append(f"page {number}: {len(page)} lines, the window shows {LINES_PER_PAGE}")
-        if any(text_width(line.text) > LINE_LIMIT for line in page):
+        if any(line.over for line in measure_page(page)):
             problems.append(f"page {number}: a line is wider than the window")
     return Layout(pages, problems)
 
 
+def line_rights(text: str) -> List[int]:
+    """The rightmost pixel (box x) that each ``\\n`` line of an editor text reaches, measured in its window.
+
+    The same numbers as ``measure``: a line is too wide when it reaches past ``BOX_RIGHT``.
+    """
+    pieces = _pieces(text)
+    window_face: Dict[int, int] = {}
+    for piece in pieces:
+        window_face.setdefault(piece.window, piece.face)
+    rights = [0] * (text.count("\n") + 1)
+    for piece in pieces:
+        end = text_start(bool(window_face[piece.window])) + text_width(piece.text)
+        rights[piece.segment] = max(rights[piece.segment], end)
+    return rights
+
+
+_TOKEN = re.compile(r"\{[^{}]*\}|\n|[ \t]+|[^\s{}]+")
+_PAGE_TAG_TOKENS = {"{page}", "{clear}", "{close}", "{end}"}
+
+
+def fit_lines(text: str) -> str:
+    """``text`` re-wrapped so every line of each window stays inside the box (greedy, word by word).
+
+    The model's line breaks are kept. A word that does not fit starts the next line. After LINES_PER_PAGE lines
+    the window ends with ``{page}`` and the speaker tags are written again after it, so the next window keeps its
+    portrait. Tags keep their order; only the spaces between words move.
+    """
+    out: List[str] = []
+    line = plain = ""
+    pending: List[str] = []        # tags and " " since the last word
+    lines = 0                      # lines already finished in the current window
+    open_window = portrait = False
+    left = right = 0
+
+    def tags() -> str:
+        return "".join(t for t in pending if t != " ")
+
+    def faces() -> str:
+        carried = tags()
+        return ((f"{{FA:{left:02X}}}" if left and "{FA:" not in carried else "")
+                + (f"{{FB:{right:02X}}}" if right and "{FB:" not in carried else ""))
+
+    for token in _TOKEN.findall(text):
+        if token == "\n":
+            if lines + 1 >= LINES_PER_PAGE:
+                out.append(line + "{page}")
+                lines, open_window = 0, False
+                line = faces() + tags()
+            else:
+                out.append(line + "\n")
+                lines += 1
+                line = tags()
+            plain, pending = "", []
+        elif token in _PAGE_TAG_TOKENS:
+            out.append(line + tags() + token)
+            line, plain, pending = "", "", []
+            lines, open_window = 0, False
+            left = right = 0
+        elif token.startswith("{"):
+            if token.startswith("{FA:"):
+                left = int(token[4:-1], 16)
+            elif token.startswith("{FB:"):
+                right = int(token[4:-1], 16)
+            pending.append(token)
+        elif token.isspace():
+            pending.append(" ")
+        else:
+            sep = " " if plain and " " in pending else ""
+            if not open_window:
+                open_window, portrait = True, bool(left or right)
+            candidate = plain + sep + token
+            if plain and text_start(portrait) + text_width(candidate) > BOX_RIGHT:
+                if lines + 1 >= LINES_PER_PAGE:
+                    out.append(line + "{page}")
+                    lines, open_window = 0, True
+                    portrait = bool(left or right)
+                    line = faces() + tags() + token
+                else:
+                    out.append(line + "\n")
+                    lines += 1
+                    line = tags() + token
+                plain = token
+            else:
+                line += sep + tags() + token
+                plain = candidate
+            pending = []
+    out.append(line + tags())
+    return "".join(out)
+
+
+def advance(ch: str) -> int:
+    """Pen advance of one character in game pixels (``lunar_font.json``; a character the table lacks is a space)."""
+    return WIDTHS[ch]["width"] if ch in WIDTHS else SPACE_WIDTH
+
+
+BOX_RIGHT = WINDOW_X + WINDOW_W      # the box's right edge: a line that reaches past it is too wide
+
+
+def text_start(portrait: bool) -> int:
+    """Where a line starts in the box: after the portrait when one is shown, else at the left text margin."""
+    return TEXT_X if portrait else TEXT_X_NO_PORTRAIT
+
+
+@dataclass
+class MeasuredLine:
+    """One line measured as the window draws it: where its text starts, its width and the room left in the box."""
+
+    text: str
+    start: int
+    width: int
+    limit: int                      # box right edge minus the text start: the longest line the box holds
+
+    @property
+    def over(self) -> bool:
+        return self.width > self.limit
+
+    @property
+    def right(self) -> int:
+        """The box x where the line's last pen position ends (the number the editor's width warning shows)."""
+        return self.start + self.width
+
+
+def measure_page(page: Sequence[Line]) -> List[MeasuredLine]:
+    """Every line of a window measured with the same advances and start the preview draws it with.
+
+    The window's portrait (its first line's face) moves the text start; the limit is the room from there to the
+    box's right edge. Pure: no Qt, no glyph bitmaps, no picture.
+    """
+    portrait = bool(page and page[0].face)
+    start = text_start(portrait)
+    limit = WINDOW_X + WINDOW_W - start
+    return [MeasuredLine(line.text, start, sum(advance(ch) for ch in line.text), limit) for line in page]
+
+
+def measure(text: str) -> List[MeasuredLine]:
+    """Every line of an editor text, window by window (see ``measure_page``)."""
+    return [m for page in parse_pages(text).pages for m in measure_page(page)]
+
+
 def text_width(text: str) -> int:
-    """Pixel width of a line in the game font: the editor's measure (``utils.width``, advances of ``lunar_font.json``)."""
-    return calculate_string_width(text, WIDTHS, 6)
+    """Pen width of a line in game pixels: the sum of the character advances the preview uses."""
+    return sum(advance(ch) for ch in text)
 
 
 def decode_glyphs(slus: bytes) -> Dict[str, List[int]]:
@@ -225,7 +386,7 @@ def render_page(page: Sequence[Line], glyphs: Dict[str, List[int]], portrait: Op
         for ch in line.text:
             if ch in glyphs:
                 _blit(canvas, glyphs[ch], x, top)
-            x += WIDTHS[ch]["width"] if ch in WIDTHS else SPACE_WIDTH
+            x += advance(ch)
     return canvas
 
 

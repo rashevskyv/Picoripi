@@ -908,6 +908,15 @@ class BaseGameRules:
         """Calculate string width override."""
         return None
 
+    def line_widths(self, text: str, font_map: dict) -> Optional[List[int]]:
+        """The width of each deliberate line (split by newline) of a whole message, in the game's window context.
+
+        A game whose window changes a line's room (a portrait, a name box) returns one number per line, measured
+        with the context of the whole message (``check_fit`` passes every line of a string through it). Default:
+        None, and each line is measured alone with ``calculate_string_width_override``.
+        """
+        return None
+
     def get_editor_page_size(self) -> int:
         """Get the editor page size."""
         return 2

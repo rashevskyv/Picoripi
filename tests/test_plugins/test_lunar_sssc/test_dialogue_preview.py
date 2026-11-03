@@ -119,7 +119,7 @@ def test_picture_is_the_box_and_the_portrait_edge_only():
 
 
 def test_the_limit_is_the_editor_limit_and_the_real_english_line_fits():
-    assert dp.LINE_LIMIT == 280
+    assert dp.WINDOW_X + dp.WINDOW_W - dp.TEXT_X == 240      # a portrait window: the room from the text start to the box edge
     # "The White Dragon Cave, Alex?" measures 219 px in the game font (the editor's own count of the window).
     assert dp.text_width("The White Dragon Cave, Alex?") == 219
     assert dp.parse_pages("The White Dragon Cave, Alex?{page}I knew something was wrong").problems == []
