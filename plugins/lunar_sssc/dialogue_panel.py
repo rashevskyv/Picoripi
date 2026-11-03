@@ -240,11 +240,10 @@ class LunarDialoguePreview(QWidget):
         self._page = min(max(self._page, 0), len(layout.pages) - 1)
         page = layout.pages[self._page]
         face = page[0].face
-        portrait = None
-        if face:
-            portrait = dp.face_picture(self._sources["files"], self._sources["index"], face,
-                                       self._sources["palette"], self._sources["colours"])
-        image = dp.render_page(page, self._sources["glyphs"], portrait).convert("RGBA")
+        pictures = [dp.face_picture(self._sources["files"], self._sources["index"], number,
+                                    self._sources["palette"], self._sources["colours"]) if number else None
+                    for number in (page[0].left, page[0].right)]
+        image = dp.render_page(page, self._sources["glyphs"], pictures[0], pictures[1]).convert("RGBA")
         self._picture.set_picture(self._pixmap(image))
         self._page_label.setText(tr("Page {0} of {1}").format(self._page + 1, len(layout.pages)))
         name = dp.speaker_name(face) if face else None

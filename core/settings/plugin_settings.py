@@ -147,7 +147,10 @@ class PluginSettings:
         try:
             self.mw.data_store.block_names.update({str(k): v for k, v in combined_data.get("block_names", {}).items()})
             self.mw.block_color_markers.update({k: set(v) for k, v in combined_data.get("block_color_markers", {}).items()})
-            self.mw.default_tag_mappings.update(combined_data.get("default_tag_mappings", {}))
+            # The plugin's aliases and the project's own aliases are merged one by one: a project file that holds
+            # an empty table (written before the plugin shipped its aliases) must not erase the plugin's.
+            self.mw.default_tag_mappings.update(plugin_data.get("default_tag_mappings") or {})
+            self.mw.default_tag_mappings.update(project_data.get("default_tag_mappings") or {})
             
             try:
                 self.mw.string_metadata = {ast.literal_eval(k): v for k, v in combined_data.get("string_metadata", {}).items()}

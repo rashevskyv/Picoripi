@@ -22,7 +22,8 @@ def test_width_counter_measures_the_widest_window_not_the_sum_across_a_page_tag(
     rules = load_rules("lunar_sssc")
     line = "{FB:1A}The White Dragon Cave, Alex?{page}{FB:1E}I knew something was wrong"
     # The two windows measure 219 and 209 px; the line as one run measured 428 px (the bug).
-    assert rules.calculate_string_width_override(line, FONT, 6) == dp.TEXT_X + max(dp.text_width("The White Dragon Cave, Alex?"), dp.text_width("I knew something was wrong"))
+    # Both windows carry a right portrait, so their text starts at the left margin (TEXT_X_NO_PORTRAIT).
+    assert rules.calculate_string_width_override(line, FONT, 6) == dp.TEXT_X_NO_PORTRAIT + max(dp.text_width("The White Dragon Cave, Alex?"), dp.text_width("I knew something was wrong"))
     assert rules.calculate_string_width_override("abc", FONT, 6) == dp.TEXT_X_NO_PORTRAIT + dp.text_width("abc")
 
 
@@ -64,8 +65,8 @@ OWNER_MESSAGE = ("{FB:38}What's the matter, Luna? You look awful! Do you have to
 
 def test_right_speaker_tag_names_the_window_and_each_page_keeps_its_portrait():
     layout = dp.parse_pages(OWNER_MESSAGE)
-    # FB:38 names the first window. A window with no tag at its start has no portrait (no state carried over).
-    assert [page[0].face for page in layout.pages] == [0x38, 0x1D, 0, 0x1A, 0x39]
+    # FB:38 names the first window. The left slot 1D keeps its portrait across the page break (owner's rule).
+    assert [page[0].face for page in layout.pages] == [0x38, 0x1D, 0x1D, 0x1A, 0x39]
     rules = load_rules("lunar_sssc")
     rules.mw = SimpleNamespace(data_store=SimpleNamespace(data=[[OWNER_MESSAGE]]))
     assert rules.get_speaker_for_string(0, 0) == "Nall"
@@ -73,7 +74,9 @@ def test_right_speaker_tag_names_the_window_and_each_page_keeps_its_portrait():
 
 def test_the_left_speaker_wins_when_both_tags_are_set():
     layout = dp.parse_pages("{FA:1D}{FB:38}Hi{page}{FB:00}Bye")
-    assert [page[0].face for page in layout.pages] == [0x1D, 0]
+    # The left slot keeps 1D across the page break; FB:00 clears only the right slot.
+    assert [page[0].face for page in layout.pages] == [0x1D, 0x1D]
+    assert [(page[0].left, page[0].right) for page in layout.pages] == [(0x1D, 0x38), (0x1D, 0)]
 
 
 @needs_data
@@ -123,16 +126,18 @@ def test_the_warning_is_red_exactly_when_the_preview_draws_outside_the_box():
                 for page in dp.parse_pages(text).pages:
                     for line, m in zip(page[:dp.LINES_PER_PAGE], dp.measure_page(page)):
                         checked += 1
-                        if m.right < dp.WINDOW_X + dp.WINDOW_W - 16:
-                            assert not m.over    # far inside the box: no glyph can reach the edge
+                        edge = m.start + m.limit    # the window's own right edge (box, or the right portrait)
+                        if m.right < edge - 16:
+                            assert not m.over    # far inside the window: no glyph can reach the edge
                             continue
-                        ink_over = _ink_right(glyphs, line.text, m.start) > dp.WINDOW_X + dp.WINDOW_W
+                        ink_over = _ink_right(glyphs, line.text, m.start) > edge
                         assert m.over == ink_over, (path.name, bi, si, line.text[:40])
                         if m.over:
                             flagged.append(f"{path.name}:{bi}:{si}")
     assert checked > 40000
-    # The real English lines that leave the box in the preview too (see the report); no other line.
-    assert len(flagged) == 10, flagged
+    # The real English windows that still leave their room (per-window measure, portrait slots persist).
+    assert flagged == ["TEXT001.DAT:1:1", "TEXT001.DAT:1:2", "TEXT001.DAT:1:5", "TEXT001.DAT:1:6",
+                       "TEXT001.DAT:1:7", "TEXT044.DAT:0:2", "TEXT052.DAT:0:206"], flagged
 
 
 def _words_up_to(words, limit):
@@ -181,8 +186,7 @@ def test_fit_text_leaves_table_strings_to_the_generic_path():
 
 def _rules_with_aliases():
     rules = load_rules("lunar_sssc")
-    config = json.loads((Path(dp.__file__).parent / "config.json").read_text(encoding="utf-8"))
-    rules.mw = SimpleNamespace(default_tag_mappings=config["default_tag_mappings"])
+    rules.mw = SimpleNamespace(default_tag_mappings=rules.get_default_tag_mappings())
     return rules
 
 
@@ -190,18 +194,20 @@ def test_speaker_codes_show_as_names_and_go_back_to_the_same_bytes():
     rules = _rules_with_aliases()
     data = "{FA:39}Hi{page}{FB:39}Bye{FA:03}x{FA:6E}y"
     shown = rules.get_text_representation_for_editor(data)
-    assert "{Nall#39}Hi" in shown and "{Nall#FB39}Bye" in shown
-    assert "{FA:03}x" in shown                         # no name for 03: the code stays visible
+    assert "{Nall left#39}Hi" in shown and "{Nall right#39}Bye" in shown
+    assert "{Left portrait 03}x" in shown              # no name for 03: a numbered alias, the side is named
     assert rules.convert_editor_text_to_data(shown) == data
     assert rules.convert_editor_text_to_data("{Nall#FA39}") == "{Nall#FA39}"   # not an alias: kept as typed
 
 
 def test_the_alias_table_matches_the_speaker_names():
     config = json.loads((Path(dp.__file__).parent / "config.json").read_text(encoding="utf-8"))["default_tag_mappings"]
-    assert len(config) == 2 * len(NAMES)
+    assert len(config) == 2 * len(NAMES) + 3          # each name on both sides, the two 'portrait off' codes, the line break
+    assert config["{Left portrait off}"] == "{FA:00}" and config["{Right portrait off}"] == "{FB:00}"
+    assert config["{Line break}"] == "{raw:02}"
     for code, name in NAMES.items():
-        assert config.get("{%s#%s}" % (name, code)) == "{FA:%s}" % code or config.get("{%s}" % name) == "{FA:%s}" % code
-        assert config["{%s#FB%s}" % (name, code)] == "{FB:%s}" % code
+        assert config.get("{%s left#%s}" % (name, code)) == "{FA:%s}" % code or config.get("{%s left}" % name) == "{FA:%s}" % code
+        assert config["{%s right#%s}" % (name, code)] == "{FB:%s}" % code
 
 
 def _families_of_real_data():

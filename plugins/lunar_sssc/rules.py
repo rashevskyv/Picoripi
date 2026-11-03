@@ -6,6 +6,7 @@ The project's source folder is the ``source`` folder the workspace's unpack step
 ``SLUS_006.28`` (the font, Tools -> Font Editor) and the TIM pictures (Tools -> Textures). Saving
 writes the same files into the translation folder; the build step puts them back on both discs.
 """
+import json
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -22,6 +23,7 @@ from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .subtitle_timing import Timing
 from .tag_manager import TagManager
 
+HERE = Path(__file__).resolve().parent
 SUBTITLE_SCRIPT = "LUNADATA/TEXT001.DAT"    # the event script that holds the opening monologue's subtitles
 
 TAG_TIPS = {
@@ -96,6 +98,21 @@ class GameRules(BaseGameRules):
         return out
 
     # -- editor ----------------------------------------------------------------
+
+    def get_default_tag_mappings(self) -> Dict[str, str]:
+        """The editor's aliases for portrait codes: the names of config.json, then a numbered alias for every
+        other ``{FA:xx}`` (left) and ``{FB:xx}`` (right) code, so an unknown code reads ``{Left portrait 3C}``.
+
+        The alias is display only: the stored text keeps the raw code, so a saved byte never changes.
+        """
+        mapping = dict(json.loads((HERE / "config.json").read_text(encoding="utf-8")).get("default_tag_mappings") or {})
+        named = set(mapping.values())
+        for code in range(1, 0x100):
+            for side, family in (("Left", "FA"), ("Right", "FB")):
+                raw = f"{{{family}:{code:02X}}}"
+                if raw not in named:
+                    mapping[f"{{{side} portrait {code:02X}}}"] = raw
+        return mapping
 
     def get_editor_page_size(self) -> int:
         return DEFAULT_LINES_PER_PAGE

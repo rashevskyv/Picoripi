@@ -101,7 +101,7 @@ def test_decode_glyphs_reads_16_rows_big_endian_from_the_font_place():
 def test_render_page_places_the_window_portrait_and_text():
     glyphs = {"A": [0x8000] * 16}
     portrait = Image.new("RGBA", (64, 64), (255, 0, 0, 255))
-    picture = dp.render_page([dp.Line("A")], glyphs, portrait)
+    picture = dp.render_page([dp.Line("A", left=0x06)], glyphs, portrait)
     top = dp.TEXT_Y - dp.PICTURE_Y
     assert picture.size == (320, 72)
     assert picture.getpixel((dp.PORTRAIT_X + 1, 1)) == (255, 0, 0, 255)

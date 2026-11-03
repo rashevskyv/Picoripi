@@ -16,7 +16,7 @@
       "pattern": "{FA:xx}",
       "name": "Left speaker: portrait number (00 removes it)",
       "status": "confirmed from data (portrait), inferred (name)",
-      "game": "Number selects the FACE_nnn portrait (FACE header ids); names come from a fan script (speaker_names.json), not checked on screen. Preview and name alias use it.",
+      "game": "Left portrait slot, SLUS_006.28: the text code calls 0x8005B2F0 with a1=0x10 and stores its result at gp+0x634 (stores at 0x8005B27C and 0x8005A780; reads at 0x8005B270, 0x8005A768). The slot keeps its value across pages. Number selects the FACE_nnn portrait (FACE header ids); names come from a fan script (speaker_names.json), not checked on screen. Preview and name alias use it.",
       "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
       "translator": "Keep the code; a translator may move it inside a message but must not change the number (it picks the speaker).",
       "count": 7145,
@@ -27,12 +27,23 @@
       "pattern": "{FB:xx}",
       "name": "Right speaker: portrait number (00 removes it)",
       "status": "inferred",
-      "game": "Same number space as FA; the game puts it on the right side (not checked on screen). Preview draws the left one first; name alias uses it.",
+      "game": "Right portrait slot, SLUS_006.28: the same routine with a1=0x20 and a3=0x8000, stored at gp+0x636 (store at 0x8005B298, read at 0x8005B28C). The screen X of the right portrait is not traced yet (preview uses 249, an estimate). Name alias uses it.",
       "picoripi": "Parsed by codec.py; rendered as its tag text in the editor; written back byte-exact (round trip).",
       "translator": "Keep the code, same rule as FA.",
       "count": 2193,
       "distinct": 93,
       "example": "{FB:03}"
+    },
+    {
+      "pattern": "{raw:02}",
+      "name": "Line break inside a window (raw glyph byte 0x02)",
+      "status": "owner's observation on screen; routine not traced",
+      "game": "The game draws the text after {raw:02} on the next line of the same window (owner's screenshots 115/116). The print routine's check of byte 0x02 is not traced in SLUS_006.28.",
+      "picoripi": "Preview, width counter and the 3-line rule treat it as a line end; the stored bytes stay {raw:02}. Auto-wrap keeps the tag.",
+      "translator": "Keep it where the game breaks the line. Do not replace it with a newline.",
+      "count": 95,
+      "distinct": 1,
+      "example": "{raw:02}"
     },
     {
       "pattern": "{raw:HH}",
