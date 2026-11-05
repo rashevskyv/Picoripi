@@ -7,6 +7,13 @@ purpose: Everything left open, one line each, by work package
 ---
 # Open items
 
+## Castlevania: Harmony of Despair, PS3 and Xbox 360 (no plugin, parked 2026-10-21, branch `feat/harmony-of-despair`)
+- PS3 `data/text/textres_*.txrc`: header (magic, per-file u32 at 0x4, version 1), 18 groups, 2528 entries, pooled strings from 0x2800. Pool bytes look encrypted (7.9 bits per byte); no keystream found for LCG (MSVC, glibc, Konami, NR, 69069) or xorshift, byte or shift variants, per file or per entry.
+- Decrypted EBOOT (RPCS3 `--decrypt`, local copy only): TOC base r2 = 0xB70E60 from the descriptor pairs. The slot at r2-0x1404 is read as a size limit in a string routine, not as a file opener. Decoder not found.
+- Runtime: the header copy sits in RPCS3 memory as raw ciphertext. Plaintext "Press the START" is not in memory. GDB stub reads stall; guest mapping of the copy is unresolved. No watchpoints tried.
+- X360 (LIVE STFS, `58410A7A\000D0000\652844FE...`): directory at block 0; start block u24 LE at 0x2F; size u32 BE at 0x34; hash pages verified by SHA-1 through L0 table 3, then +1 shift, last group +2. Extracted TXRC files are not valid yet.
+- Next: find the TXRC reader with RPCS3 debugger memory breakpoints, or give up on text and keep this note as the record.
+
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
