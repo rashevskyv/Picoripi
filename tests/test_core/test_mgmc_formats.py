@@ -53,7 +53,7 @@ def test_cff_with_custom_encoding_rebuilds_into_a_loadable_font():
 
 
 # Outside PICORIPI_ROMHACKING: a relative placeholder, so the test that reads it skips.
-ENGLISH_RAW = Path("Games", "MG1-2 MC", "fr", "stage", "mg1", "cache", "english.raw")
+ENGLISH_RAW = romhacking_root.under('Metal Gear\\Metal Gear 1 and 2\\PC\\ISO\\game\\fr\\stage\\mg1\\cache\\english.raw')
 
 
 def test_english_raw_split_round_trips_synthetic_bytes():
@@ -70,3 +70,26 @@ def test_english_raw_split_round_trips_the_install_file():
 
     data = _need(ENGLISH_RAW)
     assert english_raw.join(english_raw.split(data)) == data
+
+
+def test_dialogue_split_finds_records_and_round_trips_synthetic_bytes():
+    from core import english_raw
+
+    gap = b"\x79\x79\x4b\x00"
+    data = b"\x01\x02\x03ZZ" + b"\x00\x00\x0bHello world" + gap + b"\x01\x00\x03Yes" + b"\x7f"
+    chunks = english_raw.dialogue_split(data, start=0)
+    assert english_raw.join(chunks) == data
+    texts = [english_raw.dialogue_text(c) for is_record, c in chunks if is_record]
+    assert texts == [b"Hello world", b"Yes"]
+
+
+def test_dialogue_split_round_trips_the_install_file():
+    from core import english_raw
+
+    data = _need(ENGLISH_RAW)
+    chunks = english_raw.dialogue_split(data)
+    assert english_raw.join(chunks) == data
+    records = [c for is_record, c in chunks if is_record]
+    assert len(records) == 269
+    assert records[0][:3] == b"\x00\x01\xf8"
+    assert sum(len(english_raw.dialogue_text(c)) for c in records) == 14240
