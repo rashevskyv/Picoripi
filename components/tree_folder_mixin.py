@@ -267,7 +267,7 @@ class TreeFolderMixin:
                 if merged_ids and isinstance(merged_ids, list) and len(merged_ids) > 0:
                     # ── Compacted chain ──────────────────────────────────────
                     parts = text.split(" / ")
-                    is_block_item = b_idx is not None
+                    is_block_item = isinstance(b_idx, int) and b_idx >= 0
                     folder_names = parts[:-1] if is_block_item else parts
 
                     curr_p_id = parent_id
@@ -334,8 +334,8 @@ class TreeFolderMixin:
                         folder_obj.children, folder_obj.block_ids = rebuild_from_item(child, f_id)
                         target_folder = folder_obj
 
-                elif b_idx is not None:
-                    # ── Standard block ───────────────────────────────────────
+                elif isinstance(b_idx, int) and b_idx >= 0:
+                    # ── Standard block (virtual items carry negative markers: -2 Story, -3 speaker) ──
                     if b_idx < len(project.blocks):
                         block_ids.append(project.blocks[b_idx].id)
 

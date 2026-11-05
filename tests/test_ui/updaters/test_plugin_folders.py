@@ -212,3 +212,134 @@ def test_a_selected_plugin_folder_dropped_on_a_speaker_assigns_nothing(drag_tree
     assert tree._dragged_assignment_rows(tree._draggable(tree.selectedItems())) == []
     assert window.project_manager.calls == []
     event.ignore.assert_called_once_with()
+
+
+def _story_chapter(title="Chapter 1", chapter_id=7):
+    chapter = QTreeWidgetItem([title])
+    chapter.setData(0, Qt.ItemDataRole.UserRole, -2)
+    chapter.setData(0, Qt.ItemDataRole.UserRole + 11, chapter_id)
+    return chapter
+
+
+def _speaker(name="SYSTEM"):
+    speaker = QTreeWidgetItem([name])
+    speaker.setData(0, Qt.ItemDataRole.UserRole, -3)
+    speaker.setData(0, Qt.ItemDataRole.UserRole + 15, name)
+    return speaker
+
+
+@pytest.mark.parametrize("make_source", [_story_chapter, _speaker], ids=["story chapter", "speaker"])
+def test_a_story_or_speaker_item_dropped_on_a_block_moves_no_project_block(drag_tree, make_source):
+    """Before: the dragged item's UserRole (-2, -3) read as a block index, so blocks[-2] or blocks[-3] went into a
+    new folder with the target block."""
+    window, tree, _block, other = drag_tree
+    source = make_source()
+    tree.addTopLevelItem(source)
+    tree._pending_drag_items = [source]
+    tree._custom_drop_target = (other, "On")
+
+    event = _drop_on(tree, other)
+
+    assert window.project_manager.calls == []
+    event.ignore.assert_called_once_with()
+    assert tree.indexOfTopLevelItem(source) == 2
+
+
+def test_a_story_chapter_dropped_next_to_a_block_stays_in_place(drag_tree):
+    window, tree, _block, other = drag_tree
+    chapter = _story_chapter()
+    tree.addTopLevelItem(chapter)
+    tree._pending_drag_items = [chapter]
+    tree._custom_drop_target = (other, "Above")
+
+    event = _drop_on(tree, other)
+
+    assert window.project_manager.calls == []
+    event.ignore.assert_called_once_with()
+    assert [tree.topLevelItem(i) for i in range(tree.topLevelItemCount())][1:] == [other, chapter]
+
+
+class _Translator:
+    """Explicit fake translation handler: the menu reads only its progress table."""
+
+    translation_progress = {}
+
+
+BLOCK_ONLY_ACTIONS = {
+    "Rename Block", "Remove Block", "Create Folder", "Reveal in Explorer", "Properties...",
+    "Set Default Font", "Rescan Issues", "Calculate Line Widths",
+}
+
+
+@pytest.fixture
+def menu_tree(drag_tree, monkeypatch):
+    """The drag tree with a menu-ready window; returns a function that opens the context menu on an item."""
+    from types import SimpleNamespace
+
+    from PyQt6.QtWidgets import QMenu
+
+    window, tree, block, _other = drag_tree
+    window.data_store = SimpleNamespace(
+        selected_string_indices=[], physical_block_idx=-1, current_block_idx=-1,
+        edited_data={}, block_names={}, data=[],
+    )
+    window.translation_handler = _Translator()
+    window.current_game_rules = None
+    shown = []
+    monkeypatch.setattr(QMenu, "exec", lambda menu, *args: shown.append([a.text() for a in menu.actions()]))
+
+    def open_menu(item):
+        tree.itemAt = lambda point: item
+        tree.show_context_menu(tree.visualItemRect(item).center())
+        return set(shown.pop())
+
+    return tree, block, open_menu
+
+
+def test_a_plugin_folder_menu_has_no_block_actions(menu_tree):
+    """Before: the folder's UserRole -2 counted as a chapter block, so Rename Block, Reveal in Explorer and
+    AI: Translate acted on blocks[-2]."""
+    _tree, block, open_menu = menu_tree
+    labels = open_menu(_find(block, "Small text"))
+    assert not labels & BLOCK_ONLY_ACTIONS
+    assert "AI: Translate Chapter 'Small text' (UA)" not in labels
+
+
+def test_a_speaker_menu_has_no_block_actions(menu_tree):
+    tree, _block, open_menu = menu_tree
+    speaker = _speaker()
+    tree.addTopLevelItem(speaker)
+    labels = open_menu(speaker)
+    assert not labels & BLOCK_ONLY_ACTIONS
+    assert "AI: Translate Block 'Block -3' (UA)" not in labels
+
+
+def test_a_story_chapter_menu_keeps_chapter_translation_only(menu_tree):
+    tree, _block, open_menu = menu_tree
+    chapter = _story_chapter("Chapter 1")
+    tree.addTopLevelItem(chapter)
+    labels = open_menu(chapter)
+    assert not labels & BLOCK_ONLY_ACTIONS
+    assert "AI: Translate Chapter 'Chapter 1' (UA)" in labels
+    assert "AI: Build Glossary for 'Chapter 1'" not in labels
+
+
+def test_a_project_block_menu_keeps_block_actions(menu_tree):
+    tree, _block, open_menu = menu_tree
+    labels = open_menu(tree.topLevelItem(1))
+    assert {"Rename Block", "Remove Block", "Reveal in Explorer", "Properties..."} <= labels
+    assert "AI: Translate Block 'Block 1' (UA)" in labels
+
+
+def test_saving_the_tree_layout_skips_virtual_items(drag_tree):
+    """Before: a top-level Story chapter or speaker put blocks[-2] or blocks[-3] into the saved root layout."""
+    window, tree, _block, _other = drag_tree
+    project = window.project_manager.project
+    for index, block in enumerate(project.blocks):
+        block.id = f"b{index}"
+    project.metadata = {}
+    tree.addTopLevelItems([_story_chapter(), _speaker()])
+
+    tree.sync_tree_to_project_manager()
+
+    assert project.metadata["root_block_ids"] == ["b0", "b1"]

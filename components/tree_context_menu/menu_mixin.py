@@ -204,102 +204,26 @@ class MenuMixin:
                 )
             menu.addSeparator()
 
-        if block_idx is not None:
+        # Only an int >= 0 is a project block. Virtual items carry negative markers (-2 Story chapters and plugin
+        # folders, -3 speakers, -4 items); a block action on them would act on blocks[-2] or blocks[-3].
+        # A Story chapter (-2 with a chapter id) keeps the actions that resolve its rows by chapter id.
+        is_block = isinstance(block_idx, int) and block_idx >= 0
+        is_chapter = block_idx == -2 and ch_id is not None
+        if is_block or is_chapter:
             ds = getattr(main_window, 'data_store', None)
-            if block_idx == -2:
+            if is_chapter:
                 block_name = item.text(0)
             else:
                 block_name = (
                     ds.block_names.get(str(block_idx), f"Block {block_idx}") if ds else f"Block {block_idx}"
                 )
 
-            if compaction_type == 2:
-                h = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_FileIcon), f"BLOCK: {block_name}")
-                h.setEnabled(False)
-
-            lsh = getattr(main_window, 'list_selection_handler', None)
-            pah = getattr(main_window, 'project_action_handler', None)
-
-            ren = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), tr('Rename Block'))
-            if lsh and hasattr(lsh, 'rename_block'):
-                ren.triggered.connect(lambda checked=False, i=item: lsh.rename_block(i))
-
-            dlt = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_TrashIcon), tr('Remove Block'))
-            if pah and hasattr(pah, 'delete_block_action'):
-                dlt.triggered.connect(lambda checked=False: pah.delete_block_action())
-
-            cf = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder), tr('Create Folder'))
-            cf.triggered.connect(self._create_folder_at_cursor)
-            menu.addSeparator()
-
-            # Reveal in Explorer sub-menu
-            reveal_menu = menu.addMenu(self.style().standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon), tr('Reveal in Explorer'))
-            orig_act = reveal_menu.addAction(tr('Original'))
-            orig_act.triggered.connect(
-                lambda checked=False, idx=block_idx: self._reveal_in_explorer(idx, is_translation=False)
-            )
-            trans_act = reveal_menu.addAction(tr('Translation'))
-            trans_act.triggered.connect(
-                lambda checked=False, idx=block_idx: self._reveal_in_explorer(idx, is_translation=True)
-            )
-            menu.addSeparator()
-
-            # Color markers
-            marker_definitions = {}
-            if main_window.current_game_rules:
-                marker_definitions = main_window.current_game_rules.get_color_marker_definitions()
-
-            bh = getattr(main_window, 'block_handler', None)
-            if bh:
-                current_markers = bh.get_block_color_markers(block_idx)
-                for color_name, q_color in self.color_marker_definitions.items():
-                    label = marker_definitions.get(color_name, color_name.capitalize())
-                    action = QAction(self._create_color_icon(q_color), f"Mark '{label}'", menu)
-                    action.setCheckable(True)
-                    action.setChecked(color_name in current_markers)
-                    action.triggered.connect(
-                        lambda checked, b=block_idx, c=color_name: bh.toggle_block_color_marker(b, c)
-                    )
-                    menu.addAction(action)
-            menu.addSeparator()
-
-            # Set Default Font
-            ssh = getattr(main_window, 'string_settings_handler', None)
-            if ssh:
-                font_menu = menu.addMenu(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), tr('Set Default Font'))
-                
-                # Default option
-                default_font_display_text = f"Default ({main_window.default_font_file or 'None'})"
-                def_act = font_menu.addAction(default_font_display_text)
-                def_act.triggered.connect(
-                    lambda checked=False, idx=block_idx: ssh.apply_font_to_block(idx, "default")
-                )
-                
-                all_fonts = getattr(main_window, 'all_font_maps', {})
-                if all_fonts:
-                    for font_key in sorted(all_fonts.keys()):
-                        if font_key != main_window.default_font_file:
-                            font_act = font_menu.addAction(font_key)
-                            font_act.triggered.connect(
-                                lambda checked=False, idx=block_idx, fk=font_key: ssh.apply_font_to_block(idx, fk)
-                            )
-                menu.addSeparator()
-
-            # Rescan / Calculate widths
-            aah = getattr(main_window, 'app_action_handler', None)
-            ish = getattr(main_window, 'issue_scan_handler', None)
-            if ish and hasattr(ish, 'rescan_issues_for_single_block'):
-                ra = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload), tr('Rescan Issues'))
-                ra.triggered.connect(lambda checked=False, idx=block_idx: ish.rescan_issues_for_single_block(idx))
-            if aah and hasattr(aah, 'calculate_widths_for_block_action'):
-                ca = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon), tr('Calculate Line Widths'))
-                ca.triggered.connect(
-                    lambda checked=False, idx=block_idx, cname=category_name: aah.calculate_widths_for_block_action(idx, cname)
-                )
+            if is_block:
+                self._add_block_only_actions(menu, main_window, item, block_idx, block_name, compaction_type, category_name)
 
             # Spellcheck
             scm = getattr(main_window, 'spellchecker_manager', None)
-            if scm and scm.enabled:
+            if is_block and scm and scm.enabled:
                 menu.addSeparator()
                 sca = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_DialogHelpButton), tr('Spellcheck'))
                 sca.triggered.connect(
@@ -331,15 +255,16 @@ class MenuMixin:
                         lambda checked=False, idx=block_idx, cname=category_name, chid=ch_id: translator.translate_current_block(idx, cname, chid)
                     )
 
-                glossary_label = (
-                    f"AI: Build Glossary for Virtual Block '{category_name}'"
-                    if category_name
-                    else f"AI: Build Glossary for '{block_name}'"
-                )
-                ga = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView), glossary_label)
-                ga.triggered.connect(
-                    lambda checked=False, idx=block_idx, cname=category_name: main_window.build_glossary_with_ai(idx, cname)
-                )
+                if is_block:
+                    glossary_label = (
+                        f"AI: Build Glossary for Virtual Block '{category_name}'"
+                        if category_name
+                        else f"AI: Build Glossary for '{block_name}'"
+                    )
+                    ga = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView), glossary_label)
+                    ga.triggered.connect(
+                        lambda checked=False, idx=block_idx, cname=category_name: main_window.build_glossary_with_ai(idx, cname)
+                    )
 
             # Save selected specific changes
             menu.addSeparator()
@@ -411,6 +336,10 @@ class MenuMixin:
                     )
                     rs.triggered.connect(self._restore_selected_translations)
 
+            if not is_block:
+                menu.exec(self.mapToGlobal(pos))
+                return
+
             # Font Editor for .bfn files
             is_bfn = False
             if pm and pm.project:
@@ -441,4 +370,90 @@ class MenuMixin:
             prop_act.triggered.connect(lambda checked=False, idx=block_idx: self._show_block_properties(idx))
 
         menu.exec(self.mapToGlobal(pos))
+
+    def _add_block_only_actions(self, menu, main_window, item, block_idx, block_name, compaction_type, category_name):
+        """Add the actions that need a real project block index (never a virtual tree item)."""
+        if compaction_type == 2:
+            h = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_FileIcon), f"BLOCK: {block_name}")
+            h.setEnabled(False)
+
+        lsh = getattr(main_window, 'list_selection_handler', None)
+        pah = getattr(main_window, 'project_action_handler', None)
+
+        ren = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), tr('Rename Block'))
+        if lsh and hasattr(lsh, 'rename_block'):
+            ren.triggered.connect(lambda checked=False, i=item: lsh.rename_block(i))
+
+        dlt = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_TrashIcon), tr('Remove Block'))
+        if pah and hasattr(pah, 'delete_block_action'):
+            dlt.triggered.connect(lambda checked=False: pah.delete_block_action())
+
+        cf = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder), tr('Create Folder'))
+        cf.triggered.connect(self._create_folder_at_cursor)
+        menu.addSeparator()
+
+        # Reveal in Explorer sub-menu
+        reveal_menu = menu.addMenu(self.style().standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon), tr('Reveal in Explorer'))
+        orig_act = reveal_menu.addAction(tr('Original'))
+        orig_act.triggered.connect(
+            lambda checked=False, idx=block_idx: self._reveal_in_explorer(idx, is_translation=False)
+        )
+        trans_act = reveal_menu.addAction(tr('Translation'))
+        trans_act.triggered.connect(
+            lambda checked=False, idx=block_idx: self._reveal_in_explorer(idx, is_translation=True)
+        )
+        menu.addSeparator()
+
+        # Color markers
+        marker_definitions = {}
+        if main_window.current_game_rules:
+            marker_definitions = main_window.current_game_rules.get_color_marker_definitions()
+
+        bh = getattr(main_window, 'block_handler', None)
+        if bh:
+            current_markers = bh.get_block_color_markers(block_idx)
+            for color_name, q_color in self.color_marker_definitions.items():
+                label = marker_definitions.get(color_name, color_name.capitalize())
+                action = QAction(self._create_color_icon(q_color), f"Mark '{label}'", menu)
+                action.setCheckable(True)
+                action.setChecked(color_name in current_markers)
+                action.triggered.connect(
+                    lambda checked, b=block_idx, c=color_name: bh.toggle_block_color_marker(b, c)
+                )
+                menu.addAction(action)
+        menu.addSeparator()
+
+        # Set Default Font
+        ssh = getattr(main_window, 'string_settings_handler', None)
+        if ssh:
+            font_menu = menu.addMenu(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), tr('Set Default Font'))
+
+            # Default option
+            default_font_display_text = f"Default ({main_window.default_font_file or 'None'})"
+            def_act = font_menu.addAction(default_font_display_text)
+            def_act.triggered.connect(
+                lambda checked=False, idx=block_idx: ssh.apply_font_to_block(idx, "default")
+            )
+
+            all_fonts = getattr(main_window, 'all_font_maps', {})
+            if all_fonts:
+                for font_key in sorted(all_fonts.keys()):
+                    if font_key != main_window.default_font_file:
+                        font_act = font_menu.addAction(font_key)
+                        font_act.triggered.connect(
+                            lambda checked=False, idx=block_idx, fk=font_key: ssh.apply_font_to_block(idx, fk)
+                        )
+            menu.addSeparator()
+
+        # Rescan / Calculate widths
+        aah = getattr(main_window, 'app_action_handler', None)
+        ish = getattr(main_window, 'issue_scan_handler', None)
+        if ish and hasattr(ish, 'rescan_issues_for_single_block'):
+            ra = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload), tr('Rescan Issues'))
+            ra.triggered.connect(lambda checked=False, idx=block_idx: ish.rescan_issues_for_single_block(idx))
+        if aah and hasattr(aah, 'calculate_widths_for_block_action'):
+            ca = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon), tr('Calculate Line Widths'))
+            ca.triggered.connect(
+                lambda checked=False, idx=block_idx, cname=category_name: aah.calculate_widths_for_block_action(idx, cname)
+            )
 
