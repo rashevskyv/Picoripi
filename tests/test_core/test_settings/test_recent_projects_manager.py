@@ -46,6 +46,6 @@ def test_recent_project_names_follow_the_list():
 
 def test_recent_project_label():
     from handlers.project_action.recent_mixin import recent_project_label
-    assert recent_project_label("E:/Lunar/picoripi/project.uiproj", "Lunar (PS1)") == "Lunar (PS1)"
-    assert recent_project_label("E:/Lunar/picoripi/project.uiproj") == "Lunar / picoripi"
-    assert recent_project_label("E:/x/zelda.uiproj") == "zelda"
+    assert recent_project_label("/games/Lunar/picoripi/project.uiproj", "Lunar (PS1)") == "Lunar (PS1)"
+    assert recent_project_label("/games/Lunar/picoripi/project.uiproj") == "Lunar / picoripi"
+    assert recent_project_label("/games/x/zelda.uiproj") == "zelda"
