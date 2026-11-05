@@ -141,6 +141,11 @@ def isolate_user_files_for_the_session(tmp_path_factory):
     """Backstop: a window closed after a test's teardown or at exit still writes into a temp folder, not ~/.picoripi."""
     with pytest.MonkeyPatch.context() as monkeypatch:
         _point_user_files_at(monkeypatch, tmp_path_factory.mktemp("session_user_files"))
+        # One parsed-dictionary cache for the session: every test settings folder is new, and a 36 MB cache
+        # written per window would cost a second and the disk. Tests of the cache point it elsewhere.
+        import core.spellchecker_cache as spellchecker_cache
+        shared_cache = tmp_path_factory.mktemp("spellchecker_cache")
+        monkeypatch.setattr(spellchecker_cache, "_cache_dir", lambda: shared_cache)
         yield
 
 

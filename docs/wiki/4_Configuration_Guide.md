@@ -312,6 +312,7 @@ Restart: no.
 | Project list, groups, emulator commands | `project_manager.json` | Data folder |
 | Unsaved edits of a project | `.picoripi_session` | Project folder |
 | Event log | `app_debug.txt` (or your log path); `ai_traffic.log` | Program folder; data folder |
+| The parsed spellchecker dictionary (~36 MB per language), so a later start does not parse the `.dic`/`.aff` again; made again when the dictionary changes; safe to delete | `cache/spellchecker/` | Data folder |
 
 Do not commit `settings.json`, `project_settings.json`, `.env`, `console_keys.json` or any API key. The data folder has a `.gitignore` that hides it from Git.
 

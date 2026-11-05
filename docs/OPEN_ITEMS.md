@@ -896,8 +896,9 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   owner's projects, and measure parse time (not only file reads) per hook. Probe script: kept outside the repository.
 - **The issue scan runs one whole block per UI-thread step** (`issue_scan_handler._scan_next_batch`): a game
   whose text is one block (N64: 4589 strings) freezes the window for ~2 s at the first open.
-- **An enabled spellchecker parses its dictionary in a Python thread** (pure-Python `spylls`, 2–3 s of CPU
-  that the UI thread shares). Keep the parsed dictionary on disk, or parse in a process.
+- **An enabled spellchecker parses its dictionary in a Python thread on the first start** (pure-Python `spylls`,
+  ~1.3 s of CPU, plus ~1 s to write the cache); later starts load `~/.picoripi/cache/spellchecker` in ~0.6 s
+  (`core/spellchecker_cache.py`). Parse in a process if the first start matters.
 - **A project without its own MemPalace database gets one in the working directory**
   (`mempalace_local.db` next to where the application was started), not in the project folder.
 - **`SettingsManager.load_unsaved_session` uses `eval` on keys read from `settings.json`**

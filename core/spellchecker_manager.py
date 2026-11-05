@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import List, Optional, Dict
 from utils.logging_utils import log_debug, log_warning, log_error
 from spylls.hunspell import Dictionary
+from core.spellchecker_cache import load_dictionary
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer
 from utils.thread_utils import WorkerThread, single_shot
 
@@ -272,7 +273,7 @@ class SpellcheckerManager(QObject):
                 log_warning(f"Dictionary files (.dic, .aff) for basename '{dictionary_basename}' not found. Spellchecker will be inactive.")
                 return
 
-            hunspell_dict = Dictionary.from_files(str(dictionary_basename))
+            hunspell_dict = load_dictionary(dictionary_basename)
             
             # Emit signal to safely pass the loaded dictionary back to the main GUI thread
             try:
@@ -317,7 +318,7 @@ class SpellcheckerManager(QObject):
                 self.hunspell = None
                 return
 
-            self.hunspell = Dictionary.from_files(str(dictionary_basename))
+            self.hunspell = load_dictionary(dictionary_basename)
             log_debug(f"spylls Dictionary object created successfully for language '{self.language}'.")
             self._spell_cache.clear()
             self._suggestions_cache.clear()
