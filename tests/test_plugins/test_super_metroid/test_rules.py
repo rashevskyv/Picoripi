@@ -18,7 +18,7 @@ PLUGIN = "super_metroid"
 SM = ("Metroid", "Super Metroid")
 SCRIPT_FILE = ("_shared", "scripts", "zt", "sm.py")
 ROM_SHA256 = "12b77c4bc9c1832cee8881244659065ee1d84c70c3d29e6eaf92e6798cc2ca72"   # Super Metroid (Japan, USA) (En,Ja)
-SM_PY_SHA256 = "ae3daa193890fa4556d366cef628ba287f10f2bb047fd55da5d3d6038b6514b4"
+SM_PY_SHA256 = "70f84890b82d18ee0ca518fef2bc2d37adc20e2dd05e8623fa84bb746e69d9dd"
 SAMPLE = json.dumps({"format": sm_rules.FORMAT, "groups": [
     {"name": "Message boxes", "items": [{"id": "msg.01.EnergyTank", "text": "ENERGY TANK", "width": 19, "lines": 1,
                                          "symbol": "kMessageBox_1_EnergyTank"}]},
@@ -166,7 +166,7 @@ def test_real_rom_unchanged_text_and_sheets_build_the_same_rom(zt_sm, tmp_path):
     assert changed <= documented                        # unchanged text: only the exit label list moved
     sm.blank_freed_intro(rom, data)                     # the build's own first steps: freed intro tiles, JP switch
     sm.blank_freed_menu(rom)                            # freed menu tiles (the Japanese option art)
-    sm.patch_japanese_toggle(rom)
+    sm.patch_language_rom(rom)
     built = bytes(rom.data)
     for name in sm.GFX:
         (tmp_path / "s" / "gfx").mkdir(parents=True, exist_ok=True)
@@ -177,6 +177,7 @@ def test_real_rom_unchanged_text_and_sheets_build_the_same_rom(zt_sm, tmp_path):
 def test_real_rom_changed_texts_land_in_the_rom_and_read_back(zt_sm):
     sm, data = zt_sm
     rom = sm.Rom(data)
+    sm.relocate_pause_labels(rom)                       # as the build does: 17-cell pause labels before the texts
     texts = {it["id"]: it["text"] for g in json.loads(sm.dump_text(rom))["groups"] for it in g["items"]}
     new = dict(texts, **{"msg.01.EnergyTank": "ЕНЕРГОБАК", "menu.SamusData": "UA TEST",
                          "options.options.r06c00": "UA TEST GAME", "pause.area0": "UA TEST",
@@ -379,13 +380,15 @@ def test_real_rom_the_first_screen_text_is_an_item_and_moves_to_free_space_when_
     spaces = [sm.lo(a) for a in sm.PROLOGUE_SPACE]
     assert all(spaces[0] <= i < spaces[1] or sm.PROLOGUE_CODE <= i < sm.PROLOGUE_CODE + 8 or sm.lo(sm.PROLOGUE) <= i
                < sm.lo(sm.PROLOGUE) + 226 for i in diff)
-    # the port's C literal follows the moved block
+    # the port's C literal follows the moved block; the English copy is read while WRAM 0x9E8 is not 0
     c_file = tmp_path / "sm_8b.c"
-    c_file.write_text("a;\n  DecompressToMem(0x978d12, g_ram + 0x1e000);\n  DecompressToMem(0x978ADB, g_ram);\n",
-                      encoding="utf-8")
+    source = "a;\n  DecompressToMem(0x978d12, g_ram + 0x1e000);\n  DecompressToMem(0x978ADB, g_ram);\n"
+    c_file.write_text(source, encoding="utf-8")
     assert sm.patch_prologue_pointer(c_file, data, data) is False
+    c_file.write_text(source, encoding="utf-8")
     assert sm.patch_prologue_pointer(c_file, data, moved) is True
-    assert c_file.read_text(encoding="utf-8").count(f"DecompressToMem(0x{sm.PROLOGUE_SPACE[0]:06x}, g_ram + 0x1e000)") == 1
+    lang = f"*(uint16 *)(g_ram + 0x9E8) ? 0x{sm.EN_PROLOGUE:06x} : 0x{sm.PROLOGUE_SPACE[0]:06x}"
+    assert c_file.read_text(encoding="utf-8").count(f"DecompressToMem({lang}, g_ram + 0x1e000)") == 1
     assert "0x978ADB" in c_file.read_text(encoding="utf-8")
 
 
@@ -462,3 +465,30 @@ def test_exit_label_list_moves_to_five_cells(zt_sm):
     assert bytes(rom[sm.EXIT_CALLS[0]:sm.EXIT_CALLS[0] + 2]) == bytes([0x1A, 0xEF])
     sm.relocate_exit(rom)                                              # a second run changes nothing
     assert struct.unpack_from("<6H", rom, sm.lo(0x81EF1A)) == words
+
+
+def test_the_rom_code_reads_the_english_intro_copies_while_the_language_flag_is_set(zt_sm):
+    """Every hooked intro read calls a bank 8B helper: E0/E1/E2 while WRAM 0x9E8 is not 0, else the original read."""
+    sm, data = zt_sm
+    rom = sm.Rom(data)
+    sm.write_story_frame(rom)
+    sm.patch_intro_language_rom(rom)
+    d = bytes(rom.data)
+    blob, at = sm._intro_language_hooks(sm.INTRO_HOOKS_AT)
+    assert d[sm.lo(sm.INTRO_HOOKS_AT):sm.lo(sm.INTRO_HOOKS_AT) + len(blob)] == blob
+
+    def helper(name):
+        return blob[at[name] - sm.INTRO_HOOKS_AT:][:24]
+
+    assert all(sm.LANG_FLAG in helper(name) for name in at)
+
+    for addr, k in sm.INTRO_LIST_READS.items():
+        assert d[sm.lo(addr):sm.lo(addr) + 3] == bytes([0x20]) + struct.pack("<H", at[f"list{k}"] & 0xFFFF)
+        assert bytes([0xBF, k, 0x00, 0xE0]) in helper(f"list{k}") and bytes([0xB9, k, 0x00]) in helper(f"list{k}")
+    assert d[sm.lo(sm.INTRO_DEF_READ)] == 0x20 and bytes([0xBF, 0x04, 0x00, 0xE1]) in helper("def")
+    assert bytes([0x54, 0x7E, 0xE2]) in helper("story") and bytes([0x54, 0x7E, 0x89]) in helper("story")
+    assert d[sm.PROLOGUE_CODE + 10:sm.PROLOGUE_CODE + 14] == bytes([0x22]) + struct.pack("<H", at["prologue"] & 0xFFFF) + b"\x8b"
+    assert bytes([0xA9, 0x00, 0xE2]) in helper("prologue") and bytes([0x5C, 0xFF, 0xB0, 0x80]) in helper("prologue")
+    assert sm.prologue_address(d) == sm.PROLOGUE                       # the builder still finds the Ukrainian block
+    sm.patch_intro_language_rom(rom)                                   # a second run changes nothing
+    assert bytes(rom.data) == d

@@ -1,7 +1,8 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
-- Super Metroid: the intro follows the language choice. The ROM is 4 MB; banks E0-E2 hold the English copies of banks 8C and 8B, the English story window and the English first-screen block; the port reads them while WRAM 0x9E8 is not 0 (`RomPtr_8B`/`RomPtr_8C` in `sm_rtl.h`, `sm_8b.c`). The ROM's own intro code still shows the Ukrainian intro.
+- Super Metroid: the ROM's own intro code follows the language choice like the port: while WRAM 0x9E8 is not 0, the eight intro list reads (0x8B966D/967F/9685, 0x8B8867/886C/8878/8890/88A2) read bank E0, the page list pointer (0x8B9610) reads E1, the story window MVN (0x8BA879) copies E2:8000 and the first screen (JSL at 0x8BA44D) unpacks E2:8800; helpers at 0x8BF800 (`patch_intro_language_rom` in zt `sm.py`). Checked in Mesen 2: English and Ukrainian intro pages.
+- Super Metroid: the intro follows the language choice. The ROM is 4 MB; banks E0-E2 hold the English copies of banks 8C and 8B, the English story window and the English first-screen block; the port reads them while WRAM 0x9E8 is not 0 (`RomPtr_8B`/`RomPtr_8C` in `sm_rtl.h`, `sm_8b.c`).
 - Super Metroid: the seven pause area labels are 17 cells (`pause.area3` РОЗБИТИЙ КОРАБЕЛЬ); the labels move to free bank 82 (0x82F740, 34 bytes each); the label DMA and copy loop follow in ROM and port.
 - Super Metroid: the ROM highlights the MOON WALK row 9 and 8 cells (УВІМКНЕНО, ВИМКНЕНО) like the port, through two helpers at 0x82F720 and 0x82F730; the other rows keep 6 cells.
 - Super Metroid: the options menu has two choices, УКРАЇНСЬКИЙ ТЕКСТ (row 10, default) and АНГЛІЙСЬКИЙ ТЕКСТ (row 13); the choice is WRAM 0x9E8 (ROM toggle at 0x82EDDA, port `english_text_flag`); the row 10-11 highlight is 17 cells wide.
