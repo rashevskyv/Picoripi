@@ -61,7 +61,7 @@ def test_text_units_round_trip_the_install_file():
 
 
 def test_shared_zt_copy_is_the_core_module():
-    copy = Path(r"E:\Emulators\RomHacking\_shared\scripts\zt\english_raw.py")
+    copy = romhacking_root.under('_shared\\scripts\\zt\\english_raw.py')
     if not copy.is_file():
         pytest.skip("no shared zt copy on this machine")
     assert copy.read_bytes() == Path(english_raw.__file__).read_bytes()
