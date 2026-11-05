@@ -253,6 +253,7 @@ tokens: 15.0k
 | Zelda: Twilight Princess | Title ID | 000500001019E500 | Не вказано | Wii U HD, Twilight Princess |
 | Zelda: Twilight Princess | Title ID | 000500001019E600 | Не вказано | Wii U HD, Twilight Princess |
 | Zelda: Twilight Princess | Title ID | 000500001019C800 | Не вказано | Wii U HD, Twilight Princess |
+| Zone of the Enders: The 2nd Runner (PlayStation 2) | Серійний номер | SLUS-20545 | США | PlayStation 2 disc |
 
 <!-- supported-images:end -->
 
@@ -392,6 +393,7 @@ tokens: 15.0k
 | Гра | Платформа | Що потрібно майстру | Цілі збірки | Примітки |
 |---|---|---|---|---|
 | Okami (PlayStation 2) | PlayStation 2 | Файли гри (тека або образ) | PlayStation 2: образ диска (ISO) | Образ диска PlayStation 2. |
+| Zone of the Enders: The 2nd Runner (PlayStation 2) | PlayStation 2 | Файли гри (тека або образ) | PlayStation 2: образ диска (ISO) | Образ диска PlayStation 2; скрипти етапів зі STAGE.DAT. |
 
 ### PlayStation
 

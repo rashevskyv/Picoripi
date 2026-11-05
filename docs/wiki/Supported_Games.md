@@ -254,6 +254,7 @@ Each plugin opens the images listed here. When you add an image, the wizard matc
 | Zelda: Twilight Princess | Title ID | 000500001019E500 | Not stated | Wii U HD, Twilight Princess |
 | Zelda: Twilight Princess | Title ID | 000500001019E600 | Not stated | Wii U HD, Twilight Princess |
 | Zelda: Twilight Princess | Title ID | 000500001019C800 | Not stated | Wii U HD, Twilight Princess |
+| Zone of the Enders: The 2nd Runner (PlayStation 2) | Serial | SLUS-20545 | USA | PlayStation 2 disc |
 
 <!-- supported-images:end -->
 
@@ -393,6 +394,7 @@ Each plugin opens the images listed here. When you add an image, the wizard matc
 | Game | Platform | What the wizard needs | Build targets | Notes |
 |---|---|---|---|---|
 | Okami (PlayStation 2) | PlayStation 2 | Game files (folder or image) | PlayStation 2: disc image (ISO) | PlayStation 2 disc image. |
+| Zone of the Enders: The 2nd Runner (PlayStation 2) | PlayStation 2 | Game files (folder or image) | PlayStation 2: disc image (ISO) | PlayStation 2 disc image; stage scripts of STAGE.DAT. |
 
 ### PlayStation
 

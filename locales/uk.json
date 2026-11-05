@@ -3358,5 +3358,16 @@
   "The translation file {0} is missing.": "Файлу перекладу {0} немає.",
   "{0} is not a Guardian Heroes script file.": "{0} не є файлом скрипта Guardian Heroes.",
   "Line longer than the shipped languages use": "Рядок довший, ніж у мовах самої гри",
-  "This line has more visible characters than 99 % of the lines in the game's own French, German and Spanish scripts (about 34; 50 in the battle quotes). The real limit is the width of the dialogue window, which is not measured yet. Break the line with Enter.": "У цьому рядку більше видимих символів, ніж у 99 % рядків французького, німецького та іспанського скриптів самої гри (близько 34; 50 у бойових репліках). Справжня межа — ширина вікна діалогу, її ще не виміряно. Розбийте рядок клавішею Enter."
+  "This line has more visible characters than 99 % of the lines in the game's own French, German and Spanish scripts (about 34; 50 in the battle quotes). The real limit is the width of the dialogue window, which is not measured yet. Break the line with Enter.": "У цьому рядку більше видимих символів, ніж у 99 % рядків французького, німецького та іспанського скриптів самої гри (близько 34; 50 у бойових репліках). Справжня межа — ширина вікна діалогу, її ще не виміряно. Розбийте рядок клавішею Enter.",
+  "The group stream does not start with the zlib header the game expects.": "Потік групи не починається із заголовка zlib, якого чекає гра.",
+  "The file is too short for a STAGE.DAT.": "Файл закороткий для STAGE.DAT.",
+  "This STAGE.DAT is not the one of Zone of the Enders: The 2nd Runner.": "Цей STAGE.DAT не належить Zone of the Enders: The 2nd Runner.",
+  "The index of stage {0} is not readable.": "Індекс етапу {0} не читається.",
+  "Group {0} of stage {1} does not follow the group before it.": "Група {0} етапу {1} не йде одразу за попередньою групою.",
+  "A changed group must keep its number of files.": "Змінена група має зберегти кількість файлів.",
+  "There is no text string at offset {0}.": "За зміщенням {0} немає текстового рядка.",
+  "The script has {0} strings, not {1}.": "У скрипті рядків: {0}, а не {1}.",
+  "The file is not the Zone of the Enders: The 2nd Runner PlayStation 2 disc.": "Цей файл не є диском PlayStation 2 гри Zone of the Enders: The 2nd Runner.",
+  "The stage {0} has no script.": "Етап {0} не має скрипта.",
+  "The disc has no stage {0}.": "На диску немає етапу {0}."
 }
