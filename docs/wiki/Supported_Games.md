@@ -108,6 +108,7 @@ Each plugin opens the images listed here. When you add an image, the wizard matc
 | MadWorld | Disc ID | RZZP8P | EUR | Wii |
 | Mario vs. Donkey Kong (GBA) | Not checked by ID | — | Not stated | GBA |
 | Mario vs. Donkey Kong (Switch) | Not checked by ID | — | Not stated | Switch |
+| Metal Gear + Metal Gear 2 (Master Collection) | Not checked by ID | — | USA | Master Collection, PC and Switch |
 | Metal Gear Solid (Master Collection) | Not checked by ID | — | USA | Master Collection, PC and Switch |
 | Metal Gear Solid (PlayStation) | Serial | SLUS-00594 | USA | PlayStation, both discs |
 | Metal Gear Solid 2 / 3 (Master Collection) | Not checked by ID | — | Not stated | Master Collection, Switch |

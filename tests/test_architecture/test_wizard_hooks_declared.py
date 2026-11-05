@@ -65,6 +65,7 @@ BASELINE = {
     "mario_vs_donkey_kong_gba": "owner source is not a disc image (folders); the user prepares the folder or files",
     "mario_vs_donkey_kong_switch": "owner source is not a disc image (folders); the user prepares the folder or files",
     "metal_gear_mc_bonus": "owner source is not a disc image (folders); the user prepares the folder or files",
+    "metal_gear_12_mc": "owner source is not a disc image (folders); the user prepares the folder or files",
     "metal_gear_pw": "owner source is not a disc image (folders); the user prepares the folder or files",
     "metal_gear_solid_23_mc": "owner source is not a disc image (folders); the user prepares the folder or files",
     "metal_gear_solid_3d": "owner source is not a disc image (folders); the user prepares the folder or files",

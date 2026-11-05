@@ -107,6 +107,7 @@ tokens: 15.0k
 | MadWorld | ID диска | RZZP8P | Європа | Wii |
 | Mario vs. Donkey Kong (GBA) | ID не перевіряється | — | Не вказано | GBA |
 | Mario vs. Donkey Kong (Switch) | ID не перевіряється | — | Не вказано | Switch |
+| Metal Gear + Metal Gear 2 (Master Collection) | ID не перевіряється | — | США | Master Collection, PC and Switch |
 | Metal Gear Solid (Master Collection) | ID не перевіряється | — | США | Master Collection, PC and Switch |
 | Metal Gear Solid (PlayStation) | Серійний номер | SLUS-00594 | США | PlayStation, both discs |
 | Metal Gear Solid 2 / 3 (Master Collection) | ID не перевіряється | — | Не вказано | Master Collection, Switch |

@@ -39,7 +39,7 @@ def test_cache_is_written_and_reused(basename, monkeypatch):
     for word in ("cat", "cats", "dog", "Cats"):
         assert cached.lookup(word) is True
     assert cached.lookup("dogs") is False
-    assert "cat" in list(cached.suggest("cta"))
+    assert list(cached.suggest("cta")) == list(first.suggest("cta"))
     assert [w.stem for w in cached.dic.words] == [w.stem for w in first.dic.words]
 
 
