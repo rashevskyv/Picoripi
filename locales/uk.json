@@ -2844,6 +2844,7 @@
   "an NCA header does not decrypt as NCA3: the key file is wrong or the NCA is not NCA3": "заголовок NCA не розшифровується як NCA3: файл ключів неправильний або NCA не є NCA3",
   "an NCA section table entry is empty or reversed": "запис таблиці секцій NCA порожній або перевернутий",
   "the package has no ticket for the rights ID of its program": "пакет не має квитка для rights ID своєї програми",
+  "the package has no program NCA {0}": "пакет не має програмного NCA {0}",
   "personalised tickets are not supported": "персоналізовані квитки не підтримуються",
   "a title key decrypts to zero: the key file is wrong": "титульний ключ розшифровується в нуль: файл ключів неправильний",
   "a section uses encryption type {0}, which is not read": "секція використовує тип шифрування {0}, який не читається",
@@ -3340,5 +3341,9 @@
   "No script or tool path configured.\n\nPlease go to Settings → Tools and set the path.": "Шлях до скрипту або інструмента не задано.\n\nВідкрийте Налаштування → Інструменти й задайте шлях.",
   "Started tool: {}": "Запущено інструмент: {}",
   "Failed to start tool '{}':\n{}": "Не вдалося запустити інструмент '{}':\n{}",
-  "Configured script path does not exist or is not a file: {}": "Вказаний шлях до скрипту не існує або це не файл: {}"
+  "Configured script path does not exist or is not a file: {}": "Вказаний шлях до скрипту не існує або це не файл: {}",
+  "The base file is not a Lunar: Silver Star Story Remastered image.": "Базовий файл не є образом Lunar: Silver Star Story Remastered.",
+  "No program of the image holds data.cpk.": "Жодна програма образу не містить data.cpk.",
+  "Switch mod (LayeredFS)": "Мод для Switch (LayeredFS)",
+  "PC game folder (data.cpk)": "Тека гри для ПК (data.cpk)"
 }

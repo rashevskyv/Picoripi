@@ -40,8 +40,12 @@ def _word_index(byte: int, data: bytes, p: int) -> Tuple[int, int]:
     return byte - 0x5C, p
 
 
-def decode(data: bytes, start: int, end: int, words: Optional[List[str]] = None) -> str:
-    """The text of ``data[start:end]`` (end just after the terminator)."""
+def decode(data: bytes, start: int, end: int, words: Optional[List[str]] = None,
+           glyphs: Optional[Dict[int, str]] = None) -> str:
+    """The text of ``data[start:end]`` (end just after the terminator).
+
+    ``glyphs`` maps a raw glyph byte to its character (the JP text); without it a raw byte shows as ``{raw:XX}``.
+    """
     words = WORDS if words is None else words
     out: List[str] = []
     p = start
@@ -68,13 +72,14 @@ def decode(data: bytes, start: int, end: int, words: Optional[List[str]] = None)
             out.append(f"{{{b:02X}:{data[p]:02X}}}")
             p += 1
         else:
-            out.append(f"{{raw:{b:02X}}}")
+            out.append(glyphs[b] if glyphs and b in glyphs else f"{{raw:{b:02X}}}")
     return "".join(out)
 
 
-def decode_message(data: bytes, start: int, end: int, words: Optional[List[str]] = None) -> str:
+def decode_message(data: bytes, start: int, end: int, words: Optional[List[str]] = None,
+                   glyphs: Optional[Dict[int, str]] = None) -> str:
     """A message: ``{end}`` marks the ones that end with 0xFF (no wait for a button)."""
-    text = decode(data, start, end, words)
+    text = decode(data, start, end, words, glyphs)
     return text + END_TAG if data[end - 1] == END_RAW else text
 
 

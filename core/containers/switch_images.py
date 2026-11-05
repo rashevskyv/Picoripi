@@ -194,7 +194,8 @@ class SwitchImage(ImageReader):
     """A Switch .nsp or .nsz, decrypted with ``keys``: the ExeFS files (``exefs/<name>``) and the RomFS files
     (``romfs/<path>``) of its program NCA.
 
-    The program NCA is the one whose header holds content type 0; the package must hold exactly one. Its ticket must be
+    The program NCA is the one whose header holds content type 0. A package with several must name one with ``program``
+    (its index in ``program_list``); without it the package must hold exactly one. Its ticket must be
     a common ticket. A program given as .ncz is decompressed into ``cache_dir`` (a folder of the caller, created when
     missing); ``close`` deletes that copy. ``is_cancelled`` is checked while it decompresses: then ``entries`` returns
     an empty list. ``progress(percent, .ncz name)`` reports that decompression. NCA2/NCA0 and XCI images raise ImageError. ``romfs_is_patch`` is set by ``entries`` when the RomFS
@@ -203,9 +204,10 @@ class SwitchImage(ImageReader):
 
     def __init__(self, stream: BinaryIO, keys: SwitchKeys, cache_dir: Optional[str | Path] = None,
                  is_cancelled: Optional[Callable[[], bool]] = None,
-                 progress: Optional[Callable[[int, str], None]] = None) -> None:
+                 progress: Optional[Callable[[int, str], None]] = None, program: Optional[int] = None) -> None:
         super().__init__(stream)
         self._keys = keys
+        self._program_index = program   # which program NCA (in package order) when a package holds several
         self._cache_dir = cache_dir
         self._is_cancelled = is_cancelled or (lambda: False)
         self._progress = progress or (lambda percent, text: None)
@@ -253,17 +255,37 @@ class SwitchImage(ImageReader):
         romfs = PatchedRomFs(base_view, patch, fsh, level + data_size)
         return _romfs_files(RangeView(romfs, level, data_size))
 
-    def _ensure_program(self) -> bool:
-        """Open the program NCA (its keys and section table) without listing any files. False when cancelled."""
-        if self._program is not None:
-            return True
+    def program_list(self) -> List[Dict[str, Any]]:
+        """The program NCAs of the package in package order: ``{"index", "name", "size", "rights_id"}`` (hex).
+
+        Reads the NCA headers only (no section is decrypted). Raises ImageError for a package that is not read.
+        """
+        return [{"index": index, "name": item["name"], "size": item["size"], "rights_id": header.rights_id.hex()}
+                for index, (item, header) in enumerate(self._programs())]
+
+    def _programs(self) -> List[Tuple[Dict[str, Any], NcaHeader]]:
         magic = self.read_at(0, 4) if self.size >= 4 else b""
         if magic != PFS0_MAGIC:
             if self.size >= 0x104 and self.read_at(0x100, 4) == XCI_MAGIC:
                 raise ImageError(tr("Switch cartridge images (.xci) are not read yet"))
             raise ImageError(tr("not a Switch .nsp package"))
-        tickets: Dict[bytes, bytes] = {}
         programs: List[Tuple[Dict[str, Any], NcaHeader]] = []
+        for item in _pfs0_files(self):
+            _inside(item, self.size)
+            if item["name"].endswith(".nca") or item["name"].endswith(".ncz"):
+                if item["size"] < HEADER_SIZE:
+                    raise ImageError(tr("an NCA is cut short"))
+                header = NcaHeader(self.read_at(item["offset"], HEADER_SIZE), self._keys)
+                if header.content_type == PROGRAM:
+                    programs.append((item, header))
+        return programs
+
+    def _ensure_program(self) -> bool:
+        """Open the program NCA (its keys and section table) without listing any files. False when cancelled."""
+        if self._program is not None:
+            return True
+        programs = self._programs()
+        tickets: Dict[bytes, bytes] = {}
         for item in _pfs0_files(self):
             _inside(item, self.size)
             if item["name"].endswith(".tik"):
@@ -271,15 +293,14 @@ class SwitchImage(ImageReader):
                     raise ImageError(tr("a ticket has a bad size"))
                 ticket = self.read_at(item["offset"], item["size"])
                 tickets[ticket[RIGHTS_ID_AT:RIGHTS_ID_AT + 16]] = ticket
-            elif item["name"].endswith((".nca", ".ncz")):
-                if item["size"] < HEADER_SIZE:
-                    raise ImageError(tr("an NCA is cut short"))
-                header = NcaHeader(self.read_at(item["offset"], HEADER_SIZE), self._keys)
-                if header.content_type == PROGRAM:
-                    programs.append((item, header))
-        if len(programs) != 1:
-            raise ImageError(tr("the package must hold exactly one program NCA"))
-        item, header = programs[0]
+        if self._program_index is None:
+            if len(programs) != 1:
+                raise ImageError(tr("the package must hold exactly one program NCA"))
+            item, header = programs[0]
+        else:
+            if not 0 <= self._program_index < len(programs):
+                raise ImageError(tr("the package has no program NCA {0}", self._program_index))
+            item, header = programs[self._program_index]
         key = content_key(header, self._keys, tickets)
         body = self._program_body(item)
         if body is None:   # cancelled while the .ncz was decompressed

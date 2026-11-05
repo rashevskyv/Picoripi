@@ -199,7 +199,8 @@ def _has_pycryptodome() -> bool:
 
 
 def _reader(stream: Any, cache_dir: Optional[str | Path] = None,
-            is_cancelled: Optional[Cancelled] = None, progress: Optional[Progress] = None) -> ImageReader:
+            is_cancelled: Optional[Cancelled] = None, progress: Optional[Progress] = None,
+            program: Optional[int] = None) -> ImageReader:
     head = stream.read(HEADER_SIZE)
     stream.seek(0)
     if z3ds.is_z3ds(head):   # a compressed 3DS image is read decompressed, through its seekable view
@@ -232,7 +233,7 @@ def _reader(stream: Any, cache_dir: Optional[str | Path] = None,
             return wii_disc.WiiImage(stream, wii_disc.load_common_key(str(key_path("wii"))))
         if kind == KIND_SWITCH and encrypted:   # an .xci is refused by the reader with its reason
             keys = switch_crypto.load_keys(str(key_path("switch")))
-            return switch_images.SwitchImage(stream, keys, cache_dir, is_cancelled, progress)
+            return switch_images.SwitchImage(stream, keys, cache_dir, is_cancelled, progress, program=program)
     if len(head) >= 0x204 and head[0x200:0x204] == b"NKIT":
         raise ImageError(tr("an NKit image of an unknown kind: convert it to a plain ISO first"))
     raise ImageError(tr("not a GameCube or Nintendo DS image"))
@@ -240,11 +241,13 @@ def _reader(stream: Any, cache_dir: Optional[str | Path] = None,
 
 @contextmanager
 def open_image(path: str | Path, cache_dir: Optional[str | Path] = None,
-               is_cancelled: Optional[Cancelled] = None, progress: Optional[Progress] = None) -> Iterator[ImageReader]:
+               is_cancelled: Optional[Cancelled] = None, progress: Optional[Progress] = None,
+               program: Optional[int] = None) -> Iterator[ImageReader]:
     """The reader of a supported image, open for the ``with`` block. Raises ImageError for anything else.
 
     ``cache_dir`` holds the decompressed copy of a Switch .nsz program; the copy is deleted when the block ends.
-    ``is_cancelled`` stops that decompression and ``progress`` reports it.
+    ``is_cancelled`` stops that decompression and ``progress`` reports it. ``program`` picks the program NCA of a
+    Switch package that holds several (its index in ``program_list``); other images ignore it.
     """
     if _is_cue(path):   # a GD-ROM or PlayStation 1 set: the cue sheet names its track files, read in place
         stream = GdRomStream(str(path))
@@ -254,7 +257,7 @@ def open_image(path: str | Path, cache_dir: Optional[str | Path] = None,
             stream.close()
         return
     with open(path, "rb") as stream:
-        reader = _reader(stream, cache_dir, is_cancelled, progress)
+        reader = _reader(stream, cache_dir, is_cancelled, progress, program)
         try:
             yield reader
         finally:

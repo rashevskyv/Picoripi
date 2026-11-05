@@ -101,6 +101,8 @@ tokens: 15.0k
 | Lunar: Silver Star Harmony (PSP) | Серійний номер | ULUS-10482 | США | PSP |
 | Lunar: Silver Star Story Complete | Серійний номер | SLUS-00628 | США | PlayStation, program SLUS_006.28 |
 | Lunar: Silver Star Story Complete | Серійний номер | SLUS-00899 | США | PlayStation, the other disc of the pair |
+| Lunar: Silver Star Story Remastered | Title ID | 0100DCD01E9EE000 | Усі регіони | Lunar: Silver Star Story Remastered (Switch) |
+| Lunar: Silver Star Story Remastered | ID не перевіряється | — | Усі регіони | Lunar: Silver Star Story Remastered (PC, Steam) game folder with data.cpk and lunar1.exe |
 | MadWorld | ID диска | RZZP8P | Європа | Wii |
 | Mario vs. Donkey Kong (GBA) | ID не перевіряється | — | Не вказано | GBA |
 | Mario vs. Donkey Kong (Switch) | ID не перевіряється | — | Не вказано | Switch |

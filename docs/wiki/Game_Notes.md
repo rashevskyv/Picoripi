@@ -661,6 +661,7 @@ This page holds the technical notes of each game plugin: which folder is the **S
   | `{raw:HH}` | one table glyph outside a compressed run | confirmed from the decoder notes; the glyph's picture is unknown |
   | other two-byte codes (`{EE:xx}`, `{E0:xx}` …) | not modelled; kept byte for byte | unknown |
 
+- `lunar_sssc_remastered` — Lunar: Silver Star Story Remastered (Switch base 0100DCD01E9EE000 with its update; PC Steam game folder). **Source:** the workspace's `source` folder, filled by the wizard: `data.cpk` (whole), `FIL\TEXT*.DAT` (Japanese dialogue, the project source) and `FIL_us\TEXT*.DAT` (English, the reference column). `TEXT200.DAT` has no dialogue. Translation files are UTF-8, not game files. The build writes `atmosphere\contents\0100DCD01E9EE000\romfs\data.cpk` (Switch) or `data.cpk` (PC, copy it over the game's file). Translated strings go into the English slots, so the game shows Ukrainian text when English is chosen. Not checked in the game yet. The English encoder writes Ukrainian letters as `?` until the glyph map is done; the build log names them. Japanese strings with no English pair are not translated. The PC `data.cpk` is byte-identical to the Switch patched one.
 - `lunar_ebc` — Lunar 2: Eternal Blue Complete (PlayStation, USA, 3 discs). **Source:** the workspace's
   `source` folder (`1_unpack.bat`, files of `DATA.PAK`): `DATA\EVENT` (event scripts), `DATA\PEOPLE` (what
   people on a map say), `DATA\SYSTEM\2499\05-12.bin` (items, spells, menus, memory-card messages),

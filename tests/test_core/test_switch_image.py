@@ -344,6 +344,43 @@ def test_reads_exefs_and_romfs_of_a_base_package(tmp_path, ticketed, direct):
     assert reader.romfs_is_patch is False
 
 
+def _two_programs(material):
+    """A package with two program NCAs, each with its own rights ID and ticket."""
+    header_key = material["header_key"]
+    area, titlekek = _derived(material)
+    entries = []
+    for name in ("0100abcd00000000", "0100abcd00000001"):
+        content_key = os.urandom(16)
+        rights = os.urandom(16)
+        nca, _, _ = _nca(header_key, content_key, area, _program_sections(), rights=rights)
+        entries.append((f"{name}.nca", nca))
+        entries.append((f"{name}.tik", _ticket(rights, _ecb(titlekek, content_key))))
+    return _pfs0(entries)
+
+
+def test_package_with_two_programs_needs_an_index_and_reads_the_chosen_one(tmp_path):
+    material = _material()
+    nsp = _two_programs(material)
+    keys = load_keys(_key_file(tmp_path, material))
+
+    with pytest.raises(ImageError):
+        SwitchImage(io.BytesIO(nsp), keys).entries()
+
+    reader = SwitchImage(io.BytesIO(nsp), keys)
+    listed = reader.program_list()
+    assert [p["index"] for p in listed] == [0, 1]
+    assert [p["name"] for p in listed] == ["0100abcd00000000.nca", "0100abcd00000001.nca"]
+    assert listed[0]["rights_id"] != listed[1]["rights_id"]
+    for index in (0, 1):
+        reader = SwitchImage(io.BytesIO(nsp), keys, program=index)
+        names = sorted(entry.path for entry in reader.entries())
+        assert "exefs/main" in names and "romfs/a.bin" in names
+        reader.close()
+
+    with pytest.raises(ImageError):
+        SwitchImage(io.BytesIO(nsp), keys, program=2).entries()
+
+
 def test_program_is_picked_by_content_type_not_by_file_order(tmp_path):
     material = _material()
     nsp = _package(material, meta_first=True)
