@@ -13,3 +13,15 @@ def test_kanji_from_the_shift_jis_code():
 
 def test_unknown_control_keeps_raw_tag_and_end_marker_is_kept():
     assert jp_codec.decode_message(bytes([0x01, 0x62, 0xFF]), 0, 3) == "{raw:01}ア{end}"
+
+
+def test_two_byte_glyph_is_the_shift_jis_code_lead_minus_0x55():
+    assert jp_codec.decode_message(bytes([0xE9, 0x92, 0xDD, 0xAB, 0xFF]), 0, 5) == "白悪{end}"
+
+
+def test_two_byte_glyph_in_the_symbol_range_uses_the_symbol_table():
+    assert jp_codec.decode_message(bytes([0xEE, 0x94, 0xFF]), 0, 3) == "ア{end}"
+
+
+def test_portrait_control_stays_a_tag():
+    assert jp_codec.decode_message(bytes([0xFA, 0x00, 0x62, 0xFF]), 0, 4) == "{FA:00}ア{end}"

@@ -45,6 +45,7 @@ def decode(data: bytes, start: int, end: int, words: Optional[List[str]] = None,
     """The text of ``data[start:end]`` (end just after the terminator).
 
     ``glyphs`` maps a raw glyph byte to its character (the JP text); without it a raw byte shows as ``{raw:XX}``.
+    A key above 0xFF is a two-byte glyph (``lead << 8 | trail``, lead 0xD6 and up) that would else show as a tag.
     """
     words = WORDS if words is None else words
     out: List[str] = []
@@ -69,7 +70,8 @@ def decode(data: bytes, start: int, end: int, words: Optional[List[str]] = None,
                     out.append(words[index] if index < len(words) else f"{{word:{index}}}")
             continue
         if b >= 0xD6:
-            out.append(f"{{{b:02X}:{data[p]:02X}}}")
+            pair = b << 8 | data[p]
+            out.append(glyphs[pair] if glyphs and pair in glyphs else f"{{{b:02X}:{data[p]:02X}}}")
             p += 1
         else:
             out.append(glyphs[b] if glyphs and b in glyphs else f"{{raw:{b:02X}}}")
