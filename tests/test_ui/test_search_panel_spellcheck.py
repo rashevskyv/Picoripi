@@ -38,11 +38,11 @@ def test_search_panel_spellcheck_trigger(qapp):
     # Check that styleSheet remains correct
     line_edit.setText("correct")
     panel.trigger_spellcheck()
-    assert line_edit.styleSheet() == "padding-top: 4px; padding-bottom: 4px; padding-left: 5px; padding-right: 5px;"
+    assert line_edit.styleSheet() == ""
     
     line_edit.setText("wrongword")
     panel.trigger_spellcheck()
-    assert line_edit.styleSheet() == "padding-top: 4px; padding-bottom: 4px; padding-left: 5px; padding-right: 5px;"
+    assert line_edit.styleSheet() == ""
     
     # Test paintEvent
     from PyQt6.QtGui import QPaintEvent

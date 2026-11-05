@@ -13,9 +13,6 @@ class SearchLineEdit(QLineEdit):
         """Initialize a new instance."""
         super().__init__(parent)
         self.mw = main_window
-        self.setStyleSheet("padding-top: 4px; padding-bottom: 4px; padding-left: 5px; padding-right: 5px;")
-        fm = self.fontMetrics()
-        self.setMinimumHeight(fm.height() + 10)
 
     def paintEvent(self, event):
         # Draw standard QLineEdit first
@@ -197,6 +194,8 @@ class SearchPanelWidget(QWidget):
         self.search_query_edit = QComboBox(self)
         self.search_query_edit.setLineEdit(SearchLineEdit(self, self.mw))
         self.search_query_edit.setEditable(True)
+        # Same height as the buttons next to it.
+        self.search_query_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.search_query_edit.setInsertPolicy(QComboBox.InsertPolicy.NoInsert) 
         self.search_query_edit.lineEdit().setPlaceholderText(tr('Find...'))
         
@@ -204,9 +203,10 @@ class SearchPanelWidget(QWidget):
         self.find_previous_button = QPushButton(tr('Prev'), self)
         self.advanced_button = QPushButton(tr('Advanced'), self)
         
-        # Minimum, not fixed: a translated label must never be clipped.
+        # Width follows the label: never clipped when translated, never stretched by the layout.
         for button in (self.find_next_button, self.find_previous_button, self.advanced_button):
             button.setMinimumWidth(75)
+            button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         
         self.case_sensitive_checkbox = QCheckBox(tr('Aa'), self)
         self.case_sensitive_checkbox.setToolTip(tr('Case sensitive'))
@@ -225,12 +225,14 @@ class SearchPanelWidget(QWidget):
         self.status_label.setMinimumWidth(100) 
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self.close_search_panel_button = QPushButton(tr('X'), self)
+        # The theme style sheet gives this button its icon (by object name).
+        self.close_search_panel_button = QPushButton(self)
+        self.close_search_panel_button.setObjectName("close_search_panel_button")
         self.close_search_panel_button.setToolTip(tr('Close search panel'))
         self.close_search_panel_button.setFixedSize(24, 24)
 
         left_layout = QHBoxLayout()
-        left_layout.addWidget(self.search_query_edit)
+        left_layout.addWidget(self.search_query_edit, 1)
         left_layout.addWidget(self.find_previous_button)
         left_layout.addWidget(self.find_next_button)
         left_layout.addWidget(self.advanced_button)

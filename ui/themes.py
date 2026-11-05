@@ -1,4 +1,6 @@
 """Style sheets of the light and dark themes."""
+from utils.data_location import app_root
+
 DARK_THEME_STYLESHEET = """
 QWidget {
     background-color: #2E2E2E;
@@ -78,10 +80,9 @@ QPushButton:disabled {
     border: 1px solid #444444;
 }
 QPushButton#close_search_panel_button {
-    font-weight: bold;
-    font-size: 14px;
-    padding: 0px 4px;
-    min-height: 16px;
+    qproperty-icon: url("ICONS_DIR/close-light.svg");
+    padding: 0px;
+    min-height: 0px;
 }
 QComboBox {
     background-color: #383838;
@@ -93,6 +94,11 @@ QComboBox {
 QComboBox::drop-down {
     border: none;
     background-color: #4A4A4A;
+}
+QComboBox::down-arrow {
+    image: url("ICONS_DIR/chevron-down-light.svg");
+    width: 16px;
+    height: 16px;
 }
 QComboBox QAbstractItemView {
     background-color: #383838;
@@ -247,10 +253,9 @@ QPushButton:disabled {
     border: 1px solid #DEE2E6;
 }
 QPushButton#close_search_panel_button {
-    font-weight: bold;
-    font-size: 14px;
-    padding: 0px 4px;
-    min-height: 16px;
+    qproperty-icon: url("ICONS_DIR/close.svg");
+    padding: 0px;
+    min-height: 0px;
 }
 QToolButton {
     background-color: transparent;
@@ -372,6 +377,11 @@ QComboBox::drop-down {
 QComboBox::drop-down:disabled {
     background-color: #D3D3D3;
 }
+QComboBox::down-arrow {
+    image: url("ICONS_DIR/chevron-down.svg");
+    width: 16px;
+    height: 16px;
+}
 QComboBox QAbstractItemView {
     background-color: #FFFFFF;
     color: #000000;
@@ -386,3 +396,9 @@ QToolTip {
     border-radius: 3px;
 }
 """
+
+
+def stylesheet(dark: bool) -> str:
+    """The theme style sheet with icon URLs pointing at the shipped icons folder."""
+    icons_dir = (app_root() / "resources" / "icons").as_posix()
+    return (DARK_THEME_STYLESHEET if dark else LIGHT_THEME_STYLESHEET).replace("ICONS_DIR", icons_dir)

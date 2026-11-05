@@ -1,7 +1,7 @@
 """UI construction, menus, styling, legend, and minimap for Script Markup Studio."""
 from __future__ import annotations
 
-import os
+from utils.data_location import app_root
 
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QPlainTextEdit, QCheckBox, QGroupBox, QComboBox,
@@ -671,9 +671,7 @@ class UiMixin:
         self._disable_default_buttons()
 
     def _apply_studio_style(self):
-        arrow_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..", "resources", "icons", "chevron-down.svg")
-        ).replace("\\", "/")
+        arrow_path = (app_root() / "resources" / "icons" / "chevron-down.svg").as_posix()
         style = """
             QPushButton {
                 background: #f7f7f7;
