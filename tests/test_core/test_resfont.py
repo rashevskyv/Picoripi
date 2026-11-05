@@ -72,6 +72,21 @@ def test_a_missing_sheet_is_refused():
         pack("resfont", metadata, sheets[:1], data, {})
 
 
+def test_a_short_last_sheet_is_kept_and_packs_back():
+    """Luigi's Mansion: the last sheet holds only its used cell rows; the editor still needs that sheet."""
+    data = bytearray(_font())
+    half = TEX_W * TEX_W // 4                               # the top cell row of the second sheet
+    del data[len(data) - half:]
+    struct.pack_into(">II", data, 8, len(data), 1)
+    struct.pack_into(">I", data, 0x24, len(data) - 0x20)
+    data = bytes(data)
+    metadata, sheets = extract("resfont", data, {})
+    assert len(sheets) == SHEETS and sheets[1].size == (TEX_W, TEX_W)
+    assert pack("resfont", metadata, sheets, data, {}) == data
+    sheets[1].putpixel((0, TEX_W - 1), (255, 255, 255, 255))  # ink below the held rows has no byte to go to
+    assert pack("resfont", metadata, sheets, data, {}) == data
+
+
 def test_shift_jis_code_becomes_the_character_it_spells():
     assert resfont._code_of(0x8446) == ord("Ё")
     assert resfont._code_of(0x41) == 0x41

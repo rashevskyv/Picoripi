@@ -212,6 +212,29 @@ def char_map(metadata: Metadata) -> Dict[str, int]:
     return result
 
 
+_HALF_TO_FULL_QUOTES = {"'": "’", '"': "”", "\\": "￥"}   # Shift-JIS 8166, 8168, 818F
+
+
+def draws_ascii_full_width(found: Dict[str, Any]) -> bool:
+    """A font with full-width Latin and no ASCII letters: the game draws ASCII with the full-width glyphs."""
+    keys = [ord(char) for char in found if len(char) == 1]
+    return (not any(0x41 <= c <= 0x5A or 0x61 <= c <= 0x7A for c in keys)
+            and any(0xFF21 <= c <= 0xFF3A or 0xFF41 <= c <= 0xFF5A for c in keys))
+
+
+def add_ascii_aliases(found: Dict[str, Any]) -> Dict[str, Any]:
+    """Map ASCII to the full-width entries, as JUTResFont halftofull does; real ASCII entries stay."""
+    for char, value in list(found.items()):
+        if 0xFF01 <= ord(char) <= 0xFF5E:
+            found.setdefault(chr(ord(char) - 0xFEE0), value)
+        elif char == "　":
+            found.setdefault(" ", value)
+    for ascii_char, full in _HALF_TO_FULL_QUOTES.items():
+        if full in found:
+            found.setdefault(ascii_char, found[full])
+    return found
+
+
 def map_entries(pairs: List[Tuple[int, int]]) -> Dict[str, Any]:
     """A MAP1 block of type 3 from ``(code, glyph)`` pairs."""
     pairs = sorted(pairs)
@@ -230,6 +253,8 @@ def font_map(metadata: Metadata, translation_map: Optional[Dict[str, str]] = Non
     for char, glyph in char_map(metadata).items():
         index = glyph - first
         result[char] = {"width": int(packets[index]["width"]) if 0 <= index < len(packets) else int(default)}
+    if draws_ascii_full_width(result):
+        add_ascii_aliases(result)
     for target, slot in (translation_map or {}).items():
         if slot in result and not target.startswith("#g"):
             result[target] = dict(result[slot])

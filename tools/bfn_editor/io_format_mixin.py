@@ -180,6 +180,11 @@ class IoFormatMixin:
         callback = self._font_job_done
         try:
             callback(result, error)
+        except Exception as exc:                # a failed apply must not leave the editor "loading" and silent
+            log_error(f"Font editor job result failed: {exc}", exc_info=True)
+            self._set_font_loading(False)
+            self.status.showMessage(tr("Failed to load font."))
+            QtWidgets.QMessageBox.critical(self, tr('Error'), tr('Failed to open font: {0}', str(exc)))
         finally:
             self._font_job = None
             self._start_next_font_job()

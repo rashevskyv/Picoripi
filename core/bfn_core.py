@@ -80,6 +80,33 @@ def char_to_glyph(map1: List[Dict[str, Any]]) -> Dict[int, int]:
     return found
 
 
+SHIFT_JIS = 2   # INF1 encoding of a Shift-JIS font (JUTFont)
+
+
+def code_char(code: int, encoding: int = 0) -> str:
+    """The character a MAP1 code stands for: one byte is CP1252, two bytes are Shift-JIS in a Shift-JIS font."""
+    try:
+        if code < 0x100:
+            return bytes([code]).decode('cp1252')
+        if encoding == SHIFT_JIS:
+            return bytes([code >> 8, code & 0xFF]).decode('cp932')
+    except UnicodeDecodeError:
+        pass
+    return chr(code)
+
+
+def char_glyphs(map1: List[Dict[str, Any]], encoding: int = 0) -> Dict[str, int]:
+    """Character -> glyph index; a Shift-JIS font, or a font with only full-width Latin (a ResFONT model keeps
+    Unicode codes), also draws ASCII with its full-width glyphs (JUTResFont halftofull)."""
+    from core.font_formats import add_ascii_aliases, draws_ascii_full_width
+    found: Dict[str, int] = {}
+    for code, glyph in char_to_glyph(map1).items():
+        found.setdefault(code_char(code, encoding), glyph)
+    if encoding == SHIFT_JIS or draws_ascii_full_width(found):
+        add_ascii_aliases(found)
+    return found
+
+
 class BfnCore:
     """Bfn core implementation."""
     def __init__(self):
@@ -155,11 +182,14 @@ class BfnCore:
                 sheet_start_offset = chunk_start + 8 + 22 + 2
                 sheets_binary = []
                 
+                sheets_end = min(chunk_data_end, len(data))
                 for s in range(sheet_count):
                     sheet_offset = sheet_start_offset + s * page_data_size
-                    if sheet_offset + page_data_size > len(data):
+                    if sheet_offset >= sheets_end:
                         break
-                    sheets_binary.append(data[sheet_offset : sheet_offset + page_data_size])
+                    # The last sheet may stop after its used cell rows (Luigi's Mansion); the rest is blank
+                    sheet = data[sheet_offset:min(sheet_offset + page_data_size, sheets_end)]
+                    sheets_binary.append(sheet.ljust(page_data_size, b"\0"))
                 
                 self.gly1.append({
                     "start_glyph": int(start_glyph),
@@ -186,8 +216,9 @@ class BfnCore:
                     entry_count = last_char - first_char + 1
                     entries = [i for i in range(entry_count)]
                 elif mapping_type == 2:
-                    entry_data = chunk_body[8:8+entry_count*2]
-                    entries = list(struct.unpack(f'>{entry_count}H', entry_data))
+                    # One glyph per code; Luigi's Mansion's count field is not the table size, so trust the range
+                    count = min(last_char - first_char + 1, (len(chunk_body) - 8) // 2)
+                    entries = list(struct.unpack(f'>{count}H', chunk_body[8:8 + count * 2]))
                 elif mapping_type == 3:
                     entry_data = chunk_body[8:8+entry_count*4]
                     entries = map_pairs_to_lists(struct.unpack(f'>{entry_count*2}H', entry_data))
@@ -372,17 +403,13 @@ class BfnCore:
         packets = wid["packets"]
         
         # 1. Base CP1252 Mapping, over every MAP1 block (Twilight Princess HD splits its map into seven)
-        for char_code, glyph_idx in char_to_glyph(self.map1).items():
+        encoding = self.inf1[0].get("encoding", 0) if self.inf1 else 0
+        for char_str, glyph_idx in char_glyphs(self.map1, encoding).items():
             char_width = default_width
             if first_code <= glyph_idx < last_code:
                 p_idx = glyph_idx - first_code
                 if p_idx < len(packets):
                     char_width = packets[p_idx]["width"]
-            # Translate CP1252 char_code to Unicode character
-            try:
-                char_str = bytes([char_code]).decode('cp1252')
-            except Exception:
-                char_str = chr(char_code)
             font_map[char_str] = {"width": char_width}
                 
         # 2. Add mappings based on translation map overrides (e.g. mapping Ukrainian 'і' to CP1252 'ì')
@@ -521,17 +548,7 @@ class BfnCore:
         first_code = wid["first_code_included"]
         packets = wid["packets"]
 
-        # Parse MAP1 maps
-        def code_to_char(code):
-            """Code to char."""
-            try:
-                return bytes([code]).decode('cp1252')
-            except Exception:
-                return chr(code)
-
-        glyph_of = {}
-        for code, g_idx in char_to_glyph(self.map1).items():
-            glyph_of.setdefault(code_to_char(code), g_idx)
+        glyph_of = char_glyphs(self.map1, inf.get("encoding", 0))
 
         pad = 15  # Match simulator's padding of 15px
         line_advance = leading + line_spacing

@@ -5,7 +5,8 @@ The file: a 0x20-byte header (``FONTbfn1``, size, block count) and blocks in ord
 - ``INF1``: ascent (+0xA), default advance (+0xE), leading (+0x10);
 - ``GLY1``: first and last glyph (+0x8, +0xA), cell width and height (+0xC, +0xE), bytes per sheet (+0x10), texture
   format (+0x14, 0 = I4), cells per row (+0x16), cells per column (+0x18), texture width (+0x1A); the sheets follow at
-  +0x20, one after another;
+  +0x20, one after another; the last sheet may be cut short after its last cell row (Luigi's Mansion: 5 sheets and
+  the top 160 rows of a sixth);
 - ``MAP1``: character code -> glyph, in methods 0 (linear), 2 (table) and 3 (pairs);
 - ``WID1``: per glyph a kerning byte and an advance byte (+0xC, +0xD onward).
 
@@ -84,10 +85,13 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
     if fmt != 0:
         raise ValueError(f"FONTbfn1 texture format {fmt} is not I4")
     per_sheet = per_row * per_col
-    sheet_count = (g_size - HEADER) // sheet_bytes
+    sheet_count = -(-(g_size - HEADER) // sheet_bytes)
     tex_h = sheet_bytes * 2 // tex_w
-    gly = {"sheet_bytes": sheet_bytes, "offset": g_off, "tex_w": tex_w, "tex_h": tex_h, "sheets": sheet_count}
-    sheets = [_decode(data, g_off + HEADER + i * sheet_bytes, tex_w, tex_h) for i in range(sheet_count)]
+    last_h = ((g_size - HEADER) - (sheet_count - 1) * sheet_bytes) // (tex_w * 4) * 8   # whole tile rows held
+    gly = {"sheet_bytes": sheet_bytes, "offset": g_off, "tex_w": tex_w, "tex_h": tex_h, "sheets": sheet_count,
+           "last_h": last_h}
+    sheets = [_decode(data, g_off + HEADER + i * sheet_bytes, tex_w, tex_h if i < sheet_count - 1 else last_h, tex_h)
+              for i in range(sheet_count)]
 
     metadata: Metadata = {"header": {"signature": "FONTbfn1", "format": "resfont"}}
     ascent, width, leading = 0, 0, 0
@@ -123,8 +127,8 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
     return metadata, sheets
 
 
-def _decode(data: bytes, base: int, width: int, height: int) -> Image.Image:
-    ink = Image.new("L", (width, height))
+def _decode(data: bytes, base: int, width: int, height: int, full_height: int) -> Image.Image:
+    ink = Image.new("L", (width, full_height))      # rows past ``height`` are not in the file: blank
     pix = ink.load()
     tiles_per_row = width // 8
     for y in range(height):
@@ -156,6 +160,11 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
     if len(sheets) != gly["sheets"]:
         raise ValueError(f"FONTbfn1 holds {gly['sheets']} sheets, {len(sheets)} were given")
     out = bytearray(original)
+    tex_w, tex_h = gly["tex_w"], gly["tex_h"]
     for index, sheet in enumerate(sheets):
-        _encode_into(out, gly["offset"] + HEADER + index * gly["sheet_bytes"], sheet, gly["tex_w"], gly["tex_h"])
+        if sheet.size != (tex_w, tex_h):
+            raise ValueError(f"FONTbfn1 sheet is {sheet.size[0]}x{sheet.size[1]}; the font takes {tex_w}x{tex_h}")
+        height = gly.get("last_h", tex_h) if index == len(sheets) - 1 else tex_h
+        _encode_into(out, gly["offset"] + HEADER + index * gly["sheet_bytes"], sheet.crop((0, 0, tex_w, height)),
+                     tex_w, height)
     return bytes(out)

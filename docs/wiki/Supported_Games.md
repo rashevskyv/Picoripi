@@ -382,7 +382,7 @@ Each plugin opens the images listed here. When you add an image, the wizard matc
 | Paper Mario: The Thousand-Year Door | GameCube | Game files (folder or image) | None | GameCube USA. |
 | Skies of Arcadia Legends (GameCube, USA) | GameCube | Game files (folder or image) | GameCube disc image (ISO) | GameCube USA. Byte budget per script: changed text may not grow in total. |
 | Super Mario Sunshine | GameCube | Game files (folder or image) | GameCube disc image (ISO); PC and Switch port pack (mods/uk) | GameCube USA GMSE01 rev 0. The European disc is a reference. |
-| Luigi's Mansion (GameCube) | GameCube | Game files (folder or image) | GameCube disc image (ISO) | GameCube USA GLME01 rev 0. The English messages in the event archives are translated; the fonts and textures are not yet. |
+| Luigi's Mansion (GameCube) | GameCube | Game files (folder or image) | GameCube disc image (ISO) | GameCube USA GLME01 rev 0. The English messages in the event archives are translated; the fonts and textures are not yet. The preview draws the game's message window (speaker colour and icon, two lines a page). |
 | Super Paper Mario | GameCube | Game files (folder or image) | None | Wii PAL, English UK. |
 | Zelda: The Wind Waker (GameCube BMG) | GameCube, BlueWake | Game files (folder or image) | Disc image (ISO); BlueWake disc (original main.dol) | A BlueWake build needs the original main.dol (SHA-1 check). |
 | Zelda: The Wind Waker (Tingle Tuner, GBA) | GameCube | Game files (folder or image) | None | GBA program text in the GameCube disc. |

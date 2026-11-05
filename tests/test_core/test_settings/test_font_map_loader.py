@@ -231,3 +231,23 @@ def test_a_descriptor_result_of_an_older_load_is_dropped(monkeypatch):
     assert applied == []
     loader._preview_scan_done(prepared_cur, "", 2)
     assert applied == [prepared_cur]
+
+
+def test_a_preview_font_replaces_a_map_that_holds_only_width_overrides():
+    """No font file before the scan: the current map is the overrides alone; the arriving game font takes its place."""
+    overrides = {"[A]": {"width": 24}}
+    mw = SimpleNamespace(all_font_maps={}, all_bfn_fonts={}, font_map=dict(overrides), font_map_overrides=overrides,
+                         default_font_file="default_font.json")
+    loader = FontMapLoader(mw)
+    loader._apply_preview_fonts([("dialogue_font.json", {"D": {"width": 20}}, None)])
+    assert mw.font_map is mw.all_font_maps["dialogue_font.json"]
+    assert mw.font_map["D"] == {"width": 20}
+    assert mw.font_map["[A]"] == {"width": 24}
+
+
+def test_a_preview_font_keeps_a_loaded_default_font():
+    shipped = {"x": {"width": 5}}
+    mw = SimpleNamespace(all_font_maps={"shipped.json": shipped}, all_bfn_fonts={}, font_map=shipped,
+                         default_font_file="shipped.json")
+    FontMapLoader(mw)._apply_preview_fonts([("dialogue_font.json", {"D": {"width": 20}}, None)])
+    assert mw.font_map is shipped

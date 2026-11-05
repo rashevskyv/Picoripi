@@ -22,8 +22,8 @@
     "space_dot_color_hex": "#808080",
     "preview_wrap_lines": true,
     "editors_wrap_lines": true,
-    "game_dialog_max_width_pixels": 240,
-    "line_width_warning_threshold_pixels": 220,
+    "game_dialog_max_width_pixels": 502,
+    "line_width_warning_threshold_pixels": 471,
     "autofix_enabled": {
         "LM1_TAG_WARNING": false,
         "LM1_WIDTH_EXCEEDED": true,
@@ -48,8 +48,8 @@
         "LM1_MISSING_ICON_SPACING": true,
         "LM1_BROKEN_ICON_HYPHEN": true
     },
-    "lines_per_page": 3,
-    "default_font_file": "default_font.json",
+    "lines_per_page": 2,
+    "default_font_file": "dialogue_font.json",
     "tag_color_rgba": "#ffff8c00",
     "tag_bold": true,
     "tag_italic": false,

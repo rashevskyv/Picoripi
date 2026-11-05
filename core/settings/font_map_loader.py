@@ -395,9 +395,18 @@ class FontMapLoader:
                 self.mw.all_font_maps.setdefault(name, font_map)
                 self.mw.all_bfn_fonts[name] = font
 
-        if not getattr(self.mw, "font_map", None) and self.mw.all_font_maps:
-            first_font = next(iter(self.mw.all_font_maps))
-            self.mw.font_map = self.mw.all_font_maps[first_font]
+        # The current map may hold only the width overrides (no font file was there before the scan):
+        # take the plugin's default font, else the first one, as load_all_font_maps does.
+        maps = self.mw.all_font_maps
+        current = getattr(self.mw, "font_map", None)
+        default_name = getattr(self.mw, 'default_font_file', None)
+        if default_name in maps:
+            self.mw.font_map = maps[default_name]
+        elif maps and not any(current is font_map for font_map in maps.values()):
+            self.mw.font_map = maps[next(iter(maps))]
+        overrides = getattr(self.mw, 'font_map_overrides', None)
+        if overrides:
+            self._apply_font_overrides(overrides)
 
     def _parse_new_font_format(self, font_data: Dict[str, Any]) -> Dict[str, Dict[str, int]]:
         """Parses the new font format and returns a font_map."""

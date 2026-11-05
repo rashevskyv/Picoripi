@@ -1,7 +1,7 @@
 """Real asynchronous font loads: nested jobs, stale requests, cancellation and bounded table filling."""
 from threading import Event
 
-from PyQt6 import QtCore
+from PyQt6 import QtCore, QtWidgets
 
 from core import font_formats
 from core.font_formats.sources import FontSource
@@ -184,3 +184,20 @@ def test_cancel_before_decoding_keeps_the_accepted_font(qtbot, tmp_path, monkeyp
         assert editor.table_glyphs.isEnabled()
     finally:
         release.set()
+
+
+def test_failing_job_callback_reports_and_ends_loading(qtbot, monkeypatch):
+    monkeypatch.setattr(app_mode, "headless", False)
+    shown = []
+    monkeypatch.setattr(QtWidgets.QMessageBox, "critical", lambda *args: shown.append(args[2]))
+    editor = BfnEditorWindow()
+    qtbot.addWidget(editor)
+    editor._set_font_loading(True)
+
+    def done(result, error):
+        raise IndexError("list index out of range")
+
+    editor.run_font_job(lambda: "font", done)
+    qtbot.waitUntil(lambda: editor._font_job is None, timeout=5000)
+    assert shown and "list index out of range" in shown[0]
+    assert not editor._font_loading

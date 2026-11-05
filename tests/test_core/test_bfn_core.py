@@ -167,3 +167,27 @@ def test_bfn_core_get_sheets_qimages():
     # Check cached retrieval
     sheets_cached = bfn.get_sheets_qimages()
     assert sheets is sheets_cached
+
+
+def test_a_shift_jis_font_maps_two_byte_codes_and_draws_ascii_full_width():
+    """Luigi's Mansion's dialogue font: MAP1 holds only Shift-JIS codes; JUTResFont draws ASCII with them."""
+    from core.bfn_core import char_glyphs
+    map1 = [{"mapping_type": 2, "first_char": 0x8260, "last_char": 0x8261, "entries": [5, 6]},   # Ａ Ｂ
+            {"mapping_type": 3, "first_char": 0x8140, "last_char": 0x8446, "entries": [0x8140, 0x8446, 0, 9]}]
+
+    assert char_glyphs(map1, 2) == {"Ａ": 5, "Ｂ": 6, "A": 5, "B": 6, "　": 0, " ": 0, "Ё": 9}
+    assert char_glyphs(map1[:1], 0) == {chr(0x8260): 5, chr(0x8261): 6}
+    quotes = [{"mapping_type": 3, "first_char": 0x8166, "last_char": 0x8168, "entries": [0x8166, 0x8168, 7, 8]}]
+    assert char_glyphs(quotes, 2) == {"’": 7, "”": 8, "'": 7, '"': 8}   # halftofull: ' -> ’, " -> ”
+
+
+def test_a_table_map_whose_count_field_is_not_its_size_reads_one_glyph_per_code():
+    import struct
+    body = struct.pack(">HHHH", 2, 0x8260, 0x8262, 118) + struct.pack(">3H", 4, 5, 6) + bytes(10)
+    chunk = b"MAP1" + struct.pack(">I", 8 + len(body)) + body
+    data = b"FONTbfn1" + struct.pack(">II", 32 + len(chunk), 1) + bytes(16) + chunk
+    bfn = BfnCore()
+
+    bfn.load(data)
+
+    assert bfn.map1[0]["entries"] == [4, 5, 6] and bfn.map1[0]["mapping_entry_count"] == 118
