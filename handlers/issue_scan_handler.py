@@ -102,6 +102,7 @@ class IssueScanHandler(BaseHandler):
                     "line_width_warning_threshold_pixels": getattr(self.mw, 'line_width_warning_threshold_pixels', 280),
                     "default_font_file": getattr(self.mw, 'default_font_file', None),
                     "fonts_dir_path": getattr(self.mw, 'fonts_dir_path', None),
+                    "font_map_names": sorted(getattr(self.mw, 'all_font_maps', None) or {}),
                     "detection_enabled": getattr(self.mw, 'detection_enabled', {}),
                     "default_tag_mappings": getattr(self.mw, 'default_tag_mappings', {}),
                     "icon_sequences": getattr(self.mw, 'icon_sequences', [])
@@ -252,6 +253,11 @@ class IssueScanHandler(BaseHandler):
         """Start (or restart) an scan of all blocks, loading from cache if valid (unless force is True).
 
         quiet: no dialog; the scan runs in short ticks beside the open editor and reports in the status bar."""
+        loader = getattr(getattr(self.mw, 'settings_manager', None), 'font_map_loader', None)
+        if getattr(loader, 'preview_scan_running', False):
+            # The plugin's preview fonts feed the width check: scan after they have loaded.
+            loader.after_preview_fonts(lambda: self._perform_initial_silent_scan_all_issues(on_completed, force, quiet))
+            return
         self._scan_completion_callback = on_completed
         self._scan_quiet = quiet
         if not self.mw.data_store.data:
@@ -295,6 +301,7 @@ class IssueScanHandler(BaseHandler):
                 and settings.get("line_width_warning_threshold_pixels") == getattr(self.mw, 'line_width_warning_threshold_pixels', 280)
                 and settings.get("default_font_file") == getattr(self.mw, 'default_font_file', None)
                 and settings.get("fonts_dir_path") == getattr(self.mw, 'fonts_dir_path', None)
+                and settings.get("font_map_names") == sorted(getattr(self.mw, 'all_font_maps', None) or {})
                 and settings.get("detection_enabled") == getattr(self.mw, 'detection_enabled', {})
                 and settings.get("default_tag_mappings") == getattr(self.mw, 'default_tag_mappings', {})
                 and settings.get("icon_sequences") == getattr(self.mw, 'icon_sequences', [])

@@ -2,7 +2,7 @@
 from utils.constants import plugins_root, user_plugin_file_or_shipped
 import json
 from pathlib import Path
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional, Tuple
 from PyQt6 import QtCore
 from utils import app_mode
 from utils.logging_utils import log_debug, log_info, log_error, log_warning
@@ -13,8 +13,33 @@ def _scan_preview_fonts(getter) -> list:
     return [d for d in getter() or [] if isinstance(d, dict) and d.get("preview")]
 
 
-def _prepare_preview_fonts(descriptors: list, project_metadata: Dict[str, Any]) -> list:
-    """Read preview fonts off the UI thread: extract metadata, build font maps, and cache QImages."""
+def _read_translation_map(project_dir: Optional[str], plugin_name: Optional[str]) -> Dict[str, str]:
+    """The project's ``translation_map.json`` (else the plugin's), read only: ``{Ukrainian letter: game character}``.
+
+    A BFN font is keyed by the game's own characters; this map lets the translated letters take their widths.
+    """
+    candidates = []
+    if project_dir:
+        candidates.append(Path(project_dir) / "translation_map.json")
+    if plugin_name:
+        candidates.append(user_plugin_file_or_shipped(plugin_name, "translation_map.json"))
+    for path in candidates:
+        try:
+            with path.open("r", encoding="utf-8") as stream:
+                loaded = json.load(stream)
+        except (OSError, ValueError):
+            continue
+        if isinstance(loaded, dict):
+            return {str(k): str(v) for k, v in loaded.items()}
+    return {}
+
+
+def _prepare_preview_fonts(descriptors: list, project_metadata: Dict[str, Any],
+                           translation_map: Optional[Dict[str, str]] = None) -> list:
+    """Read preview fonts off the UI thread: extract metadata, build font maps, and cache QImages.
+
+    ``translation_map`` gives a ``bfn`` font the widths of the translated letters (see ``_read_translation_map``).
+    """
     from core import font_formats
     from core.bfn_core import BfnCore
     from core.font_formats.sources import resolve
@@ -28,6 +53,11 @@ def _prepare_preview_fonts(descriptors: list, project_metadata: Dict[str, Any]) 
     for source in resolve(descriptors, project_metadata):
         try:
             raw_bytes = source.read_current()
+            if source.format == "bfn":      # the BFN engine, not a font_formats backend
+                font = BfnCore()
+                font.load(raw_bytes)
+                prepared.append((source.font_map or f"{Path(source.name).stem}.json", font.to_font_map(translation_map), font))
+                continue
             metadata, sheets = font_formats.extract(source.format, raw_bytes, source.params)
             font_map = font_formats.font_map(metadata)
             font = BfnCore()
@@ -48,16 +78,18 @@ class _PreviewScan(WorkerThread):
 
     done = QtCore.pyqtSignal(object, str, int)  # prepared_fonts, error, generation
 
-    def __init__(self, getter, project_metadata: Dict[str, Any], generation: int):
+    def __init__(self, getter, project_metadata: Dict[str, Any], generation: int,
+                 map_source: Tuple[Optional[str], Optional[str]] = (None, None)):
         super().__init__()
         self._getter = getter
         self._project_metadata = dict(project_metadata or {})
         self._generation = generation
+        self._map_source = map_source          # (project folder, plugin name) of the translation map
 
     def run(self):
         try:
             descriptors = _scan_preview_fonts(self._getter)
-            prepared = _prepare_preview_fonts(descriptors, self._project_metadata)
+            prepared = _prepare_preview_fonts(descriptors, self._project_metadata, _read_translation_map(*self._map_source))
             self.done.emit(prepared, "", self._generation)
         except Exception as exc:
             self.done.emit([], str(exc), self._generation)
@@ -84,6 +116,23 @@ class FontMapLoader:
         self._preview_job: Optional[_PreviewScan] = None
         self._preview_metadata: Dict[str, Any] = {}
         self._receiver: Optional[_PreviewReceiver] = None
+        self._after_preview: list = []
+
+    def after_preview_fonts(self, callback) -> None:
+        """Call ``callback`` once the plugin's preview fonts are loaded: at once when no load is running.
+
+        A width check that runs before the fonts arrive would measure with a fallback width.
+        """
+        if self._preview_job is None:
+            callback()
+        else:
+            self._after_preview.append(callback)
+
+    def _run_after_preview(self) -> None:
+        """Run the callbacks that waited for the preview fonts."""
+        pending, self._after_preview = self._after_preview, []
+        for callback in pending:
+            callback()
 
     @property
     def preview_scan_running(self) -> bool:
@@ -331,12 +380,14 @@ class FontMapLoader:
             return
         # Background worker prepares the preview fonts off the UI thread to keep the interface responsive.
         self._preview_generation += 1
+        self._after_preview = []         # callbacks of an earlier load belong to a project that is gone
         self._preview_metadata = dict(getattr(project, 'metadata', {}) or {})
+        map_source = (getattr(pm, 'project_dir', None), getattr(self.mw, 'active_game_plugin', None))
         if app_mode.headless:
             # No event loop here: the scan runs in place, and load_all_font_maps refreshes the rest afterwards.
             try:
                 descriptors = _scan_preview_fonts(getter)
-                prepared = _prepare_preview_fonts(descriptors, self._preview_metadata)
+                prepared = _prepare_preview_fonts(descriptors, self._preview_metadata, _read_translation_map(*map_source))
             except Exception as exc:
                 log_warning(f"Font sources of the plugin: {exc}")
                 return
@@ -351,7 +402,7 @@ class FontMapLoader:
             if sb and hasattr(sb, 'showMessage'):
                 from core.i18n import tr
                 sb.showMessage(tr("Loading preview fonts..."))
-        job = _PreviewScan(getter, self._preview_metadata, self._preview_generation)
+        job = _PreviewScan(getter, self._preview_metadata, self._preview_generation, map_source)
         job.done.connect(self._receiver.on_done)
         self._preview_job = job
         job.start()
@@ -361,6 +412,13 @@ class FontMapLoader:
         if generation != self._preview_generation:
             return
         self._preview_job = None
+        try:
+            self._apply_scan_result(prepared, error)
+        finally:
+            self._run_after_preview()
+
+    def _apply_scan_result(self, prepared: list, error: str) -> None:
+        """Show the load result: the status bar, the font maps and the preview."""
         status_bar = getattr(self.mw, 'statusBar', None)
         if callable(status_bar):
             sb = status_bar()
@@ -395,16 +453,16 @@ class FontMapLoader:
                 self.mw.all_font_maps.setdefault(name, font_map)
                 self.mw.all_bfn_fonts[name] = font
 
-        # The current map may hold only the width overrides (no font file was there before the scan):
-        # take the plugin's default font, else the first one, as load_all_font_maps does.
+        # The current map may be no font yet: only the width overrides, or a map that is none of the loaded
+        # fonts (no font file was there before the scan). Then take the plugin's default font, else the first
+        # one, as load_all_font_maps does; a font the user already has stays.
         maps = self.mw.all_font_maps
-        current = getattr(self.mw, "font_map", None)
-        default_name = getattr(self.mw, 'default_font_file', None)
-        if default_name in maps:
-            self.mw.font_map = maps[default_name]
-        elif maps and not any(current is font_map for font_map in maps.values()):
-            self.mw.font_map = maps[next(iter(maps))]
-        overrides = getattr(self.mw, 'font_map_overrides', None)
+        overrides = getattr(self.mw, 'font_map_overrides', None) or {}
+        current = getattr(self.mw, "font_map", None) or {}
+        holds_only_overrides = all(key in overrides for key in current)
+        if maps and (holds_only_overrides or not any(current is font_map for font_map in maps.values())):
+            default_name = getattr(self.mw, 'default_font_file', None)
+            self.mw.font_map = maps[default_name if default_name in maps else next(iter(maps))]
         if overrides:
             self._apply_font_overrides(overrides)
 
