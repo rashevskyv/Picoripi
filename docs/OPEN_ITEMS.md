@@ -216,6 +216,16 @@ the line when it is done or moved into a plan.
 - Done (on screen, 2026-10-22): a grown voicemail line (`Frontend` string 0, English extra sentence) shows in a private Eden copy with the new writer; the bubble scrolls in its 4-line box and the game runs at 25 FPS. Not tested: Ukrainian length, a long play session, the multiplayer freeze.
 - Done (2026-10-22): the ConkerFont atlas (`dvddata/aid/font/ConkerFont/default.bin`, `.gpu` section at 0x3458, 0xF000 bytes) is a linear 8-bit luminance texture, 256 x 240, D3DFMT_LIN_L8 (0x13 in the xboxrecomp D3D8 headers). The format was matched by viewing the bytes, not by reading the game's create call. `font_atlas.py` exports it as a grey PNG and imports it back; export and import are byte-identical on the disc bank. Not wired into the editor or the build yet.
 
+## Guardian Heroes (Xbox 360 XBLA, 2011) (`plugins/guardian_heroes`, 2026-10-23, branch `claude/plugin-guardian-heroes-311285`)
+
+- Done (2026-10-23): the STFS package is read (`stfs.py`, title id 0x58410B2B) and `media/script_eng.mrg` is parsed (`script.py`): 50 scenes, 1338 strings, UTF-16BE, each string ends with 0xFFFF. All six language scripts rebuild byte for byte; the build without edits equals the original; one edited line changes only that string (checked on the real package with a scratch script). Not checked in the game.
+- Open: `media/font.xprc` (2.8 MB) starts with two u32 (BE) sizes, the unpacked size 0x00BF3000 and the packed size, then an LZ-type stream (literal runs, back references) that holds an XPR2 package (`TX2D`, `USER`, a character map, glyph textures). The stream is not decoded, so no Ukrainian letters can be added. Needed from the recomp session: the decompressed buffer of `font.xprc` (12 529 664 bytes) dumped from guest memory, or the decompressor function and its address in `default.xex`. The other `.mrgc` files use the same scheme.
+- Open (runtime facts, ask the recomp session): the width of the dialogue window for the three string kinds (`E000` bubbles, `E100` story pages, `E200` battle quotes), and whether the game reads the script into a fixed buffer. The largest shipped script is the Spanish one, 243 572 bytes (English 230 688), so that size is known to load; a bigger translation is not proven. The plugin's length warning (34 visible characters, 50 in battle quotes) is only the 99th percentile of the French, German and Spanish scripts.
+- Open: the first parameter word after `E0xx`/`E1xx`/`E2xx` is a speaker or window id; it is not mapped to character names, so the editor shows no speaker.
+- Open: the menu, title and character-select pictures (`title.mrg`, `new_game.mrg`, `chara_select.mrg`, `param_edit.mrg`) are Xenos textures with text inside; `default.xex` is compressed, so strings inside it are not read. Both are untouched.
+- Open: the addon package `58410B2B/00009000/*` (13 files) is avatar clothes and props only; it has no text.
+- Done: the platform id `x360` (Xbox 360) is in `plugin_facts.PLATFORM_LABELS`.
+
 ## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-bfd`)
 ## Conker's Bad Fur Day N64 (`plugins/conker_bfd`, 2026-10-18, branch `feat/conker-grow`)
 
