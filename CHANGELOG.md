@@ -1,7 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
-- Zelda: Ocarina of Time (Switch 2): the reference columns (Russian, then EUen) come from the project's own `romfs/Mals` with no reference setting.
+- Zelda: Ocarina of Time (Switch 2): the reference columns are Russian, then EUen (the other 13 languages are not read; TotK's `reference_languages` hook), from the project's own `romfs/Mals` with no reference setting.
 - Lunar: Silver Star Story (`lunar_sssc_remastered`): one Japanese-keyed translation for PS1, Switch and PC. The wizard takes the PS1 disc (SLUS-00628/00899) as an optional source and unpacks its English dialogue to `LUNADATA/`; the project shows two reference columns with no setting, "English (Remastered)" and "English (PS1)"; a new build target writes the PS1 dialogue files (`LUNADATA/TEXTnnn.DAT`) for the PS1 disc build. PS1 English pairs with the Remastered Japanese for 8255 of 8259 strings.
 - Lunar (Japanese text, PS1 and Remastered): two-byte glyphs with lead 0xDD-0xEE read as kanji (Shift-JIS code = lead - 0x55, then the trail byte) or as symbol glyphs (0xEE xx), no longer as `{E9:92}`-style tags; checked against the PSP remake's Unicode text (975 aligned codes, none disagree) (`plugins/lunar_sssc/jp_codec.py`, `codec.decode`).
 - MSBT tags (`plugins/common/lms_tags.py`): in a UTF-8 MSBT the string arguments of a tag are UTF-8 with no padding, so Ocarina of Time (Switch 2) `{plural:...}` reads as words (it showed garbage) and writes back byte-identical; UTF-16 games are unchanged.
