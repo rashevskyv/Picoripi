@@ -52,7 +52,7 @@ def load_languages(folder: Path, members: Dict[int, Tuple[str, str]]) -> Dict[st
             msbt = Msbt(container.read_file(member))
             for block in blocks:
                 for index, tokens in enumerate(msbt.messages):
-                    texts[(block, index)] = to_editor(tokens, msbt.little)
+                    texts[(block, index)] = to_editor(tokens, msbt.little, msbt.utf8)
         if texts:
             result[LANGUAGES.get(prefix, prefix)] = texts
     return result

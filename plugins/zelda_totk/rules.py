@@ -63,7 +63,7 @@ class GameRules(BaseGameRules):
             return super().load_data_from_json_obj(json_obj)
         msbt = Msbt(json_obj)
         self._msbt = msbt
-        return [[to_editor(tokens, msbt.little) for tokens in msbt.messages]], {}
+        return [[to_editor(tokens, msbt.little, msbt.utf8) for tokens in msbt.messages]], {}
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
         if self._msbt is None:
@@ -74,10 +74,10 @@ class GameRules(BaseGameRules):
         for index, original in enumerate(msbt.messages):
             text = texts[index] if index < len(texts) else None
             # An untouched message keeps its exact tokens, whatever the editor form would re-encode to.
-            if text is None or text == to_editor(original, msbt.little):
+            if text is None or text == to_editor(original, msbt.little, msbt.utf8):
                 messages.append(original)
             else:
-                messages.append(from_editor(str(text), msbt.little))
+                messages.append(from_editor(str(text), msbt.little, msbt.utf8))
         return msbt.build(messages)
 
     def prepare_save_context(self, context) -> None:

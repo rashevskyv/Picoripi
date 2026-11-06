@@ -268,3 +268,12 @@ class TestRestbl:
         assert grown_size(11443328, 11442936) == 11443328
         assert grown_size(11443328, 11000000) == 11443328
         assert grown_size(11443328, 11500001) == 11500032 + 0x180
+
+
+def test_string_arguments_of_a_utf8_file_read_as_utf8_text_and_write_back_the_same():
+    forms = ("рупія", "рупії", "рупій")
+    params = b"".join(struct.pack("<H", len(word.encode())) + word.encode() for word in forms)
+    tag = Tag(201, 6, params)
+    assert to_editor([tag], True, True) == "{plural:рупія:рупії:рупій}"
+    assert from_editor("{plural:рупія:рупії:рупій}", True, True) == [tag]
+    assert to_editor([tag], True) != "{plural:рупія:рупії:рупій}"  # UTF-16 files keep their own reading
