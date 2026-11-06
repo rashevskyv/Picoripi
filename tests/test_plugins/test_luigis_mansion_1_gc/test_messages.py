@@ -23,6 +23,10 @@ def test_edited_record_keeps_the_record_count_and_the_tail():
     assert Table(raw).build(["one", "TWO"]) == b"one\r\nTWO\r\n"
 
 
+def test_an_editor_form_tag_is_written_in_the_game_form():
+    assert Table(b"one\r\ntwo\r\n").build(["one", "{COLOR(3)}Luigi{COLOR(0)}"]) == b"one\r\n<COLOR>(3)Luigi<COLOR>(0)\r\n"
+
+
 def test_record_count_change_is_refused():
     with pytest.raises(ValueError, match="holds 2 records"):
         Table(b"one\r\ntwo\r\n").build(["one"])

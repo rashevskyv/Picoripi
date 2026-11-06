@@ -46,6 +46,10 @@ ICONS = (     # lbl_803054A8, icon of COLOR(c) is ICONS[c - 1]
     "uranai_icon", "piano_icon", "baba_icon", "futago_icon", "art_icon", "girl_icon", "situji_icon", "kino_icon",
     "kino_ri", "tubo_icon", "yuki_icon")
 
+TEXT_COLOURS = (   # 0x80339C48, RGB of <COLOR>(n) inside a message; fn_800628AC reads n >= 8 as 0
+    (255, 255, 255), (50, 255, 50), (255, 50, 50), (255, 180, 90), (0, 0, 0), (180, 180, 255), (50, 255, 255),
+    (255, 255, 0))
+
 _COMMAND = re.compile(r"<(WINDOW|COLOR|SPEAK)>\((\d+)\)")
 
 

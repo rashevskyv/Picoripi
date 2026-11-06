@@ -13,6 +13,8 @@ from typing import List, Sequence, Tuple
 
 from core.i18n import tr
 
+from .tag_manager import to_data
+
 ENCODING = "cp932"
 RECORD_END = "\r\n"
 TAG_NAME = re.compile(r"<([A-Z][A-Z0-9_]*)>")
@@ -70,7 +72,8 @@ class Table:
         return [str(i + 1) for i in range(len(self._texts))]
 
     def build(self, texts: Sequence[str]) -> bytes:
-        if list(texts) == self._texts:
+        texts = [to_data(text) for text in texts]   # a {COLOR(3)} that reached the data store goes back to <COLOR>(3)
+        if texts == self._texts:
             return self.raw
         if len(texts) != len(self._texts):
             raise ValueError(tr("the message file holds {0} records, {1} were given", len(self._texts), len(texts)))
