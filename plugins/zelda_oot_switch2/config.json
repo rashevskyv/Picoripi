@@ -1,6 +1,6 @@
 {
     "supported_images": [
-        {"kind": "title", "id": "0400486024DEC000", "region": "All regions", "note": "Switch 2 .nup package, title version 131072 (Mals .Product.110)"}
+        {"kind": "title", "id": "0400486024DEC000", "region": "All regions", "note": "Switch 2 .nup package, title version 131072 (Mals .Product.110); the build writes a new .nup with the translation in the Russian slot"}
     ],
     "display_name": "Zelda: Ocarina of Time (Switch 2)",
     "platforms": ["switch2"],

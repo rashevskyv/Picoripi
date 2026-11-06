@@ -6,24 +6,27 @@ groups, scalable ``Font2/Scalable/*.bfotf.zs`` fonts. So the TotK rules are reus
 TotK's speaker table and cutscene width do not apply and are switched off here.
 
 The source is the unencrypted ``.nup`` package (``nup.py``; no keys). The wizard copies out only the text, the
-dictionaries and the fonts (about 45 MB of 24 GB) into ``romfs/``; the project's source is ``romfs/Mals`` and
-only the English slot (``USen``) becomes blocks. The other language archives are the reference columns.
+dictionaries and the fonts (about 32 MB of 24 GB) into ``romfs/`` and records the package (``.picoripi_disc.json``).
+The project's source is ``romfs/Mals``; the English slot (``USen``) becomes the blocks (the Original column), the
+Russian slot is the first reference column, the other slots follow. The build (``build.py``) writes a new package
+with the translation in the Russian slot (``EUru``), whose fonts have the Ukrainian letters.
 """
 from __future__ import annotations
 
 import weakref
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Set
+from typing import Any, Callable, Dict, List, Optional, Set
 
 from core.containers import sarc
 from core.i18n import tr
+from plugins.common.disc_source import write_source_mark
 from plugins.zelda_totk.rules import GameRules as TotkRules
 from plugins.zelda_totk.rules import _dictionary_dirs
 from utils.atomic_io import atomic_write_bytes
 from utils.constants import SETTINGS_DIR
 
-from . import nup
-from .config import (PLUGIN_PREFIX, PROBLEM_DEFINITIONS, SOURCE_SUBFOLDER, TEXT_ARCHIVE_PREFIX, TITLE_ID,
+from . import build, nup
+from .config import (BUILD_TARGET, PLUGIN_PREFIX, PROBLEM_DEFINITIONS, SOURCE_SUBFOLDER, TEXT_ARCHIVE_PREFIX, TITLE_ID,
                      UNPACKED_PREFIXES)
 
 PLUGIN_DATA_DIR = SETTINGS_DIR / "plugins" / "zelda_oot_switch2"
@@ -74,11 +77,24 @@ class GameRules(TotkRules):
                     return None
                 progress(done * 100 // len(wanted), entry.path)
                 atomic_write_bytes(Path(target_dir, *entry.path.split("/")), package.read(entry))
+        write_source_mark(target_dir, path)
         progress(100, "")
         return target_dir
 
     def get_source_subfolder(self) -> Optional[str]:
         return SOURCE_SUBFOLDER
+
+    # -- build -------------------------------------------------------------------
+
+    def get_build_targets(self) -> List[Dict[str, Any]]:
+        return [{"id": BUILD_TARGET, "label": tr("Switch 2 package (.nup), Ukrainian in the Russian slot"),
+                 "platforms": ["switch2"], "kind": "patch"}]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress, is_cancelled) -> str:
+        if target_id != BUILD_TARGET:
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        return build.build_nup(source_dir, translation_dir, output_dir, progress, is_cancelled)
 
     # -- TotK features that need TotK's own data -----------------------------------
 
