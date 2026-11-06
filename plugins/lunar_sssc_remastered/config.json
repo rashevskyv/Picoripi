@@ -1,10 +1,12 @@
 {
     "supported_images": [
         {"kind": "title", "id": "0100DCD01E9EE000", "region": "All regions", "note": "Lunar: Silver Star Story Remastered (Switch)"},
-        {"kind": "unchecked", "region": "All regions", "note": "Lunar: Silver Star Story Remastered (PC, Steam) game folder with data.cpk and lunar1.exe"}
+        {"kind": "unchecked", "region": "All regions", "note": "Lunar: Silver Star Story Remastered (PC, Steam) game folder with data.cpk and lunar1.exe"},
+        {"kind": "serial", "id": "SLUS-00628", "region": "USA", "note": "Lunar: Silver Star Story Complete (PlayStation), optional: the PS1 English text and the PS1 build"},
+        {"kind": "serial", "id": "SLUS-00899", "region": "USA", "note": "Lunar: Silver Star Story Complete (PlayStation), the other disc of the pair"}
     ],
-    "display_name": "Lunar: Silver Star Story Remastered",
-    "platforms": ["switch", "pc"],
+    "display_name": "Lunar: Silver Star Story (Japanese base: PS1, Switch, PC)",
+    "platforms": ["switch", "pc", "psx"],
     "default_tag_mappings": {},
     "block_names": {},
     "block_color_markers": {},

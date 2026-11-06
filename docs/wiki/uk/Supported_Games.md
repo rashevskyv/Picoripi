@@ -100,10 +100,12 @@ tokens: 15.0k
 | Luigi's Mansion: Dark Moon (3DS) | Title ID | 010048701995E000 | Усі регіони | Switch HD base game |
 | Lunar 2: Eternal Blue Complete | ID не перевіряється | — | США | PlayStation, three discs |
 | Lunar: Silver Star Harmony (PSP) | Серійний номер | ULUS-10482 | США | PSP |
+| Lunar: Silver Star Story (Japanese base: PS1, Switch, PC) | Title ID | 0100DCD01E9EE000 | Усі регіони | Lunar: Silver Star Story Remastered (Switch) |
+| Lunar: Silver Star Story (Japanese base: PS1, Switch, PC) | ID не перевіряється | — | Усі регіони | Lunar: Silver Star Story Remastered (PC, Steam) game folder with data.cpk and lunar1.exe |
+| Lunar: Silver Star Story (Japanese base: PS1, Switch, PC) | Серійний номер | SLUS-00628 | США | Lunar: Silver Star Story Complete (PlayStation), optional: the PS1 English text and the PS1 build |
+| Lunar: Silver Star Story (Japanese base: PS1, Switch, PC) | Серійний номер | SLUS-00899 | США | Lunar: Silver Star Story Complete (PlayStation), the other disc of the pair |
 | Lunar: Silver Star Story Complete | Серійний номер | SLUS-00628 | США | PlayStation, program SLUS_006.28 |
 | Lunar: Silver Star Story Complete | Серійний номер | SLUS-00899 | США | PlayStation, the other disc of the pair |
-| Lunar: Silver Star Story Remastered | Title ID | 0100DCD01E9EE000 | Усі регіони | Lunar: Silver Star Story Remastered (Switch) |
-| Lunar: Silver Star Story Remastered | ID не перевіряється | — | Усі регіони | Lunar: Silver Star Story Remastered (PC, Steam) game folder with data.cpk and lunar1.exe |
 | MadWorld | ID диска | RZZP8P | Європа | Wii |
 | Mario vs. Donkey Kong (GBA) | ID не перевіряється | — | Не вказано | GBA |
 | Mario vs. Donkey Kong (Switch) | ID не перевіряється | — | Не вказано | Switch |

@@ -101,10 +101,12 @@ Each plugin opens the images listed here. When you add an image, the wizard matc
 | Luigi's Mansion: Dark Moon (3DS) | Title ID | 010048701995E000 | All regions | Switch HD base game |
 | Lunar 2: Eternal Blue Complete | Not checked by ID | — | USA | PlayStation, three discs |
 | Lunar: Silver Star Harmony (PSP) | Serial | ULUS-10482 | USA | PSP |
+| Lunar: Silver Star Story (Japanese base: PS1, Switch, PC) | Title ID | 0100DCD01E9EE000 | All regions | Lunar: Silver Star Story Remastered (Switch) |
+| Lunar: Silver Star Story (Japanese base: PS1, Switch, PC) | Not checked by ID | — | All regions | Lunar: Silver Star Story Remastered (PC, Steam) game folder with data.cpk and lunar1.exe |
+| Lunar: Silver Star Story (Japanese base: PS1, Switch, PC) | Serial | SLUS-00628 | USA | Lunar: Silver Star Story Complete (PlayStation), optional: the PS1 English text and the PS1 build |
+| Lunar: Silver Star Story (Japanese base: PS1, Switch, PC) | Serial | SLUS-00899 | USA | Lunar: Silver Star Story Complete (PlayStation), the other disc of the pair |
 | Lunar: Silver Star Story Complete | Serial | SLUS-00628 | USA | PlayStation, program SLUS_006.28 |
 | Lunar: Silver Star Story Complete | Serial | SLUS-00899 | USA | PlayStation, the other disc of the pair |
-| Lunar: Silver Star Story Remastered | Title ID | 0100DCD01E9EE000 | All regions | Lunar: Silver Star Story Remastered (Switch) |
-| Lunar: Silver Star Story Remastered | Not checked by ID | — | All regions | Lunar: Silver Star Story Remastered (PC, Steam) game folder with data.cpk and lunar1.exe |
 | MadWorld | Disc ID | RZZP8P | EUR | Wii |
 | Mario vs. Donkey Kong (GBA) | Not checked by ID | — | Not stated | GBA |
 | Mario vs. Donkey Kong (Switch) | Not checked by ID | — | Not stated | Switch |
