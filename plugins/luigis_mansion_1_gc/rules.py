@@ -23,7 +23,7 @@ from plugins.common.table_rules import TableRules
 from . import build, messages, window
 from .dol_font import DolFont
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
-from .tag_manager import TAG_RE, TagManager
+from .tag_manager import EDITOR_TAG_RE, TAG_RE, TagManager, to_data, to_editor
 
 GAME_ID = "GLME01"
 REVISION = 0
@@ -46,7 +46,7 @@ class GameRules(TableRules):
                     ((".txt",), "Luigi's Mansion event script (Shift-JIS, not a text table)"))
     default_script_name = "luigis_mansion_1_script.md"
     lines_per_page = DEFAULT_LINES_PER_PAGE
-    spellcheck_ignore = TAG_RE.pattern
+    spellcheck_ignore = TAG_RE.pattern + "|" + EDITOR_TAG_RE.pattern
 
     def parse_table(self, raw: bytes):
         try:
@@ -67,21 +67,41 @@ class GameRules(TableRules):
             return {}
         return {"role": "Dialogue / menu text",
                 "description": "A line of the game. A line break inside a message is a new line on screen; "
-                               "<TAG>(n) tags (for example <COLOR>(3)...<COLOR>(0)) stay as they are."}
+                               "{TAG(n)} tags (for example {COLOR(3)}...{COLOR(0)}) stay as they are."}
 
     def get_speaker_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
         return None
 
-    # ----- the font draws і ї є ґ in the Ё/Ъ/Э/Ы cells (messages.SLOT_OF): measure and preview them there
+    # ----- tags: the editor shows <COLOR>(3) as {COLOR(3)} (tag_manager.to_editor); a file keeps the game's form
+
+    def replace_tags_with_aliases(self, text: str) -> str:
+        return super().replace_tags_with_aliases(to_editor(str(text)))
+
+    def replace_aliases_with_tags(self, text: str) -> str:
+        return to_data(super().replace_aliases_with_tags(str(text)))
+
+    # ----- the font draws і ї є ґ in the Ё/Ъ/Э/Ы cells (messages.SLOT_OF): measure and preview them there.
+    # Tags take no width; <COLOR>(n) paints the text after it (window.TEXT_COLOURS).
 
     def prepare_preview_glyph_text(self, text: str) -> Tuple[str, Optional[List[Optional[str]]]]:
-        cleaned, colors = super().prepare_preview_glyph_text(text)
-        return cleaned.translate(messages.TO_SLOT), colors
+        text = to_data(str(text))
+        parts = TAG_RE.split(text)
+        tags = TAG_RE.findall(text)
+        cleaned, colors, color = parts[0], [None] * len(parts[0]), None
+        for tag, part in zip(tags, parts[1:]):
+            if tag.startswith("<COLOR>"):
+                index = int(tag[8:-1]) if tag[8:-1].isdigit() else 0
+                rgb = window.TEXT_COLOURS[index] if 0 < index < len(window.TEXT_COLOURS) else None
+                color = "#%02x%02x%02x" % rgb if rgb else None
+            cleaned += part
+            colors += [color] * len(part)
+        return cleaned.translate(messages.TO_SLOT), colors if any(colors) else None
 
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 6) -> Optional[int]:
-        if not any(ch in messages.SLOT_OF for ch in text):
+        plain = EDITOR_TAG_RE.sub("", TAG_RE.sub("", text))
+        if plain == text and not any(ch in messages.SLOT_OF for ch in text):
             return None
-        return calculate_string_width(text.translate(messages.TO_SLOT), font_map,
+        return calculate_string_width(plain.translate(messages.TO_SLOT), font_map,
                                       icon_sequences=getattr(self.mw, "icon_sequences", []),
                                       default_tag_mappings=getattr(self.mw, "default_tag_mappings", {}))
 

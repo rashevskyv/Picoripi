@@ -82,3 +82,38 @@ def test_ukrainian_letters_are_previewed_and_measured_in_their_font_cells():
     assert rules.prepare_preview_glyph_text("Ґанок і ї")[0] == "Ёанок ы ъ"
     assert rules.calculate_string_width_override("іа", font_map) == calculate_string_width("ыа", font_map) == 21
     assert rules.calculate_string_width_override("аа", font_map) is None    # nothing to map: the core measures it
+
+
+def test_color_tags_take_no_width_and_paint_the_preview_from_the_game_table():
+    rules = GameRules(SimpleNamespace(project_manager=None, block_to_project_file_map={}))
+    font_map = {"a": {"width": 10}, "b": {"width": 7}}
+    text = "a<COLOR>(3)bb<COLOR>(0)a<COLOR>(9)b"
+
+    assert rules.calculate_string_width_override(text, font_map) == calculate_string_width("abbab", font_map) == 41
+    cleaned, colors = rules.prepare_preview_glyph_text(text)
+    assert cleaned == "abbab"
+    assert colors == [None, "#ffb45a", "#ffb45a", None, None]    # 3 is orange; 0 and 8+ are the default white
+    assert rules.prepare_preview_glyph_text("a<END>b") == ("ab", None)
+
+
+def test_the_editor_shows_game_tags_in_the_app_tag_form_and_saves_the_game_form():
+    from plugins.luigis_mansion_1_gc.tag_manager import TagManager
+
+    rules = GameRules(SimpleNamespace(project_manager=None, block_to_project_file_map={}))
+    data = "It's <COLOR>(3)Luigi<COLOR>(0)!<END>"
+
+    editor = rules.get_text_representation_for_editor(data)
+    assert editor == "It's {COLOR(3)}Luigi{COLOR(0)}!{END}"
+    assert rules.convert_editor_text_to_data(editor) == data
+    assert rules.prepare_preview_glyph_text(editor) == ("It's Luigi!", [None] * 5 + ["#ffb45a"] * 5 + [None])
+    font_map = {"a": {"width": 10}}
+    assert rules.calculate_string_width_override("{COLOR(3)}a{COLOR(0)}", font_map) == 10
+    assert all(TagManager(None).is_tag_legitimate(tag) for tag in ("{COLOR(3)}", "<COLOR>(3)", "{END}"))
+
+
+def test_every_colour_tag_is_a_zero_width_font_map_entry_so_the_cursor_steps_over_it():
+    # A font_map.json key with a width becomes an icon sequence: the editor moves the cursor over it in one step.
+    import json
+    from plugins.luigis_mansion_1_gc.tag_manager import to_editor
+    entries = json.loads((Path(window.__file__).parent / "font_map.json").read_text(encoding="utf-8"))
+    assert entries == {to_editor(f"<COLOR>({n})"): {"width": 0} for n in range(len(window.TEXT_COLOURS))}
