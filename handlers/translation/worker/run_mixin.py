@@ -428,8 +428,10 @@ class AIWorkerRunMixin:
                 real_block_idx, real_string_idx = temp_id_map[source_id]
             elif str(source_id) in temp_id_map:
                 real_block_idx, real_string_idx = temp_id_map[str(source_id)]
+            # The AI saw the source in the editor form (Luigi's Mansion: {COLOR(3)}, not the file's <COLOR>(3)).
+            source_value = editor_text_for_layout(source_value, rules)
             validate_translation_layout(
-                editor_text_for_layout(source_value, rules),
+                source_value,
                 translated_value,
                 resolve_lines_per_window(
                     self.mw,
