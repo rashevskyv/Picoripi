@@ -2,8 +2,10 @@
 
 TotK compresses most files with zstd against dictionaries kept in ``romfs/Pack/ZsDic.pack.zs`` (itself
 a zstd SARC without a dictionary). A frame names its dictionary by id, so the dictionaries are found by
-looking for ``ZsDic.pack.zs`` in the places ``dictionary_dirs`` lists (the TotK plugin sets it: the project folders and
-the ``plugins/zelda_totk`` folder of the data folder) and loaded once.
+looking for ``ZsDic.pack.zs`` in the places ``dictionary_dirs`` lists (the plugin sets it: the project folders and
+the plugin's data folder); each pack is read once. Dictionary ids are small numbers (Ocarina of Time on Switch 2
+has 1-4) that other games can reuse, so the first pack in ``dictionary_dirs`` that has the id wins, and an
+archive compresses again with the very dictionary it was opened with.
 
 ``SarcContainer`` plugs these archives into the project's archive support: each ``.msbt`` inside
 becomes a project block, and saving repacks the archive and compresses it with the same dictionary.
@@ -30,8 +32,8 @@ COMPRESSION_LEVEL = 19
 
 # Folders to look for ZsDic.pack.zs in; the plugin sets it (rules.py).
 dictionary_dirs: Callable[[], Iterable[Path]] = lambda: ()
-_dictionaries: Dict[int, object] = {}
-_searched: set = set()
+_dictionaries: Dict[int, object] = {}        # added by hand (add_dictionary_pack): used when no folder has the id
+_packs: Dict[Path, Dict[int, object]] = {}   # every ZsDic.pack.zs read so far, by path
 
 
 def _need_zstd() -> None:
@@ -39,37 +41,38 @@ def _need_zstd() -> None:
         raise ValueError(tr("zstd-compressed files need Python 3.14 or newer (compression.zstd)"))
 
 
-def add_dictionary_pack(raw: bytes) -> List[int]:
-    """Load every ``*.zsdic`` in a ZsDic.pack.zs; returns their ids."""
+def _read_pack(raw: bytes) -> Dict[int, object]:
+    """``{id: dictionary}`` of every ``*.zsdic`` in a ZsDic.pack.zs."""
     _need_zstd()
     pack = Sarc(zstd.decompress(raw))
-    ids = []
-    for name, data in pack.files.items():
-        if name.endswith(".zsdic") and data[:4] == _DICT_MAGIC:
-            dict_id = struct.unpack_from("<I", data, 4)[0]
-            _dictionaries[dict_id] = zstd.ZstdDict(data)
-            ids.append(dict_id)
-    return ids
+    return {struct.unpack_from("<I", data, 4)[0]: zstd.ZstdDict(data)
+            for name, data in pack.files.items() if name.endswith(".zsdic") and data[:4] == _DICT_MAGIC}
+
+
+def add_dictionary_pack(raw: bytes) -> List[int]:
+    """Load every ``*.zsdic`` in a ZsDic.pack.zs for ids no folder of ``dictionary_dirs`` has; returns their ids."""
+    found = _read_pack(raw)
+    _dictionaries.update(found)
+    return list(found)
 
 
 def _dictionary(dict_id: int):
     if dict_id == 0:
         return None
-    if dict_id not in _dictionaries:
-        for folder in dictionary_dirs():
-            folder = Path(folder)
-            for base in (folder, *list(folder.parents)[:3]):
-                for candidate in (base / DICTIONARY_PACK, base / "Pack" / DICTIONARY_PACK):
-                    if candidate in _searched or not candidate.is_file():
+    for folder in dictionary_dirs():
+        folder = Path(folder)
+        for base in (folder, *list(folder.parents)[:3]):
+            for candidate in (base / DICTIONARY_PACK, base / "Pack" / DICTIONARY_PACK):
+                if candidate not in _packs:
+                    if not candidate.is_file():
                         continue
-                    _searched.add(candidate)
-                    add_dictionary_pack(candidate.read_bytes())
-            if dict_id in _dictionaries:
-                break
+                    _packs[candidate] = _read_pack(candidate.read_bytes())
+                if dict_id in _packs[candidate]:
+                    return _packs[candidate][dict_id]
     if dict_id not in _dictionaries:
         raise ValueError(
             f"zstd dictionary {dict_id:#x} not found: put the game's romfs/Pack/{DICTIONARY_PACK} next to "
-            f"the project's romfs (Pack/{DICTIONARY_PACK}) or into the data folder (plugins/zelda_totk/)"
+            f"the project's romfs (Pack/{DICTIONARY_PACK}) or into the plugin's data folder (plugins/<game>/)"
         )
     return _dictionaries[dict_id]
 
@@ -81,10 +84,10 @@ def decompress(raw: bytes) -> Tuple[bytes, int]:
     return zstd.decompress(raw, zstd_dict=_dictionary(dict_id)), dict_id
 
 
-def compress(data: bytes, dict_id: int) -> bytes:
-    """``data`` as one zstd frame against the same dictionary the original used."""
+def compress(data: bytes, dict_id: int, dictionary=None) -> bytes:
+    """``data`` as one zstd frame against the same dictionary the original used (``dictionary`` when given)."""
     _need_zstd()
-    return zstd.compress(data, level=COMPRESSION_LEVEL, zstd_dict=_dictionary(dict_id))
+    return zstd.compress(data, level=COMPRESSION_LEVEL, zstd_dict=dictionary or _dictionary(dict_id))
 
 
 class Sarc:
@@ -170,8 +173,10 @@ class SarcContainer(BaseArchiveContainer):
     def __init__(self, data: bytes) -> None:
         self._original = bytes(data)
         self._dict_id: Optional[int] = None
+        self._dict = None
         if data[:4] == ZSTD_MAGIC:
             data, self._dict_id = decompress(data)
+            self._dict = _dictionary(self._dict_id)
         self._sarc = Sarc(data)
         self._overlay: Dict[str, bytes] = {}
 
@@ -195,5 +200,5 @@ class SarcContainer(BaseArchiveContainer):
         self._sarc.files.update(changed)
         self._overlay.clear()
         raw = self._sarc.build()
-        self._original = raw if self._dict_id is None else compress(raw, self._dict_id)
+        self._original = raw if self._dict_id is None else compress(raw, self._dict_id, self._dict)
         return self._original

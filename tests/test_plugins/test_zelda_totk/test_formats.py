@@ -156,12 +156,35 @@ def dictionaries(monkeypatch, tmp_path):
     """A clean dictionary registry that looks in ``tmp_path``."""
     pytest.importorskip("compression.zstd")
     monkeypatch.setattr(sarc_module, "_dictionaries", {})
-    monkeypatch.setattr(sarc_module, "_searched", set())
+    monkeypatch.setattr(sarc_module, "_packs", {})
     monkeypatch.setattr(sarc_module, "dictionary_dirs", lambda: [tmp_path / "romfs" / "Mals"])
     return tmp_path
 
 
 class TestZstd:
+    def test_two_games_with_the_same_dictionary_id_each_get_their_own(self, dictionaries, monkeypatch):
+        """Two games whose packs reuse a dictionary id: the project's own pack decides, on open and on save."""
+        from compression import zstd
+
+        first = samples.dictionary()
+        dict_id = struct.unpack_from("<I", first, 4)[0]
+        trained = zstd.train_dict([f"Other game, message {i}: {i * 13} rupees.".encode() * 3 for i in range(300)], 4096)
+        second = first[:4] + struct.pack("<I", dict_id) + trained.dict_content[8:]
+        for game, content in (("a", first), ("b", second)):
+            (dictionaries / game / "Pack").mkdir(parents=True)
+            (dictionaries / game / "Pack" / "ZsDic.pack.zs").write_bytes(samples.zsdic_pack(content))
+        plain = samples.sarc({"A.msbt": _talk()})
+        raw_a = zstd.compress(plain, zstd_dict=zstd.ZstdDict(first))
+        raw_b = zstd.compress(plain, zstd_dict=zstd.ZstdDict(second))
+
+        monkeypatch.setattr(sarc_module, "dictionary_dirs", lambda: [dictionaries / "a"])
+        container = sarc_module.SarcContainer(raw_a)
+        monkeypatch.setattr(sarc_module, "dictionary_dirs", lambda: [dictionaries / "b"])
+        assert sarc_module.decompress(raw_b)[0] == plain
+        container.write_file("A.msbt", b"changed")
+        packed = container.pack()
+        assert sarc_module.Sarc(zstd.decompress(packed, zstd_dict=zstd.ZstdDict(first))).files == {"A.msbt": b"changed"}
+
     def test_an_archive_compressed_with_the_game_dictionary_opens_and_saves_with_it(self, dictionaries):
         from compression import zstd
 
