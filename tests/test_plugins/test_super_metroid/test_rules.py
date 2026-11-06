@@ -13,12 +13,13 @@ from plugins.super_metroid import rules as sm_rules
 from plugins.testing import check_loads, check_round_trip, check_validator
 
 PLUGIN = "super_metroid"
+UA_SET = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯ’"     # every Ukrainian capital and the apostrophe
 # Under the RomHacking root. The real-file checks are verified against one ROM dump and one sm.py: a changed
 # input skips its checks with the reason (re-verify, then update the pin).
 SM = ("Metroid", "Super Metroid")
 SCRIPT_FILE = ("_shared", "scripts", "zt", "sm.py")
 ROM_SHA256 = "12b77c4bc9c1832cee8881244659065ee1d84c70c3d29e6eaf92e6798cc2ca72"   # Super Metroid (Japan, USA) (En,Ja)
-SM_PY_SHA256 = "7b29b12ba85a94949147e3a0235dfa587d6a2c030726aae6a556cd8ee2f65382"
+SM_PY_SHA256 = "74c741b00684b2879ad56c91913135788b717935b61a4d88a14dc94a06f379d8"
 SAMPLE = json.dumps({"format": sm_rules.FORMAT, "groups": [
     {"name": "Message boxes", "items": [{"id": "msg.01.EnergyTank", "text": "ENERGY TANK", "width": 19, "lines": 1,
                                          "symbol": "kMessageBox_1_EnergyTank"}]},
@@ -230,21 +231,20 @@ def _tile_image(data: bytes, tile: int):
     return sheet.crop((x, y, x + 8, y + 8))
 
 
-def test_the_intro_fonts_are_four_sheets_of_two_files():
+def test_the_intro_fonts_are_two_latin_sheets_of_one_file_and_two_ukrainian_sheets_of_their_own():
     rules = check_loads(PLUGIN)
     story, prologue = _font(rules, "Intro story pages: green"), _font(rules, "Intro first screen: big white")
     window, big_ua = _font(rules, "Intro story pages: Ukrainian"), _font(rules, "Intro first screen: Ukrainian")
-    assert story["path"] == prologue["path"] == big_ua["path"] == "gfx/intro_font.bin"
-    assert window["path"] == "gfx/story_window.bin"
+    assert story["path"] == prologue["path"] == "gfx/intro_font.bin"
+    assert (window["path"], big_ua["path"]) == ("gfx/ua_story.bin", "gfx/ua_prologue.bin")
     assert (story["font_map"], prologue["font_map"]) == ("intro_story.json", "intro_prologue.json")
     assert story["params"]["cell"] == window["params"]["cell"] == [8, 8]
     assert prologue["params"]["cell"] == big_ua["params"]["cell"] == [8, 16]
     assert max(story["params"]["tiles"]) < 0x30                                     # the green letters: tiles 0-0x2F
-    # the Ukrainian letters of the first screen sit in the freed Japanese window (no English screen uses it)
-    free = set(range(0x5A, 0x60)) | set(range(0x6A, 0x90))
-    assert all(set(pair) <= free for pair in big_ua["params"]["tiles"])
-    # the story window's letters are its tiles from 0 (VRAM tile 0x30) on
-    assert sorted(window["params"]["tiles"]) == list(range(34)) and window["params"]["chars"][-1] == "-"
+    # every letter and the apostrophe, each in its own cell: tile k (8x8), tiles 2k over 2k+1 (8x16)
+    assert window["params"]["chars"] == big_ua["params"]["chars"] == list(UA_SET)
+    assert window["params"]["tiles"] == list(range(34))
+    assert big_ua["params"]["tiles"] == [[2 * k, 2 * k + 1] for k in range(34)]
 
 
 def test_real_plugin_fonts_are_the_zt_tables(zt_sm):
@@ -254,36 +254,53 @@ def test_real_plugin_fonts_are_the_zt_tables(zt_sm):
     assert sm.font_sources() == rules.get_font_sources()
 
 
-LATIN_OF = {"Message boxes: Ukrainian letters (8x8)": "Message boxes: white letters (8x8)",
+LATIN_OF = {"Message boxes: Ukrainian letters and apostrophe (8x8)": "Message boxes: white letters (8x8)",
             "File select, game over and options: Ukrainian small letters (8x8)":
                 "File select, game over and options: small letters (8x8)",
             "File select, game over and options: Ukrainian big letters (8x16)":
                 "File select, game over and options: big letters (8x16)",
             "Pause screen: Ukrainian letters and apostrophe (8x8)": "Pause screen: area names (8x8)",
-            "Intro story pages: Ukrainian capitals and hyphen (8x8)": "Intro story pages: green letters (8x8)",
+            "Intro story pages: Ukrainian letters and apostrophe (8x8)": "Intro story pages: green letters (8x8)",
             "Intro first screen: Ukrainian big letters (8x16)": "Intro first screen: big white letters (8x16)",
             "Credits: Ukrainian small letters and apostrophe (8x8)": "Credits: job titles (small letters, 8x8)",
             "Credits: Ukrainian big letters (8x16)": "Credits: names (big letters, 8x16)"}
 
 
-def test_real_latin_glyphs_are_whole_and_ukrainian_cells_start_as_copies_or_empty(zt_sm):
-    """In source\\gfx (the build's first content): every Latin glyph has ink in each of its tiles, a look-alike cell is
-    the Latin letter's picture, a letter nobody drew is an empty cell."""
+def _source_workspace(sm, data, ws):
+    """A workspace with only source\\ (what 1_unpack.bat writes): text.json, the game's sheets, the seeded ua_ sheets."""
+    (ws / "source" / "gfx").mkdir(parents=True)
+    (ws / "translation" / "gfx").mkdir(parents=True)
+    (ws / "source" / "text.json").write_text(sm.dump_text(sm.Rom(data)), encoding="utf-8")
+    for name in sm.GFX:
+        (ws / "source" / "gfx" / f"{name}.bin").write_bytes(sm.gfx_source(data, name))
+    assert len(sm.seed_ua_sheets(ws)) == 2 * len(sm.PORT_UA)
+    for path in (ws / "translation" / "gfx").glob("ua_*.bin"):
+        path.unlink()                                 # the translation starts as the source
+
+
+def test_real_latin_glyphs_are_whole_and_ukrainian_cells_start_as_copies_or_empty(zt_sm, tmp_path):
+    """In source\\gfx (the build's first content): every Latin glyph has ink in each of its tiles, a look-alike cell of a
+    ua_ sheet is the Latin letter's picture, a letter the game's sheets have no drawn cell for is an empty cell."""
     sm, data = zt_sm
     _sm_py_pinned()
     rules = check_loads(PLUGIN)
+    _source_workspace(sm, data, tmp_path)
+    fonts = {v[0]: k for k, v in sm.PORT_UA.items()}
     glyphs = {}
     for font in rules.get_font_sources():
         name = font["path"][len("gfx/"):-len(".bin")]
-        _meta, (sheet,) = font_formats.extract(font["format"], sm.gfx_source(data, name), font["params"])
+        raw = (tmp_path / "source" / "gfx" / f"{name}.bin").read_bytes()
+        _meta, (sheet,) = font_formats.extract(font["format"], raw, font["params"])
         w, h = font["params"]["cell"]
         for k, ch in enumerate(font["params"]["chars"]):
             glyphs[font["label"], ch] = sheet.crop((k % 16 * w, k // 16 * h, k % 16 * w + w, k // 16 * h + h))
     for (label, ch), glyph in glyphs.items():
         if label in LATIN_OF:
-            latin = sm.LOOKALIKE[ch] if ch in sm.LOOK_ORDER else None
-            want = glyphs[LATIN_OF[label], latin].tobytes() if latin else bytes(len(glyph.tobytes()))
-            assert glyph.tobytes() == want, (label, ch)
+            if ch in sm.LOOK_ORDER:
+                assert glyph.tobytes() == glyphs[LATIN_OF[label], sm.LOOKALIKE[ch]].tobytes(), (label, ch)
+            name = next(f["path"][4:-4] for f in rules.get_font_sources() if f["label"] == label)
+            if sm._snes_cell(fonts[name], ch) is None:
+                assert not glyph.getchannel("A").getbbox(), (label, ch)
         elif label.startswith("HUD") or ch in ".,'’:!?-()&":
             assert glyph.getchannel("A").getbbox(), (label, ch)
         else:
@@ -374,17 +391,14 @@ def test_real_rom_the_first_screen_text_is_an_item_and_moves_to_free_space_when_
     assert "0x978ADB" in c_file.read_text(encoding="utf-8")
 
 
-def test_the_pause_font_has_cells_for_the_ukrainian_capitals_on_free_stock_tiles():
-    """The Ukrainian cells (33 capitals and the apostrophe) are tiles of the stock pause sheet that no pause map uses,
-    and none of them is a Latin letter or the dot of the pause font (tiles 48-74)."""
+def test_the_pause_font_has_a_ukrainian_sheet_of_its_own():
+    """The 33 capitals and the apostrophe are cells 0-33 of ua_pause.bin; the Latin letters stay in the stock sheet."""
     rules = check_loads(PLUGIN)
     area, ua = _font(rules, "Pause screen: area names"), _font(rules, "Pause screen: Ukrainian")
-    assert area["path"] == ua["path"] == "gfx/pause_tiles.bin"
+    assert (area["path"], ua["path"]) == ("gfx/pause_tiles.bin", "gfx/ua_pause.bin")
     assert area["params"]["chars"] == list("ABCDEFGHIJKLMNOPQRSTUVWXYZ.")
     assert all(48 <= t <= 74 for t in area["params"]["tiles"])
-    cells = dict(zip(ua["params"]["chars"], ua["params"]["tiles"]))
-    assert (cells["Б"], cells["Г"]) == (14, 78) and len(set(cells.values())) == 34
-    assert all(not (48 <= t <= 74) for t in cells.values())
+    assert ua["params"]["chars"] == list(UA_SET) and ua["params"]["tiles"] == list(range(34))
 
 
 def test_real_pause_cells_are_stock_free_tiles_and_the_stock_sheet_round_trips(zt_sm):
@@ -467,3 +481,92 @@ def test_the_rom_code_reads_the_english_intro_copies_while_the_language_flag_is_
     assert sm.prologue_address(d) == sm.PROLOGUE                       # the builder still finds the Ukrainian block
     sm.patch_intro_language_rom(rom)                                   # a second run changes nothing
     assert bytes(rom.data) == d
+
+
+# -- the port's Ukrainian glyph bank: sm_port.smc bank E3, read by the port's PPU instead of SNES VRAM ---------------
+
+def test_real_port_fonts_give_every_ukrainian_letter_its_own_cell_inside_a_bank_window(zt_sm):
+    """In the port ROM every letter (the look-alikes too) is a tile past the game's tiles, never a Latin tile, and each
+    tile lies in a VRAM window that a rule of the bank serves for its layer."""
+    sm, _data = zt_sm
+    _sm_py_pinned()
+    snes = {name: dict(font.codes) for name, font in sm.FONTS.items()}
+    with sm.port_tables():
+        port = {name: dict(sm.FONTS[name].codes) for name in sm.PORT_UA}
+    assert {name: dict(font.codes) for name, font in sm.FONTS.items()} == snes      # the SNES tables are back
+    used = {}
+    for name, (_sheet, bpp, tall, first, base) in sm.PORT_UA.items():
+        latin = {t for ch, t in snes[name].items() if ch.isascii()}
+        for k, ch in enumerate(UA_SET):
+            cell = port[name][ch]
+            assert cell == ((first + 2 * k, first + 2 * k + 1) if tall else first + k), (name, ch)
+            assert cell not in latin, (name, ch)
+            for t in cell if tall else (cell,):
+                addr = base + t * 4 * bpp
+                assert any(r[0] == bpp and r[1] == base and r[3] <= addr < r[4] for r in sm.PORT_RULES), (name, ch)
+                assert used.setdefault((base, t), name) == name, (name, ch, used[base, t])
+        assert port[name]["'"] == port[name]["’"]
+
+
+def test_real_port_bank_holds_the_rules_and_the_ua_sheets_word_for_word(zt_sm, tmp_path):
+    sm, _data = zt_sm
+    _sm_py_pinned()
+    sheets = {}
+    for name, (sheet, bpp, *_rest) in sm.PORT_UA.items():
+        sheets[name] = bytes((i * 13 + len(sheet)) % 256 for i in range(sm.ua_tiles(name) * 8 * bpp))
+        path = tmp_path / "translation" / "gfx" / f"{sheet}.bin"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(sheets[name])
+    bank = sm.port_bank(tmp_path)
+    assert bank[:4] == b"ZTUA"
+    (nrules,) = struct.unpack_from("<H", bank, 4)
+    rules = [struct.unpack_from("<BBHHHHQ", bank, 6 + 18 * i) for i in range(nrules)]
+    assert [(r[0], r[2], None if r[3] == 0xFFFF else r[3], r[4], r[5]) for r in rules] == \
+        [r[:5] for r in sm.PORT_RULES]
+    assert [r[6] for r in rules] == [sum(1 << st for st in r[5]) for r in sm.PORT_RULES]
+    at = 6 + 18 * nrules
+    assert struct.unpack_from("<H", bank, at) == (len(sm.PORT_UA),)
+    at += 2
+    for name, (_sheet, bpp, tall, first, base) in sm.PORT_UA.items():
+        addr, count = struct.unpack_from("<HH", bank, at)
+        assert (addr, count) == (base + first * 4 * bpp, 34 * (2 if tall else 1) * 4 * bpp)
+        assert bank[at + 4:at + 4 + 2 * count] == sheets[name][:2 * count]
+        at += 4 + 2 * count
+    assert at == len(bank)
+
+
+def test_real_an_edited_ukrainian_glyph_lands_in_the_port_bank_and_in_the_snes_cell(zt_sm, tmp_path):
+    """One ua_ sheet feeds both targets: the port ROM's bank and the SNES ROM's own cell of that letter."""
+    sm, data = zt_sm
+    _sm_py_pinned()
+    _source_workspace(sm, data, tmp_path)
+    k, glyph = UA_SET.index("Б"), bytes(range(1, 17))
+    sheet = bytearray((tmp_path / "source" / "gfx" / "ua_bg3.bin").read_bytes())
+    sheet[k * 16:(k + 1) * 16] = glyph
+    (tmp_path / "translation" / "gfx" / "ua_bg3.bin").write_bytes(bytes(sheet))
+    port = sm.build_port_rom(tmp_path, data)
+    snes, _texts, _sheets = sm.build_rom(tmp_path, data)
+    bank = sm.port_bank(tmp_path)
+    assert len(port) == len(snes) == 0x400000 and port[sm.PORT_BANK:sm.PORT_BANK + len(bank)] == bank
+    first_chunk = 6 + 18 * len(sm.PORT_RULES) + 2 + 4                       # bg3 is the first sheet of the bank
+    assert bank[first_chunk + k * 16:first_chunk + (k + 1) * 16] == glyph
+    assert set(snes[sm.PORT_BANK:sm.PORT_BANK + len(bank)]) == {0xFF}       # the SNES ROM has no bank
+    tile = sm.SNES_UA_CELLS["bg3"]["Б"]
+    assert sm.gfx_bytes(snes, "bg3_font")[tile * 16:(tile + 1) * 16] == glyph
+
+
+def test_real_port_source_takes_the_glyph_bank_patch(zt_sm, tmp_path):
+    sm, _data = zt_sm
+    _sm_py_pinned()
+    reason = romhacking_root.missing(*SM, "port", "sm_rewrite", "src", "snes", "ppu.c")
+    if reason:
+        pytest.skip(reason)
+    clone = romhacking_root.path(*SM, "port", "sm_rewrite", "src")
+    (tmp_path / "src" / "snes").mkdir(parents=True)
+    shutil.copy(clone / "snes" / "ppu.c", tmp_path / "src" / "snes" / "ppu.c")
+    shutil.copy(clone / "main.c", tmp_path / "src" / "main.c")
+    sm.patch_port_glyphs(tmp_path)
+    ppu = (tmp_path / "src" / "snes" / "ppu.c").read_text(encoding="utf-8")
+    assert ppu.count("ZtUaWindow(ppu, layer") == 3 and "g_zt_ua_vram" in ppu
+    assert ppu.count("zt_v[") == 4 and "ppu->vram[(ppu->bgLayer[layer].tileAdr" not in ppu      # all four planes
+    assert f'"{sm.PORT_ROM}";' in (tmp_path / "src" / "main.c").read_text(encoding="utf-8")
