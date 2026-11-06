@@ -6,7 +6,7 @@ import zlib
 from pathlib import Path
 
 import pytest
-from PIL import Image, ImageDraw
+from PIL import Image, ImageChops, ImageDraw
 
 from core import texture_formats
 from core.containers import yaz0
@@ -138,6 +138,28 @@ def test_snes_tiles_are_planar_and_alttp_3bpp_keeps_plane_two_apart():
 def test_unknown_pixel_format_is_refused():
     with pytest.raises(ValueError):
         pixels.codec("gx:NOPE")
+
+
+@pytest.mark.parametrize("name", ["BC3", "BC4A"])
+def test_alpha_blocks_are_never_worse_than_the_minimum_maximum_ends(name):
+    rng = random.Random(7)
+    edge = Image.new("L", (64, 64), 0)
+    ImageDraw.Draw(edge).ellipse((6, 6, 58, 58), fill=255)
+    edge = edge.resize((16, 16), Image.Resampling.LANCZOS).resize((64, 64), Image.Resampling.BILINEAR)
+    noise = Image.frombytes("L", (64, 64), bytes(rng.randrange(256) for _ in range(64 * 64)))
+    alpha = Image.merge("L", [ImageChops.lighter(edge, noise.point(lambda v: v if v > 230 else 0))])
+    image = Image.merge("RGBA", (*Image.new("RGB", (64, 64), (255, 255, 255)).split(), alpha))
+    plain = Image.frombytes("RGBA", (64, 64), image.tobytes("bcn", 3), "bcn", 3).getchannel("A")
+    codec = pixels.codec(name)
+    ours = codec.decode(codec.encode(image), 64, 64).getchannel("A")
+
+    def errors(decoded):
+        diff = [(a - b) ** 2 for a, b in zip(alpha.getdata(), decoded.getdata())]
+        return [sum(diff[(by * 4 + y) * 64 + bx * 4 + x] for y in range(4) for x in range(4))
+                for by in range(16) for bx in range(16)]
+
+    before, after = errors(plain), errors(ours)
+    assert all(a <= b for a, b in zip(after, before)) and sum(after) < sum(before) * 0.8
 
 
 # -- surfaces and tilings -----------------------------------------------------------------------------

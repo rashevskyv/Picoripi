@@ -79,11 +79,17 @@ def write(out: bytearray, base: int, codec: Codec, width: int, height: int, imag
     if not changed:
         return 0
     size = codec.size
-    # Pure-Python block encoders go element by element (only what changed); the rest encode once.
-    whole = None if codec.name in _SLOW else codec.encode(new)
+    # Pure-Python block encoders go element by element (only what changed); the rest encode the rectangle of the
+    # changed elements once.
+    whole = None
+    if codec.name not in _SLOW:
+        left, right = min(i % wide for i in changed), max(i % wide for i in changed) + 1
+        top, bottom = changed[0] // wide, changed[-1] // wide + 1
+        whole = codec.encode(new.crop((left * bw, top * bh, right * bw, bottom * bh)))
     for index in changed:
         if whole is not None:
-            element = whole[index * size:(index + 1) * size]
+            at = (index // wide - top) * (right - left) + index % wide - left
+            element = whole[at * size:(at + 1) * size]
         else:
             ex, ey = index % wide, index // wide
             element = codec.encode(new.crop((ex * bw, ey * bh, (ex + 1) * bw, (ey + 1) * bh)))

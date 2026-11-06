@@ -29,6 +29,7 @@ from functools import lru_cache
 from operator import itemgetter
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
+import numpy as np
 from PIL import Image, ImageChops
 
 from core.texture_formats import etc1
@@ -358,6 +359,63 @@ def _max_rgb(image: Image.Image) -> Image.Image:
     return ImageChops.lighter(ImageChops.lighter(red, green), blue)
 
 
+_ALPHA_REACH = 7   # how far each end of a BC3 alpha block may move inward from the block's extremes
+
+
+def _alpha_palettes(lo: np.ndarray, hi: np.ndarray, six: bool) -> np.ndarray:
+    """The 8 alpha values each block can hold (BC3 / BC4 decode). Eight-level blocks store ``hi, lo``; six-level
+    blocks store ``lo, hi`` and keep exact 0 and 255 as the last two values."""
+    lo, hi = lo[:, None], hi[:, None]
+    if six:
+        steps = np.arange(1, 5)
+        inner = ((5 - steps) * lo + steps * hi) // 5
+        return np.concatenate([lo, hi, inner, np.zeros_like(lo), np.full_like(lo, 255)], axis=1)
+    steps = np.arange(1, 7)
+    return np.concatenate([hi, lo, ((7 - steps) * hi + steps * lo) // 7], axis=1)
+
+
+def _better_alpha(bc3: bytes, alpha: Image.Image) -> bytes:
+    """``bc3`` with the alpha half of every block that two end values cannot hold exactly re-encoded by a search.
+
+    Pillow takes the block's minimum and maximum as the ends. The search also moves each end up to ``_ALPHA_REACH``
+    inward and tries the six-level mode (ends from the values between 0 and 255, exact 0 and 255 kept), and keeps
+    the ends with the smallest squared error, so a block is never worse than Pillow's."""
+    width, height = alpha.size
+    values = np.asarray(alpha, dtype=np.int32).reshape(height // 4, 4, width // 4, 4).swapaxes(1, 2).reshape(-1, 16)
+    low, high = values.min(axis=1), values.max(axis=1)
+    rough = np.flatnonzero(~((values == low[:, None]) | (values == high[:, None])).all(axis=1))
+    if not rough.size:
+        return bc3
+    block = values[rough]
+    low, high = low[rough], high[rough]
+    middle = (block > 0) & (block < 255)
+    in_low = np.where(middle, block, 255).min(axis=1)
+    in_high = np.where(middle, block, 0).max(axis=1)
+    has_middle = middle.any(axis=1)
+    best = np.full(len(rough), np.iinfo(np.int64).max)
+    ends = np.zeros((len(rough), 2), dtype=np.int32)
+    picks = np.zeros((len(rough), 16), dtype=np.int64)
+    # ponytail: a window of _ALPHA_REACH per end, not all 65536 end pairs; widen it if edges still band
+    for six, start, stop, usable in ((False, low, high, high > low), (True, in_low, in_high, has_middle)):
+        for up in range(_ALPHA_REACH + 1):
+            for down in range(_ALPHA_REACH + 1):
+                lo, hi = start + up, stop - down
+                ok = usable & (hi >= lo) & (six | (hi > lo))
+                palette = _alpha_palettes(lo, hi, six)
+                cost = (block[:, :, None] - palette[:, None, :]) ** 2
+                index = cost.argmin(axis=2)
+                error = np.take_along_axis(cost, index[:, :, None], axis=2).sum(axis=(1, 2))
+                take = ok & (error < best)
+                best[take] = error[take]
+                ends[take] = np.stack([lo, hi] if six else [hi, lo], axis=1)[take]
+                picks[take] = index[take]
+    bits = (picks << (3 * np.arange(16))).sum(axis=1).astype("<u8")
+    out = bytearray(bc3)
+    for row, at in enumerate(rough.tolist()):
+        out[at * 16:at * 16 + 8] = bytes(ends[row].astype(np.uint8)) + bits[row].tobytes()[:6]
+    return bytes(out)
+
+
 def _bc_codec(n: int, view: str = "") -> Codec:
     """BC1-BC5 (Pillow) and BC7 (decoded by Pillow, encoded by ``bc7``). One- and two-channel formats have a ``view``: BC4 as ink
     (grey = alpha, the default), ``L`` (opaque grey) or ``A`` (white with alpha); BC5 as ``RG`` (the default)
@@ -381,7 +439,7 @@ def _bc_codec(n: int, view: str = "") -> Codec:
             from core.font_formats import coverage
             channel = ImageChops.multiply(_max_rgb(image), image.getchannel("A")) if view == "L" else coverage(image)
             white = Image.new("L", image.size, 255)
-            bc3 = Image.merge("RGBA", (white, white, white, channel)).tobytes("bcn", 3)
+            bc3 = _better_alpha(Image.merge("RGBA", (white, white, white, channel)).tobytes("bcn", 3), channel)
             return b"".join(block[:8] for block in _chunks(bc3, 16))   # a BC3 alpha block is a BC4 block
         if n == 5 and view == "LA":
             zero, full = Image.new("L", image.size, 0), Image.new("L", image.size, 255)
@@ -389,6 +447,8 @@ def _bc_codec(n: int, view: str = "") -> Codec:
         if n == 7:
             from core.texture_formats import bc7
             return bc7.encode(image)
+        if n == 3:
+            return _better_alpha(image.tobytes("bcn", 3), image.getchannel("A"))
         return image.tobytes("bcn", n)
 
     return Codec(f"BC{n}{view}", (4, 4), _BC_SIZE[n], dec, enc)
