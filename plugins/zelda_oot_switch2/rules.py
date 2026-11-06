@@ -85,6 +85,13 @@ class GameRules(TotkRules):
     def get_source_subfolder(self) -> Optional[str]:
         return SOURCE_SUBFOLDER
 
+    def default_reference_path(self) -> Optional[str]:
+        """The project's own ``romfs/Mals``: it holds every language, so Russian and EUen show with no setting."""
+        try:
+            return str(self.mw.project_manager.project.metadata.get("source_path") or "") or None
+        except AttributeError:
+            return None
+
     # -- build -------------------------------------------------------------------
 
     def get_build_targets(self) -> List[Dict[str, Any]]:

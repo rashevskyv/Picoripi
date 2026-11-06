@@ -2,6 +2,7 @@
 import hashlib
 import struct
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -347,3 +348,11 @@ def test_actor_names_seed_the_glossary_with_their_captions():
     assert rules.get_glossary_seed_entries() == [{"term": "Armos", "section": "Enemy",
                                                   "description": "Armos look like statues.",
                                                   "source_ref": "ActorMsg/Enemy.msbt Enemy_Amos_Name"}]
+
+
+def test_the_reference_columns_come_from_the_projects_own_text_folder():
+    rules = GameRules()
+    assert rules.default_reference_path() is None
+    project = SimpleNamespace(metadata={"source_path": "D:/game/source/romfs/Mals"})
+    rules.mw = SimpleNamespace(project_manager=SimpleNamespace(project=project))
+    assert rules.default_reference_path() == "D:/game/source/romfs/Mals"
