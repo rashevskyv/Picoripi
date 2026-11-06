@@ -95,7 +95,7 @@ TRAILER = b"\x01\x00\x00\x00\x04\x00\x00\x00META"
 FILES = {
     "exefs/main": b"NSO0 program",
     "romfs/Mals/USen.Product.110.sarc.zs": samples.sarc({"ActorMsg/Npc.msbt": samples.msbt([("Name", samples.text("Saria"))])}),
-    "romfs/Mals/EUru.Product.110.sarc.zs": samples.sarc({"ActorMsg/Npc.msbt": samples.msbt([("Name", samples.text("Сария"))])}),
+    "romfs/Mals/EUru.Product.110.sarc.zs": samples.sarc({"ActorMsg/Npc.msbt": samples.msbt([("Name", samples.text("Slot-RU Saria"))])}),
     "romfs/Pack/ZsDic.pack.zs": b"dictionaries",
     "romfs/Font2/Scalable/ClarimoUDPE-Light.Nin_Ounce_NVN2.bfotf.zs": b"font",
     "romfs/Model/Link.bfres.zs": b"model",
@@ -288,17 +288,17 @@ def first_texts(raw):
 
 def test_a_translated_message_replaces_the_russian_one_and_the_rest_stays_russian():
     english, russian = npc_archive("Saria"), samples.sarc({"ActorMsg/Npc.msbt": samples.msbt(
-        [("Name", samples.text("Сария")), ("Name2", samples.text("Нави"))])})
+        [("Name", samples.text("Slot-RU Saria")), ("Name2", samples.text("Slot-RU Navi"))])})
     translated = samples.sarc({"ActorMsg/Npc.msbt": samples.msbt([("Name", samples.text("Саріа")),
                                                                    ("Name2", samples.text("Navi"))])})
 
-    assert first_texts(build.graft(english, translated, russian)) == ["Саріа", "Нави"]
+    assert first_texts(build.graft(english, translated, russian)) == ["Саріа", "Slot-RU Navi"]
     assert build.graft(english, english, russian) is None
 
 
 def test_the_build_writes_a_package_with_the_translation_in_the_russian_slot(tmp_path):
     files = {**FILES, "romfs/Mals/USen.Product.110.sarc.zs": npc_archive("Saria"),
-             "romfs/Mals/EUru.Product.110.sarc.zs": npc_archive("Сария"),
+             "romfs/Mals/EUru.Product.110.sarc.zs": npc_archive("Slot-RU Saria"),
              "romfs/Pack/ZsDic.pack.zs": samples.zsdic_pack(samples.dictionary())}
     image = tmp_path / "game.nup"
     image.write_bytes(package(files))
