@@ -14,6 +14,7 @@ from utils.logging_utils import log_debug, log_warning
 from utils.utils import clean_spaces
 
 from . import reference
+from .preview import TOTK_BOX
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from plugins.common.msbt import Msbt
 from .tag_manager import TagManager
@@ -36,6 +37,7 @@ class GameRules(BaseGameRules):
     reference_languages: Optional[Tuple[str, ...]] = None  # None: every other language, else these, in order
     problem_definitions = PROBLEM_DEFINITIONS
     tag_manager_class = TagManager
+    preview_box = TOTK_BOX   # the talk window facts of preview.py; Ocarina of Time (Switch 2) sets its own
     tag_style = "curly"
     analyze_whole_string_first = True
     show_spaces_as_dots_default = True
@@ -214,6 +216,11 @@ class GameRules(BaseGameRules):
         if not term or not term.strip():
             return None
         return f"https://zeldawiki.wiki/wiki/Special:Search?search={urllib.parse.quote(term.strip())}"
+
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """The talk window drawn with the game's font (``preview.py``; the facts are ``preview_box``)."""
+        from .preview import TalkWindowPreview
+        return TalkWindowPreview(main_window, self.preview_box)
 
     def get_capabilities(self) -> Set[str]:
         """Speakers come from the event flows (``speakers.json``); lore links go to Zelda Wiki."""

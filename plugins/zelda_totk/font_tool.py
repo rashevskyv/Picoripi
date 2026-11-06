@@ -103,6 +103,8 @@ def fonts_in(path: Path) -> Dict[str, bytes]:
         return {path.name.split(".")[0]: raw}
     if raw[:4] == sarc.ZSTD_MAGIC:
         raw = sarc.decompress(raw)[0]
+        if _is_font(raw):   # one zstd font (``*.bfotf.zs``), not an archive
+            return {path.name.split(".")[0]: raw}
     return {Path(name).name.split(".")[0]: data for name, data in sarc.Sarc(raw).files.items() if _is_font(data)}
 
 

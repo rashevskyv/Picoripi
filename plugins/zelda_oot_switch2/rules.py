@@ -20,6 +20,7 @@ from typing import Any, Callable, Dict, List, Optional, Set
 from core.containers import sarc
 from core.i18n import tr
 from plugins.common.disc_source import write_source_mark
+from plugins.zelda_totk.preview import OOT_SWITCH2_BOX
 from plugins.zelda_totk.rules import GameRules as TotkRules
 from plugins.zelda_totk.rules import _dictionary_dirs
 from plugins.zelda_totk.tags import TAG_RE, to_editor
@@ -39,6 +40,7 @@ class GameRules(TotkRules):
     problem_prefix = PLUGIN_PREFIX
     reference_languages = REFERENCE_LANGUAGES
     problem_definitions = PROBLEM_DEFINITIONS
+    preview_box = OOT_SWITCH2_BOX
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
