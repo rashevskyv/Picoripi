@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Set
 
 from core.containers import sarc
+from core.i18n import tr
 from plugins.zelda_totk.rules import GameRules as TotkRules
 from plugins.zelda_totk.rules import _dictionary_dirs
 from utils.atomic_io import atomic_write_bytes
@@ -66,7 +67,7 @@ class GameRules(TotkRules):
         with open(path, "rb") as stream:
             package = nup.Nup(stream)
             if package.title_id != TITLE_ID:
-                raise ValueError(f"This package is title {package.title_id}, not Ocarina of Time ({TITLE_ID}).")
+                raise ValueError(tr("This package is title {0}, not Ocarina of Time ({1}).", package.title_id, TITLE_ID))
             wanted = [entry for entry in package.entries if entry.path.startswith(UNPACKED_PREFIXES)]
             for done, entry in enumerate(wanted):
                 if is_cancelled():
@@ -97,3 +98,7 @@ class GameRules(TotkRules):
 
     def get_capabilities(self) -> Set[str]:
         return {"external_reference"}
+
+    def get_dynamic_name_tags(self) -> dict:
+        """TotK's player name tag (2, 29) does not occur in this game's text."""
+        return {}

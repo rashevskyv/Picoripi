@@ -122,7 +122,7 @@ def test_a_file_that_does_not_match_its_sha256_is_refused(tmp_path):
 def test_other_files_are_not_packages(tmp_path):
     path = tmp_path / "x.nup"
     path.write_bytes(b"NSP0" + bytes(300))
-    with open(path, "rb") as stream, pytest.raises(ValueError, match="not a NUP"):
+    with open(path, "rb") as stream, pytest.raises(ValueError, match="not a NUP package"):
         nup.Nup(stream)
 
 

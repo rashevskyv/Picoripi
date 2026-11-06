@@ -23,6 +23,8 @@ import sys
 from dataclasses import dataclass
 from typing import BinaryIO, List, Tuple
 
+from core.i18n import tr
+
 MAGIC = b"NUP\x01"
 TOC_MAGIC = b"TOC\x01"
 TOC = 0x80
@@ -59,14 +61,14 @@ class Nup:
         stream.seek(0)
         head = stream.read(DIRECTORIES)
         if len(head) < DIRECTORIES or not is_nup(head):
-            raise ValueError("not a NUP package")
+            raise ValueError(tr("This file is not a NUP package."))
         self.title_id, self.version = title_of(head)
         dirs, files, pool_offset, pool_size = struct.unpack_from("<QQQQ", head, 0x88)
         end = TOC + pool_offset + pool_size
         meta = head + stream.read(end - DIRECTORIES)
         children_at = DIRECTORIES + dirs * DIR_SIZE + files * FILE_SIZE
         if len(meta) != end or children_at > TOC + pool_offset:
-            raise ValueError("NUP table of contents is cut short")
+            raise ValueError(tr("The table of contents of this NUP package is cut short."))
         pool = meta[TOC + pool_offset:end]
         children = struct.unpack_from(f"<{(TOC + pool_offset - children_at) // 4}I", meta, children_at)
 
@@ -96,7 +98,7 @@ class Nup:
             from compression import zstd   # Python 3.14+
             data = zstd.decompress(data)
         if len(data) != entry.size or hashlib.sha256(data).digest() != entry.sha256:
-            raise ValueError(f"NUP file {entry.path} does not match its size or SHA-256")
+            raise ValueError(tr("The file {0} in the NUP package does not match its size or SHA-256.", entry.path))
         return data
 
 
