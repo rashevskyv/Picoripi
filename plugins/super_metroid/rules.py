@@ -5,9 +5,10 @@ message boxes, file select and game over menus, the options screens, the pause m
 pages of the story in green 8x8 letters, and the white 16-pixel first screen "THE LAST METROID IS IN CAPTIVITY..."
 as the last item) and the credits. One group is one block; one item is one string (``\\n`` between the rows of
 a message box or the lines of an intro page). Each letter is one 8-pixel cell, so a line holds ``width`` letters. Tiles that are not letters are
-tags (``[press1]``, ``[#304B]``) and stay where they are. The game has capital letters only; ``2_build.bat`` writes
-Ukrainian look-alikes (А, В, Е, І, ...) with the Latin tile and the other Ukrainian letters with the cells the font
-has for them (the message-box font only). Saving writes the texts into the existing ``text.json`` by position.
+tags (``[press1]``, ``[#304B]``) and stay where they are. The game has capital letters only. Every Ukrainian letter
+and the apostrophe has its own cell in a ``gfx/ua_*.bin`` sheet per game font; ``2_build.bat`` puts those sheets in the
+port ROM's glyph bank (the port draws them, look-alikes too) and copies them into the cells the SNES ROM has. Saving
+writes the texts into the existing ``text.json`` by position.
 
 Context comes from the port's C code (``port_context.py`` -> ``context.json``): the source lines and functions
 that show an item; the intro pages are Samus's narration.
