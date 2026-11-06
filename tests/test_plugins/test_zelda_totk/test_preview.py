@@ -1,9 +1,10 @@
 """The TotK-engine talk window preview (Tears of the Kingdom, Ocarina of Time on Switch 2): pages, colours, widths."""
 import json
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+
+import romhacking_root
 
 from core.containers import sarc
 from plugins.common import flyt_message as fm
@@ -11,7 +12,7 @@ from plugins.zelda_totk import preview as pv
 from plugins.zelda_oot_switch2.rules import GameRules as OotRules
 from plugins.zelda_totk.rules import GameRules as TotkRules
 
-OOT_PROJECT = Path(r"D:\RomHacking_offload\Zelda\Ocarina of Time\Switch 2\picoripi")
+OOT_PROJECT = romhacking_root.under("Zelda\\Ocarina of Time\\Switch 2\\picoripi")
 
 
 class SquareFace:
