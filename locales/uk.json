@@ -2202,6 +2202,7 @@
         "Choose the key file for {0}": "Оберіть файл ключів для {0}",
         "Nintendo 3DS": "Nintendo 3DS",
         "Nintendo Switch": "Nintendo Switch",
+        "Nintendo Switch 2": "Nintendo Switch 2",
         "SkyRecomp (Windows port, mod folder)": "SkyRecomp (порт для Windows, тека моду)",
         "The SkyRecomp build needs the game's romfs folder next to the source folder: {0}": "Збірка для SkyRecomp потребує теку romfs гри поруч із текою source: {0}",
         "This is not Skyward Sword HD v1.0.0. SkyRecomp runs only v1.0.0. Use the base game package.": "Це не Skyward Sword HD v1.0.0. SkyRecomp запускає лише v1.0.0. Використайте базовий пакет гри.",

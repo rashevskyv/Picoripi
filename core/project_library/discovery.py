@@ -10,7 +10,7 @@ from core.project_library.cards import PROJECT_FILE_NAME, PROJECT_FOLDER_NAME, f
 
 # Folder names that stand for a platform. Matched case-insensitively with spaces removed ("Wii U" -> "wiiu").
 PLATFORM_NAMES = {
-    "3ds": "3DS", "switch": "Switch", "wiiu": "Wii U", "wii": "Wii", "gamecube": "GameCube", "gc": "GameCube",
+    "3ds": "3DS", "switch": "Switch", "switch2": "Switch 2", "wiiu": "Wii U", "wii": "Wii", "gamecube": "GameCube", "gc": "GameCube",
     "gba": "GBA", "ds": "DS", "nds": "DS", "n64": "N64", "nes": "NES", "snes": "SNES",
     "ps2": "PS2", "psp": "PSP", "pc": "PC",
 }
