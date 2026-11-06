@@ -68,7 +68,7 @@ OOT_SWITCH2_BOX = BoxFacts(fonts=("../Font2/Scalable/ClarimoUDPE-Light.Nin_Ounce
                                   "../Font2/Scalable/OT-UDTypos510Std-Regular.Nin_Ounce_NVN2.bfotf.zs"),
                            em=33.75, width=990.0)
 TOTK_BOX = BoxFacts(fonts=("Font/Font.Nin_NX_NVN.bfarc.zs", "../Font/Font.Nin_NX_NVN.bfarc.zs"),
-                    names=("RodinNTLG-B",), em=45.0, width=1000.0)
+                    names=("ninP_RodinNTLG-B_DH_003_subset", "nintendo_NTLG-DB_DH_002"), em=45.0, width=1000.0)
 
 
 def parse_pages(text: str) -> List[List[Line]]:
