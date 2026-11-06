@@ -614,6 +614,53 @@ class AIBatchTranslator(BaseTranslationHandler):
 
         self.main_handler._run_ai_task(provider, context)
 
+    @staticmethod
+    def _chunk_rows(translated_strings, validated, current_chunk, temp_id_map, block_idx):
+        """``(index in the reply, block, string, text)`` of each reply item that can be placed: by its position in
+        the chunk that was sent, else by its id."""
+        for idx_in_response, item in enumerate(translated_strings):
+            temp_id = item.get("id")
+
+            # 1. First, try to resolve real block/string indices using sequential order inside the chunk
+            resolved = False
+            if current_chunk and idx_in_response < len(current_chunk):
+                orig_item = current_chunk[idx_in_response]
+                orig_id = orig_item.get('id') if isinstance(orig_item, dict) else None
+                if orig_id is not None:
+                    if temp_id_map and orig_id in temp_id_map:
+                        real_block_idx, real_string_idx = temp_id_map[orig_id]
+                        resolved = True
+                    elif not temp_id_map:
+                        real_block_idx = block_idx
+                        real_string_idx = orig_id
+                        resolved = True
+
+            # 2. Fallback to mapping by ID in temp_id_map (with type-safe conversions)
+            if not resolved:
+                if temp_id_map:
+                    try:
+                        int_id = int(temp_id)
+                        if int_id in temp_id_map:
+                            real_block_idx, real_string_idx = temp_id_map[int_id]
+                            resolved = True
+                    except (ValueError, TypeError):
+                        pass
+
+                    if not resolved:
+                        str_id = str(temp_id)
+                        if str_id in temp_id_map:
+                            real_block_idx, real_string_idx = temp_id_map[str_id]
+                            resolved = True
+                else:
+                    try:
+                        real_block_idx = block_idx
+                        real_string_idx = int(temp_id)
+                        resolved = True
+                    except (ValueError, TypeError):
+                        pass
+            if resolved:
+                yield idx_in_response, real_block_idx, real_string_idx, validated[idx_in_response]
+
     def handle_chunk_translated(self, chunk_index: int, chunk_text: str, context: Dict[str, Any]) -> None:
         """Internal helper to handle chunk translated."""
         log_debug(f"Received translated chunk {chunk_index}. Raw AI response:\n{chunk_text}")
@@ -667,65 +714,23 @@ class AIBatchTranslator(BaseTranslationHandler):
                     self.main_handler.current_session_translations[real_block_idx] = []
                 self.main_handler.current_session_translations[real_block_idx].append((real_string_idx, final_text))
 
-            # Retrieve calculated chunks for robust sequential mapping in case AI returns sequential/reordered IDs
-            for idx_in_response, item in enumerate(translated_strings):
-                temp_id = item.get("id")
-                translated_text = validated_translations[idx_in_response]
-                
-                # 1. First, try to resolve real block/string indices using sequential order inside the chunk
-                resolved = False
-                if current_chunk and idx_in_response < len(current_chunk):
-                    orig_item = current_chunk[idx_in_response]
-                    orig_id = orig_item.get('id') if isinstance(orig_item, dict) else None
-                    if orig_id is not None:
-                        if temp_id_map and orig_id in temp_id_map:
-                            real_block_idx, real_string_idx = temp_id_map[orig_id]
-                            resolved = True
-                        elif not temp_id_map:
-                            real_block_idx = block_idx
-                            real_string_idx = orig_id
-                            resolved = True
-                
-                # 2. Fallback to mapping by ID in temp_id_map (with type-safe conversions)
-                if not resolved:
-                    if temp_id_map:
-                        try:
-                            int_id = int(temp_id)
-                            if int_id in temp_id_map:
-                                real_block_idx, real_string_idx = temp_id_map[int_id]
-                                resolved = True
-                        except (ValueError, TypeError):
-                            pass
-                        
-                        if not resolved:
-                            str_id = str(temp_id)
-                            if str_id in temp_id_map:
-                                real_block_idx, real_string_idx = temp_id_map[str_id]
-                                resolved = True
-                    else:
-                        try:
-                            real_block_idx = block_idx
-                            real_string_idx = int(temp_id)
-                            resolved = True
-                        except (ValueError, TypeError):
-                            pass
+            for idx_in_response, real_block_idx, real_string_idx, translated_text in self._chunk_rows(
+                    translated_strings, validated_translations, current_chunk, temp_id_map, block_idx):
+                final_text = self.main_handler._fit_translation_to_window(translated_text, real_block_idx, real_string_idx)
+                apply_row(real_block_idx, real_string_idx, final_text)
 
-                if resolved:
-                    final_text = self.main_handler._fit_translation_to_window(translated_text, real_block_idx, real_string_idx)
-                    apply_row(real_block_idx, real_string_idx, final_text)
-
-                    source_item = source_items_for_chunk[idx_in_response] if idx_in_response < len(source_items_for_chunk) else None
-                    if isinstance(source_item, dict):
-                        self._run_memory().remember(source_item.get('text', ''), final_text)
-                        # The identical strings that were not sent take the same translation, where it fits (D46).
-                        for follower_id in self._followers_of(context, source_item.get('id')):
-                            pair = self._real_pair(follower_id, block_idx, temp_id_map)
-                            if pair is None:
-                                continue
-                            if text_fits_place(self.mw, source_item.get('text', ''), final_text, pair[0], pair[1]):
-                                apply_row(pair[0], pair[1], final_text)
-                            else:
-                                refused_followers += 1
+                source_item = source_items_for_chunk[idx_in_response] if idx_in_response < len(source_items_for_chunk) else None
+                if isinstance(source_item, dict):
+                    self._run_memory().remember(source_item.get('text', ''), final_text)
+                    # The identical strings that were not sent take the same translation, where it fits (D46).
+                    for follower_id in self._followers_of(context, source_item.get('id')):
+                        pair = self._real_pair(follower_id, block_idx, temp_id_map)
+                        if pair is None:
+                            continue
+                        if text_fits_place(self.mw, source_item.get('text', ''), final_text, pair[0], pair[1]):
+                            apply_row(pair[0], pair[1], final_text)
+                        else:
+                            refused_followers += 1
 
             self.mw.undo_manager.end_group("TRANSLATE")
             group_open = False

@@ -64,7 +64,7 @@ def test_stdio_round_trip(project):
 
     names, content = asyncio.run(run())
     assert names == {"list_projects", "get_issue_rules", "list_issues", "check_fit", "scan_string", "get_string_context",
-                     "ask_ai"}
+                     "ask_ai", "translate_strings", "write_translations"}
     assert content["result"]["total"] == 4 and content["result"]["source"] == "cached"
 
 

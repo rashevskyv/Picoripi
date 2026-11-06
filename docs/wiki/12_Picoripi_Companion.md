@@ -112,9 +112,9 @@ The companion backend runs on Python 3.10+ (FastAPI + Uvicorn) and stores projec
 
 ---
 
-## 6. MCP server for agents (read only)
+## 6. MCP server for agents
 
-`python -m mcp_server` starts a local MCP server on stdin/stdout. An AI agent (Claude Code, for example) uses it to read your projects. It does not change anything.
+`python -m mcp_server` starts a local MCP server on stdin/stdout. An AI agent (Claude Code, for example) uses it to read your projects. Only `write_translations` changes a project.
 
 Add it to the agent's MCP configuration with the command `python -m mcp_server` and the Picoripi folder as the working directory.
 
@@ -126,6 +126,8 @@ Add it to the agent's MCP configuration with the command `python -m mcp_server` 
 | `scan_string(plugin, text, source_text)` | The warnings of one string: tags and the plugin rules |
 | `check_fit(project, items)` | For each `{block, string, text}`: the width of every line in the translation font, the window limits of that message, lines per page, the plugin warnings and the tag check |
 | `ask_ai(prompt, system)` | The reply of the AI provider Picoripi translates with (Settings → AI Translation, for example the Gemini proxy). The agent uses it for bulk text work instead of its own model |
+| `translate_strings(project, block, strings)` | The AI translation of strings of one block, made the way Picoripi's block translation makes it: the same prompt, glossary, context, speakers, plugin rules, tag check and window fit. It writes nothing |
+| `write_translations(project, items)` | Writes each `{block, string, text}` into the translation files and the session, like a save in Picoripi. Close the project in Picoripi first: an open window does not see the change and overwrites it with its next save |
 
 - The server reads files on disk. Edits that Picoripi has not saved are not visible.
 - `list_issues` shows the last scan, with its time. It does not scan again. Open the project in Picoripi to refresh it.

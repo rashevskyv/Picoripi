@@ -9,8 +9,9 @@ from mcp_server import tools
 
 mcp = MCPServer(
     "picoripi",
-    instructions="Read-only view of Picoripi projects. Data comes from files on disk; unsaved edits in an open Picoripi window are not visible. "
-                 "ask_ai sends a prompt to the AI provider Picoripi translates with.",
+    instructions="Picoripi projects, read from files on disk; unsaved edits in an open Picoripi window are not visible. "
+                 "Every tool reads only, except write_translations. ask_ai sends a prompt to the AI provider Picoripi "
+                 "translates with; translate_strings translates project strings the way Picoripi does.",
 )
 
 
@@ -56,3 +57,22 @@ def ask_ai(prompt: str, system: str = "") -> Dict[str, Any]:
     """Send one prompt to the AI provider Picoripi translates with (Settings -> AI Translation, e.g. the Gemini proxy)
     and return its reply text. Use it for bulk text work (UI strings, drafts) instead of the agent's own model."""
     return tools.ask_ai(prompt, system)
+
+
+@mcp.tool()
+def translate_strings(project: str, block: int, strings: Optional[List[int]] = None) -> Dict[str, Any]:
+    """Translate strings of one block with Picoripi's own AI block translation: the same system prompt, glossaries,
+    story and speaker context, tag protection, review and reply checks. Writes nothing; returns
+    {provider, model, rows: [{block, string, source, text}], errors}. `project` is the .uiproj path; `strings` are
+    string numbers of the block (all when omitted). Write the rows you keep with write_translations."""
+    from mcp_server import translate
+    return translate.translate_strings(project, block, strings)
+
+
+@mcp.tool()
+def write_translations(project: str, items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Write translations into a project: `items` are {block, string, text}. Picoripi's save of chosen strings writes
+    the translation files and the session. Close the project in Picoripi first: an open window does not see the
+    change and overwrites it with its next save."""
+    from mcp_server import translate
+    return translate.write_translations(project, items)
