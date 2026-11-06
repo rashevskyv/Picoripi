@@ -255,7 +255,7 @@ def _speaker_table() -> Dict[str, Any]:
     return {"names": table.get("names", {}), "files": table.get("files", {})}
 
 
-def _dictionary_dirs(rules_ref):
+def _dictionary_dirs(rules_ref, data_dir: Path = PLUGIN_DATA_DIR):
     """Where to look for ZsDic.pack.zs: the open project's folders, then the plugin's data folder."""
     def dirs():
         rules = rules_ref()
@@ -264,5 +264,5 @@ def _dictionary_dirs(rules_ref):
         for key in ("source_path", "translation_path"):
             if metadata.get(key):
                 yield Path(metadata[key])
-        yield PLUGIN_DATA_DIR
+        yield data_dir
     return dirs

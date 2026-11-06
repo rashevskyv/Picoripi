@@ -240,6 +240,7 @@ Each plugin opens the images listed here. When you add an image, the wizard matc
 | Zelda: Majora's Mask (N64) | Not checked by ID | — | USA | N64 US ROM |
 | Zelda: Majora's Mask 3D | Not checked by ID | — | EUR | 3DS, with or without the v1040 update |
 | Zelda: Ocarina of Time (N64) | Not checked by ID | — | USA | N64 US 1.0 ROM |
+| Zelda: Ocarina of Time (Switch 2) | Title ID | 0400486024DEC000 | All regions | Switch 2 .nup package, title version 131072 (Mals .Product.110) |
 | Zelda: Ocarina of Time 3D | Not checked by ID | — | EUR | 3DS |
 | Zelda: Oracle of Ages / Seasons (Game Boy Color) | Not checked by ID | — | Not stated | Game Boy Color |
 | Zelda: Phantom Hourglass / Spirit Tracks (DS) | Product code | AZEE | USA | Phantom Hourglass |
@@ -309,6 +310,12 @@ Each plugin opens the images listed here. When you add an image, the wizard matc
 | Zelda: Hyrule Warriors Definitive Edition | Nintendo Switch | Game files (folder or image) | None |  |
 | Zelda: Skyward Sword | Nintendo Switch | Game files (folder or image) | SkyRecomp (Windows port, mod folder) | Switch HD and the Wii original in one plugin. |
 | Zelda: Tears of the Kingdom | Nintendo Switch | Game files (folder or image) | None | Checked on 1.4.0. Source is the dumped romfs. |
+
+### Nintendo Switch 2
+
+| Game | Platform | What the wizard needs | Build targets | Notes |
+|---|---|---|---|---|
+| Zelda: Ocarina of Time (Switch 2) | Nintendo Switch 2 | Base game (the unencrypted `.nup` package; no keys) | None | Title 0400486024DEC000, version 131072. The wizard copies out only `romfs/Mals`, `Pack/ZsDic.pack.zs` and `Font2`; the English `USen` archive is translated. |
 
 ### Nintendo 3DS
 

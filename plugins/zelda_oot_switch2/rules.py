@@ -1,0 +1,99 @@
+"""Zelda: Ocarina of Time (Nintendo Switch 2) plugin: MSBT texts in the zstd SARC archives of romfs/Mals.
+
+The game (title 0400486024DEC000) runs on the Tears of the Kingdom engine: ``Mals/<lang>.Product.110.sarc.zs``
+compressed against the dictionaries of ``Pack/ZsDic.pack.zs`` (ids 1-4), UTF-8 MSBT files with TotK's tag
+groups, scalable ``Font2/Scalable/*.bfotf.zs`` fonts. So the TotK rules are reused (``plugins.zelda_totk``);
+TotK's speaker table and cutscene width do not apply and are switched off here.
+
+The source is the unencrypted ``.nup`` package (``nup.py``; no keys). The wizard copies out only the text, the
+dictionaries and the fonts (about 45 MB of 24 GB) into ``romfs/``; the project's source is ``romfs/Mals`` and
+only the English slot (``USen``) becomes blocks. The other language archives are the reference columns.
+"""
+from __future__ import annotations
+
+import weakref
+from pathlib import Path
+from typing import Any, Callable, Dict, Optional, Set
+
+from core.containers import sarc
+from plugins.zelda_totk.rules import GameRules as TotkRules
+from plugins.zelda_totk.rules import _dictionary_dirs
+from utils.atomic_io import atomic_write_bytes
+from utils.constants import SETTINGS_DIR
+
+from . import nup
+from .config import (PLUGIN_PREFIX, PROBLEM_DEFINITIONS, SOURCE_SUBFOLDER, TEXT_ARCHIVE_PREFIX, TITLE_ID,
+                     UNPACKED_PREFIXES)
+
+PLUGIN_DATA_DIR = SETTINGS_DIR / "plugins" / "zelda_oot_switch2"
+
+
+class GameRules(TotkRules):
+    """Zelda: Ocarina of Time (Nintendo Switch 2)."""
+
+    problem_prefix = PLUGIN_PREFIX
+    problem_definitions = PROBLEM_DEFINITIONS
+
+    def __init__(self, main_window_ref=None):
+        super().__init__(main_window_ref)
+        sarc.dictionary_dirs = _dictionary_dirs(weakref.ref(self), PLUGIN_DATA_DIR)
+
+    def get_display_name(self) -> str:
+        return "Zelda: Ocarina of Time (Switch 2)"
+
+    def includes_source_file(self, rel_path: str) -> bool:
+        name = rel_path.replace("\\", "/").rsplit("/", 1)[-1]
+        return name.startswith(TEXT_ARCHIVE_PREFIX) and name.endswith(".sarc.zs")
+
+    # -- wizard ------------------------------------------------------------------
+
+    def identify_source(self, path: str) -> Optional[Dict[str, str]]:
+        try:
+            with open(path, "rb") as stream:
+                head = stream.read(nup.DIRECTORIES)
+        except OSError:
+            return None
+        if not nup.is_nup(head) or nup.title_of(head)[0] != TITLE_ID:
+            return None
+        return {"role": "base", "platform": "switch2"}
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str,
+                       progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> Optional[str]:
+        """Copy the text, the zstd dictionaries and the fonts out of the base ``.nup`` into ``target_dir``."""
+        path = sources.get("base")
+        if not path:
+            return None
+        with open(path, "rb") as stream:
+            package = nup.Nup(stream)
+            if package.title_id != TITLE_ID:
+                raise ValueError(f"This package is title {package.title_id}, not Ocarina of Time ({TITLE_ID}).")
+            wanted = [entry for entry in package.entries if entry.path.startswith(UNPACKED_PREFIXES)]
+            for done, entry in enumerate(wanted):
+                if is_cancelled():
+                    return None
+                progress(done * 100 // len(wanted), entry.path)
+                atomic_write_bytes(Path(target_dir, *entry.path.split("/")), package.read(entry))
+        progress(100, "")
+        return target_dir
+
+    def get_source_subfolder(self) -> Optional[str]:
+        return SOURCE_SUBFOLDER
+
+    # -- TotK features that need TotK's own data -----------------------------------
+
+    def get_scene_context_for_string(self, block_idx: int, string_idx: int) -> Dict[str, Any]:
+        """The MSBT the line comes from and its label (TotK's event flow table is not this game's)."""
+        resource, msbt = self._member(block_idx)
+        result: Dict[str, Any] = {"resource": resource} if resource else {}
+        if msbt is not None and string_idx in msbt.labels:
+            result["label"] = msbt.labels[string_idx]
+        return result
+
+    def get_speaker_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
+        return None
+
+    def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
+        return None
+
+    def get_capabilities(self) -> Set[str]:
+        return {"external_reference"}

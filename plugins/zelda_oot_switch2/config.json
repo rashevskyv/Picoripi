@@ -1,0 +1,52 @@
+{
+    "supported_images": [
+        {"kind": "title", "id": "0400486024DEC000", "region": "All regions", "note": "Switch 2 .nup package, title version 131072 (Mals .Product.110)"}
+    ],
+    "display_name": "Zelda: Ocarina of Time (Switch 2)",
+    "platforms": ["switch2"],
+    "default_tag_mappings": {},
+    "block_names": {},
+    "block_color_markers": {},
+    "newline_display_symbol": "↵",
+    "newline_css": "color: #A020F0; font-weight: bold;",
+    "tag_css": "color: rgba(128, 128, 128, 128); font-style: italic;",
+    "bracket_tag_color_hex": "#8da3b4",
+    "show_multiple_spaces_as_dots": true,
+    "space_dot_color_hex": "#808080",
+    "preview_wrap_lines": false,
+    "editors_wrap_lines": false,
+    "autofix_enabled": {
+        "ZOS2_TAG_WARNING": false,
+        "ZOS2_WIDTH_EXCEEDED": false,
+        "ZOS2_SHORT_LINE": false,
+        "ZOS2_EMPTY_ODD_SUBLINE_DISPLAY": false,
+        "ZOS2_SINGLE_WORD_SUBLINE": false,
+        "ZOS2_SINGLE_WORD_SUBLINE_NON_START": false,
+        "ZOS2_EMPTY_FIRST_LINE_OF_PAGE": false,
+        "ZOS2_BAD_SPACING": true,
+        "ZOS2_MISSING_ICON_SPACING": true,
+        "ZOS2_BROKEN_ICON_HYPHEN": true
+    },
+    "detection_enabled": {
+        "ZOS2_TAG_WARNING": true,
+        "ZOS2_WIDTH_EXCEEDED": false,
+        "ZOS2_SHORT_LINE": true,
+        "ZOS2_EMPTY_ODD_SUBLINE_DISPLAY": true,
+        "ZOS2_SINGLE_WORD_SUBLINE": true,
+        "ZOS2_SINGLE_WORD_SUBLINE_NON_START": true,
+        "ZOS2_EMPTY_FIRST_LINE_OF_PAGE": true,
+        "ZOS2_BAD_SPACING": true,
+        "ZOS2_MISSING_ICON_SPACING": true,
+        "ZOS2_BROKEN_ICON_HYPHEN": true
+    },
+    "lines_per_page": 3,
+    "tag_color_rgba": "#ffff8c00",
+    "tag_bold": true,
+    "tag_italic": false,
+    "tag_underline": false,
+    "newline_color_rgba": "#ffa020f0",
+    "newline_bold": true,
+    "newline_italic": false,
+    "newline_underline": false,
+    "translation_config": {}
+}
