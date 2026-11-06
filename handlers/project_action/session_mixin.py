@@ -1,6 +1,7 @@
 """Project actions: restore the session and fill the block list after loading."""
 import inspect
 import os
+from collections import Counter
 from pathlib import Path
 
 from utils import app_mode
@@ -17,6 +18,30 @@ class SessionMixin:
     # True when the last populate failed (no project, or its files did not load). Callers read it in on_completed:
     # the argument alone cannot tell a failure from a restore that finished with state_restored False.
     _populate_failed: bool = False
+
+    def _realign_session_translation(self) -> None:
+        """A session written before the load fix holds one extra translation block for each project file that
+        opens into no text block (Luigi's Mansion's .picoripi_disc), so every later translation sat a block too
+        far. Drop those entries; the edits are keyed by text block and stay."""
+        store = self.mw.data_store
+        project = getattr(getattr(self.mw, 'project_manager', None), 'project', None)
+        mapping = getattr(store, 'block_to_project_file_map', None)
+        translated = store.edited_file_data
+        if project is None or not isinstance(mapping, dict) or not translated or len(translated) == len(store.data):
+            return
+        per_file = Counter(int(index) for index in mapping.values())
+        empty_files = sum(1 for index in range(len(project.blocks)) if not per_file[index])
+        if len(translated) != len(store.data) + empty_files:
+            return
+        realigned, position = [], 0
+        for index in range(len(project.blocks)):
+            if per_file[index]:
+                realigned.extend(translated[position:position + per_file[index]])
+            position += per_file[index] or 1
+        store.edited_file_data = realigned
+        log_warning(f"Project session: dropped {empty_files} translation block(s) of files with no text block.",
+                    category="file_ops")
+
     def _session_misses_project_blocks(self) -> bool:
         """The restored session knows fewer project files than the project has now (the folder sync added
         some) and holds no unsaved edits, so loading the files loses nothing."""
@@ -73,6 +98,8 @@ class SessionMixin:
                 category="file_ops"
             )
             return False
+
+        self._realign_session_translation()
 
         if self._session_misses_project_blocks():
             log_warning("Project session predates files added to the project; loading the project files instead.",

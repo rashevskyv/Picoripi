@@ -183,7 +183,7 @@ class ProjectLoadWorker(WorkerThread):
                             block_to_project_file_map[data_block_idx] = project_block_idx
                             block_names[str(data_block_idx)] = f"{block.name} (Missing)"
                     else:
-                        count = len(parsed_data) if parsed_data else 1
+                        count = len(parsed_data or [])   # a file with no text blocks adds none here and none below
                         source_parsed_counts.append(count)
 
                         for sub_block_idx, block_content in enumerate(parsed_data):
