@@ -13,7 +13,11 @@ Facts, measured on a native 1x capture of the USA disc (picture 320x240 at x=15 
 Portrait slots (owner's hypothesis, checked on screen): ``{FA:xx}`` sets the left slot, ``{FB:xx}`` the right slot,
 ``00`` clears it. A slot keeps its portrait across ``{page}`` until a new FA or FB tag changes it. A window holds
 at most ``LINES_PER_PAGE`` lines. ``{raw:02}`` is a line break in the window (owner's observation, see
-``LINE_BREAK_TAGS``).
+``LINE_BREAK_TAGS``). In raw mode ``{raw:04}`` waits for a button, then ``{raw:01}`` opens a new window
+or ``{raw:03}`` closes it (``RAW_WINDOW_TAGS``): the order the Japanese text and the PS1 English raw messages
+share (``{raw:04}{raw:01}`` where the English text has ``{page}``, ``{raw:04}{raw:03}{end}`` at a message end).
+A character the program font lacks takes ``FULL_WIDTH`` when it is a full-width one (the Japanese text) and
+``LETTER_WIDTH`` when it is a letter (Cyrillic before the font has it).
 
 A portrait is 8-bit indexed (``FACE_nnn.TIZ``: five 64x64 frames after a 32-byte header whose ID bytes name
 the frame of each index). Its colours come from ``face_palettes.json`` (the owner's colour table, read from a
@@ -46,12 +50,15 @@ PICTURE_W, PICTURE_H = 320, WINDOW_Y + WINDOW_H - PORTRAIT_Y
 BACKDROP = (96, 96, 96, 255)     # the preview has no game scene behind the band
 BAND = (0, 0, 0, 128)            # the game's band: black at about half opacity (estimated, see render_page)
 SPACE_WIDTH = 5
+FULL_WIDTH = 16                  # a 16x16 cell: kana, kanji and full-width symbols
+LETTER_WIDTH = 9                 # the median letter of lunar_font.json
 FACE_HEADER = 0x20
 FRAME_BYTES = PORTRAIT * PORTRAIT
 FRAMES_PER_FILE = 5
 
 TAG_RE = re.compile(r"\{([^{}]*)\}")
-PAGE_TAGS = {"page", "clear", "close", "end"}
+RAW_WINDOW_TAGS = {"raw:01", "raw:03"}    # raw-mode new window and close (see the module text)
+PAGE_TAGS = {"page", "clear", "close", "end"} | RAW_WINDOW_TAGS
 LINE_BREAK_TAGS = {"raw:02"}     # a raw glyph byte that the game draws as a new line (owner's observation)
 LINE_BREAK_SPELLINGS = {"{" + tag + "}" for tag in LINE_BREAK_TAGS}
 FONT = json.loads((HERE / "font_sources.json").read_text(encoding="utf-8"))[0]
@@ -282,8 +289,16 @@ def fit_lines(text: str) -> str:
 
 
 def advance(ch: str) -> int:
-    """Pen advance of one character in game pixels (``lunar_font.json``; a character the table lacks is a space)."""
-    return WIDTHS[ch]["width"] if ch in WIDTHS else SPACE_WIDTH
+    """Pen advance of one character in game pixels (``lunar_font.json``).
+
+    A character the table lacks is a full cell from U+2000 up (Japanese text, symbols), a typical letter when
+    it is a letter, else a space.
+    """
+    if ch in WIDTHS:
+        return WIDTHS[ch]["width"]
+    if ch >= " ":
+        return FULL_WIDTH
+    return LETTER_WIDTH if ch.isalpha() else SPACE_WIDTH
 
 
 def text_start(portrait: bool) -> int:

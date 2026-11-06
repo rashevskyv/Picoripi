@@ -18,8 +18,8 @@
     "space_dot_color_hex": "#808080",
     "preview_wrap_lines": false,
     "editors_wrap_lines": false,
-    "game_dialog_max_width_pixels": 280,
-    "line_width_warning_threshold_pixels": 272,
+    "game_dialog_max_width_pixels": 320,
+    "line_width_warning_threshold_pixels": 320,
     "autofix_enabled": {
         "LUNR_TAG_WARNING": false,
         "LUNR_WIDTH_EXCEEDED": false,
@@ -34,7 +34,7 @@
     },
     "detection_enabled": {
         "LUNR_TAG_WARNING": true,
-        "LUNR_WIDTH_EXCEEDED": false,
+        "LUNR_WIDTH_EXCEEDED": true,
         "LUNR_SHORT_LINE": false,
         "LUNR_EMPTY_ODD_SUBLINE_DISPLAY": false,
         "LUNR_SINGLE_WORD_SUBLINE": false,

@@ -3359,6 +3359,7 @@
   "PlayStation disc (Silver Star Story Complete, USA)": "Диск PlayStation (Silver Star Story Complete, USA)",
   "Add the Remastered game (Switch or PC) too: the Japanese text is there.": "Додайте також гру Remastered (Switch або ПК): японський текст є там.",
   "The PlayStation disc has no {0}.": "На диску PlayStation немає {0}.",
+  "The PlayStation program is not a PS-X EXE.": "Програма PlayStation не є файлом PS-X EXE.",
   "The PlayStation files are missing: add the PS1 disc to the project's sources.": "Немає файлів PlayStation: додайте диск PS1 до джерел проєкту.",
   "Guardian Heroes script": "Скрипт Guardian Heroes",
   "Not a Guardian Heroes script file ({0})": "Це не файл скрипта Guardian Heroes ({0})",

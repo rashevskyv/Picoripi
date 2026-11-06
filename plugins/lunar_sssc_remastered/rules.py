@@ -5,7 +5,8 @@ Japanese, the source of the project), ``FIL_us/TEXTnnn.DAT`` (Remastered English
 ``LUNADATA/TEXTnnn.DAT`` (PS1 English). Both English files are reference columns. One project file is one dialogue
 file; its strings are numbered in file order (``text.py``). The translation file is UTF-8 (``text.py``); each build
 writes the translated strings into the English slots of its platform (``build.py``). The PS1 names, menus, font and
-voice stay in the ``lunar_sssc`` plugin.
+voice stay in the ``lunar_sssc`` plugin. The editor shares the PS1 plugin's tag names, message-window preview and width
+rules (the PS1 window is the one box all three builds must fit; ``preview.py``).
 """
 import re
 from pathlib import Path
@@ -13,6 +14,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
+from plugins.lunar_sssc import dialogue_preview
+from plugins.lunar_sssc.rules import tag_mappings, tag_tooltip
 from plugins.lunar_sssc.tag_manager import TagManager
 from utils.logging_utils import log_debug
 
@@ -66,6 +69,41 @@ class GameRules(BaseGameRules):
 
     def get_editor_page_size(self) -> int:
         return DEFAULT_LINES_PER_PAGE
+
+    # -- editor: the PS1 plugin's tag names, window preview and width rules -----
+
+    def get_default_tag_mappings(self) -> Dict[str, str]:
+        return tag_mappings()
+
+    def get_tag_tooltip(self, tag: str) -> str:
+        return tag_tooltip(tag)
+
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        from .preview import RemasteredDialoguePreview
+        return RemasteredDialoguePreview(main_window)
+
+    def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 6) -> Optional[int]:
+        """The rightmost pixel a line reaches in the PS1 window (``dialogue_preview.measure``)."""
+        return max((m.right for m in dialogue_preview.measure(text)), default=0)
+
+    def line_widths(self, text: str, font_map: dict) -> Optional[List[int]]:
+        return dialogue_preview.line_rights(text)
+
+    def fit_text_to_window(self, text: str, block_idx: Optional[int], string_idx: Optional[int]) -> Optional[str]:
+        return dialogue_preview.fit_lines(text)
+
+    def is_placeholder_speaker(self, name: str) -> bool:
+        return False
+
+    def get_speaker_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
+        """The character of a message: the portrait of its first window, when speaker_names.json names it."""
+        data = getattr(getattr(self.mw, "data_store", None), "data", None)
+        try:
+            pages = dialogue_preview.parse_pages(str(data[block_idx][string_idx])).pages
+        except (TypeError, IndexError, KeyError):
+            return None
+        face = pages[0][0].face if pages and pages[0] else 0
+        return dialogue_preview.speaker_name(face) if face else None
 
     # -- reference: the English files of the unpacked folder -------------------
 

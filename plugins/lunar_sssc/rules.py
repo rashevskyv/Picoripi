@@ -32,6 +32,15 @@ TAG_TIPS = {
     "{clear}": "Start a new page without waiting.",
     "{close}": "Close the window.",
     "{end}": "The message ends without waiting for a button.",
+    "{raw:01}": "Raw mode: start a new window (after a wait).",
+    "{raw:02}": "Raw mode: new line in the window.",
+    "{raw:03}": "Raw mode: close the window.",
+    "{raw:04}": "Raw mode: wait for a button.",
+}
+RAW_CONTROL_ALIASES = {         # raw-mode controls (dialogue_preview.RAW_WINDOW_TAGS), display names only
+    "{New window}": "{raw:01}",
+    "{Close window}": "{raw:03}",
+    "{Wait for button}": "{raw:04}",
 }
 FAMILY_TIPS = {
     "FA": "Speaker portrait and name (the number picks the character; 00 removes it).",
@@ -40,6 +49,31 @@ FAMILY_TIPS = {
     "F8": "Pause, in frames.",
     "F9": "Move the pen right by this many pixels.",
 }
+
+
+def tag_mappings() -> Dict[str, str]:
+    """The editor's aliases: the names of config.json and the raw-mode controls, then a numbered alias for every
+    other ``{FA:xx}`` (left) and ``{FB:xx}`` (right) code, so an unknown code reads ``{Left portrait 3C}``.
+
+    The alias is display only: the stored text keeps the raw code, so a saved byte never changes.
+    """
+    mapping = dict(json.loads((HERE / "config.json").read_text(encoding="utf-8")).get("default_tag_mappings") or {})
+    mapping.update(RAW_CONTROL_ALIASES)
+    named = set(mapping.values())
+    for code in range(1, 0x100):
+        for side, family in (("Left", "FA"), ("Right", "FB")):
+            raw = f"{{{family}:{code:02X}}}"
+            if raw not in named:
+                mapping[f"{{{side} portrait {code:02X}}}"] = raw
+    return mapping
+
+
+def tag_tooltip(tag: str) -> str:
+    if tag in TAG_TIPS:
+        return TAG_TIPS[tag]
+    if tag.startswith("{raw:"):
+        return "A one-byte glyph of the game's table (kept as it is)."
+    return FAMILY_TIPS.get(tag[1:3], "A two-byte control code of the game (kept as it is).")
 
 
 class GameRules(BaseGameRules):
@@ -100,29 +134,13 @@ class GameRules(BaseGameRules):
     # -- editor ----------------------------------------------------------------
 
     def get_default_tag_mappings(self) -> Dict[str, str]:
-        """The editor's aliases for portrait codes: the names of config.json, then a numbered alias for every
-        other ``{FA:xx}`` (left) and ``{FB:xx}`` (right) code, so an unknown code reads ``{Left portrait 3C}``.
-
-        The alias is display only: the stored text keeps the raw code, so a saved byte never changes.
-        """
-        mapping = dict(json.loads((HERE / "config.json").read_text(encoding="utf-8")).get("default_tag_mappings") or {})
-        named = set(mapping.values())
-        for code in range(1, 0x100):
-            for side, family in (("Left", "FA"), ("Right", "FB")):
-                raw = f"{{{family}:{code:02X}}}"
-                if raw not in named:
-                    mapping[f"{{{side} portrait {code:02X}}}"] = raw
-        return mapping
+        return tag_mappings()
 
     def get_editor_page_size(self) -> int:
         return DEFAULT_LINES_PER_PAGE
 
     def get_tag_tooltip(self, tag: str) -> str:
-        if tag in TAG_TIPS:
-            return TAG_TIPS[tag]
-        if tag.startswith("{raw:"):
-            return "A one-byte glyph of the game's table (kept as it is)."
-        return FAMILY_TIPS.get(tag[1:3], "A two-byte control code of the game (kept as it is).")
+        return tag_tooltip(tag)
 
     def process_pasted_segment(self, segment_to_insert: str, original_text_for_tags: str,
                                editor_player_tag_const: str) -> Tuple[str, str, str]:

@@ -135,9 +135,10 @@ def test_the_warning_is_red_exactly_when_the_preview_draws_outside_the_box():
                         if m.over:
                             flagged.append(f"{path.name}:{bi}:{si}")
     assert checked > 40000
-    # The real English windows that still leave their room (per-window measure, portrait slots persist).
+    # The real English windows that still leave their room (per-window measure, portrait slots persist;
+    # {raw:01} opens a new window).
     assert flagged == ["TEXT001.DAT:1:1", "TEXT001.DAT:1:2", "TEXT001.DAT:1:5", "TEXT001.DAT:1:6",
-                       "TEXT001.DAT:1:7", "TEXT044.DAT:0:2", "TEXT052.DAT:0:206"], flagged
+                       "TEXT001.DAT:1:7", "TEXT052.DAT:0:206"], flagged
 
 
 def _words_up_to(words, limit):

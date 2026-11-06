@@ -131,3 +131,14 @@ def test_text_width_and_speaker_name():
     assert dp.text_width("  ") == 2 * dp.SPACE_WIDTH
     assert dp.speaker_name(0x6E) == "Nall"
     assert dp.speaker_name(0x6A) is None
+
+
+def test_raw_mode_wait_then_new_window_starts_a_page():
+    layout = dp.parse_pages("{FA:39}あれ{raw:02}やっぱし{raw:04}{raw:01}はやく{raw:04}{raw:03}{end}")
+    assert [[line.text for line in page] for page in layout.pages] == [["あれ", "やっぱし"], ["はやく"]]
+
+
+def test_a_character_the_program_font_lacks_takes_a_full_cell_or_a_letter_width():
+    assert dp.advance("行") == dp.FULL_WIDTH
+    assert dp.advance("ж") == dp.LETTER_WIDTH
+    assert dp.advance("\t") == dp.SPACE_WIDTH

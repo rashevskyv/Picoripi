@@ -7,7 +7,7 @@ project's ``portrait_colours.json``, when it exists, overrides them.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from PyQt6.QtCore import QSize, Qt, pyqtSignal
 from PyQt6.QtGui import QImage, QPixmap
@@ -92,20 +92,29 @@ class SourceLoader(WorkerThread):
 
     loaded = pyqtSignal(object)
 
-    def __init__(self, project_dir: str, parent: Optional[QWidget] = None):
+    def __init__(self, project_dir: str, read: Optional[Callable[[str], Dict[str, Any]]] = None,
+                 parent: Optional[QWidget] = None):
         super().__init__(parent)
         self._project_dir = project_dir
+        self._read = read or load_sources
 
     def run(self) -> None:
         try:
-            result: Any = load_sources(self._project_dir)
+            result: Any = self._read(self._project_dir)
         except (OSError, ValueError) as error:
             result = str(error)
         self.loaded.emit((self._project_dir, result))
 
 
 class LunarDialoguePreview(QWidget):
-    """The message window of the selected text in the game's font, with its portrait (GameRules hook)."""
+    """The message window of the selected text in the game's font, with its portrait (GameRules hook).
+
+    ``read_sources`` reads a project's glyphs and portraits in the worker; another Lunar plugin swaps it.
+    """
+
+    @staticmethod
+    def read_sources(project_dir: str) -> Dict[str, Any]:
+        return load_sources(project_dir)
 
     def __init__(self, main_window: Any, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -198,7 +207,7 @@ class LunarDialoguePreview(QWidget):
             return
         self._source_key = project_dir
         self._sources = None
-        self._loader = SourceLoader(project_dir)
+        self._loader = SourceLoader(project_dir, self.read_sources)
         self._loader.loaded.connect(self._on_loaded)
         self._loader.start()
         self._show_status(tr("Reading the game font and portraits..."))

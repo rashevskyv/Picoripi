@@ -3,11 +3,14 @@
 The base game and its update are read with Picoripi's Switch reader. The base package holds three program NCAs; the
 one with ``romfs/data.cpk`` is the Silver Star Story program. The update's patched RomFS gives the final ``data.cpk``.
 The unpacked folder keeps ``data.cpk`` whole (the build patches it), and the text files of the archive as ``FIL/`` (the
-Japanese source) and ``FIL_us/`` (the English reference). ``TEXT200.DAT`` holds no dialogue and is not extracted.
+Japanese source) and ``FIL_us/`` (the English reference). ``TEXT200.DAT`` holds no dialogue and is not extracted. The
+game's text font ``FIL/CUSTOM/Font/0`` (``test.fnt`` and its pages) is extracted for the preview (``atlas.py``).
 
 A PlayStation disc (Lunar: Silver Star Story Complete, USA; role ``ps1``) is optional. Its English dialogue files go
-to ``LUNADATA/`` (the PS1 reference column and the PS1 build). They are members of ``LUNADATA.FIL``: a table of
-32-byte entries (name, sector, size; the first entry is the header, its u32 at +20 is the count), then the files.
+to ``LUNADATA/`` (the PS1 reference column and the PS1 build), with the portraits and their palette; the program
+``SLUS_006.28`` (its font) goes beside them, unpacked (``unpack_exe``). These are what the PS1 message-window preview reads. The files are members
+of ``LUNADATA.FIL``: a table of 32-byte entries (name, sector, size; the first entry is the header, its u32 at +20 is
+the count), then the files.
 """
 import os
 import re
@@ -27,6 +30,10 @@ UPDATE_STEP = 0x800
 CPK_PATH = "romfs/data.cpk"
 TEXT_FOLDERS = ("FIL", "FIL_us")
 TEXT_RE = re.compile(r"^TEXT(0\d\d|100)\.DAT$")    # the dialogue files; TEXT200 has none
+FONT_FOLDER = "FIL/CUSTOM/Font/0"                   # the text font of data.cpk: test.fnt and its pages
+PS1_MEMBERS_RE = re.compile(r"^(TEXT(0\d\d|100)\.DAT|FACE_\d{3}\.TIZ|PEO\.PAL)$")   # dialogue, portraits, palette
+PS1_PROGRAM = "SLUS_006.28"
+PSX_EXE = b"PS-X EXE"
 PS1_ROLE = "ps1"
 PS1_CODES = ("SLUS-00628", "SLUS-00899")         # disc 1 and disc 2 hold the same LUNADATA.FIL
 PS1_FOLDER = "LUNADATA"
@@ -116,22 +123,23 @@ def _unpack_switch(base: str, update: Optional[str], target_dir: str, progress, 
     return target_dir
 
 
-def fil_text_members(read_at: Callable[[int, int], bytes]) -> Dict[str, bytes]:
-    """The dialogue files of a ``LUNADATA.FIL`` that ``read_at(offset, size)`` reads (offsets from its start)."""
+def fil_text_members(read_at: Callable[[int, int], bytes], wanted: "re.Pattern[str]" = TEXT_RE) -> Dict[str, bytes]:
+    """The members of a ``LUNADATA.FIL`` whose names match ``wanted`` (the dialogue files by default);
+    ``read_at(offset, size)`` reads it (offsets from its start)."""
     count = struct.unpack_from("<I", read_at(0, FIL_ENTRY), 20)[0]
     table = read_at(0, FIL_ENTRY * (count + 1))
     out: Dict[str, bytes] = {}
     for at in range(FIL_ENTRY, len(table), FIL_ENTRY):
         name = table[at:at + 20].split(b"\0")[0].decode("ascii", "replace")
         sector, size = struct.unpack_from("<II", table, at + 20)
-        if TEXT_RE.match(name):
+        if wanted.match(name):
             out[name] = read_at(sector * FIL_SECTOR, size)
     return out
 
 
 def extract_ps1(cue: str, target_dir: str, progress: Callable[[int, str], None],
                 is_cancelled: Callable[[], bool]) -> None:
-    """Write the English dialogue files of the PS1 disc as ``LUNADATA/TEXTnnn.DAT``."""
+    """Write the English dialogue files, portraits and palette of the PS1 disc into ``LUNADATA/``, and its program."""
     progress(0, PS1_ARCHIVE)
     stream = GdRomStream(cue)
     try:
@@ -140,33 +148,84 @@ def extract_ps1(cue: str, target_dir: str, progress: Callable[[int, str], None],
         if entry is None:
             raise ImageError(tr("The PlayStation disc has no {0}.", PS1_ARCHIVE))
         base = entry.extent * FIL_SECTOR
-        members = fil_text_members(lambda offset, size: disc.read_at(base + offset, size))
+        members = fil_text_members(lambda offset, size: disc.read_at(base + offset, size), PS1_MEMBERS_RE)
+        program = next((e for e in disc.files() if e.path.upper() == PS1_PROGRAM), None)
+        program_data = disc.read_at(program.extent * FIL_SECTOR, program.size) if program else None
     finally:
         stream.close()
+    if program_data is not None:
+        _write(Path(target_dir) / PS1_PROGRAM, unpack_exe(program_data))
     folder = Path(target_dir) / PS1_FOLDER
     folder.mkdir(parents=True, exist_ok=True)
     for index, (name, data) in enumerate(sorted(members.items()), start=1):
         if is_cancelled():
             return
         progress(100 * index // len(members), f"{PS1_FOLDER}/{name}")
-        temporary = folder / f"{name}.tmp"
-        temporary.write_bytes(data)
-        os.replace(temporary, folder / name)
+        _write(folder / name, data)
+
+
+def unpack_exe(data: bytes, at: int = 0x1000) -> bytes:
+    """The PS-X EXE inside the disc's packed program (the loader stub unpacks the data at 0x1000 of the file).
+
+    LZ with 8 flag bits a byte, low bit first: 1 = a literal byte; 01 = one byte (2 bits length, 6 bits back);
+    00 = two bytes (4 bits length, 12 bits back; length 0 = one more length byte, and 0 there ends the data).
+    Raises ImageError when the input or the result is not a PS-X EXE.
+    """
+    if data[:8] != PSX_EXE:
+        raise ImageError(tr("The PlayStation program is not a PS-X EXE."))
+    out = bytearray()
+    bits = flags = 0
+    pos = at
+
+    def bit() -> int:
+        nonlocal bits, flags, pos
+        if bits == 0:
+            flags, pos, bits = data[pos], pos + 1, 8
+        bits -= 1
+        value, flags = flags & 1, flags >> 1
+        return value
+
+    while True:
+        if bit():
+            out.append(data[pos])
+            pos += 1
+            continue
+        if bit():
+            count, back, pos = (data[pos] >> 6) + 2, (data[pos] & 0x3F) - 64, pos + 1
+        else:
+            value, pos = data[pos] << 8 | data[pos + 1], pos + 2
+            count, back = value >> 12, (value & 0xFFF) - 4096
+            if count == 0:
+                count, pos = data[pos], pos + 1
+                if count == 0:
+                    break
+            count += 2
+        start = len(out) + back
+        for i in range(count):
+            out.append(out[start + i])
+    if out[:8] != PSX_EXE:
+        raise ImageError(tr("The PlayStation program is not a PS-X EXE."))
+    return bytes(out)
+
+
+def _write(target: Path, data: bytes) -> None:
+    temporary = target.with_name(target.name + ".tmp")
+    temporary.write_bytes(data)
+    os.replace(temporary, target)
 
 
 def _extract_text(target_dir: str, progress: Callable[[int, str], None],
                   is_cancelled: Callable[[], bool]) -> None:
-    """Write the dialogue files of ``data.cpk`` as ``FIL/`` and ``FIL_us/`` folders beside it."""
+    """Write the dialogue files of ``data.cpk`` as ``FIL/`` and ``FIL_us/`` folders beside it, and its text font."""
     root = Path(target_dir)
     with open(root / "data.cpk", "rb") as stream:
         entries = [entry for entry in cpk.read_cpk(stream)
-                   if entry.path.rsplit("/", 1)[0] in TEXT_FOLDERS and TEXT_RE.match(entry.path.rsplit("/", 1)[-1])]
+                   if (entry.path.rsplit("/", 1)[0] in TEXT_FOLDERS and TEXT_RE.match(entry.path.rsplit("/", 1)[-1]))
+                   or entry.path.rsplit("/", 1)[0] == FONT_FOLDER]
         for index, entry in enumerate(entries, start=1):
             if is_cancelled():
                 return
             progress(100 * index // max(1, len(entries)), entry.path)
             target = root.joinpath(*entry.path.split("/"))
             target.parent.mkdir(parents=True, exist_ok=True)
-            temporary = target.with_name(target.name + ".tmp")
-            temporary.write_bytes(cpk.read_file(stream, entry))
-            os.replace(temporary, target)
+            _write(target, cpk.read_file(stream, entry))
