@@ -38,9 +38,9 @@ class ProblemsMixin:
             count_sublines = problem_counts[problem_id]
             if count_sublines > 0:
                 prob_def = problem_definitions.get(problem_id, {})
-                full_name = prob_def.get("name", problem_id)
-                desc = prob_def.get("description", "")
-                tooltip_lines.append(f"<b>{full_name}</b>: {count_sublines} sublines<br><i>{desc}</i>")
+                full_name = tr(prob_def.get("name", problem_id))
+                desc = tr(prob_def.get("description", ""))
+                tooltip_lines.append(f"<b>{full_name}</b>: {tr('{count} sublines', count=count_sublines)}<br><i>{desc}</i>")
 
         if total_issues > 0 and base_display_name:
             display_name_with_issues = f"{base_display_name} ({total_issues})"

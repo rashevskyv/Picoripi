@@ -125,6 +125,7 @@ Add it to the agent's MCP configuration with the command `python -m mcp_server` 
 | `list_issues(project)` | The warnings from the last scan, counted by rule and block (read from `issues_cache.json`) |
 | `scan_string(plugin, text, source_text)` | The warnings of one string: tags and the plugin rules |
 | `check_fit(project, items)` | For each `{block, string, text}`: the width of every line in the translation font, the window limits of that message, lines per page, the plugin warnings and the tag check |
+| `ask_ai(prompt, system)` | The reply of the AI provider Picoripi translates with (Settings → AI Translation, for example the Gemini proxy). The agent uses it for bulk text work instead of its own model |
 
 - The server reads files on disk. Edits that Picoripi has not saved are not visible.
 - `list_issues` shows the last scan, with its time. It does not scan again. Open the project in Picoripi to refresh it.

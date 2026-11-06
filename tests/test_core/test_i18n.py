@@ -83,3 +83,20 @@ def test_empty_translation_falls_back_to_english(tmp_path, monkeypatch):
 def test_unknown_or_russian_falls_back_to_english():
     assert i18n.set_language("zz-missing") == "en"
     assert i18n.set_language("ru") == "en"
+
+
+def test_every_warning_name_and_description_of_every_plugin_is_in_the_uk_catalog():
+    # The tooltips, the warning filter and the settings show these through tr().
+    import importlib
+    import pkgutil
+    from pathlib import Path
+    root = Path(i18n.__file__).resolve().parent.parent
+    catalog = json.loads((root / "locales" / "uk.json").read_text(encoding="utf-8"))
+    missing = set()
+    for module in pkgutil.iter_modules([str(root / "plugins")]):
+        if not (root / "plugins" / module.name / "config.py").is_file():
+            continue
+        config = importlib.import_module(f"plugins.{module.name}.config")
+        for definition in (getattr(config, "PROBLEM_DEFINITIONS", None) or {}).values():
+            missing |= {definition[key] for key in ("name", "description") if definition.get(key)} - set(catalog)
+    assert not missing

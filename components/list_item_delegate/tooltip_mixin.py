@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import QToolTip
 from PyQt6.QtGui import QCursor
 from PyQt6.QtCore import QEvent, QRect, Qt
 from components.editor.lnet_tooltips import _format_warning_dot
+from core.i18n import tr
 
 
 class CustomListItemTooltipMixin:
@@ -49,10 +50,10 @@ class CustomListItemTooltipMixin:
                     count = block_problem_counts[pid]
                     if count > 0:
                         prob_def = problem_definitions.get(pid, {})
-                        name = prob_def.get("name", pid)
-                        desc = prob_def.get("description", "")
+                        name = tr(prob_def.get("name", pid))
+                        desc = tr(prob_def.get("description", ""))
                         dot = _format_warning_dot(prob_def.get("color"))
-                        tooltip_lines.append(f"{dot}<b>{name}</b>: {count} cases<br><i>{desc}</i>")
+                        tooltip_lines.append(f"{dot}<b>{name}</b>: {tr('{count} cases', count=count)}<br><i>{desc}</i>")
             
         if tooltip_lines:
             return "<br><br>".join(tooltip_lines)

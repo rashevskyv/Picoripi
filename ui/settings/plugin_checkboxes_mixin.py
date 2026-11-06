@@ -50,8 +50,8 @@ class PluginCheckboxesMixin:
                 color_label.setToolTip(f"Problem color: {problem_color}")
             row_layout.addWidget(color_label)
 
-            checkbox = QCheckBox(definition.get("name", problem_id), self)
-            checkbox.setToolTip(definition.get("description", "No description available."))
+            checkbox = QCheckBox(tr(definition.get("name", problem_id)), self)
+            checkbox.setToolTip(tr(definition.get("description", "No description available.")))
             checkbox_dict[problem_id] = checkbox
             checkbox.stateChanged.connect(self.on_rules_changed)
             row_layout.addWidget(checkbox)

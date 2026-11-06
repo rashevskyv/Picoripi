@@ -3,6 +3,8 @@ from PyQt6.QtCore import QPoint
 from PyQt6.QtGui import QColor
 from typing import Optional
 import html
+
+from core.i18n import tr
 import re
 
 
@@ -108,8 +110,8 @@ class LNETTooltipLogic:
             detail_for = getattr(main_window.current_game_rules, "get_problem_detail", None)
             for prob_id in sorted(list(problems)):
                 prob_def = problem_definitions.get(prob_id, {})
-                desc = prob_def.get("description", prob_id)
-                name = prob_def.get("name", "")
+                desc = tr(prob_def.get("description", prob_id))
+                name = tr(prob_def.get("name", ""))
 
                 detection_config = getattr(main_window, 'detection_enabled', {})
                 if not detection_config.get(prob_id, True):

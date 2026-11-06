@@ -9,7 +9,8 @@ from mcp_server import tools
 
 mcp = MCPServer(
     "picoripi",
-    instructions="Read-only view of Picoripi projects. Data comes from files on disk; unsaved edits in an open Picoripi window are not visible.",
+    instructions="Read-only view of Picoripi projects. Data comes from files on disk; unsaved edits in an open Picoripi window are not visible. "
+                 "ask_ai sends a prompt to the AI provider Picoripi translates with.",
 )
 
 
@@ -48,3 +49,10 @@ def scan_string(plugin: str, text: str, source_text: str = "") -> Dict[str, Any]
 def get_string_context(project: str, block: int, string: int) -> Dict[str, Any]:
     """Full translation context for one game string: story structure, speaker, neighbours, existing translation. `project` is the .uiproj path."""
     return tools.string_context(project, block, string)
+
+
+@mcp.tool()
+def ask_ai(prompt: str, system: str = "") -> Dict[str, Any]:
+    """Send one prompt to the AI provider Picoripi translates with (Settings -> AI Translation, e.g. the Gemini proxy)
+    and return its reply text. Use it for bulk text work (UI strings, drafts) instead of the agent's own model."""
+    return tools.ask_ai(prompt, system)

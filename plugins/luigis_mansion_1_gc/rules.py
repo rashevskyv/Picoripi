@@ -18,6 +18,7 @@ from core.project_library import images
 from utils.logging_utils import log_debug
 from utils.width import calculate_string_width
 from plugins.common.disc_source import write_source_mark
+from plugins.common.problem_analyzer import GenericProblemAnalyzer
 from plugins.common.table_rules import TableRules
 
 from . import build, messages, window
@@ -27,6 +28,16 @@ from .tag_manager import EDITOR_TAG_RE, TAG_RE, TagManager, to_data, to_editor
 
 GAME_ID = "GLME01"
 REVISION = 0
+
+
+class ProblemAnalyzer(GenericProblemAnalyzer):
+    """The checks see both texts in the editor form: the original comes from the data store as <COLOR>(3), the edited
+    text from the editor as {COLOR(3)}, and the tag check counts the same tag on both sides."""
+
+    def build_context(self, text, font_map, threshold, logical_hard_limit=None, original_text=None):
+        if original_text is not None:
+            original_text = to_editor(str(original_text))
+        return super().build_context(to_editor(str(text)), font_map, threshold, logical_hard_limit, original_text)
 
 
 class GameRules(TableRules):
@@ -41,6 +52,7 @@ class GameRules(TableRules):
     problem_prefix = PLUGIN_PREFIX
     problem_definitions = PROBLEM_DEFINITIONS
     tag_manager_class = TagManager
+    problem_analyzer_class = ProblemAnalyzer
     display_name = "Luigi's Mansion (GameCube)"
     file_formats = (((".csv",), "Luigi's Mansion message table (CSV, Shift-JIS)"),
                     ((".txt",), "Luigi's Mansion event script (Shift-JIS, not a text table)"))

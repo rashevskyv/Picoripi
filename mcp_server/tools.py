@@ -283,3 +283,18 @@ def string_context(project: str, block: int, string: int) -> Dict[str, Any]:
         except Exception as error:
             log_debug(f"string_context: session translation not read: {error}")
     return result
+
+
+def ask_ai(prompt: str, system: str = "", settings_path: Optional[Path] = None) -> Dict[str, Any]:
+    """One request to the AI provider that Picoripi translates with (``translation_config`` in settings.json, for
+    example the Gemini proxy). It sends ``prompt`` (and ``system``) and returns the reply text. It changes no file."""
+    from core.translation.providers import create_translation_provider
+    path = settings_path or Path(SETTINGS_DIR) / "settings.json"
+    config = json.loads(path.read_text(encoding="utf-8")).get("translation_config") or {}
+    name = str(config.get("provider") or "")
+    settings = (config.get("providers") or {}).get(name)
+    if not settings:
+        return {"error": f"no settings for the translation provider '{name}' in {path}"}
+    messages = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": prompt}]
+    reply = create_translation_provider(name, settings).translate(messages)
+    return {"provider": name, "model": settings.get("model", ""), "text": reply.text or ""}

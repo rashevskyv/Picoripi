@@ -75,8 +75,8 @@ class AutofixSelectionDialog(QDialog):
 
             # Checkbox
             checkbox_name = definition.get("name", problem_id)
-            checkbox = QCheckBox(checkbox_name)
-            checkbox.setToolTip(definition.get("description", "No description available."))
+            checkbox = QCheckBox(tr(checkbox_name))
+            checkbox.setToolTip(tr(definition.get("description", "No description available.")))
             
             # Default to settings-based autofix state
             is_enabled = self.active_autofixes.get(problem_id, True)

@@ -117,3 +117,11 @@ def test_every_colour_tag_is_a_zero_width_font_map_entry_so_the_cursor_steps_ove
     from plugins.luigis_mansion_1_gc.tag_manager import to_editor
     entries = json.loads((Path(window.__file__).parent / "font_map.json").read_text(encoding="utf-8"))
     assert entries == {to_editor(f"<COLOR>({n})"): {"width": 0} for n in range(len(window.TEXT_COLOURS))}
+
+
+def test_the_tag_check_reads_the_game_form_and_the_editor_form_as_the_same_tag():
+    analyzer = GameRules().problem_analyzer
+    original = "<COLOR>(3)Luigi<COLOR>(0)! Are you OK?"
+    assert analyzer.check_tags_mismatch(original, "{COLOR(3)}Luigi{COLOR(0)}! Are you OK?") is False
+    assert analyzer.check_tags_mismatch(original, original) is False
+    assert analyzer.check_tags_mismatch(original, "{COLOR(3)}Luigi! Are you OK?") is True
