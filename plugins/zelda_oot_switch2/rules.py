@@ -27,7 +27,7 @@ from utils.atomic_io import atomic_write_bytes
 from utils.constants import SETTINGS_DIR
 
 from . import build, nup
-from .config import (BUILD_TARGET, PLUGIN_PREFIX, PROBLEM_DEFINITIONS, SOURCE_SUBFOLDER, TEXT_ARCHIVE_PREFIX, TITLE_ID,
+from .config import (BUILD_TARGET, PLUGIN_PREFIX, REFERENCE_LANGUAGES, PROBLEM_DEFINITIONS, SOURCE_SUBFOLDER, TEXT_ARCHIVE_PREFIX, TITLE_ID,
                      UNPACKED_PREFIXES)
 
 PLUGIN_DATA_DIR = SETTINGS_DIR / "plugins" / "zelda_oot_switch2"
@@ -37,6 +37,7 @@ class GameRules(TotkRules):
     """Zelda: Ocarina of Time (Nintendo Switch 2)."""
 
     problem_prefix = PLUGIN_PREFIX
+    reference_languages = REFERENCE_LANGUAGES
     problem_definitions = PROBLEM_DEFINITIONS
 
     def __init__(self, main_window_ref=None):
@@ -84,6 +85,13 @@ class GameRules(TotkRules):
 
     def get_source_subfolder(self) -> Optional[str]:
         return SOURCE_SUBFOLDER
+
+    def default_reference_path(self) -> Optional[str]:
+        """The project's own ``romfs/Mals``: it holds every language, so Russian and EUen show with no setting."""
+        try:
+            return str(self.mw.project_manager.project.metadata.get("source_path") or "") or None
+        except AttributeError:
+            return None
 
     # -- build -------------------------------------------------------------------
 

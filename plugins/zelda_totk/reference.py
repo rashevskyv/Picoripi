@@ -6,7 +6,7 @@ Every language archive holds the same MSBT files with the same labels in the sam
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 from utils.logging_utils import log_warning
 
@@ -25,8 +25,9 @@ def _archives(folder: Path) -> Dict[str, Path]:
     return found
 
 
-def load_languages(folder: Path, members: Dict[int, Tuple[str, str]]) -> Dict[str, Dict[Tuple[int, int], str]]:
-    """``{label: {(block, line): text}}`` for every language archive in ``folder``.
+def load_languages(folder: Path, members: Dict[int, Tuple[str, str]],
+                   only: Optional[Tuple[str, ...]] = None) -> Dict[str, Dict[Tuple[int, int], str]]:
+    """``{label: {(block, line): text}}`` for every language archive in ``folder`` (or the ``only`` ones, in order).
 
     ``members`` maps a project block to ``(archive file name, member)``; the project's own language (the
     archive its blocks come from) is skipped. Each language costs about half a second (48,000 texts).
@@ -36,7 +37,9 @@ def load_languages(folder: Path, members: Dict[int, Tuple[str, str]]) -> Dict[st
     for block, (_archive, member) in members.items():
         by_member.setdefault(member, []).append(block)
     result: Dict[str, Dict[Tuple[int, int], str]] = {}
-    for prefix, path in _archives(folder).items():
+    archives = _archives(folder)
+    for prefix in [code for code in only if code in archives] if only else list(archives):
+        path = archives[prefix]
         if prefix in own:
             continue
         try:

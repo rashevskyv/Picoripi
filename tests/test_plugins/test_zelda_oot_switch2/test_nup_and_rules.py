@@ -2,6 +2,7 @@
 import hashlib
 import struct
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -11,6 +12,7 @@ from core.font_formats import sources as font_sources
 from plugins.testing import check_loads, check_validator
 from plugins.common.msbt import Msbt
 from plugins.zelda_oot_switch2 import build, nup
+from plugins.zelda_totk import reference
 from plugins.zelda_totk.tags import to_editor
 from plugins.zelda_oot_switch2.rules import GameRules
 import romhacking_root
@@ -347,3 +349,22 @@ def test_actor_names_seed_the_glossary_with_their_captions():
     assert rules.get_glossary_seed_entries() == [{"term": "Armos", "section": "Enemy",
                                                   "description": "Armos look like statues.",
                                                   "source_ref": "ActorMsg/Enemy.msbt Enemy_Amos_Name"}]
+
+
+def test_the_reference_columns_come_from_the_projects_own_text_folder():
+    rules = GameRules()
+    assert rules.default_reference_path() is None
+    project = SimpleNamespace(metadata={"source_path": "D:/game/source/romfs/Mals"})
+    rules.mw = SimpleNamespace(project_manager=SimpleNamespace(project=project))
+    assert rules.default_reference_path() == "D:/game/source/romfs/Mals"
+
+
+def test_the_reference_columns_are_russian_then_european_english(tmp_path):
+    mals = tmp_path / "Mals"
+    mals.mkdir()
+    for code in ("EUde", "EUen", "EUru", "JPja", "USen"):
+        (mals / f"{code}.Product.110.sarc.zs").write_bytes(npc_archive(f"{code} Saria"))
+    found = reference.load_languages(mals, {0: ("USen.Product.110.sarc.zs", "ActorMsg/Npc.msbt")},
+                                     GameRules.reference_languages)
+    assert list(found) == ["Russian (RU)", "English (EU)"]
+    assert found["Russian (RU)"][(0, 0)] == "EUru Saria"

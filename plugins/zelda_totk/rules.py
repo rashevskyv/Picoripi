@@ -33,6 +33,7 @@ class GameRules(BaseGameRules):
     """
 
     problem_prefix = PLUGIN_PREFIX
+    reference_languages: Optional[Tuple[str, ...]] = None  # None: every other language, else these, in order
     problem_definitions = PROBLEM_DEFINITIONS
     tag_manager_class = TagManager
     tag_style = "curly"
@@ -189,7 +190,7 @@ class GameRules(BaseGameRules):
             located = self._archive_member(int(key))
             if located:
                 members[int(key)] = located
-        return reference.load_languages(Path(patch_path), members)
+        return reference.load_languages(Path(patch_path), members, self.reference_languages)
 
     def _archive_member(self, block_idx: int) -> Optional[Tuple[str, str]]:
         """``(archive file name, member)`` of a block, from the project's block metadata (no file read)."""

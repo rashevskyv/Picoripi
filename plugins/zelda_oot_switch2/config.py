@@ -8,6 +8,7 @@ SOURCE_SUBFOLDER = "romfs/Mals"
 TEXT_ARCHIVE_PREFIX = "USen."
 # The slot the build writes the translation into: the Russian one, whose ClarimoUDPE fonts hold Є І Ї Ґ.
 TARGET_LANGUAGE = "EUru"
+REFERENCE_LANGUAGES = ("EUru", "EUen")  # the reference columns, in this order (the AI prompt gets each)
 DICTIONARY_PACK = "romfs/Pack/ZsDic.pack.zs"
 BUILD_TARGET = "nup"
 # What the wizard copies out of the package (path prefixes inside it): the text, its zstd dictionaries, the fonts.
