@@ -181,6 +181,8 @@ class RecentMixin:
 
         # 2. Restore last viewed state (block/string indices) from project metadata BEFORE populating UI
         self.mw.project_manager.load_settings_from_project(self.mw)
+        if getattr(self.mw, 'toolbar_builder', None) is not None:
+            self.mw.toolbar_builder.refresh_external_tool_actions()
         if hasattr(self.mw, 'ui_handler'):
             self.mw.ui_handler.update_editor_rules_properties()
         if hasattr(self.mw, 'settings_manager'):

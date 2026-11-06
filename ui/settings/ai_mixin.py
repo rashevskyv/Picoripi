@@ -22,7 +22,25 @@ class SettingsAiMixin:
         """Setup ai translation tab."""
         layout = QVBoxLayout(self.ai_translation_tab)
         provider_form = QFormLayout()
-        
+
+        # The preset decides the active provider, so it comes first.
+        preset_layout = QHBoxLayout()
+        self.translation_preset_combo = QComboBox(self)
+        preset_layout.addWidget(self.translation_preset_combo)
+
+        self.save_preset_btn = QPushButton(tr('Save Preset'), self)
+        self.save_preset_btn.setToolTip(
+            tr('<b>Save preset</b><br>Click — store the current provider, model and parameters under the preset name. Saving with an existing name overwrites it.')
+        )
+        self.delete_preset_btn = QPushButton(tr('Delete Preset'), self)
+        self.delete_preset_btn.setToolTip(
+            tr('<b>Delete preset</b><br>Click — remove the preset selected in the drop-down. The provider settings currently in the form stay as they are.')
+        )
+        preset_layout.addWidget(self.save_preset_btn)
+        preset_layout.addWidget(self.delete_preset_btn)
+
+        provider_form.addRow(tr('Preset:'), preset_layout)
+
         self.target_language_edit = QLineEdit(self)
         self.target_language_edit.setPlaceholderText(tr('e.g. Ukrainian, Spanish, German'))
         provider_form.addRow(tr('Target Language:'), self.target_language_edit)
@@ -44,23 +62,6 @@ class SettingsAiMixin:
         provider_layout.addWidget(self.test_provider_btn)
 
         provider_form.addRow(tr('Active Provider:'), provider_layout)
-
-        preset_layout = QHBoxLayout()
-        self.translation_preset_combo = QComboBox(self)
-        preset_layout.addWidget(self.translation_preset_combo)
-
-        self.save_preset_btn = QPushButton(tr('Save Preset'), self)
-        self.save_preset_btn.setToolTip(
-            tr('<b>Save preset</b><br>Click — store the current provider, model and parameters under the preset name. Saving with an existing name overwrites it.')
-        )
-        self.delete_preset_btn = QPushButton(tr('Delete Preset'), self)
-        self.delete_preset_btn.setToolTip(
-            tr('<b>Delete preset</b><br>Click — remove the preset selected in the drop-down. The provider settings currently in the form stay as they are.')
-        )
-        preset_layout.addWidget(self.save_preset_btn)
-        preset_layout.addWidget(self.delete_preset_btn)
-
-        provider_form.addRow(tr('Preset:'), preset_layout)
 
         self.translation_workers_spin = QSpinBox(self)
         self.translation_workers_spin.setRange(1, 16)

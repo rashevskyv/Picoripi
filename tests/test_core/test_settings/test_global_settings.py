@@ -267,27 +267,19 @@ def test_GlobalSettings_saves_and_loads_auto_sleep_idle_delay_seconds(mock_mw, t
     ({"external_tools": [None, {"name": 2, "path": "bad", "icon": "B"}, {"name": "Run", "path": "ok.py", "icon": "👨‍👩‍👧‍👦"}]},
      [{"name": "Run", "path": "ok.py", "icon": "👨‍👩‍👧‍👦"}]),
 ])
-def test_GlobalSettings_migrates_and_validates_script_tools(mock_mw, tmp_path, settings_data, expected):
-    settings_file = tmp_path / "settings.json"
-    settings_file.write_text(json.dumps(settings_data), encoding="utf-8")
-    settings = GlobalSettings(mock_mw, settings_file)
-
-    loaded = {}
-    settings.load(loaded)
-
-    assert loaded["external_tools"] == expected
-    assert mock_mw.external_tools == expected
+def test_GlobalSettings_validates_script_tools(settings_data, expected):
+    assert GlobalSettings._load_external_tools(settings_data) == expected
 
 
-def test_GlobalSettings_round_trips_script_tools(mock_mw, tmp_path):
+def test_GlobalSettings_leaves_script_tools_to_the_project(mock_mw, tmp_path):
     settings_file = tmp_path / "settings.json"
     settings = GlobalSettings(mock_mw, settings_file)
     mock_mw.external_tools = [{"name": "Build", "path": "build.py", "icon": "B1"}]
 
     settings.save({})
-    saved = json.loads(settings_file.read_text(encoding="utf-8"))
-    mock_mw.external_tools = []
+    assert "external_tools" not in json.loads(settings_file.read_text(encoding="utf-8"))
+
+    settings_file.write_text(json.dumps({"external_tools": mock_mw.external_tools}), encoding="utf-8")
     loaded = {}
     settings.load(loaded)
-
-    assert saved["external_tools"] == mock_mw.external_tools == loaded["external_tools"]
+    assert loaded["external_tools"] == []

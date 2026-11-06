@@ -234,6 +234,11 @@ class PersistMixin:
 
         try:
             settings = self.project.metadata.get('settings', {})
+            # Toolbar tools belong to the project: a project that saved none must not keep the previous one's.
+            from core.settings.global_settings import GlobalSettings
+            main_window.external_tools = GlobalSettings._load_external_tools(
+                {"external_tools": settings.get('external_tools', []) if isinstance(settings, dict) else []}
+            )
             if not settings:
                 log_info("No project settings found in metadata, using current settings")
                 self._maybe_migrate_legacy_bookmarks(main_window)
@@ -248,7 +253,7 @@ class PersistMixin:
                             main_window.default_tag_mappings = {}
                         main_window.default_tag_mappings.update(value)
                         settings_loaded += 1
-                else:
+                elif setting_name != 'external_tools':
                     if hasattr(main_window, setting_name):
                         setattr(main_window, setting_name, value)
                         settings_loaded += 1

@@ -188,6 +188,8 @@ class LifecycleMixin:
         # Load project-specific settings from metadata
         if self.mw.project_manager:
             self.mw.project_manager.load_settings_from_project(self.mw)
+            if getattr(self.mw, 'toolbar_builder', None) is not None:
+                self.mw.toolbar_builder.refresh_external_tool_actions()
             if hasattr(self.mw, 'ui_handler'):
                 self.mw.ui_handler.update_editor_rules_properties()
             if hasattr(self.mw, 'settings_manager'):
@@ -268,6 +270,10 @@ class LifecycleMixin:
             self.mw.settings_manager.set("last_opened_path", "")
             self.mw.settings_manager.set("active_game_plugin", "")
             self.mw.settings_manager.save_settings(save_project_settings=False)
+
+        self.mw.external_tools = []
+        if getattr(self.mw, 'toolbar_builder', None) is not None:
+            self.mw.toolbar_builder.refresh_external_tool_actions()
 
         if hasattr(self.mw, 'bookmark_handler'):
             self.mw.bookmarks = []

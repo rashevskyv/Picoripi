@@ -66,6 +66,7 @@ class ProjectManager(
         'prevent_empty_lines_in_autofix',
         'context_menu_tags',
         'bookmarks',
+        'external_tools',
         'main_splitter_state',
         'right_splitter_state',
         'bottom_right_splitter_state',

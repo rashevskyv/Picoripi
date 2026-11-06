@@ -143,7 +143,7 @@ class GlobalSettings:
 
             for key, default_value in self.defaults.items():
                 if key == "external_tools":
-                    loaded_value = self._load_external_tools(settings_data)
+                    loaded_value = default_value  # per project, see ProjectManager.PROJECT_SETTINGS
                 else:
                     loaded_value = settings_data.get(key, default_value)
                 attr = getattr(type(self.mw), key, None)
@@ -239,7 +239,6 @@ class GlobalSettings:
             "editors_font_size": getattr(self.mw, 'editors_font_size', self.mw.current_font_size),
             "tooltip_font_size": getattr(self.mw, 'tooltip_font_size', 11),
             "external_script_path": getattr(self.mw, 'external_script_path', "") if isinstance(getattr(self.mw, 'external_script_path', ""), str) else "",
-            "external_tools": self._load_external_tools({"external_tools": getattr(self.mw, "external_tools", [])}),
             "font_size": self.mw.current_font_size,
             "active_game_plugin": self.mw.active_game_plugin,
             "ui_language": ui_language,

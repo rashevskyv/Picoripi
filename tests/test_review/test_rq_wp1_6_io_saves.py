@@ -82,7 +82,6 @@ def test_translation_archive_glossary_settings_and_session_are_written_as_before
     assert geometry == {key for key in old if key.endswith("_splitter_state")}
     assert {k: v for k, v in new.items() if k not in geometry} == {
         **{k: v for k, v in old.items() if k not in geometry}, "translation_config": new["translation_config"],
-        "external_tools": [],
         # 2026-11-03: the Recent Projects menu shows the project name, kept for each path in the list.
         "recent_projects_names": dict.fromkeys(old["recent_projects"], new["recent_projects_names"].get(old["recent_projects"][0])),
     }

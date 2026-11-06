@@ -286,6 +286,22 @@ def test_ProjectManager_does_not_migrate_when_project_has_bookmarks(pm, tmp_path
     assert mw.bookmarks == [{"id": "project", "name": "Local"}]
 
 
+def test_ProjectManager_toolbar_tools_belong_to_the_project(pm, tmp_path):
+    tool = {"name": "Run", "path": "run.bat", "icon": "R"}
+    mw = _BookmarkWindow(tmp_path / "settings.json")
+    mw.external_tools = [tool]
+    pm.save_settings_to_project(mw)
+
+    other = _BookmarkWindow(tmp_path / "settings.json")
+    other.external_tools = [{"name": "Stale", "path": "x", "icon": "S"}]
+    pm.load_settings_from_project(other)
+    assert other.external_tools == [tool]
+
+    pm.project.metadata["settings"] = {}
+    pm.load_settings_from_project(other)
+    assert other.external_tools == []
+
+
 def test_an_unchanged_archive_is_not_opened_again_at_the_next_sync(tmp_path, monkeypatch):
     """The archive listing is kept in the project folder; a changed archive is read again."""
     from core.containers import ContainerManager
