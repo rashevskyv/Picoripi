@@ -13,6 +13,11 @@ its cell without a character, as does a cell past the end) or ``first_code`` (ce
 ``texture_params`` (passed to the texture format). Optional ``rows_at`` (``[[x, y], ...]``, one per row):
 the rows of cells are at these places in the texture, not on one even grid (``columns`` is then required);
 the sheet is the cells laid out as one grid, and packing puts each cell back where it came from.
+Optional ``tiles`` (one entry per cell, parallel to ``chars``): the cell is these tiles of the texture, stacked top
+to bottom (an int is a one-tile cell; ``[top, bottom]`` a tall glyph whose halves are not neighbours, or that shares a
+half with another glyph, as SNES fonts do). Tile ``t`` is the ``tile``-sized square (default ``[8, 8]``) at column
+``t % (texture width // tile width)``, row ``t // ...``. The sheet then holds only these cells, ``columns`` (default 16)
+to a row. Packing writes back each tile that changed; a tile two cells share must not get two different edits.
 """
 from __future__ import annotations
 
@@ -51,10 +56,64 @@ def _compose(texture, rows_at, width: int, height: int, columns: int):
     return sheet
 
 
+def _stacks(params: Dict[str, Any]):
+    """``tiles``: per cell its tile indices, top first. None without the param."""
+    tiles = params.get("tiles")
+    if tiles is None:
+        return None
+    return [[_int(t)] if isinstance(t, (int, str)) else [_int(v) for v in t] for t in tiles]
+
+
+def _tile_box(texture, tile: int, tw: int, th: int):
+    per_row = texture.width // tw
+    x, y = tile % per_row * tw, tile // per_row * th
+    return x, y, x + tw, y + th
+
+
+def _tile_sheet(texture, stacks, params: Dict[str, Any]):
+    """The cells of ``tiles`` as one grid of ``columns`` cells a row."""
+    from PIL import Image
+    tw, th = (_int(v) for v in params.get("tile") or (8, 8))
+    width, height = (_int(v) for v in params["cell"])
+    columns = _int(params.get("columns") or 16)
+    rows = max(1, -(-len(stacks) // columns))
+    sheet = Image.new("RGBA", (columns * width, rows * height))
+    for i, stack in enumerate(stacks):
+        x, y = i % columns * width, i // columns * height
+        for k, tile in enumerate(stack):
+            sheet.paste(texture.crop(_tile_box(texture, tile, tw, th)), (x, y + k * th))
+    return sheet, columns, rows
+
+
+def _pack_tiles(current, sheet, stacks, params: Dict[str, Any]):
+    """``current`` (the texture) with every tile a cell changed written back."""
+    tw, th = (_int(v) for v in params.get("tile") or (8, 8))
+    width, height = (_int(v) for v in params["cell"])
+    expected, columns, _rows = _tile_sheet(current, stacks, params)
+    if sheet.size != expected.size:
+        raise ValueError(f"The sheet is {sheet.width}x{sheet.height}, the cells need {expected.width}x{expected.height}")
+    written = {}
+    for i, stack in enumerate(stacks):
+        x, y = i % columns * width, i // columns * height
+        for k, tile in enumerate(stack):
+            box = (x, y + k * th, x + tw, y + (k + 1) * th)
+            new = sheet.crop(box)
+            if new.tobytes() == expected.crop(box).tobytes():
+                continue
+            if tile in written and written[tile] != new.tobytes():
+                raise ValueError(f"Tile {tile} is part of two cells that were edited differently")
+            written[tile] = new.tobytes()
+            current.paste(new, _tile_box(current, tile, tw, th)[:2])
+    return current
+
+
 def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
     width, height = (_int(v) for v in params["cell"])
     rows_at = _rows_at(params)
-    if rows_at:
+    stacks = _stacks(params)
+    if stacks is not None:
+        sheet, columns, rows = _tile_sheet(_image(data, params).convert("RGBA"), stacks, params)
+    elif rows_at:
         texture = _image(data, params).convert("RGBA")
         columns = _int(params["columns"])
         sheet = _compose(texture, rows_at, width, height, columns)
@@ -63,7 +122,7 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
         sheet = _image(data, params).convert("RGBA")
         columns = _int(params.get("columns") or sheet.width // width)
         rows = sheet.height // height
-    count = columns * rows
+    count = len(stacks) if stacks is not None else columns * rows
     if "chars" in params:
         chars = params["chars"]
         chars = list(chars if isinstance(chars, list) else str(chars))[:count]
@@ -91,7 +150,10 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
     sheet = sheets[0].convert("RGBA")
     width, height = (_int(v) for v in params["cell"])
     rows_at = _rows_at(params)
-    if rows_at:
+    stacks = _stacks(params)
+    if stacks is not None:
+        sheet = _pack_tiles(current, sheet, stacks, params)
+    elif rows_at:
         columns = _int(params["columns"])
         expected = (columns * width, len(rows_at) * height)
         if sheet.size != expected:

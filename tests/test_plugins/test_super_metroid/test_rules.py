@@ -18,7 +18,7 @@ PLUGIN = "super_metroid"
 SM = ("Metroid", "Super Metroid")
 SCRIPT_FILE = ("_shared", "scripts", "zt", "sm.py")
 ROM_SHA256 = "12b77c4bc9c1832cee8881244659065ee1d84c70c3d29e6eaf92e6798cc2ca72"   # Super Metroid (Japan, USA) (En,Ja)
-SM_PY_SHA256 = "70f84890b82d18ee0ca518fef2bc2d37adc20e2dd05e8623fa84bb746e69d9dd"
+SM_PY_SHA256 = "7b29b12ba85a94949147e3a0235dfa587d6a2c030726aae6a556cd8ee2f65382"
 SAMPLE = json.dumps({"format": sm_rules.FORMAT, "groups": [
     {"name": "Message boxes", "items": [{"id": "msg.01.EnergyTank", "text": "ENERGY TANK", "width": 19, "lines": 1,
                                          "symbol": "kMessageBox_1_EnergyTank"}]},
@@ -114,7 +114,7 @@ def test_real_fonts_and_textures_open_and_pack_back_unchanged():
         data = romhacking_root.path(*SM, "source", texture["path"]).read_bytes()
         images = texture_formats.read(texture["format"], data, texture["params"])
         assert texture_formats.write(texture["format"], data, {0: images[0].image}, texture["params"]) == data
-    bg3 = rules.get_font_sources()[0]
+    bg3 = _font(rules, "Message boxes: Ukrainian")
     assert all(ch in bg3["params"]["chars"] for ch in "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ")
 
 
@@ -164,8 +164,7 @@ def test_real_rom_unchanged_text_and_sheets_build_the_same_rom(zt_sm, tmp_path):
     changed = {i for i in range(len(data)) if rom.data[i] != data[i]}
     documented = {i for c in sm.EXIT_CALLS for i in (c, c + 1)} | set(range(sm.lo(0x81EF1A), sm.lo(0x81EF1A) + 12))
     assert changed <= documented                        # unchanged text: only the exit label list moved
-    sm.blank_freed_intro(rom, data)                     # the build's own first steps: freed intro tiles, JP switch
-    sm.blank_freed_menu(rom)                            # freed menu tiles (the Japanese option art)
+    sm.write_source_sheets(rom, data)                   # the build's own first steps: sheets as source\\gfx, JP switch
     sm.patch_language_rom(rom)
     built = bytes(rom.data)
     for name in sm.GFX:
@@ -186,7 +185,7 @@ def test_real_rom_changed_texts_land_in_the_rom_and_read_back(zt_sm):
     assert len(sm.apply_text(rom, texts, new)) == 6
     again = {it["id"]: it["text"] for g in json.loads(sm.dump_text(sm.Rom(bytes(rom.data))))["groups"]
              for it in g["items"]}
-    assert again["msg.01.EnergyTank"] == "EHEPГOБAK"          # look-alikes take the Latin tile, Г and Б their cells
+    assert again["msg.01.EnergyTank"] == "ЕНЕРГОБАК"          # every letter its own cell, the look-alikes too
     for key in ("menu.SamusData", "options.options.r06c00", "pause.area0", "credits.r000c00", "intro.page6"):
         assert again[key] == new[key], key
     assert all(again[k] == v for k, v in texts.items() if new[k] == v)
@@ -231,82 +230,65 @@ def _tile_image(data: bytes, tile: int):
     return sheet.crop((x, y, x + 8, y + 8))
 
 
-def test_the_game_fonts_are_listed_one_by_one_and_intro_is_two_fonts():
+def test_the_intro_fonts_are_four_sheets_of_two_files():
     rules = check_loads(PLUGIN)
-    labels = [f["label"] for f in rules.get_font_sources()]
-    assert len(labels) == len(set(labels)) == 10
-    assert [part for part in ("Message boxes", "HUD numbers", "small letters", "big letters (top",
-                              "Pause screen", "Intro story", "Intro story pages: Ukrainian", "Intro first screen", "Credits: job",
-                              "Credits: names")
-            if not any(part in label for label in labels)] == []
-    story, prologue = _font(rules, "Intro story"), _font(rules, "Intro first screen")
-    assert story["path"] == prologue["path"] == "gfx/intro_font.bin"
-    assert story["font_map"] != prologue["font_map"]
-    # the big letters start at tile 0x30 (offset 0x300), their top and bottom tiles are 16 cells apart
-    assert prologue["params"]["cell"] == [8, 16] and prologue["params"]["texture_params"]["offset"] == 0x30 * 16
-    assert story["params"]["cell"] == [8, 8] and story["params"]["texture_params"]["offset"] == 0
-    assert story["params"]["texture_params"]["height"] // 8 * 16 == 0x30   # tiles 0..0x2F only
-
-
-def test_the_first_screen_grid_has_a_free_pair_cell_for_every_ukrainian_letter():
-    """Tiles 0x5A-0x5F/0x6A-0x6F and 0x70-0x7F/0x80-0x8F are the freed Japanese window (no English screen uses them)."""
-    rules = check_loads(PLUGIN)
-    prologue = _font(rules, "Intro first screen")
-    chars = prologue["params"]["chars"]
-    assert len(chars) == prologue["params"]["texture_params"]["height"] // 16 * 16 == 48
-    assert chars[:26] == [chr(65 + i) for i in range(26)]
+    story, prologue = _font(rules, "Intro story pages: green"), _font(rules, "Intro first screen: big white")
+    window, big_ua = _font(rules, "Intro story pages: Ukrainian"), _font(rules, "Intro first screen: Ukrainian")
+    assert story["path"] == prologue["path"] == big_ua["path"] == "gfx/intro_font.bin"
+    assert window["path"] == "gfx/story_window.bin"
+    assert (story["font_map"], prologue["font_map"]) == ("intro_story.json", "intro_prologue.json")
+    assert story["params"]["cell"] == window["params"]["cell"] == [8, 8]
+    assert prologue["params"]["cell"] == big_ua["params"]["cell"] == [8, 16]
+    assert max(story["params"]["tiles"]) < 0x30                                     # the green letters: tiles 0-0x2F
+    # the Ukrainian letters of the first screen sit in the freed Japanese window (no English screen uses it)
     free = set(range(0x5A, 0x60)) | set(range(0x6A, 0x90))
-    tops = []
-    for letter in "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ":
-        row, col = divmod(chars.index(letter), 16)
-        top = 0x30 + 0x20 * row + col                     # the 8x16 grid: top tile, bottom tile 0x10 later
-        assert top in free and top + 0x10 in free, letter
-        tops.append(top)
-    assert len(set(tops)) == 21
+    assert all(set(pair) <= free for pair in big_ua["params"]["tiles"])
+    # the story window's letters are its tiles from 0 (VRAM tile 0x30) on
+    assert sorted(window["params"]["tiles"]) == list(range(34)) and window["params"]["chars"][-1] == "-"
 
 
-def test_the_story_window_has_a_cell_for_every_ukrainian_capital():
-    """The 96 tiles 0x30-0x8F that the story pages load from their own block: 21 free cells from tile 0x30 on."""
-    rules = check_loads(PLUGIN)
-    window = _font(rules, "Intro story pages: Ukrainian")
-    assert window["path"] == "gfx/story_window.bin" and window["format"] == "texture_grid"
-    assert window["params"]["texture_params"]["height"] // 8 * 16 == 96
-    chars = window["params"]["chars"]
-    assert len(chars) == 96 and chars[:21] == list("БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ")
-    assert chars[21] == "-" and set(chars[22:]) == {""}
-
-
-def test_real_story_window_cells_match_the_zt_table(zt_sm):
+def test_real_plugin_fonts_are_the_zt_tables(zt_sm):
+    """font_sources.json is written from sm.font_sources(): the plugin and the build name the same cells."""
     sm, data = zt_sm
     rules = check_loads(PLUGIN)
-    window = _font(rules, "Intro story pages: Ukrainian")["params"]["chars"]
-    assert sm.STORY_FIRST_TILE == 0x30 and len(sm.STORY_UA) == 22
-    for ch, tile in sm.STORY_UA.items():
-        assert window[tile - sm.STORY_FIRST_TILE] == ch
+    assert sm.font_sources() == rules.get_font_sources()
 
 
-def test_real_intro_fonts_show_every_letter_the_text_uses_as_a_whole_glyph(zt_sm):
+LATIN_OF = {"Message boxes: Ukrainian letters (8x8)": "Message boxes: white letters (8x8)",
+            "File select, game over and options: Ukrainian small letters (8x8)":
+                "File select, game over and options: small letters (8x8)",
+            "File select, game over and options: Ukrainian big letters (8x16)":
+                "File select, game over and options: big letters (8x16)",
+            "Pause screen: Ukrainian letters and apostrophe (8x8)": "Pause screen: area names (8x8)",
+            "Intro story pages: Ukrainian capitals and hyphen (8x8)": "Intro story pages: green letters (8x8)",
+            "Intro first screen: Ukrainian big letters (8x16)": "Intro first screen: big white letters (8x16)",
+            "Credits: Ukrainian small letters and apostrophe (8x8)": "Credits: job titles (small letters, 8x8)",
+            "Credits: Ukrainian big letters (8x16)": "Credits: names (big letters, 8x16)"}
+
+
+def test_real_latin_glyphs_are_whole_and_ukrainian_cells_start_as_copies_or_empty(zt_sm):
+    """In source\\gfx (the build's first content): every Latin glyph has ink in each of its tiles, a look-alike cell is
+    the Latin letter's picture, a letter nobody drew is an empty cell."""
     sm, data = zt_sm
     _sm_py_pinned()
     rules = check_loads(PLUGIN)
-    raw = sm.gfx_source(data, "intro_font")
-    story, prologue = _font(rules, "Intro story"), _font(rules, "Intro first screen")
-    _meta, (s_sheet,) = font_formats.extract(story["format"], raw, story["params"])
-    _meta, (p_sheet,) = font_formats.extract(prologue["format"], raw, prologue["params"])
-    for tile, ch in sm.FONTS["intro"].chars.items():
-        if ch != " ":
-            assert story["params"]["chars"][tile] == ch
-            assert s_sheet.convert("RGBA").crop((tile % 16 * 8, tile // 16 * 8, tile % 16 * 8 + 8, tile // 16 * 8 + 8)
-                                                ).tobytes() == _tile_image(raw, tile).tobytes()
-    letters = prologue["params"]["chars"]
-    for (top, bottom), ch in sm.FONTS["prologue"].chars.items():
-        if ch in " .":
-            continue
-        cell = letters.index(ch)
-        box = (cell % 16 * 8, cell // 16 * 16)
-        glyph = p_sheet.convert("RGBA").crop((box[0], box[1], box[0] + 8, box[1] + 16))
-        assert glyph.crop((0, 0, 8, 8)).tobytes() == _tile_image(raw, top).tobytes(), ch
-        assert glyph.crop((0, 8, 8, 16)).tobytes() == _tile_image(raw, bottom).tobytes(), ch
+    glyphs = {}
+    for font in rules.get_font_sources():
+        name = font["path"][len("gfx/"):-len(".bin")]
+        _meta, (sheet,) = font_formats.extract(font["format"], sm.gfx_source(data, name), font["params"])
+        w, h = font["params"]["cell"]
+        for k, ch in enumerate(font["params"]["chars"]):
+            glyphs[font["label"], ch] = sheet.crop((k % 16 * w, k // 16 * h, k % 16 * w + w, k // 16 * h + h))
+    for (label, ch), glyph in glyphs.items():
+        if label in LATIN_OF:
+            latin = sm.LOOKALIKE[ch] if ch in sm.LOOK_ORDER else None
+            want = glyphs[LATIN_OF[label], latin].tobytes() if latin else bytes(len(glyph.tobytes()))
+            assert glyph.tobytes() == want, (label, ch)
+        elif label.startswith("HUD") or ch in ".,'’:!?-()&":
+            assert glyph.getchannel("A").getbbox(), (label, ch)
+        else:
+            for top in range(0, glyph.height, 8):
+                assert glyph.crop((0, top, 8, top + 8)).getchannel("A").getbbox(), (label, ch, top)
 
 
 def test_an_edited_intro_glyph_lands_in_the_built_rom_and_the_other_intro_font_keeps_its_edit(zt_sm, tmp_path):
@@ -392,27 +374,17 @@ def test_real_rom_the_first_screen_text_is_an_item_and_moves_to_free_space_when_
     assert "0x978ADB" in c_file.read_text(encoding="utf-8")
 
 
-def test_the_small_menu_font_has_a_cell_for_every_ukrainian_capital_outside_the_english_letters():
-    rules = check_loads(PLUGIN)
-    small = next(f for f in rules.get_font_sources() if f["label"].startswith("File select, game over and options: small"))
-    chars = small["params"]["chars"]
-    cells = [chars.index(ch) for ch in "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ"]
-    assert len(set(cells)) == 21 and min(cells) >= 0xD2              # past the English letters (0x60-0x8F)
-    assert all(chars[c] == ch for c, ch in zip(cells, "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ"))
-
-
 def test_the_pause_font_has_cells_for_the_ukrainian_capitals_on_free_stock_tiles():
-    """The 22 cells (21 capitals and the apostrophe) are tiles of the stock pause sheet that no pause map uses,
+    """The Ukrainian cells (33 capitals and the apostrophe) are tiles of the stock pause sheet that no pause map uses,
     and none of them is a Latin letter or the dot of the pause font (tiles 48-74)."""
     rules = check_loads(PLUGIN)
-    area = next(f for f in rules.get_font_sources() if f["label"].startswith("Pause screen: area names"))
-    assert area["path"] == "gfx/pause_tiles.bin" and area["format"] == "texture_grid"
-    chars = area["params"]["chars"]
-    cells = [chars.index(ch) for ch in "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ’"]
-    assert cells[:2] == [14, 78] and len(set(cells)) == 22
-    assert all(not (48 <= c <= 74) for c in cells)
-    assert all(chars[c] == ch for c, ch in zip(cells, "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ’"))
-    assert not any(c for c in chars[48:75] if c not in "ABCDEFGHIJKLMNOPQRSTUVWXYZ.")
+    area, ua = _font(rules, "Pause screen: area names"), _font(rules, "Pause screen: Ukrainian")
+    assert area["path"] == ua["path"] == "gfx/pause_tiles.bin"
+    assert area["params"]["chars"] == list("ABCDEFGHIJKLMNOPQRSTUVWXYZ.")
+    assert all(48 <= t <= 74 for t in area["params"]["tiles"])
+    cells = dict(zip(ua["params"]["chars"], ua["params"]["tiles"]))
+    assert (cells["Б"], cells["Г"]) == (14, 78) and len(set(cells.values())) == 34
+    assert all(not (48 <= t <= 74) for t in cells.values())
 
 
 def test_real_pause_cells_are_stock_free_tiles_and_the_stock_sheet_round_trips(zt_sm):
@@ -422,15 +394,18 @@ def test_real_pause_cells_are_stock_free_tiles_and_the_stock_sheet_round_trips(z
     assert sm.UA_PAUSE["Б"] == 14 and sm.FONTS["pause"].codes["Б"] == 14
     assert sm.FONTS["pause"].codes["G"] == 0x36 and sm.FONTS["pause"].codes["Z"] == 0x49
     assert sm.FONTS["pause"].codes["'"] == sm.FONTS["pause"].codes["’"] == sm.PAUSE_UA_TILES[-1]
-    # raw 4bpp tiles, no compression: the cells are blanked in source\gfx and in the ROM, all others keep their bytes
+    # raw 4bpp tiles, no compression: the letter cells are blank in source\gfx and in the ROM, the look-alike cells a
+    # copy of the Latin letter, all others keep their bytes
     raw = sm.gfx_bytes(data, "pause_tiles")
     src = sm.gfx_source(data, "pause_tiles")
     assert len(src) == len(raw) == 0x4000
+    look = {tile: sm.FONTS["pause"].codes[sm.LOOKALIKE[ch]] for ch, tile in sm.UA_PAUSE_LOOK.items()}
     for t in range(512):
-        expect = bytes(32) if t in sm.PAUSE_UA_TILES else raw[t * 32:(t + 1) * 32]
+        expect = (bytes(32) if t in sm.PAUSE_UA_TILES else
+                  raw[look[t] * 32:(look[t] + 1) * 32] if t in look else raw[t * 32:(t + 1) * 32])
         assert src[t * 32:(t + 1) * 32] == expect
     rom = sm.Rom(data)
-    sm.blank_pause_cells(rom)
+    sm.write_source_sheets(rom, data)
     base = sm.lo(sm.GFX["pause_tiles"][0])
     assert bytes(rom.data[base:base + 0x4000]) == src
 

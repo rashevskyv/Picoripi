@@ -1,31 +1,89 @@
-"""The plugin's font cell lists name the Ukrainian capitals drawn into the new cells (the editor shows them there)."""
+"""The plugin's fonts: per game font one sheet of whole Latin glyphs and one of Ukrainian letters in cells of their own,
+8x8 and 8x16 fonts apart (the cells name their tiles, so a tall glyph is its top tile over its bottom tile)."""
 import json
+from collections import defaultdict
 from pathlib import Path
 
+from core import font_formats
+
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "super_metroid" / "font_sources.json"
+OWN = "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ"          # the capitals with no Latin look-alike
 
 
-def _chars(label_prefix):
-    descriptors = json.loads(PLUGIN.read_text(encoding="utf-8"))
-    return next(d for d in descriptors if d["label"].startswith(label_prefix))["params"]["chars"]
+def _fonts():
+    return json.loads(PLUGIN.read_text(encoding="utf-8"))
 
 
-def _cell16(tile):
-    """A 16-column sheet: the cell index of a tile (the top tile of a big letter)."""
-    return (tile // 32) * 16 + tile % 16
+def _font(label):
+    return next(d for d in _fonts() if d["label"] == label)
 
 
-def test_big_menu_letters_sit_in_the_free_pairs():
-    chars = _chars("File select, game over and options: big letters")
-    for letter, top in zip("БГДЖЗИЙЛПУЦЧШЩЬЮЯ", [352 + i for i in range(8)] + [487 + i for i in range(9)]):
-        assert chars[_cell16(top)] == letter
+def _cells(descriptor):
+    return dict(zip(descriptor["params"]["chars"], descriptor["params"]["tiles"]))
 
 
-def test_credits_letters_and_apostrophe_sit_in_the_free_cells():
-    small = _chars("Credits: job titles")
-    for letter, tile in zip("ЄБГДЖЗИЙЛПУФЧЬЮЯ", [139, 140, 141, 142, 143, *range(155, 166)]):
-        assert small[tile] == letter
-    assert small[0xA6] == "'"
-    big = _chars("Credits: names")
-    for letter, top in {"П": 136, "Б": 137, "И": 138}.items():
-        assert big[_cell16(top)] == letter
+def test_every_font_is_a_list_of_cells_of_one_height():
+    fonts = _fonts()
+    labels = [d["label"] for d in fonts]
+    assert len(labels) == len(set(labels)) == 17
+    assert not [a for a in labels for b in labels if a != b and b.startswith(a)]     # a label is never another's prefix
+    for d in fonts:
+        params = d["params"]
+        assert d["format"] == "texture_grid" and len(params["chars"]) == len(params["tiles"]), d["label"]
+        tall = params["cell"] == [8, 16]
+        assert all(isinstance(t, list) and len(t) == 2 for t in params["tiles"]) if tall else \
+            all(isinstance(t, int) for t in params["tiles"]), d["label"]
+
+
+def test_a_ukrainian_cell_shares_no_tile_with_any_other_cell_of_its_file():
+    users = defaultdict(list)
+    for d in _fonts():
+        for ch, tile in zip(d["params"]["chars"], d["params"]["tiles"]):
+            for t in tile if isinstance(tile, list) else [tile]:
+                users[(d["path"], t)].append((d["label"], ch))
+    for d in _fonts():
+        if "Ukrainian" not in d["label"]:
+            continue
+        for ch, tile in _cells(d).items():
+            for t in tile if isinstance(tile, list) else [tile]:
+                assert users[(d["path"], t)] == [(d["label"], ch)], (d["label"], ch, users[(d["path"], t)])
+
+
+def test_the_ukrainian_sheets_hold_every_letter_the_free_tiles_allow():
+    have = {d["label"]: "".join(d["params"]["chars"]) for d in _fonts() if "Ukrainian" in d["label"]}
+    full = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯ"
+    assert have == {
+        "Message boxes: Ukrainian letters (8x8)": full,
+        "File select, game over and options: Ukrainian small letters (8x8)": full,
+        "File select, game over and options: Ukrainian big letters (8x16)": "АБВГҐДЄЖЗИІЇЙЛНОПТУФЦЧШЩЬЮЯ",
+        "Pause screen: Ukrainian letters and apostrophe (8x8)": full + "’",
+        "Intro story pages: Ukrainian capitals and hyphen (8x8)": full + "-",
+        "Intro first screen: Ukrainian big letters (8x16)": "БГҐДЄЖЗИЇЙЛОПУФЦЧШЩЬЮЯ",
+        "Credits: Ukrainian small letters and apostrophe (8x8)": full + "'",
+        "Credits: Ukrainian big letters (8x16)": "БГҐДЄИП",
+    }
+    assert all(ch in have[label] for label in have if "Credits: Ukrainian big" not in label for ch in OWN)
+
+
+def test_the_big_menu_letters_are_whole_glyphs_the_way_the_game_draws_them():
+    big = _cells(_font("File select, game over and options: big letters (8x16)"))
+    assert big["G"] == [0x0C, 0x30]       # the game's G: the top of the C over its own bottom
+    assert big["9"] == [0x08, 0x19]       # the top of the 8 (tile 9 is empty)
+    assert big["O"] == [0x00, 0x10] and big["P"] == [0x0D, 0x38]
+    ua = _cells(_font("File select, game over and options: Ukrainian big letters (8x16)"))
+    assert ua["Б"] == [352, 368] and ua["Я"] == [495, 511] and ua["О"] == [292, 293]
+
+
+def test_an_edited_ukrainian_cell_changes_only_its_own_tiles():
+    small = _font("File select, game over and options: Ukrainian small letters (8x8)")
+    params = small["params"]
+    data = bytes((i * 7 + 3) % 256 for i in range(params["texture_params"]["height"] * 128 // 2))
+    meta, (sheet,) = font_formats.extract("texture_grid", data, params)
+    cell = params["chars"].index("О")
+    x, y = cell % 16 * 8, cell // 16 * 8
+    sheet = sheet.copy()
+    sheet.putpixel((x, y), (255, 255, 255, 255) if sheet.getpixel((x, y))[3] == 0 else (0, 0, 0, 0))
+    out = font_formats.pack("texture_grid", meta, [sheet], data, params)
+    tile = params["tiles"][cell]
+    changed = {i // 32 for i in range(len(data)) if out[i] != data[i]}
+    assert changed == {tile}
