@@ -22,6 +22,7 @@ from core.i18n import tr
 from plugins.common.disc_source import write_source_mark
 from plugins.zelda_totk.rules import GameRules as TotkRules
 from plugins.zelda_totk.rules import _dictionary_dirs
+from plugins.zelda_totk.tags import TAG_RE, to_editor
 from utils.atomic_io import atomic_write_bytes
 from utils.constants import SETTINGS_DIR
 
@@ -96,6 +97,35 @@ class GameRules(TotkRules):
             return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
         return build.build_nup(source_dir, translation_dir, output_dir, progress, is_cancelled)
 
+    # -- glossary ----------------------------------------------------------------
+
+    def get_glossary_seed_entries(self) -> List[Dict[str, Any]]:
+        """``ActorMsg`` names (enemies, items, characters), each with its ``_Caption_00`` text as the description."""
+        entries: List[Dict[str, Any]] = []
+        seen: Set[str] = set()
+        blocks = getattr(getattr(getattr(self.mw, "project_manager", None), "project", None), "blocks", None) or []
+        for block_idx in range(len(blocks)):
+            rel_path, msbt = self._member(block_idx)
+            if msbt is None or not str(rel_path).startswith("ActorMsg/"):
+                continue
+            index_of = {label: index for index, label in msbt.labels.items()}
+
+            def plain(index: int) -> str:
+                return " ".join(TAG_RE.sub("", to_editor(msbt.messages[index], msbt.little)).split())
+
+            for index, label in sorted(msbt.labels.items()):
+                if not label.endswith("_Name"):
+                    continue
+                term = plain(index)
+                if not term or term in seen:
+                    continue
+                seen.add(term)
+                caption = index_of.get(label[:-len("_Name")] + "_Caption_00")
+                entries.append({"term": term, "section": Path(str(rel_path)).stem,
+                                "description": plain(caption) if caption is not None else "",
+                                "source_ref": f"{rel_path} {label}"})
+        return entries
+
     # -- TotK features that need TotK's own data -----------------------------------
 
     def get_scene_context_for_string(self, block_idx: int, string_idx: int) -> Dict[str, Any]:
@@ -113,7 +143,7 @@ class GameRules(TotkRules):
         return None
 
     def get_capabilities(self) -> Set[str]:
-        return {"external_reference"}
+        return {"external_reference", "glossary_seed"}
 
     def get_dynamic_name_tags(self) -> dict:
         """TotK's player name tag (2, 29) does not occur in this game's text."""

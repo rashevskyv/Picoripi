@@ -328,3 +328,22 @@ def test_a_build_without_translated_text_is_refused(tmp_path):
         build.build_nup(str(unpacked / "romfs/Mals"), str(tmp_path / "translation"), str(tmp_path / "build"),
                         ignore, lambda: False)
 
+def test_actor_names_seed_the_glossary_with_their_captions():
+    class Project:
+        blocks = [object()]
+
+    class ProjectManager:
+        project = Project()
+
+    class Window:
+        project_manager = ProjectManager()
+
+    rules = GameRules(Window())
+    rules._members[0] = ("ActorMsg/Enemy.msbt", Msbt(samples.msbt([
+        ("Enemy_Amos_Name", samples.text("Armos")),
+        ("Enemy_Amos_Caption_00", samples.text("Armos look like statues.")),
+        ("Enemy_Amos_Talk", samples.text("Not a name"))])))
+
+    assert rules.get_glossary_seed_entries() == [{"term": "Armos", "section": "Enemy",
+                                                  "description": "Armos look like statues.",
+                                                  "source_ref": "ActorMsg/Enemy.msbt Enemy_Amos_Name"}]
