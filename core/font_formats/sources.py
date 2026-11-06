@@ -5,7 +5,7 @@ in its folder): ``label``, ``format``, ``path`` (a path or glob relative to the 
 folder, or a list of them -- the first that matches wins; its folder part may start with ``../``;
 ignored in a single-file project, whose file is the font file), optional ``member`` (a glob of
 files inside the archive at ``path``, or a path through archives inside it: ``dat/inner.arc/font/*.bfn``;
-a compressed archive or member is read decompressed and written compressed again),
+a compressed archive or member, or a font file that is one zstd frame, is read decompressed and written compressed again),
 ``font_map`` (the width map the font feeds), ``params`` (the format's game constants) and ``sync_glyphs_with``
 (the label of another descriptor whose same-named file takes the glyphs drawn here: ``glyph_sync``). A G1T
 whose widths live in the game's executable (``params.widths.patches``) also has exefs patch files in
@@ -27,6 +27,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+from core.containers.sarc import ZSTD_MAGIC
 from core.texture_formats.sources import list_members, unwrap
 from utils.atomic_io import atomic_write_bytes
 from utils.logging_utils import log_warning
@@ -82,7 +83,7 @@ class FontSource:
 
     def _read(self, path: str) -> bytes:
         raw = Path(path).read_bytes()
-        return unwrap(raw, self.member, {})[0] if self.member else raw
+        return unwrap(raw, self.member, {})[0] if self.member or raw[:4] == ZSTD_MAGIC else raw
 
     def read_current(self) -> bytes:
         """The font as the translation has it now (the source until it was first written)."""
@@ -109,8 +110,9 @@ class FontSource:
                 raise ValueError("The project has no translation folder to write the font to")
             atomic_write_bytes(self.companion_translation, companion)
         plain = bytes(data)
-        if self.member:
-            data = unwrap(Path(self._current_path()).read_bytes(), self.member, {})[1](bytes(data))
+        current = Path(self._current_path()).read_bytes()
+        if self.member or current[:4] == ZSTD_MAGIC:
+            data = unwrap(current, self.member, {})[1](bytes(data))
         atomic_write_bytes(self.translation_path, data)
         if not self.member and not self.companion_source:
             self._write_copies(plain)

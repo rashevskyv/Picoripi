@@ -1,0 +1,10 @@
+[
+  {"label": "Russian slot dialogue, the build's target (ClarimoUDPE Light)", "format": "bfotf", "path": "../Font2/Scalable/ClarimoUDPE-Light.Nin_Ounce_NVN2.bfotf.zs", "params": {"size": 45}},
+  {"label": "Russian slot menus (ClarimoUDPE Regular)", "format": "bfotf", "path": "../Font2/Scalable/ClarimoUDPE-Regular.Nin_Ounce_NVN2.bfotf.zs", "params": {"size": 45}},
+  {"label": "Russian slot special text (ClarimoUDPE DemiBold)", "format": "bfotf", "path": "../Font2/Scalable/ClarimoUDPE-DemiBold.Nin_Ounce_NVN2.bfotf.zs", "params": {"size": 45}},
+  {"label": "Titles (Nin-ZeldaGlyphs v3 Deco)", "format": "bfotf", "path": "../Font2/Scalable/Nin-ZeldaGlyphs-v3-Deco.Nin_Ounce_NVN2.bfotf.zs", "params": {"size": 45}},
+  {"label": "Titles (Nin-ZeldaGlyphs v3 Plain)", "format": "bfotf", "path": "../Font2/Scalable/Nin-ZeldaGlyphs-v3-Plain.Nin_Ounce_NVN2.bfotf.zs", "params": {"size": 45}},
+  {"label": "Credits, every slot (CetraDisplayPro Regular)", "format": "bfotf", "path": "../Font2/Scalable/CetraDisplayPro-Regular.Nin_Ounce_NVN2.bfotf.zs", "params": {"size": 45}},
+  {"label": "Credits, every slot (CetraDisplayPro Medium)", "format": "bfotf", "path": "../Font2/Scalable/CetraDisplayPro-Medium.Nin_Ounce_NVN2.bfotf.zs", "params": {"size": 45}},
+  {"label": "English slot dialogue fallback (OT-UDTypos510)", "format": "bfotf", "path": "../Font2/Scalable/OT-UDTypos510Std-Regular.Nin_Ounce_NVN2.bfotf.zs", "params": {"size": 45}}
+]

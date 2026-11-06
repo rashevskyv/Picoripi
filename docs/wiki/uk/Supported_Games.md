@@ -241,6 +241,7 @@ tokens: 15.0k
 | Zelda: Majora's Mask (N64) | ID не перевіряється | — | США | N64 US ROM |
 | Zelda: Majora's Mask 3D | ID не перевіряється | — | Європа | 3DS, with or without the v1040 update |
 | Zelda: Ocarina of Time (N64) | ID не перевіряється | — | США | N64 US 1.0 ROM |
+| Zelda: Ocarina of Time (Switch 2) | Title ID | 0400486024DEC000 | Усі регіони | Switch 2 .nup package, title version 131072 (Mals .Product.110); the build writes a new .nup with the translation in the Russian slot |
 | Zelda: Ocarina of Time 3D | ID не перевіряється | — | Європа | 3DS |
 | Zelda: Oracle of Ages / Seasons (Game Boy Color) | ID не перевіряється | — | Не вказано | Game Boy Color |
 | Zelda: Phantom Hourglass / Spirit Tracks (DS) | Код продукту | AZEE | США | Phantom Hourglass |
@@ -310,6 +311,12 @@ tokens: 15.0k
 | Zelda: Hyrule Warriors Definitive Edition | Nintendo Switch | Файли гри (тека або образ) | Немає |  |
 | Zelda: Skyward Sword | Nintendo Switch | Файли гри (тека або образ) | SkyRecomp (порт для Windows, тека моду) | Switch HD і оригінал для Wii в одному плагіні. |
 | Zelda: Tears of the Kingdom | Nintendo Switch | Файли гри (тека або образ) | Немає | Перевірено на 1.4.0. Джерело — розпаковане romfs. |
+
+### Nintendo Switch 2
+
+| Гра | Платформа | Що потрібно майстру | Цілі збірки | Примітки |
+|---|---|---|---|---|
+| Zelda: Ocarina of Time (Switch 2) | Nintendo Switch 2 | Базова гра (незашифрований пакет `.nup`; ключі не потрібні) | Пакет Switch 2 (`.nup`) | Title 0400486024DEC000, версія 131072. Майстер копіює лише `romfs/Mals`, `Pack/ZsDic.pack.zs` і `Font2`. Англійський текст `USen` — стовпець оригіналу, російський — перший референс. Збірка пише новий `.nup` (близько 25 ГБ) з перекладом у російському слоті, шрифти якого мають Є І Ї Ґ; неперекладені рядки лишаються російськими. Титри лишаються латиницею: їхній шрифт не має кирилиці. |
 
 ### Nintendo 3DS
 

@@ -69,12 +69,13 @@ def float_text(value: float) -> str:
     return repr(value)
 
 
-def _decode_args(types: Tuple[str, ...], params: bytes, e: str) -> Optional[List]:
+def _decode_args(types: Tuple[str, ...], params: bytes, e: str, utf8: bool = False) -> Optional[List]:
+    """``utf8``: the strings are UTF-8 with no padding (Ocarina of Time on Switch 2), else UTF-16 on even bytes."""
     values, position = [], 0
     try:
         for kind in types:
             if kind == "str":
-                if position % 2:                      # a string starts on an even byte (Paper Mario TTYD)
+                if position % 2 and not utf8:         # a string starts on an even byte (Paper Mario TTYD)
                     if params[position] != PAD:
                         return None
                     position += 1
@@ -83,7 +84,7 @@ def _decode_args(types: Tuple[str, ...], params: bytes, e: str) -> Optional[List
                 chunk = params[position:position + length]
                 if len(chunk) != length:
                     return None
-                values.append(chunk.decode("utf-16-le" if e == "<" else "utf-16-be"))
+                values.append(chunk.decode("utf-8" if utf8 else "utf-16-le" if e == "<" else "utf-16-be"))
                 position += length
             else:
                 fmt = _INT_FORMATS[kind]
@@ -92,22 +93,22 @@ def _decode_args(types: Tuple[str, ...], params: bytes, e: str) -> Optional[List
     except (struct.error, UnicodeDecodeError):
         return None
     rest = params[position:]
-    if rest and not (len(rest) == 1 and rest[0] == PAD):
+    if rest and (utf8 or not (len(rest) == 1 and rest[0] == PAD)):
         return None
     return values
 
 
-def _encode_args(types: Tuple[str, ...], values: List, e: str) -> bytes:
+def _encode_args(types: Tuple[str, ...], values: List, e: str, utf8: bool = False) -> bytes:
     out = bytearray()
     for kind, value in zip(types, values):
         if kind == "str":
-            if len(out) % 2:
+            if len(out) % 2 and not utf8:
                 out.append(PAD)
-            data = value.encode("utf-16-le" if e == "<" else "utf-16-be")
+            data = value.encode("utf-8" if utf8 else "utf-16-le" if e == "<" else "utf-16-be")
             out += struct.pack(e + "H", len(data)) + data
         else:
             out += struct.pack(e + _INT_FORMATS[kind], value)
-    if len(out) % 2:
+    if len(out) % 2 and not utf8:
         out.append(PAD)
     return bytes(out)
 
@@ -123,12 +124,12 @@ class TagCodec:
         self.by_name = {**(aliases or {}), **{name: key for key, (name, _types, _description) in tags.items()}}
         self.render_tag = lru_cache(maxsize=8192)(self._render_tag)
 
-    def _readable(self, tag: Tag, e: str) -> Optional[str]:
+    def _readable(self, tag: Tag, e: str, utf8: bool = False) -> Optional[str]:
         known = self.tags.get((tag.group, tag.type))
         if known is None:
             return None
         name, types, _description = known
-        values = _decode_args(types, tag.params, e)
+        values = _decode_args(types, tag.params, e, utf8)
         if values is None:
             return None
         shown = []
@@ -140,25 +141,28 @@ class TagCodec:
                 shown.append(names.get(value, str(value)) if names and isinstance(value, int) else str(value))
         text = "{" + ":".join([name, *shown]) + "}"
         try:
-            if self.parse_tag(text, e) != tag:
+            if self.parse_tag(text, e, utf8) != tag:
                 return None
         except ValueError:
             return None
         return text
 
-    def _render_tag(self, token, little: bool = True) -> str:
-        """The editor form of one ``Tag`` / ``EndTag`` (cached: a game has a few thousand distinct tags)."""
+    def _render_tag(self, token, little: bool = True, utf8: bool = False) -> str:
+        """The editor form of one ``Tag`` / ``EndTag`` (cached: a game has a few thousand distinct tags).
+
+        ``utf8``: string arguments are UTF-8 (a game whose own strings are not UTF-16).
+        """
         e = "<" if little else ">"
         if isinstance(token, EndTag):
             known = self.tags.get((token.group, token.type))
             return f"{{/{known[0]}}}" if known else f"{{/tag:{token.group}:{token.type}}}"
-        readable = self._readable(token, e)
+        readable = self._readable(token, e, utf8)
         if readable:
             return readable
         raw = f"{{tag:{token.group}:{token.type}"
         return raw + (f":{token.params.hex()}}}" if token.params else "}")
 
-    def parse_tag(self, text: str, e: str = "<"):
+    def parse_tag(self, text: str, e: str = "<", utf8: bool = False):
         """The ``Tag`` / ``EndTag`` an editor tag stands for. ``ValueError`` when it is not one."""
         match = _TAG_PARTS_RE.fullmatch(text)
         if not match:
@@ -192,22 +196,22 @@ class TagCodec:
             except ValueError as error:
                 raise ValueError(f"{text}: argument {index + 1} must be a number") from error
         try:
-            return Tag(key[0], key[1], _encode_args(types, values, e))
+            return Tag(key[0], key[1], _encode_args(types, values, e, utf8))
         except struct.error as error:
             raise ValueError(f"{text}: {error}") from error
 
-    def to_editor(self, tokens: List[Token], little: bool = True) -> str:
+    def to_editor(self, tokens: List[Token], little: bool = True, utf8: bool = False) -> str:
         """A message as editor text."""
-        return "".join(token if isinstance(token, str) else self.render_tag(token, little) for token in tokens)
+        return "".join(token if isinstance(token, str) else self.render_tag(token, little, utf8) for token in tokens)
 
-    def from_editor(self, text: str, little: bool = True) -> List[Token]:
+    def from_editor(self, text: str, little: bool = True, utf8: bool = False) -> List[Token]:
         """Editor text back to tokens. ``{...}`` that is not a tag stays text."""
         e = "<" if little else ">"
         tokens: List[Token] = []
         position = 0
         for match in TAG_RE.finditer(text):
             try:
-                tag = self.parse_tag(match.group(0), e)
+                tag = self.parse_tag(match.group(0), e, utf8)
             except ValueError:
                 continue
             if match.start() > position:

@@ -122,7 +122,7 @@ def generic_identity(found: Optional[Dict[str, Any]]) -> Dict[str, str]:
 PLATFORM_LABELS = {   # every platform id a plugin may name (config.json "platforms"), with its English name
     "gb": "Game Boy", "gbc": "Game Boy Color", "gba": "Game Boy Advance", "nds": "Nintendo DS", "3ds": "Nintendo 3DS",
     "snes": "Super Nintendo", "n64": "Nintendo 64", "gc": "GameCube", "wii": "Wii", "wiiu": "Wii U",
-    "switch": "Nintendo Switch", "psx": "PlayStation", "ps2": "PlayStation 2", "psp": "PSP", "saturn": "Sega Saturn",
+    "switch": "Nintendo Switch", "switch2": "Nintendo Switch 2", "psx": "PlayStation", "ps2": "PlayStation 2", "psp": "PSP", "saturn": "Sega Saturn",
     "gdrom": "Dreamcast", "pc": "PC", "android": "Android", "xbox": "Xbox", "x360": "Xbox 360", "other": "Other",
 }
 KNOWN_PLATFORMS = tuple(PLATFORM_LABELS)
