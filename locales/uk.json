@@ -3385,5 +3385,9 @@
   "The script has {0} strings, not {1}.": "У скрипті рядків: {0}, а не {1}.",
   "The file is not the Zone of the Enders: The 2nd Runner PlayStation 2 disc.": "Цей файл не є диском PlayStation 2 гри Zone of the Enders: The 2nd Runner.",
   "The stage {0} has no script.": "Етап {0} не має скрипта.",
-  "The disc has no stage {0}.": "На диску немає етапу {0}."
+  "The disc has no stage {0}.": "На диску немає етапу {0}.",
+  "Page {0}: a line is {1} px, the box holds {2} px.": "Сторінка {0}: рядок має {1} px, вікно вміщує {2} px.",
+  "Page {0}: {1} lines, the box holds {2}.": "Сторінка {0}: рядків {1}, вікно вміщує {2}.",
+  "No project folder: the talk window needs the unpacked game.": "Немає теки проєкту: вікну розмови потрібна розпакована гра.",
+  "The game font is not in this project's unpacked game.": "У розпакованій грі цього проєкту немає шрифту гри."
 }

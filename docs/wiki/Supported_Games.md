@@ -311,13 +311,13 @@ Each plugin opens the images listed here. When you add an image, the wizard matc
 | Zelda: Hyrule Warriors Age of Calamity | Nintendo Switch | Game files (folder or image) | None | Switch. |
 | Zelda: Hyrule Warriors Definitive Edition | Nintendo Switch | Game files (folder or image) | None |  |
 | Zelda: Skyward Sword | Nintendo Switch | Game files (folder or image) | SkyRecomp (Windows port, mod folder) | Switch HD and the Wii original in one plugin. |
-| Zelda: Tears of the Kingdom | Nintendo Switch | Game files (folder or image) | None | Checked on 1.4.0. Source is the dumped romfs. |
+| Zelda: Tears of the Kingdom | Nintendo Switch | Game files (folder or image) | None | Checked on 1.4.0. Source is the dumped romfs. The preview draws the talk window with Rodin NTLG B (45 px, 1000 px wide, 3 lines a page), one box per `{pageBreak}` page. |
 
 ### Nintendo Switch 2
 
 | Game | Platform | What the wizard needs | Build targets | Notes |
 |---|---|---|---|---|
-| Zelda: Ocarina of Time (Switch 2) | Nintendo Switch 2 | Base game (the unencrypted `.nup` package; no keys) | Switch 2 package (`.nup`) | Title 0400486024DEC000, version 131072. The wizard copies out only `romfs/Mals`, `Pack/ZsDic.pack.zs` and `Font2`. The English `USen` text is the Original column, Russian is the first reference. The build writes a new `.nup` (about 25 GB) with the translation in the Russian slot, whose fonts have Є І Ї Ґ; untranslated lines stay Russian. Credits stay Latin: their font has no Cyrillic. |
+| Zelda: Ocarina of Time (Switch 2) | Nintendo Switch 2 | Base game (the unencrypted `.nup` package; no keys) | Switch 2 package (`.nup`) | Title 0400486024DEC000, version 131072. The wizard copies out only `romfs/Mals`, `Pack/ZsDic.pack.zs` and `Font2`. The English `USen` text is the Original column, Russian is the first reference. The build writes a new `.nup` (about 25 GB) with the translation in the Russian slot, whose fonts have Є І Ї Ґ; untranslated lines stay Russian. Credits stay Latin: their font has no Cyrillic. The preview draws the talk window with the Russian slot's dialogue font (ClarimoUDPE Light, 33.75 px, 990 px wide, 3 lines a page), one box per `{pageBreak}` page, and reports wider lines. |
 
 ### Nintendo 3DS
 
