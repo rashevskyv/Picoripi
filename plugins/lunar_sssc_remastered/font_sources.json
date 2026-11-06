@@ -1,0 +1,14 @@
+[
+ {
+  "label": "Font 0: FOT-DotGothic16 (pixel style)",
+  "format": "bmfont",
+  "path": "FIL/CUSTOM/Font/0/test.fnt",
+  "companion": "FIL/CUSTOM/Font/0/test_*.dds"
+ },
+ {
+  "label": "Font 1: FOT-Cezanne Pro M",
+  "format": "bmfont",
+  "path": "FIL/CUSTOM/Font/1/test.fnt",
+  "companion": "FIL/CUSTOM/Font/1/test_*.dds"
+ }
+]

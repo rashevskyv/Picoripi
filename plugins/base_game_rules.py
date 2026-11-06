@@ -943,7 +943,8 @@ class BaseGameRules:
 
         Each entry: ``label``; ``format`` (``bfn``, ``n64``, ``g1t``, ``g1n``, ``bffnt`` (Switch), ``bcfnt`` (3DS
         BCFNT / BFFNT), ``bffnt_wiiu`` (Wii U BFFNT), ``brfnt`` (Wii RFNT), ``qbf``, ``gzf``, ``bfotf``, ``ttf`` (a plain TrueType / OpenType file, the ``bfotf`` model), ``tmp_sdf``
-        (Unity TextMesh Pro SDF font, atlas PNG as ``companion``), ``mgs``, ``mgs1``, ``mgs1_hd`` (M2's 4x PlayStation
+        (Unity TextMesh Pro SDF font, atlas PNG as ``companion``), ``bmfont`` (AngelCode BMFont text font, its DDS pages as a
+        ``companion`` glob), ``mgs``, ``mgs1``, ``mgs1_hd`` (M2's 4x PlayStation
         font), ``mgs_nht`` (MGS2 / MGS3 Master Collection ``MGS_Font_nht.raw``), ``m2`` (M2 PSB font), ``nftr`` (DS NFTR), ``lz10_nftr`` (DS NFTR inside LZ10, Zelda Spirit Tracks), ``layton_nftr`` (Professor Layton NFTR inside BIOS compression), ``layton_gfnt`` (Professor Layton GFNT fonts), ``layton_hd`` (Professor Layton HD port font atlas), ``gen4_glyphs`` (DS Gen 4 font bins: Diamond / Pearl, Platinum, HeartGold), ``cv_nds`` (DS Castlevania), ``ffta2`` (FFTA2 DS font),
         ``xf`` and ``g4font`` (Level-5), ``jade`` / ``brfna`` / ``swf_font`` / ``rrr_errfont`` (Raving Rabbids: Jade FONTDESC, Wii
         archived fonts, Flash DefineFont3, the Rabbids 2 disc error font), ``fntg`` (EA FntG, Wii), ``laft`` (Monolith Soft LAFT, Switch Xenoblade), ``jfnt`` (One Piece Unlimited World Red `JFNT`), ``nlg_font`` (Luigi's Mansion: Dark Moon), ``phyre_bmf`` (Dragon Quest Builders PhyreEngine bitmap fonts), ``pw_xpr`` (Peace Walker `*_FONT.xpr` XPR2 font packs), ``l5_fnt`` (Fantasy Life `FNT` fonts), ``ubiart_tfn`` (UbiArt `.tfn.ckd` fonts of the 3DS builds), ``asw_jfnt`` (Arc System Works `jFNT` atlas font, Dragon Ball Fusions), ``cfna`` (3DS archived fonts `CFNA`, NintendoWare ArchiveFont), ``cop_fnt`` (Agatsuma FD fonts,
@@ -957,7 +958,8 @@ class BaseGameRules:
         GFD / lfd glyph boxes in an MT TEX page, the page as ``companion``)); ``path`` -- a path or glob relative to the project's source folder, or a list of them (the first that
         matches wins; a single-file project's file is used as it is); optional ``member`` (a glob
         of files inside the archive at ``path``); optional ``companion`` (a second file the font needs,
-        relative to the source folder, read and saved with it: the texture of a Level-5 ``g4font``);
+        relative to the source folder, read and saved with it: the texture of a Level-5 ``g4font``; a glob takes
+        every matching file, e.g. the pages of a ``bmfont``);
         ``font_map`` (name of the width map the font
         feeds, written to the project's ``font_maps`` folder on save); ``params`` (the format's
         game constants: cell grid, ROM offsets... -- see ``core/font_formats``).

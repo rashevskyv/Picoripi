@@ -13,7 +13,9 @@ the translation folder, one per build of the game (``widths_patches``: file -> t
 ``copies`` (a list of ``{path, offset, size}``, ``path`` relative to the source folder) names other game files
 that hold the same block: a save writes the block into each copy's translation file.
 ``companion`` (a path relative to the source folder) is a second file the font needs, e.g. the texture
-of a Level-5 G4 font: the format then gets both files as one ``join_pair`` blob and saves both.
+of a Level-5 G4 font: the format then gets both files as one ``join_pair`` blob and saves both. A ``companion``
+with a glob in its name (the texture pages of a BMFont font) is every matching file: the second part of the pair
+is then a ``join_files`` blob of them, and a save writes only the pages that changed.
 
 Reading takes the translation copy when it exists, else the source; writing always goes to the
 translation copy (atomically; an archive is repacked around the member). The source is never
@@ -33,6 +35,7 @@ from utils.atomic_io import atomic_write_bytes
 from utils.logging_utils import log_warning
 
 _PAIR = b"PAIR"
+_FILES = b"FILS"
 
 
 def join_pair(main: bytes, companion: bytes) -> bytes:
@@ -45,6 +48,29 @@ def split_pair(data: bytes) -> Tuple[bytes, bytes]:
         raise ValueError("Not a font file with its companion file")
     size = struct.unpack_from("<I", data, 4)[0]
     return bytes(data[8:8 + size]), bytes(data[8 + size:])
+
+
+def join_files(files: List[Tuple[str, bytes]]) -> bytes:
+    """Named files as one blob (``split_files`` takes it apart)."""
+    out = bytearray(_FILES + struct.pack("<I", len(files)))
+    for name, data in files:
+        encoded = name.encode("utf-8")
+        out += struct.pack("<H", len(encoded)) + encoded + struct.pack("<I", len(data)) + bytes(data)
+    return bytes(out)
+
+
+def split_files(data: bytes) -> List[Tuple[str, bytes]]:
+    if data[:4] != _FILES:
+        raise ValueError("Not a set of font files")
+    count, at, out = struct.unpack_from("<I", data, 4)[0], 8, []
+    for _ in range(count):
+        size = struct.unpack_from("<H", data, at)[0]
+        name = data[at + 2:at + 2 + size].decode("utf-8")
+        at += 2 + size
+        length = struct.unpack_from("<I", data, at)[0]
+        out.append((name, bytes(data[at + 4:at + 4 + length])))
+        at += 4 + length
+    return out
 
 
 @dataclass
@@ -61,6 +87,7 @@ class FontSource:
     widths_patches: Dict[str, str] = field(default_factory=dict)
     companion_source: str = ""
     companion_translation: str = ""
+    companion_files: List[Tuple[str, str]] = field(default_factory=list)   # (source, translation) of a companion glob
     descriptor: str = ""                     # the label of the descriptor this file came from
     sync_with: str = ""                      # the label of the descriptor whose glyphs this file follows
     copies: List[Tuple[str, str, int, int]] = field(default_factory=list)  # (source, translation, offset, size)
@@ -85,9 +112,16 @@ class FontSource:
         raw = Path(path).read_bytes()
         return unwrap(raw, self.member, {})[0] if self.member or raw[:4] == ZSTD_MAGIC else raw
 
+    def _companion_files(self, current: bool) -> bytes:
+        return join_files([(Path(source).name, Path(translation if current and translation
+                                                     and Path(translation).is_file() else source).read_bytes())
+                           for source, translation in self.companion_files])
+
     def read_current(self) -> bytes:
         """The font as the translation has it now (the source until it was first written)."""
         data = self._read(self._current_path())
+        if self.companion_files:
+            return join_pair(data, self._companion_files(True))
         if not self.companion_source:
             return data
         companion = self.companion_translation
@@ -98,13 +132,25 @@ class FontSource:
     def read_original(self) -> bytes:
         """The game's own font."""
         data = self._read(self.source_path)
+        if self.companion_files:
+            return join_pair(data, self._companion_files(False))
         return join_pair(data, Path(self.companion_source).read_bytes()) if self.companion_source else data
 
     def write(self, data: bytes) -> None:
         """Write the edited font into the translation copy."""
         if not self.translation_path or Path(self.translation_path).resolve() == Path(self.source_path).resolve():
             raise ValueError("The project has no translation folder to write the font to")
-        if self.companion_source:
+        if self.companion_files:
+            data, pages = split_pair(data)
+            current = split_pair(self.read_current())[1]
+            old = dict(split_files(current))
+            targets = {Path(source).name: translation for source, translation in self.companion_files}
+            for name, page in split_files(pages):
+                if name not in targets or not targets[name]:
+                    raise ValueError(f"Not a companion file of this font: {name}")
+                if old.get(name) != page:
+                    atomic_write_bytes(targets[name], page)
+        elif self.companion_source:
             data, companion = split_pair(data)
             if not self.companion_translation:
                 raise ValueError("The project has no translation folder to write the font to")
@@ -114,7 +160,7 @@ class FontSource:
         if self.member or current[:4] == ZSTD_MAGIC:
             data = unwrap(current, self.member, {})[1](bytes(data))
         atomic_write_bytes(self.translation_path, data)
-        if not self.member and not self.companion_source:
+        if not self.member and not self.companion_source and not self.companion_files:
             self._write_copies(plain)
 
     def _write_copies(self, data: bytes) -> None:
@@ -203,8 +249,14 @@ def _sources_for(descriptor: Dict[str, Any], source_path: str, translation_path:
                  translation_root: str = "", source_root: str = "") -> List[FontSource]:
     params = dict(descriptor.get("params") or {})
     companion = str(descriptor.get("companion") or "")
-    pair = {}
-    if companion:
+    pair: Dict[str, Any] = {}
+    if companion and any(ch in companion for ch in "*?["):
+        pages = sorted(p for p in Path(source_root).glob(companion) if p.is_file())
+        if not pages:
+            raise ValueError(f"companion files {companion} are missing")
+        pair = dict(companion_files=[(str(p), os.path.normpath(os.path.join(translation_root, os.path.relpath(p, source_root)))
+                                      if translation_root else "") for p in pages])
+    elif companion:
         if not Path(source_root, companion).is_file():
             raise ValueError(f"companion file {companion} is missing")
         pair = dict(companion_source=os.path.normpath(os.path.join(source_root, companion)),
