@@ -48,3 +48,24 @@ def test_reference_has_a_column_per_english_file(tmp_path):
 def test_reference_without_the_ps1_disc_has_the_remastered_column_only(tmp_path):
     source = _source(tmp_path / "source", ps1=False)
     assert set(GameRules().load_multi_reference(str(source), block_names={0: "FIL/TEXT001.DAT"})) == {ENGLISH_LABEL}
+
+
+def test_the_archive_build_takes_the_edited_font_files(tmp_path, monkeypatch):
+    source, translation = _source(tmp_path / "src", ps1=False), tmp_path / "tr"
+    (source / "data.cpk").write_bytes(b"CPK ")
+    fonts = translation / "FIL" / "CUSTOM" / "Font" / "1"
+    fonts.mkdir(parents=True)
+    (fonts / "test.fnt").write_bytes(b"fnt")
+    (fonts / "test_02.dds").write_bytes(b"page")
+    taken = {}
+    monkeypatch.setattr(build, "patch", lambda stream, replacements, target: taken.update(replacements))
+    build.build_pc(str(source), str(translation), str(tmp_path / "out"), lambda *_: None, lambda: False)
+    assert taken == {"FIL/CUSTOM/Font/1/test.fnt": b"fnt", "FIL/CUSTOM/Font/1/test_02.dds": b"page"}
+
+
+def test_both_remastered_fonts_open_in_the_font_editor():
+    from core import font_formats
+    from plugins.testing import load_rules
+    found = load_rules("lunar_sssc_remastered").get_font_sources()
+    assert [entry["path"] for entry in found] == ["FIL/CUSTOM/Font/0/test.fnt", "FIL/CUSTOM/Font/1/test.fnt"]
+    assert all(font_formats.is_supported(entry["format"]) for entry in found)

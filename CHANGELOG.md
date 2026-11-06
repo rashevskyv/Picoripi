@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Font editor: new format `bmfont` (AngelCode BMFont text font with DDS pages); a font source's `companion` may be a glob (only changed pages are saved). Lunar: Silver Star Story (`lunar_sssc_remastered`): both Remastered fonts open in the font editor with spare cells for new letters, and the Switch and PC builds put the edited font files into `data.cpk`.
 - Super Metroid: every Ukrainian letter and the apostrophe has its own cell in one Ukrainian sheet per game font (`gfx/ua_*.bin`, 8 sheets, the look-alikes А В Е І К М Н О Р С Т Х too); the workspace build puts them in a glyph bank of the port ROM that the port draws from, and copies them into the cells the SNES ROM has.
 - Zelda: Ocarina of Time (Switch 2) and Tears of the Kingdom: a talk window preview drawn with the game's own font (`plugins/zelda_totk/preview.py`, shared; OoT: ClarimoUDPE Light 33.75 px in a 990 px box, from `MessageInGame_00.buil` and the widest shipped Russian line, 974 px; TotK: Rodin NTLG B 45 px, 1000 px), 3 lines a page, one box per `{pageBreak}`, `{color:n}` coloured, other tags hidden, too-wide or too-many lines reported. A single zstd font file (`*.bfotf.zs`) now opens in `font_tool.fonts_in`.
 - Zelda: Ocarina of Time (Switch 2): the reference columns are Russian, then EUen (the other 13 languages are not read; TotK's `reference_languages` hook), from the project's own `romfs/Mals` with no reference setting.

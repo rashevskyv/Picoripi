@@ -3,7 +3,8 @@
 Each translation file (``FIL/TEXTnnn.DAT``) changes an English file of the same name: the file keeps its bytecode, only
 the strings change (``text.english_with_translation``). Switch and PC: the English file of the archive (``FIL_us``, the
 file the game shows for English), with ``data.cpk`` patched in place (``core.containers.cpk_write``), so every other
-file keeps its bytes. The Switch result is ``atmosphere/contents/0100DCD01E9EE000/romfs/data.cpk``.
+file keeps its bytes. The fonts edited in the font editor (``FIL/CUSTOM/Font/n/`` of the translation folder) go
+into the archive too. The Switch result is ``atmosphere/contents/0100DCD01E9EE000/romfs/data.cpk``.
 
 PlayStation: the English file of the PS1 disc (``LUNADATA/``, unpacked from the disc). The result is
 ``LUNADATA/TEXTnnn.DAT`` for each changed file; the workspace's PS1 build puts them back on both discs.
@@ -18,7 +19,7 @@ from utils.logging_utils import log_warning
 
 from . import text
 from .config import TITLE_ID
-from .unpack import PS1_FOLDER, TEXT_RE
+from .unpack import FONT_FOLDERS, PS1_FOLDER, TEXT_RE
 
 TARGET = "layeredfs"
 PC_TARGET = "pc"
@@ -82,6 +83,11 @@ def _patched_cpk(source_dir: str, translation_dir: str, out: Path,
                  progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> str:
     replacements = {f"FIL_us/{name}": data
                     for name, data in _translated(source_dir, translation_dir, "FIL_us", progress, is_cancelled).items()}
+    for folder in FONT_FOLDERS:
+        fonts = Path(translation_dir).joinpath(*folder.split("/"))
+        for path in sorted(fonts.glob("*")) if fonts.is_dir() else []:
+            if path.is_file() and not path.name.endswith(".tmp"):
+                replacements[f"{folder}/{path.name}"] = path.read_bytes()
     out.parent.mkdir(parents=True, exist_ok=True)
     temporary = out.with_name(out.name + ".tmp")
     with open(Path(source_dir) / "data.cpk", "rb") as stream, open(temporary, "wb") as target:

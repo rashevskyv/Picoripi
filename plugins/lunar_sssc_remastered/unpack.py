@@ -4,7 +4,8 @@ The base game and its update are read with Picoripi's Switch reader. The base pa
 one with ``romfs/data.cpk`` is the Silver Star Story program. The update's patched RomFS gives the final ``data.cpk``.
 The unpacked folder keeps ``data.cpk`` whole (the build patches it), and the text files of the archive as ``FIL/`` (the
 Japanese source) and ``FIL_us/`` (the English reference). ``TEXT200.DAT`` holds no dialogue and is not extracted. The
-game's text font ``FIL/CUSTOM/Font/0`` (``test.fnt`` and its pages) is extracted for the preview (``atlas.py``).
+game's text fonts ``FIL/CUSTOM/Font/0`` and ``1`` (``test.fnt`` and its pages) are extracted for the font editor;
+the preview draws with font 0 (``atlas.py``).
 
 A PlayStation disc (Lunar: Silver Star Story Complete, USA; role ``ps1``) is optional. Its English dialogue files go
 to ``LUNADATA/`` (the PS1 reference column and the PS1 build), with the portraits and their palette; the program
@@ -30,7 +31,8 @@ UPDATE_STEP = 0x800
 CPK_PATH = "romfs/data.cpk"
 TEXT_FOLDERS = ("FIL", "FIL_us")
 TEXT_RE = re.compile(r"^TEXT(0\d\d|100)\.DAT$")    # the dialogue files; TEXT200 has none
-FONT_FOLDER = "FIL/CUSTOM/Font/0"                   # the text font of data.cpk: test.fnt and its pages
+FONT_FOLDERS = ("FIL/CUSTOM/Font/0", "FIL/CUSTOM/Font/1")   # the text fonts of data.cpk: test.fnt and its pages
+FONT_FOLDER = FONT_FOLDERS[0]                       # the one the preview draws Japanese and Cyrillic with
 PS1_MEMBERS_RE = re.compile(r"^(TEXT(0\d\d|100)\.DAT|FACE_\d{3}\.TIZ|PEO\.PAL)$")   # dialogue, portraits, palette
 PS1_PROGRAM = "SLUS_006.28"
 PSX_EXE = b"PS-X EXE"
@@ -216,12 +218,12 @@ def _write(target: Path, data: bytes) -> None:
 
 def _extract_text(target_dir: str, progress: Callable[[int, str], None],
                   is_cancelled: Callable[[], bool]) -> None:
-    """Write the dialogue files of ``data.cpk`` as ``FIL/`` and ``FIL_us/`` folders beside it, and its text font."""
+    """Write the dialogue files of ``data.cpk`` as ``FIL/`` and ``FIL_us/`` folders beside it, and its text fonts."""
     root = Path(target_dir)
     with open(root / "data.cpk", "rb") as stream:
         entries = [entry for entry in cpk.read_cpk(stream)
                    if (entry.path.rsplit("/", 1)[0] in TEXT_FOLDERS and TEXT_RE.match(entry.path.rsplit("/", 1)[-1]))
-                   or entry.path.rsplit("/", 1)[0] == FONT_FOLDER]
+                   or entry.path.rsplit("/", 1)[0] in FONT_FOLDERS]
         for index, entry in enumerate(entries, start=1):
             if is_cancelled():
                 return
