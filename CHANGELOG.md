@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- MCP server: `list_fonts`, `export_font` and `import_font` give an agent a project's bitmap fonts as PNG sheets and write an edited sheet back into the translation font file (the game's own file stays as it is).
 - Editor: `Alt+Enter` inserts the same as `Shift+Enter`; a page break that ends with a line break (Zelda: TotK, Ocarina of Time on Switch 2) ends its editor line, and the page lines follow page breaks as well as the page size. Ocarina of Time (Switch 2) reads its voice, expression and inserted-value tags by name instead of raw bytes. The plugin declares the PC platform its Hookshot target names.
 - Width analysis (Tools → Original Text Width Analysis and the block width calculation): a plugin's own tags (Luigi's Mansion `<COLOR>(3)`) are measured in the editor form and take no width; they were counted letter by letter
 - Luigi's Mansion (3DS, 2018): the font editor shows the four game fonts (`romfs/Region_US/main.gzf`, `matching.gzf`, `location.gzf`, `ending.gzf`; `font_sources.json`); an edited font goes into the LayeredFS build

@@ -1,4 +1,4 @@
-"""The tools of the MCP server as plain functions: no MCP types, no Qt, no window. Read only.
+"""The tools of the MCP server as plain functions: no MCP types, no Qt, no window. Read only, except write_translations and import_font.
 
 The server reads files on disk. Edits that sit unsaved in a running Picoripi window are not visible here.
 """
@@ -298,3 +298,76 @@ def ask_ai(prompt: str, system: str = "", settings_path: Optional[Path] = None) 
     messages = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": prompt}]
     reply = create_translation_provider(name, settings).translate(messages)
     return {"provider": name, "model": settings.get("model", ""), "text": reply.text or ""}
+
+
+# -- fonts -----------------------------------------------------------------------------
+
+
+def _font_sources(project: str):
+    from core.font_formats.sources import resolve
+    path = Path(project)
+    document = json.loads(path.read_text(encoding="utf-8"))
+    rules = default_load_rules(document.get("plugin_name") or "default_plugin")
+    return resolve(rules.get_font_sources(), document.get("metadata") or {})
+
+
+def _font_source(project: str, label: str):
+    from core.font_formats import is_supported
+    source = next((s for s in _font_sources(project) if s.label == label), None)
+    if source is None:
+        raise ValueError(f"no font '{label}' in {project}; list_fonts names them")
+    if not is_supported(source.format):
+        raise ValueError(f"font format '{source.format}' is edited only in the font editor")
+    return source
+
+
+def list_fonts(project: str) -> List[Dict[str, Any]]:
+    """The project's bitmap fonts (the plugin's font sources): label, format, file. Reads only."""
+    return [{"label": s.label, "format": s.format, "file": s.translation_path or s.source_path}
+            for s in _font_sources(project)]
+
+
+def export_font(project: str, label: str, out_dir: str) -> Dict[str, Any]:
+    """Write a font's sheets as PNG into ``out_dir``: ``sheet_<n>.png`` (the translation now) and
+    ``original_<n>.png`` (the game's own), plus where each character's cell is. Changes no project file."""
+    from core.font_formats import char_map, extract
+    source = _font_source(project, label)
+    metadata, sheets = extract(source.format, source.read_current(), source.params)
+    _, originals = extract(source.format, source.read_original(), source.params)
+    folder = Path(out_dir)
+    folder.mkdir(parents=True, exist_ok=True)
+    files = []
+    for index, (sheet, original) in enumerate(zip(sheets, originals)):
+        sheet.save(folder / f"sheet_{index}.png")
+        original.save(folder / f"original_{index}.png")
+        files.append(str(folder / f"sheet_{index}.png"))
+    gly = (metadata.get("GLY1") or [{}])[0]
+    width, height = int(gly.get("cell_width", 0)), int(gly.get("cell_height", 0))
+    columns, rows = int(gly.get("glyph_horizontal_count", 1)) or 1, int(gly.get("glyph_vertical_count", 1)) or 1
+    cells = {}
+    for char, glyph in char_map(metadata).items():
+        page, slot = divmod(glyph, columns * rows)
+        cells[char] = {"sheet": page, "x": slot % columns * width, "y": slot // columns * height}
+    return {"format": source.format, "cell": [width, height], "sheets": files, "cells": cells}
+
+
+def import_font(project: str, label: str, in_dir: str) -> Dict[str, Any]:
+    """Write ``sheet_<n>.png`` from ``in_dir`` (as ``export_font`` wrote them, same sizes) into the font's
+    translation file. The source is never written. Close the font in Picoripi's font editor first."""
+    from PIL import Image
+
+    from core.font_formats import extract, pack
+    source = _font_source(project, label)
+    current = source.read_current()
+    metadata, sheets = extract(source.format, current, source.params)
+    edited = []
+    for index, sheet in enumerate(sheets):
+        image = Image.open(Path(in_dir) / f"sheet_{index}.png").convert(sheet.mode)
+        if image.size != sheet.size:
+            raise ValueError(f"sheet_{index}.png is {image.size}, the font sheet is {sheet.size}")
+        edited.append(image)
+    data = pack(source.format, metadata, edited, current, source.params)
+    changed = data != current
+    if changed:
+        source.write(data)
+    return {"label": label, "changed": changed, "file": source.translation_path}

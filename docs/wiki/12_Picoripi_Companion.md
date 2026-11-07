@@ -114,7 +114,7 @@ The companion backend runs on Python 3.10+ (FastAPI + Uvicorn) and stores projec
 
 ## 6. MCP server for agents
 
-`python -m mcp_server` starts a local MCP server on stdin/stdout. An AI agent (Claude Code, for example) uses it to read your projects. Only `write_translations` changes a project.
+`python -m mcp_server` starts a local MCP server on stdin/stdout. An AI agent (Claude Code, for example) uses it to read your projects. Only `write_translations` and `import_font` change a project.
 
 Add it to the agent's MCP configuration with the command `python -m mcp_server` and the Picoripi folder as the working directory.
 
@@ -128,6 +128,9 @@ Add it to the agent's MCP configuration with the command `python -m mcp_server` 
 | `ask_ai(prompt, system)` | The reply of the AI provider Picoripi translates with (Settings → AI Translation, for example the Gemini proxy). The agent uses it for bulk text work instead of its own model |
 | `translate_strings(project, block, strings)` | The AI translation of strings of one block, made the way Picoripi's block translation makes it: the same prompt, glossary, context, speakers, plugin rules, tag check and window fit. It writes nothing |
 | `write_translations(project, items)` | Writes each `{block, string, text}` into the translation files and the session, like a save in Picoripi. Close the project in Picoripi first: an open window does not see the change and overwrites it with its next save |
+| `list_fonts(project)` | The game's bitmap fonts in the project: label, format, file |
+| `export_font(project, label, out_dir)` | Writes the font's sheets as PNG: `sheet_<n>.png` (the translation now) and `original_<n>.png` (the game's own). Returns the cell size and the cell of each character |
+| `import_font(project, label, in_dir)` | Writes the edited `sheet_<n>.png` (same size) into the font's translation file. The game's own file stays as it is. Close that font in the font editor first |
 
 - The server reads files on disk. Edits that Picoripi has not saved are not visible.
 - `list_issues` shows the last scan, with its time. It does not scan again. Open the project in Picoripi to refresh it.

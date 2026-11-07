@@ -10,7 +10,7 @@ from mcp_server import tools
 mcp = MCPServer(
     "picoripi",
     instructions="Picoripi projects, read from files on disk; unsaved edits in an open Picoripi window are not visible. "
-                 "Every tool reads only, except write_translations. ask_ai sends a prompt to the AI provider Picoripi "
+                 "Every tool reads only, except write_translations and import_font. ask_ai sends a prompt to the AI provider Picoripi "
                  "translates with; translate_strings translates project strings the way Picoripi does.",
 )
 
@@ -76,3 +76,23 @@ def write_translations(project: str, items: List[Dict[str, Any]]) -> Dict[str, A
     change and overwrites it with its next save."""
     from mcp_server import translate
     return translate.write_translations(project, items)
+
+
+@mcp.tool()
+def list_fonts(project: str) -> List[Dict[str, Any]]:
+    """The project's bitmap fonts: label, format, file. `project` is the .uiproj path."""
+    return tools.list_fonts(project)
+
+
+@mcp.tool()
+def export_font(project: str, label: str, out_dir: str) -> Dict[str, Any]:
+    """Write a font's sheets as PNG into `out_dir` (sheet_<n>.png = the translation, original_<n>.png = the game's
+    own) and return the cell size and each character's cell {sheet, x, y}. Edit sheet_<n>.png, then import_font."""
+    return tools.export_font(project, label, out_dir)
+
+
+@mcp.tool()
+def import_font(project: str, label: str, in_dir: str) -> Dict[str, Any]:
+    """Write the edited sheet_<n>.png of `in_dir` (same sizes as exported) into the font's translation file.
+    Close that font in Picoripi's font editor first."""
+    return tools.import_font(project, label, in_dir)

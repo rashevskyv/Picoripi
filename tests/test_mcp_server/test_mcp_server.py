@@ -64,7 +64,7 @@ def test_stdio_round_trip(project):
 
     names, content = asyncio.run(run())
     assert names == {"list_projects", "get_issue_rules", "list_issues", "check_fit", "scan_string", "get_string_context",
-                     "ask_ai", "translate_strings", "write_translations"}
+                     "ask_ai", "translate_strings", "write_translations", "list_fonts", "export_font", "import_font"}
     assert content["result"]["total"] == 4 and content["result"]["source"] == "cached"
 
 
@@ -75,3 +75,26 @@ def test_string_context_without_database(project):
     assert result["neighbours"] == [] and result["translation"] == "b"
     assert not (project.parent / "mempalace_local.db").exists()
     assert tools.string_context(str(project), 5, 5)["translation"] is None
+
+
+def test_font_export_and_import_write_only_the_translation(tmp_path):
+    from PIL import Image
+    source, translation = tmp_path / "source", tmp_path / "translation"
+    (source / "gfx").mkdir(parents=True)
+    (source / "gfx" / "ua_bg3.bin").write_bytes(bytes(768))
+    project = tmp_path / "project.uiproj"
+    project.write_text(json.dumps({"plugin_name": "super_metroid", "metadata": {
+        "source_path": str(source), "translation_path": str(translation), "is_directory_mode": True}}), encoding="utf-8")
+    label = "Message boxes: Ukrainian letters and apostrophe (8x8)"
+    assert label in [font["label"] for font in tools.list_fonts(str(project))]
+
+    exported = tools.export_font(str(project), label, str(tmp_path / "out"))
+    assert exported["cell"] == [8, 8] and exported["cells"]["Б"] == {"sheet": 0, "x": 8, "y": 0}
+    assert tools.import_font(str(project), label, str(tmp_path / "out"))["changed"] is False
+
+    sheet = Image.open(exported["sheets"][0])
+    sheet.putpixel((9, 1), (255, 255, 255, 255))
+    sheet.save(exported["sheets"][0])
+    assert tools.import_font(str(project), label, str(tmp_path / "out"))["changed"] is True
+    assert (translation / "gfx" / "ua_bg3.bin").read_bytes() != bytes(768)
+    assert (source / "gfx" / "ua_bg3.bin").read_bytes() == bytes(768)
