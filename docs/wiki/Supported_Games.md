@@ -341,7 +341,7 @@ Each plugin opens the images listed here. When you add an image, the wizard matc
 | Harvest Moon 3D / Story of Seasons (3DS) | Nintendo 3DS | Game files (folder or image) | None | Four titles in one plugin, all Europe. |
 | Kid Icarus: Uprising | Nintendo 3DS | Game files (folder or image) | None | Europe, English set eu. |
 | Kingdom Hearts 3D: Dream Drop Distance | Nintendo 3DS | Game files (folder or image) | None | 3DS Europe, English. |
-| Luigi's Mansion (3DS, 2018) | Nintendo 3DS | Game files (folder or image) | Luma LayeredFS (titles folder, romfs) | 3DS USA, CTR-P-BGNE v0.2.0. The English message table (main.gmsg); the fonts and UI archives are not translated yet. |
+| Luigi's Mansion (3DS, 2018) | Nintendo 3DS | Game files (folder or image) | Luma LayeredFS (titles folder, romfs) | 3DS USA, CTR-P-BGNE v0.2.0. The English message table (main.gmsg) and the four fonts (`romfs/Region_US/*.gzf`, in the font editor); the UI archives are not translated yet. |
 | Luigi's Mansion: Dark Moon (3DS) | Nintendo 3DS | Game files (folder or image) | None | 3DS Europe. |
 | Metal Gear Solid: Snake Eater 3D | Nintendo 3DS | Game files (folder or image) | None | 3DS Europe. |
 | Monster Hunter (3DS: 3 Ultimate, 4 Ultimate, Stories) | Nintendo 3DS | Game files (folder or image) | None | 3DS: Monster Hunter 3 Ultimate, 4 Ultimate and Stories. |

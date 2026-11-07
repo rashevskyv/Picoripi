@@ -2,7 +2,8 @@
 
 Unpack extracts the CIA's RomFS limited to the English slot (``romfs/Region_US/English/``). Each ``main.gmsg`` is one
 block; ``gmsg.py`` reads and writes it. Build target: ``layeredfs`` (a Luma LayeredFS folder, ``build.py``).
-The fonts (``romfs/Region_US/*.gzf``) and the UI archives (``UI*.gar``, GAR version 5) are not read yet.
+The four fonts (``romfs/Region_US/*.gzf``) open in the font editor (``font_sources.json``); the UI archives
+(``UI*.gar``, GAR version 5) are not read yet.
 """
 from typing import Any, Callable, Dict, List, Optional, Set
 

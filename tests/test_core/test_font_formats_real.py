@@ -378,6 +378,21 @@ def test_majoras_mask_3d_font_edits_and_saves_through_the_plugin_source(tmp_path
     assert _has_ink(*font_formats.extract("gzf", edited), "e") and found[0].read_original() == data
 
 
+LM3DS_SOURCE = romhacking_root.under("Luigi's Mansion") / "1" / "3DS" / "picoripi" / "unpacked"
+
+
+def test_luigis_mansion_3ds_fonts_show_every_character_and_pack_back_unchanged(tmp_path):
+    _need(LM3DS_SOURCE / "romfs" / "Region_US" / "main.gzf")
+    found = sources.resolve(json.loads((ROOT / "plugins" / "luigis_mansion_1_3ds" / "font_sources.json").read_text(encoding="utf-8")),
+                            {"source_path": str(LM3DS_SOURCE), "translation_path": str(tmp_path), "is_directory_mode": True})
+    assert [source.name for source in found] == ["main.gzf", "matching.gzf", "location.gzf", "ending.gzf"]
+    for source, count in zip(found, [470, 470, 75, 470]):
+        data = source.read_original()
+        metadata, sheets = font_formats.extract("gzf", data)
+        assert len(font_formats.char_map(metadata)) == count
+        assert font_formats.pack("gzf", metadata, sheets, data) == data
+
+
 def test_twilight_princess_descriptor_finds_the_fonts_from_the_message_folder_and_writes_them(tmp_path):
     _need(TP_FONTS / "fontres.arc")
     descriptors = json.loads((ROOT / "plugins" / "zelda_bmg" / "font_sources.json").read_text(encoding="utf-8"))

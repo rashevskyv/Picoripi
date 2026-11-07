@@ -340,7 +340,7 @@ tokens: 15.0k
 | Harvest Moon 3D / Story of Seasons (3DS) | Nintendo 3DS | Файли гри (тека або образ) | Немає | Чотири назви в одному плагіні, усі Європа. |
 | Kid Icarus: Uprising | Nintendo 3DS | Файли гри (тека або образ) | Немає | Європа, англійський набір eu. |
 | Kingdom Hearts 3D: Dream Drop Distance | Nintendo 3DS | Файли гри (тека або образ) | Немає | 3DS, Європа, англійська. |
-| Luigi's Mansion (3DS, 2018) | Nintendo 3DS | Файли гри (тека або образ) | Luma LayeredFS (тека titles, romfs) | 3DS, США, CTR-P-BGNE v0.2.0. Англійська таблиця повідомлень (main.gmsg); шрифти і архіви інтерфейсу ще не перекладено. |
+| Luigi's Mansion (3DS, 2018) | Nintendo 3DS | Файли гри (тека або образ) | Luma LayeredFS (тека titles, romfs) | 3DS, США, CTR-P-BGNE v0.2.0. Англійська таблиця повідомлень (main.gmsg) і чотири шрифти (`romfs/Region_US/*.gzf`, у редакторі шрифтів); архіви інтерфейсу ще не перекладено. |
 | Luigi's Mansion: Dark Moon (3DS) | Nintendo 3DS | Файли гри (тека або образ) | Немає | 3DS, Європа. |
 | Metal Gear Solid: Snake Eater 3D | Nintendo 3DS | Файли гри (тека або образ) | Немає | 3DS, Європа. |
 | Monster Hunter (3DS: 3 Ultimate, 4 Ultimate, Stories) | Nintendo 3DS | Файли гри (тека або образ) | Немає | 3DS: Monster Hunter 3 Ultimate, 4 Ultimate і Stories. |

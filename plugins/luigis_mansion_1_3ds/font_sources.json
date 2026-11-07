@@ -1,0 +1,6 @@
+[
+  {"label": "Game font (dialogue and menus)", "format": "gzf", "path": "romfs/Region_US/main.gzf"},
+  {"label": "Ghost catch font", "format": "gzf", "path": "romfs/Region_US/matching.gzf"},
+  {"label": "Room name font", "format": "gzf", "path": "romfs/Region_US/location.gzf"},
+  {"label": "Ending font", "format": "gzf", "path": "romfs/Region_US/ending.gzf"}
+]
