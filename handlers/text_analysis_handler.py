@@ -12,6 +12,7 @@ from handlers.base_handler import BaseHandler
 from components.original_text_analysis_dialog import OriginalTextAnalysisDialog
 from utils.logging_utils import log_debug
 from utils.utils import calculate_string_width, DEFAULT_CHAR_WIDTH_FALLBACK
+from core.translation.layout_contract import editor_text_for_layout
 from core.i18n import tr
 
 
@@ -71,11 +72,13 @@ class TextAnalysisHandler(BaseHandler):
         initial_map: Dict[str, Any] = font_maps.get(initial_font, {}) if initial_font else {}
 
         raw_entries: List[Dict[str, Any]] = []
+        rules = getattr(self.mw, 'current_game_rules', None)
         for block_idx, block in enumerate(data_source):
             if not isinstance(block, list):
                 continue
             for string_idx, value in enumerate(block):
-                text: str = '' if value is None else str(value)
+                # The editor form: a plugin's own tags (<COLOR>(3)) become {…} tags, which take no width.
+                text: str = '' if value is None else editor_text_for_layout(str(value), rules)
                 if not text:
                     continue
                 lines: List[str] = text.split('\n')

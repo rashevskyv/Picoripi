@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Optional
 from handlers.analyzer_context import analyzer_string_context
 from utils.utils import calculate_string_width, remove_all_tags
 from utils.thread_utils import WorkerThread
+from core.translation.layout_contract import editor_text_for_layout
 
 class WidthCalculationWorker(WorkerThread):
     """Width calculation worker implementation."""
@@ -33,6 +34,10 @@ class WidthCalculationWorker(WorkerThread):
         self.target_indices = target_indices
         self.is_cancelled = False
         
+    def _editor_form(self, text: str) -> str:
+        """``text`` with a plugin's own tags (<COLOR>(3)) as {…} tags, which remove_all_tags drops."""
+        return editor_text_for_layout(text, self.game_rules_plugin)
+
     def cancel(self):
         """Cancel."""
         self.is_cancelled = True
@@ -96,7 +101,7 @@ class WidthCalculationWorker(WorkerThread):
                         logical_sublines = text_to_analyze.split('\n')
                     
                     game_like_text_no_newlines_rstripped = remove_all_tags(
-                        text_to_analyze.replace('\\n','').replace('\\p','').replace('\\l','')
+                        self._editor_form(text_to_analyze).replace('\\n','').replace('\\p','').replace('\\l','')
                     ).rstrip()
                     
                     text_processing_cache[cache_key] = {
@@ -121,7 +126,7 @@ class WidthCalculationWorker(WorkerThread):
                         whole_problems = analyzer.analyze_data_string(text_to_analyze, font_map_for_string, editor_warning_threshold, logical_hard_limit)
 
                     for subline_idx, sub_line_text in enumerate(logical_sublines):
-                        sub_line_no_tags_rstripped = remove_all_tags(sub_line_text).rstrip()
+                        sub_line_no_tags_rstripped = remove_all_tags(self._editor_form(sub_line_text)).rstrip()
                         width_px = calculate_string_width(sub_line_no_tags_rstripped, font_map_for_string)
 
                         # Add to chart entries ONLY for current text

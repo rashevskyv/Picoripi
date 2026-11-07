@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 - Editor: `Alt+Enter` inserts the same as `Shift+Enter`; a page break that ends with a line break (Zelda: TotK, Ocarina of Time on Switch 2) ends its editor line, and the page lines follow page breaks as well as the page size. Ocarina of Time (Switch 2) reads its voice, expression and inserted-value tags by name instead of raw bytes. The plugin declares the PC platform its Hookshot target names.
+- Width analysis (Tools → Original Text Width Analysis and the block width calculation): a plugin's own tags (Luigi's Mansion `<COLOR>(3)`) are measured in the editor form and take no width; they were counted letter by letter
 - Zelda: Ocarina of Time (Switch 2): a Hookshot build target (the game recompiled for Windows, github.com/NotRexed/Hookshot): the changed files in `romfs/` and `Hookshot UA.bat`, which starts Hookshot with them over the game's own (`HOS_FS_OVERLAY`) in the Russian slot (`HOS_LANGUAGE=ru`).
 - Zelda: Ocarina of Time (Switch 2): `Hookshot UA.bat` keeps Hookshot itself up to date: before the start it rebuilds Hookshot from the translated `.nup` when a newer Hookshot release is out (`hookshot_update.ps1`).
 - Zelda: Ocarina of Time (Switch 2): the build raises the resource size table entry of every file it replaces (`build.size_table`, `restbl.grown_like`); a translated Russian text archive larger than its entry was refused by the game, and the menus showed MsgNotFound.
