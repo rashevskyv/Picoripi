@@ -496,9 +496,18 @@ class MainWindowSettingsActionsMixin:
         def start(success=True):
             if success is False:
                 return
+            from PyQt6.QtWidgets import QProgressDialog
             job = ActionJob(project_file, target['id'], default_load_rules)
             self._build_job = job
-            job.progress.connect(lambda percent, text: self.mw.statusBar.showMessage(f"{text} ({percent} %)"))
+            dialog = QProgressDialog(tr('Building...'), tr('Cancel'), 0, 100, self.mw)
+            dialog.setWindowTitle(title)
+            dialog.setAutoClose(False)
+            dialog.setAutoReset(False)
+            dialog.setMinimumDuration(0)
+            dialog.canceled.connect(job.requestInterruption)
+            dialog.show()
+            self._build_dialog = dialog
+            job.progress.connect(lambda percent, text: self._build_progress(percent, text))
             job.done.connect(self._build_done)
             job.failed.connect(lambda message: self._build_ended(tr('Build failed'), message, True))
             job.cancelled.connect(lambda: self._build_ended(tr('Build cancelled'), '', False))
@@ -510,16 +519,33 @@ class MainWindowSettingsActionsMixin:
         else:
             start()
 
+    def _build_progress(self, percent, text):
+        self.mw.statusBar.showMessage(f"{text} ({percent} %)")
+        dialog = getattr(self, '_build_dialog', None)
+        if dialog is not None:
+            dialog.setLabelText(text)
+            dialog.setValue(max(0, min(100, int(percent))))
+
     def _build_done(self, path):
+        from PyQt6.QtCore import QUrl
+        from PyQt6.QtGui import QDesktopServices
         from core.project_library import build
         warnings = build.read_warnings(path)
         text = tr('Built: {0}', path)
         if warnings:
             text += '\n\n' + tr('{0} warnings: {1}', len(warnings), warnings[0])
+        folder = Path(path) if Path(path).is_dir() else Path(path).parent
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
         self._build_ended(text, '', False)
 
     def _build_ended(self, text, detail, error):
         self._build_job = None
+        dialog = getattr(self, '_build_dialog', None)
+        self._build_dialog = None
+        if dialog is not None:
+            dialog.canceled.disconnect()
+            dialog.close()
+            dialog.deleteLater()
         self.mw.statusBar.showMessage(text.split('\n')[0], 5000)
         box = QMessageBox.critical if error else QMessageBox.information
         box(self.mw, tr('Build ROM'), text + ('\n\n' + detail if detail else ''))
