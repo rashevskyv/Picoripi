@@ -1,6 +1,6 @@
 """Build ROM shows a progress window with Cancel and opens the result's folder when the build is done."""
 from PyQt6.QtCore import QUrl
-from PyQt6.QtWidgets import QMainWindow, QProgressDialog, QStatusBar
+from PyQt6.QtWidgets import QMainWindow, QProgressDialog, QPushButton, QStatusBar
 
 from ui.main_window.actions import settings_mixin
 from ui.main_window.actions.settings_mixin import MainWindowSettingsActionsMixin
@@ -49,3 +49,16 @@ def test_failure_closes_the_dialog_without_opening_a_folder(qtbot, monkeypatch):
     actions._build_ended("Build failed", "disk full", True)
     assert opened == [] and actions._build_dialog is None
     assert shown == ["Build failed\n\ndisk full"]
+
+
+def test_progress_window_is_not_resizable(qtbot):
+    actions = _actions(qtbot)
+    cancelled = []
+    dialog = actions._build_progress_dialog("Build ROM", lambda: cancelled.append(True))
+    qtbot.addWidget(dialog)
+    actions._build_dialog = dialog
+    assert dialog.minimumSize() == dialog.maximumSize()
+    actions._build_progress(10, "A much longer step text than the first label had")
+    assert dialog.minimumSize() == dialog.maximumSize()
+    dialog.findChild(QPushButton).click()
+    assert cancelled == [True]

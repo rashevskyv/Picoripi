@@ -496,17 +496,9 @@ class MainWindowSettingsActionsMixin:
         def start(success=True):
             if success is False:
                 return
-            from PyQt6.QtWidgets import QProgressDialog
             job = ActionJob(project_file, target['id'], default_load_rules)
             self._build_job = job
-            dialog = QProgressDialog(tr('Building...'), tr('Cancel'), 0, 100, self.mw)
-            dialog.setWindowTitle(title)
-            dialog.setAutoClose(False)
-            dialog.setAutoReset(False)
-            dialog.setMinimumDuration(0)
-            dialog.canceled.connect(job.requestInterruption)
-            dialog.show()
-            self._build_dialog = dialog
+            self._build_dialog = self._build_progress_dialog(title, job.requestInterruption)
             job.progress.connect(lambda percent, text: self._build_progress(percent, text))
             job.done.connect(self._build_done)
             job.failed.connect(lambda message: self._build_ended(tr('Build failed'), message, True))
@@ -518,6 +510,20 @@ class MainWindowSettingsActionsMixin:
             self.mw.app_action_handler.save_data_action(ask_confirmation=False, on_finished_callback=start)
         else:
             start()
+
+    def _build_progress_dialog(self, title, on_cancel):
+        """A fixed-size progress window for the build; Cancel calls ``on_cancel``."""
+        from PyQt6.QtWidgets import QProgressDialog
+        dialog = QProgressDialog(tr('Building...'), tr('Cancel'), 0, 100, self.mw)
+        dialog.setWindowTitle(title)
+        dialog.setAutoClose(False)
+        dialog.setAutoReset(False)
+        dialog.setMinimumDuration(0)
+        dialog.canceled.connect(on_cancel)
+        hint = dialog.sizeHint()
+        dialog.setFixedSize(max(460, hint.width()), hint.height())
+        dialog.show()
+        return dialog
 
     def _build_progress(self, percent, text):
         self.mw.statusBar.showMessage(f"{text} ({percent} %)")
