@@ -64,12 +64,22 @@ OVERHEAD = {".sarc": 0x180, ".bfarc": 0x100}
 
 def required_size(decompressed_size: int, kind: str = ".sarc") -> int:
     """The entry the game gives an archive of ``decompressed_size`` bytes (``kind``: ``.sarc``, ``.bfarc``)."""
-    return ((decompressed_size + 0x1F) & ~0x1F) + OVERHEAD[kind]
+    return _aligned(decompressed_size) + OVERHEAD[kind]
+
+
+def _aligned(size: int) -> int:
+    return (size + 0x1F) & ~0x1F
 
 
 def grown_size(entry: int, new_size: int, kind: str = ".sarc") -> int:
     """The entry for an archive that now decompresses to ``new_size``; never smaller than before."""
     return max(entry, required_size(new_size, kind))
+
+
+def grown_like(entry: int, old_size: int, new_size: int) -> int:
+    """The entry for a file that grew from ``old_size`` to ``new_size`` bytes, with the overhead the game gave the
+    original (games of this engine differ in it); never smaller than before."""
+    return max(entry, entry - _aligned(old_size) + _aligned(new_size))
 
 
 def update(game_romfs: Path, mod_romfs: Path) -> List[Tuple[str, int, int]]:

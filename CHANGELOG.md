@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Zelda: Ocarina of Time (Switch 2): the build raises the resource size table entry of every file it replaces (`build.size_table`, `restbl.grown_like`); a translated Russian text archive larger than its entry was refused by the game, and the menus showed MsgNotFound.
 - Zelda: Ocarina of Time (Switch 2) and Tears of the Kingdom: the talk window preview shows one page at a time with the BFN preview's < > page bar (shared with Lunar in `plugins/common/preview_chrome.py`), and finds the project folder on refresh (a preview built before the project opened said it had none).
 - Zelda: Ocarina of Time (Switch 2): a rebuild updates the previous `.nup` in place (`nup.update`, only the bytes after the source's data; the same bytes as a new package) instead of copying 25 GB again; a source record beside the package (`.source.json`) proves it was made from this disc. Build ROM shows the time passed and about how long is left.
 - Build ROM: a fixed-size progress window with **Cancel** shows each build step (a long build, such as the 23 GB Ocarina of Time Switch 2 package, showed only a status bar line), and the folder with the result opens when the build is done.

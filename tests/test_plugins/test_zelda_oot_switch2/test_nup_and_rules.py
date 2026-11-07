@@ -1,6 +1,7 @@
 """Ocarina of Time (Nintendo Switch 2): the .nup package reader, the wizard hooks and the zstd font files."""
 import hashlib
 import struct
+import zlib
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -13,6 +14,7 @@ from plugins.testing import check_loads, check_validator
 from plugins.common.msbt import Msbt
 from plugins.zelda_oot_switch2 import build, nup
 from plugins.zelda_totk import reference
+from plugins.zelda_totk.restbl import Restbl
 from plugins.zelda_totk.tags import to_editor
 from plugins.zelda_oot_switch2.rules import GameRules
 import romhacking_root
@@ -350,6 +352,40 @@ def test_the_build_writes_a_package_with_the_translation_in_the_russian_slot(tmp
         path: data for path, data in files.items() if "EUru" not in path}
 
 
+def size_table(entries):
+    """A resource size table (one zstd frame without a dictionary) with ``{key: size}`` CRC entries."""
+    crc = sorted((zlib.crc32(key.encode()), size) for key, size in entries.items())
+    return zstd.compress(b"RESTBL" + struct.pack("<IIII", 1, 0xA0, len(crc), 0)
+                         + b"".join(struct.pack("<II", key, size) for key, size in crc))
+
+
+def test_the_build_raises_the_size_table_entry_of_an_archive_that_grew(tmp_path):
+    table_path = "romfs/System/Resource/ResourceSizeTable.Product.111.Nin_Ounce_NVN2.rsizetable.zs"
+    russian = npc_archive("Slot-RU Saria")
+    entry = len(russian) + 0x200            # the game's own entry: room for the original and some overhead
+    files = {**FILES, "romfs/Mals/USen.Product.110.sarc.zs": npc_archive("Saria"),
+             "romfs/Mals/EUru.Product.110.sarc.zs": russian,
+             "romfs/Pack/ZsDic.pack.zs": samples.zsdic_pack(samples.dictionary()),
+             table_path: size_table({"Mals/EUru.Product.110.sarc": entry, "Mals/USen.Product.110.sarc": 77})}
+    image = tmp_path / "game.nup"
+    image.write_bytes(package(files))
+    unpacked = tmp_path / "unpacked"
+    GameRules().unpack_sources({"base": str(image)}, str(unpacked), ignore, lambda: False)
+    translation = tmp_path / "translation"
+    translation.mkdir()
+    (translation / "USen.Product.110.sarc.zs").write_bytes(npc_archive("Саріа " * 200))
+
+    result = build.build_nup(str(unpacked / "romfs/Mals"), str(translation), str(tmp_path / "build"),
+                             ignore, lambda: False)
+
+    rebuilt = read_all(result)
+    grown = len(rebuilt["romfs/Mals/EUru.Product.110.sarc.zs"])
+    table = Restbl(zstd.decompress(rebuilt[table_path]))
+    aligned = lambda size: -(-size // 32) * 32
+    assert table.size("Mals/EUru.Product.110.sarc") == entry - aligned(len(russian)) + aligned(grown) > grown
+    assert table.size("Mals/USen.Product.110.sarc") == 77
+
+
 def test_a_second_build_updates_the_first_package_in_place(tmp_path, monkeypatch):
     from core.project_library import build as project_build
     files = {**FILES, "romfs/Mals/USen.Product.110.sarc.zs": npc_archive("Saria"),
@@ -414,9 +450,9 @@ def test_actor_names_seed_the_glossary_with_their_captions():
 def test_the_reference_columns_come_from_the_projects_own_text_folder():
     rules = GameRules()
     assert rules.default_reference_path() is None
-    project = SimpleNamespace(metadata={"source_path": "D:/game/source/romfs/Mals"})
+    project = SimpleNamespace(metadata={"source_path": "/game/source/romfs/Mals"})
     rules.mw = SimpleNamespace(project_manager=SimpleNamespace(project=project))
-    assert rules.default_reference_path() == "D:/game/source/romfs/Mals"
+    assert rules.default_reference_path() == "/game/source/romfs/Mals"
 
 
 def test_the_reference_columns_are_russian_then_european_english(tmp_path):

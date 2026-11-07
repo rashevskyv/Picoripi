@@ -2,6 +2,8 @@
 
 Switch 2 has no mod loader yet, so the build writes a whole package (``nup.write``): the original from the unpack's
 source mark, with ``romfs/Mals/EUru.*.sarc.zs`` replaced and any edited font of ``romfs/Font2``. The project's
+The game reserves memory for a file from its resource size table and refuses a file that outgrew its entry (the
+text then shows as MsgNotFound), so the build also raises the entries of the files it replaces. The project's
 blocks are the English slot (``USen``); a message whose translation differs from the English goes into the same
 message of the Russian archive (same members, labels and order in every slot), every other message keeps its
 Russian text. The Russian slot uses the ClarimoUDPE fonts, which hold Є І Ї Ґ.
@@ -18,11 +20,13 @@ from core.containers import sarc
 from core.i18n import tr
 from plugins.common.disc_source import disc_of_source, find_disc_root
 from plugins.common.msbt import Msbt
+from plugins.zelda_totk.restbl import Restbl, grown_like
 from plugins.zelda_totk.tags import to_editor
 
 from . import nup
 from .config import DICTIONARY_PACK, TARGET_LANGUAGE, TEXT_ARCHIVE_PREFIX
 
+RESOURCE_TABLE = "romfs/System/Resource/ResourceSizeTable.Product."
 FONT_FOLDER = "Font2"   # a font edit lands in ``<translation>/../Font2``, the mirror of the source's ``../Font2``
 
 
@@ -65,6 +69,33 @@ def changes_of(root: Path, source_dir: str, translation_dir: str) -> Dict[str, b
     return changes
 
 
+def size_table(image: Path, changes: Dict[str, bytes]) -> Dict[str, bytes]:
+    """``{table path: new bytes}``: the package's resource size table with an entry raised for every changed file
+    that outgrew it; empty when no entry needs it."""
+    with open(image, "rb") as stream:
+        package = nup.Nup(stream)
+        by_path = {entry.path: entry for entry in package.entries}
+        tables = sorted(path for path in by_path if path.startswith(RESOURCE_TABLE) and path.endswith(".rsizetable.zs"))
+        if not tables:
+            return {}
+        if DICTIONARY_PACK in by_path:
+            sarc.add_dictionary_pack(package.read(by_path[DICTIONARY_PACK]))
+        data, dict_id = sarc.decompress(package.read(by_path[tables[-1]]))
+        table = Restbl(data)
+        for path, new in changes.items():
+            key = path.removeprefix("romfs/").removesuffix(".zs")
+            entry = table.size(key)
+            if entry is not None and path in by_path:
+                table.set_size(key, grown_like(entry, _size(package.read(by_path[path])), _size(new)))
+    built = table.build()
+    return {} if built == data else {tables[-1]: sarc.compress(built, dict_id)}
+
+
+def _size(data: bytes) -> int:
+    """The size of a file the way the game loads it: a zstd frame decompressed."""
+    return len(sarc.decompress(data)[0]) if data[:4] == sarc.ZSTD_MAGIC else len(data)
+
+
 def build_nup(source_dir: str, translation_dir: str, output_dir: str,
               progress: Callable[[int, str], None], is_cancelled: Callable[[], bool],
               previous_dir: Optional[str] = None) -> Optional[str]:
@@ -78,6 +109,7 @@ def build_nup(source_dir: str, translation_dir: str, output_dir: str,
     changes = changes_of(root, source_dir, translation_dir)
     if not changes:
         raise ValueError(tr("The translation has no translated text yet; nothing to build."))
+    changes.update(size_table(image, changes))
     name = f"{image.stem} (UA).nup"
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     previous = Path(previous_dir) / name if previous_dir else None
