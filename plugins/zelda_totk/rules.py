@@ -13,15 +13,18 @@ from utils.constants import SETTINGS_DIR
 from utils.logging_utils import log_debug, log_warning
 from utils.utils import clean_spaces
 
-from . import reference
+from . import reference, tags
 from .preview import TOTK_BOX
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from plugins.common.msbt import Msbt
 from .tag_manager import TagManager
-from .tags import describe, from_editor, to_editor
 
 PLUGIN_DATA_DIR = SETTINGS_DIR / "plugins" / "zelda_totk"
 CUTSCENE_WIDTH = 1290
+
+
+PAGE_BREAK = "{pageBreak}"
+EDITOR_PAGE_BREAK = PAGE_BREAK + "\n"   # how the editor shows it: the next text starts the next line
 
 
 class GameRules(BaseGameRules):
@@ -38,6 +41,7 @@ class GameRules(BaseGameRules):
     problem_definitions = PROBLEM_DEFINITIONS
     tag_manager_class = TagManager
     preview_box = TOTK_BOX   # the talk window facts of preview.py; Ocarina of Time (Switch 2) sets its own
+    tag_codec = tags.CODEC     # the tag catalogue (``tags.py``); Ocarina of Time (Switch 2) sets its own
     tag_style = "curly"
     analyze_whole_string_first = True
     show_spaces_as_dots_default = True
@@ -66,7 +70,7 @@ class GameRules(BaseGameRules):
             return super().load_data_from_json_obj(json_obj)
         msbt = Msbt(json_obj)
         self._msbt = msbt
-        return [[to_editor(tokens, msbt.little, msbt.utf8) for tokens in msbt.messages]], {}
+        return [[self.tag_codec.to_editor(tokens, msbt.little, msbt.utf8) for tokens in msbt.messages]], {}
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
         if self._msbt is None:
@@ -77,10 +81,10 @@ class GameRules(BaseGameRules):
         for index, original in enumerate(msbt.messages):
             text = texts[index] if index < len(texts) else None
             # An untouched message keeps its exact tokens, whatever the editor form would re-encode to.
-            if text is None or text == to_editor(original, msbt.little, msbt.utf8):
+            if text is None or text == self.tag_codec.to_editor(original, msbt.little, msbt.utf8):
                 messages.append(original)
             else:
-                messages.append(from_editor(str(text), msbt.little, msbt.utf8))
+                messages.append(self.tag_codec.from_editor(str(text), msbt.little, msbt.utf8))
         return msbt.build(messages)
 
     def prepare_save_context(self, context) -> None:
@@ -192,7 +196,7 @@ class GameRules(BaseGameRules):
             located = self._archive_member(int(key))
             if located:
                 members[int(key)] = located
-        return reference.load_languages(Path(patch_path), members, self.reference_languages)
+        return reference.load_languages(Path(patch_path), members, self.reference_languages, self.tag_codec)
 
     def _archive_member(self, block_idx: int) -> Optional[Tuple[str, str]]:
         """``(archive file name, member)`` of a block, from the project's block metadata (no file read)."""
@@ -210,7 +214,7 @@ class GameRules(BaseGameRules):
         return {"{playerName}": "Link"}
 
     def get_tag_tooltip(self, tag: str) -> str:
-        return describe(self.replace_aliases_with_tags(str(tag)))
+        return self.tag_codec.describe(self.replace_aliases_with_tags(str(tag)))
 
     def get_external_reference_url(self, term: str) -> Optional[str]:
         if not term or not term.strip():
@@ -249,6 +253,17 @@ class GameRules(BaseGameRules):
 
     def get_editor_page_size(self) -> int:
         return DEFAULT_LINES_PER_PAGE
+
+    # A page break ends its editor line: the editor shows a line break after it that the data does not have.
+    def get_shift_enter_char(self) -> str:
+        return EDITOR_PAGE_BREAK
+
+    def get_text_representation_for_editor(self, data_string_subline: str) -> str:
+        shown = str(data_string_subline).replace(PAGE_BREAK, EDITOR_PAGE_BREAK)
+        return super().get_text_representation_for_editor(shown)
+
+    def convert_editor_text_to_data(self, text: str) -> str:
+        return super().convert_editor_text_to_data(str(text)).replace(EDITOR_PAGE_BREAK, PAGE_BREAK)
 
 
 @lru_cache(maxsize=1)

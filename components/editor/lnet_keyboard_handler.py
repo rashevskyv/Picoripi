@@ -91,7 +91,7 @@ class LNETKeyboardHandler:
                 char_to_insert = ''
                 modifiers = event.modifiers()
 
-                if modifiers & Qt.KeyboardModifier.ShiftModifier:
+                if modifiers & (Qt.KeyboardModifier.ShiftModifier | Qt.KeyboardModifier.AltModifier):   # a page break
                     char_to_insert = game_rules.get_shift_enter_char()
                 elif modifiers & Qt.KeyboardModifier.ControlModifier:
                     char_to_insert = game_rules.get_ctrl_enter_char()

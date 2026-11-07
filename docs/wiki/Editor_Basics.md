@@ -79,7 +79,7 @@ Filters work together. If the list looks empty, turn off every filter first.
 
 - **Original (EN)** is the first tab. It is read only. You can select and copy text from it.
 - A reference tab appears for each other language that has text for the selected line.
-- **Editable** is where you type. **Enter** starts a new line. In some games, **Shift+Enter** or **Ctrl+Enter** inserts a special character that the game rules define.
+- **Editable** is where you type. **Enter** starts a new line. In some games, **Shift+Enter** or **Ctrl+Enter** inserts a special character that the game rules define. **Alt+Enter** does the same as **Shift+Enter**.
 - The number above **Original** is the width of the original. Click it to copy it into **Max-width**, then press **Apply**.
 
 ## 5. The narrow button column

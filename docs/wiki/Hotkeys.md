@@ -38,7 +38,7 @@ This page lists the keys of Picoripi by task. Each row shows the menu path, so y
 | Auto-fix Current String | `Ctrl+Shift+A` | Edit → Auto-fix Current String |
 | Hide Tags | `Ctrl+Q` | View → Hide Tags |
 
-In **Editable**, `Enter` starts a new line. In some games, `Shift+Enter` and `Ctrl+Enter` insert a character that the game rules define.
+In **Editable**, `Enter` starts a new line. In some games, `Shift+Enter` and `Ctrl+Enter` insert a character that the game rules define. `Alt+Enter` does the same as `Shift+Enter`. Where `Shift+Enter` inserts a page break, the break ends its line: the next text starts on the next line, and a horizontal line marks the end of the page. A page also ends after the number of lines that fits in the game's window.
 
 ## 3. Find
 

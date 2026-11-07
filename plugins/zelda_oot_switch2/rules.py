@@ -27,7 +27,7 @@ from plugins.zelda_totk.tags import TAG_RE, to_editor
 from utils.atomic_io import atomic_write_bytes
 from utils.constants import SETTINGS_DIR
 
-from . import build, nup
+from . import build, nup, tags
 from .config import (BUILD_TARGET, HOOKSHOT_TARGET, PLUGIN_PREFIX, REFERENCE_LANGUAGES, PROBLEM_DEFINITIONS, SOURCE_SUBFOLDER, TEXT_ARCHIVE_PREFIX, TITLE_ID,
                      UNPACKED_PREFIXES)
 
@@ -41,6 +41,7 @@ class GameRules(TotkRules):
     reference_languages = REFERENCE_LANGUAGES
     problem_definitions = PROBLEM_DEFINITIONS
     preview_box = OOT_SWITCH2_BOX
+    tag_codec = tags.CODEC
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)

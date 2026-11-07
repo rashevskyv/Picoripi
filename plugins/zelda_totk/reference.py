@@ -13,7 +13,7 @@ from utils.logging_utils import log_warning
 from core.containers import sarc
 from plugins.common.msbt import Msbt
 from plugins.common.switch_languages import LANGUAGES   # archive prefix -> reference label
-from .tags import to_editor
+from . import tags
 
 
 def _archives(folder: Path) -> Dict[str, Path]:
@@ -26,7 +26,8 @@ def _archives(folder: Path) -> Dict[str, Path]:
 
 
 def load_languages(folder: Path, members: Dict[int, Tuple[str, str]],
-                   only: Optional[Tuple[str, ...]] = None) -> Dict[str, Dict[Tuple[int, int], str]]:
+                   only: Optional[Tuple[str, ...]] = None,
+                   codec=tags.CODEC) -> Dict[str, Dict[Tuple[int, int], str]]:
     """``{label: {(block, line): text}}`` for every language archive in ``folder`` (or the ``only`` ones, in order).
 
     ``members`` maps a project block to ``(archive file name, member)``; the project's own language (the
@@ -55,7 +56,7 @@ def load_languages(folder: Path, members: Dict[int, Tuple[str, str]],
             msbt = Msbt(container.read_file(member))
             for block in blocks:
                 for index, tokens in enumerate(msbt.messages):
-                    texts[(block, index)] = to_editor(tokens, msbt.little, msbt.utf8)
+                    texts[(block, index)] = codec.to_editor(tokens, msbt.little, msbt.utf8)
         if texts:
             result[LANGUAGES.get(prefix, prefix)] = texts
     return result

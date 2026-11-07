@@ -80,6 +80,7 @@ class LNETPaintEventLogic:
                         limit_px = custom_w
 
             sequences = getattr(main_window, 'icon_sequences', []) if main_window else []
+            page_ends = self._page_ends(main_window, page_size) if not is_preview else set()
 
             while block.isValid() and block.layout():
                 layout = block.layout()
@@ -133,8 +134,8 @@ class LNETPaintEventLogic:
                                                 if next_subline_num == 1 or next_subline_num is None:
                                                     draw_separator = True
                                 else:
-                                    # Default behavior: draw line every page_size logical blocks (lines)
-                                    if (current_block_num + 1) % page_size == 0:
+                                    # A page ends after page_size lines, or earlier at the plugin's page break
+                                    if current_block_num in page_ends:
                                         draw_separator = True
 
                         if draw_separator:
@@ -202,3 +203,18 @@ class LNETPaintEventLogic:
                 block = block.next()
         finally:
             painter_lines.end()
+
+    def _page_ends(self, main_window, page_size: int) -> set:
+        """Numbers of the blocks (editor lines) that end a page: every ``page_size`` lines, or a line that ends with
+        the plugin's page break (its Shift+Enter text, when that is more than a line break)."""
+        rules = getattr(main_window, 'current_game_rules', None)
+        marker = rules.get_shift_enter_char().rstrip('\n') if rules else ''
+        ends, lines = set(), 0
+        block = self.editor.document().firstBlock()
+        while block.isValid():
+            lines += 1
+            if lines >= page_size or (marker and block.text().endswith(marker)):
+                ends.add(block.blockNumber())
+                lines = 0
+            block = block.next()
+        return ends
