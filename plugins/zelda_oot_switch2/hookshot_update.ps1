@@ -13,7 +13,7 @@ try {
 if ((Test-Path $stamp) -and ((Get-Content $stamp -Raw).Trim() -eq "$($release.id)")) { exit 0 }
 $asset = $release.assets | Where-Object { $_.name -like "HookshotBuilder*.zip" } | Select-Object -First 1
 if (-not $asset) { Write-Host "Hookshot release $($release.tag_name) has no builder; update skipped."; exit 0 }
-if (-not (Test-Path $Nup)) { $Nup = $Original }
+if (-not (Test-Path -LiteralPath $Nup)) { $Nup = $Original }   # the names hold [ ], which -Path reads as a pattern
 Write-Host "New Hookshot release: $($release.name) ($($release.tag_name))."
 Write-Host "Rebuilding the game from $Nup. This takes about 35 minutes; the game starts afterwards."
 $update = Join-Path $Game ".update"
