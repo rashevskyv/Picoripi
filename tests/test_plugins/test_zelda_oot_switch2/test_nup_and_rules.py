@@ -340,7 +340,7 @@ def test_the_build_writes_a_package_with_the_translation_in_the_russian_slot(tmp
     translation.mkdir()
     (translation / "USen.Product.110.sarc.zs").write_bytes(npc_archive("Саріа"))
     rules = GameRules()
-    assert [target["id"] for target in rules.get_build_targets()] == ["nup"]
+    assert [target["id"] for target in rules.get_build_targets()] == ["nup", "hookshot"]
 
     result = rules.build_target("nup", str(unpacked / "romfs/Mals"), str(translation), str(tmp_path / "build"),
                                 ignore, lambda: False)
@@ -384,6 +384,32 @@ def test_the_build_raises_the_size_table_entry_of_an_archive_that_grew(tmp_path)
     aligned = lambda size: -(-size // 32) * 32
     assert table.size("Mals/EUru.Product.110.sarc") == entry - aligned(len(russian)) + aligned(grown) > grown
     assert table.size("Mals/USen.Product.110.sarc") == 77
+
+
+def test_the_hookshot_build_writes_the_changed_files_and_a_launcher_that_lays_them_over_the_game(tmp_path):
+    from core.project_library import build as project_build
+    files = {**FILES, "romfs/Mals/USen.Product.110.sarc.zs": npc_archive("Saria"),
+             "romfs/Mals/EUru.Product.110.sarc.zs": npc_archive("Slot-RU Saria"),
+             "romfs/Pack/ZsDic.pack.zs": samples.zsdic_pack(samples.dictionary())}
+    image = tmp_path / "game.nup"
+    image.write_bytes(package(files))
+    unpacked = tmp_path / "unpacked"
+    GameRules().unpack_sources({"base": str(image)}, str(unpacked), ignore, lambda: False)
+    translation = tmp_path / "translation"
+    translation.mkdir()
+    (translation / "USen.Product.110.sarc.zs").write_bytes(npc_archive("Саріа"))
+
+    result = Path(project_build.run_build(GameRules(), "hookshot", tmp_path / "project", str(unpacked / "romfs/Mals"),
+                                          str(translation), ignore, lambda: False))
+
+    folder = tmp_path / "project" / "build" / "hookshot"
+    assert result == folder / build.HOOKSHOT_LAUNCHER
+    assert [path.relative_to(folder).as_posix() for path in folder.rglob("*") if path.is_file()] == [
+        build.HOOKSHOT_LAUNCHER, "romfs/Mals/EUru.Product.110.sarc.zs"]
+    assert first_texts((folder / "romfs/Mals/EUru.Product.110.sarc.zs").read_bytes())[0] == "Саріа"
+    launcher = result.read_bytes()
+    assert f'set "HOS_FS_OVERLAY={folder / "romfs"}"\r\n'.encode() in launcher
+    assert b'set "HOS_LANGUAGE=ru"\r\n' in launcher and b"hookshot.exe" in launcher
 
 
 def test_a_second_build_updates_the_first_package_in_place(tmp_path, monkeypatch):

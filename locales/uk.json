@@ -2210,6 +2210,7 @@
         "The NUP package cannot be written over its source.": "Пакет NUP не можна записати поверх його джерела.",
         "{0}: not in the NUP package (new files are not written)": "{0}: цього файлу немає в пакеті NUP (нові файли не записуються)",
         "Switch 2 package (.nup), Ukrainian in the Russian slot": "Пакет Switch 2 (.nup), українська в російському слоті",
+        "Hookshot (Windows): changed game files and a launcher": "Hookshot (Windows): змінені файли гри і файл запуску",
         "The translation has no translated text yet; nothing to build.": "У перекладі ще немає перекладеного тексту; збирати нічого.",
         "Not enough free space on {0}: the package needs {1} MB, and {2} MB is free.": "Недостатньо вільного місця на {0}: пакету потрібно {1} МБ, а вільно {2} МБ.",
         "SkyRecomp (Windows port, mod folder)": "SkyRecomp (порт для Windows, тека моду)",

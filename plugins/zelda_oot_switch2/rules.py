@@ -28,7 +28,7 @@ from utils.atomic_io import atomic_write_bytes
 from utils.constants import SETTINGS_DIR
 
 from . import build, nup
-from .config import (BUILD_TARGET, PLUGIN_PREFIX, REFERENCE_LANGUAGES, PROBLEM_DEFINITIONS, SOURCE_SUBFOLDER, TEXT_ARCHIVE_PREFIX, TITLE_ID,
+from .config import (BUILD_TARGET, HOOKSHOT_TARGET, PLUGIN_PREFIX, REFERENCE_LANGUAGES, PROBLEM_DEFINITIONS, SOURCE_SUBFOLDER, TEXT_ARCHIVE_PREFIX, TITLE_ID,
                      UNPACKED_PREFIXES)
 
 PLUGIN_DATA_DIR = SETTINGS_DIR / "plugins" / "zelda_oot_switch2"
@@ -99,10 +99,15 @@ class GameRules(TotkRules):
 
     def get_build_targets(self) -> List[Dict[str, Any]]:
         return [{"id": BUILD_TARGET, "label": tr("Switch 2 package (.nup), Ukrainian in the Russian slot"),
-                 "platforms": ["switch2"], "kind": "patch"}]
+                 "platforms": ["switch2"], "kind": "patch"},
+                {"id": HOOKSHOT_TARGET, "label": tr("Hookshot (Windows): changed game files and a launcher"),
+                 "platforms": ["pc"], "kind": "files"}]
 
     def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
                      progress, is_cancelled) -> str:
+        if target_id == HOOKSHOT_TARGET:
+            final = str(Path(output_dir).resolve().parent / HOOKSHOT_TARGET)
+            return build.build_hookshot(source_dir, translation_dir, output_dir, final)
         if target_id != BUILD_TARGET:
             return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
         # core.project_library.build keeps the last result in build/<target id>, beside this new output folder

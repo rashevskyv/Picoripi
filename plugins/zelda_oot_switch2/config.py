@@ -11,6 +11,7 @@ TARGET_LANGUAGE = "EUru"
 REFERENCE_LANGUAGES = ("EUru", "EUen")  # the reference columns, in this order (the AI prompt gets each)
 DICTIONARY_PACK = "romfs/Pack/ZsDic.pack.zs"
 BUILD_TARGET = "nup"
+HOOKSHOT_TARGET = "hookshot"   # Hookshot (github.com/NotRexed/Hookshot): the game recompiled for Windows
 # What the wizard copies out of the package (path prefixes inside it): the text, its zstd dictionaries, the fonts.
 UNPACKED_PREFIXES = ("romfs/Mals/", DICTIONARY_PACK, "romfs/Font2/")
 

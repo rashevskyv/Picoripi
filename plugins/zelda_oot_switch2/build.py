@@ -7,6 +7,10 @@ text then shows as MsgNotFound), so the build also raises the entries of the fil
 blocks are the English slot (``USen``); a message whose translation differs from the English goes into the same
 message of the Russian archive (same members, labels and order in every slot), every other message keeps its
 Russian text. The Russian slot uses the ClarimoUDPE fonts, which hold Є І Ї Ґ.
+
+Hookshot, the game recompiled for Windows, reads the same files: ``build_hookshot`` writes only the changed ones
+into a ``romfs`` folder, and a launcher starts Hookshot with that folder over the game's own (``HOS_FS_OVERLAY``)
+in the Russian slot (``HOS_LANGUAGE=ru``), so the Hookshot game folder and its ``language.txt`` stay as they are.
 """
 from __future__ import annotations
 
@@ -96,6 +100,42 @@ def _size(data: bytes) -> int:
     return len(sarc.decompress(data)[0]) if data[:4] == sarc.ZSTD_MAGIC else len(data)
 
 
+def _translated(source_dir: str, translation_dir: str):
+    """``(the source package, {path in the package: new bytes})`` with the size table raised to fit."""
+    root = find_disc_root(source_dir)
+    image = disc_of_source(root)
+    changes = changes_of(root, source_dir, translation_dir)
+    if not changes:
+        raise ValueError(tr("The translation has no translated text yet; nothing to build."))
+    changes.update(size_table(image, changes))
+    return image, changes
+
+
+HOOKSHOT_LAUNCHER = "Hookshot UA.bat"
+_LAUNCHER = """@echo off
+rem Starts Hookshot with the Ukrainian translation. Copy this file next to hookshot.exe once.
+set "HOS_FS_OVERLAY={romfs}"
+set "HOS_LANGUAGE=ru"
+start "" /d "%~dp0" "%~dp0hookshot.exe"
+"""
+
+
+def build_hookshot(source_dir: str, translation_dir: str, output_dir: str, final_dir: str) -> str:
+    """The changed game files in ``output_dir/romfs`` and the launcher; returns the launcher's path.
+
+    ``final_dir`` is where ``output_dir`` ends up (the launcher names the folder there).
+    """
+    _image, changes = _translated(source_dir, translation_dir)
+    romfs = Path(output_dir) / "romfs"
+    for path, data in changes.items():
+        target = romfs / path.removeprefix("romfs/")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+    launcher = Path(output_dir) / HOOKSHOT_LAUNCHER
+    launcher.write_text(_LAUNCHER.format(romfs=Path(final_dir) / "romfs"), encoding="ascii", newline="\r\n")
+    return str(launcher)
+
+
 def build_nup(source_dir: str, translation_dir: str, output_dir: str,
               progress: Callable[[int, str], None], is_cancelled: Callable[[], bool],
               previous_dir: Optional[str] = None) -> Optional[str]:
@@ -104,12 +144,7 @@ def build_nup(source_dir: str, translation_dir: str, output_dir: str,
     When ``previous_dir`` holds the package an earlier build made from the same disc, that package moves into
     ``output_dir`` and is updated in place (seconds instead of a copy of the whole disc).
     """
-    root = find_disc_root(source_dir)
-    image = disc_of_source(root)
-    changes = changes_of(root, source_dir, translation_dir)
-    if not changes:
-        raise ValueError(tr("The translation has no translated text yet; nothing to build."))
-    changes.update(size_table(image, changes))
+    image, changes = _translated(source_dir, translation_dir)
     name = f"{image.stem} (UA).nup"
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     previous = Path(previous_dir) / name if previous_dir else None
