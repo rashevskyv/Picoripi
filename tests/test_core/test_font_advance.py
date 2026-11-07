@@ -95,3 +95,12 @@ def test_only_a_flat_cyrillic_block_is_remeasured():
     assert advance.flat_block(metadata) is True                       # two glyphs, both 35 - still flat
     metadata["WID1"][0]["packets"][3]["width"] = 20
     assert advance.flat_block(metadata) is False                      # measured values: left alone
+
+
+def test_ink_that_starts_inside_the_cell_adds_its_offset_to_the_left_bearing():
+    """A BMFont glyph sits at its own offset in a shared cell: П's ink starts at column 3, so 3 more columns."""
+    metadata, sheets = _synthetic()
+    sheets[0].paste((0, 0, 0, 0), (20, 0, 30, 10))
+    sheets[0].paste((255, 255, 255, 255), (23, 0, 29, 5))
+    assert advance.ink_span(metadata, sheets, 2) == (3, 6)
+    assert advance.remeasure(metadata, sheets, [2]) == [(2, 35, 10)]   # 3 + 6 - (-2) - 1

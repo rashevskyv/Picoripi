@@ -29,11 +29,12 @@ def suggest_advances(viewer, glyphs: List[int]) -> int:
         index = glyph - viewer.first_code
         if not 0 <= index < len(packets):
             continue
-        ink = advance.ink_width(metadata, sheets, index)
-        if ink is None:
+        span = advance.ink_span(metadata, sheets, index)
+        if span is None:
             continue
+        first, ink = span
         old = packets[index]["width"]
-        new = advance.suggested_advance(ink, packets[index]["kerning"], right, cell_width)
+        new = advance.suggested_advance(ink, packets[index]["kerning"], right, cell_width, first)
         if new == old:
             continue
         viewer.undo_stack.push(EditMetricsCommand(viewer, glyph, packets[index]["kerning"],

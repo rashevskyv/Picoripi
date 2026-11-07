@@ -1,9 +1,10 @@
 """Advance widths of a bitmap font's glyphs from their drawn pixels, with the rule the font's own Latin letters follow.
 
 A glyph has three numbers in the width table: kerning (its left offset), glyph width (the ink it draws) and advance
-(the step to the next glyph). The ink width is the drawn columns of the glyph's cell. The left bearing is the
-kerning as it stands (drawn glyph start = -kerning); the right bearing is the median of the font's Latin letters and
-digits, so the advance = ink - kerning + right bearing. A Cyrillic block that carries one flat advance for every glyph
+(the step to the next glyph). The ink width is the drawn columns of the glyph's cell. The left bearing is where the
+ink starts: its first column in the cell minus the kerning (the cell starts at -kerning from the pen); a font whose
+glyphs sit at their own offsets in a shared cell (BMFont) has a different first column per glyph. The right bearing is
+the median of the font's Latin letters and digits, so the advance = left bearing + ink + right bearing. A Cyrillic block that carries one flat advance for every glyph
 (35 in the Wind Waker HD message font) is re-measured with it.
 
 Pixels and kerning are never changed here; only the glyph width and the advance.
@@ -37,6 +38,12 @@ def _cell_box(metadata: Dict[str, Any], glyph: int) -> Optional[Tuple[int, int, 
 
 def ink_width(metadata: Dict[str, Any], sheets: List[Any], glyph: int) -> Optional[int]:
     """Drawn width of a glyph: the columns from its first to its last inked column. None when the cell is empty."""
+    span = ink_span(metadata, sheets, glyph)
+    return None if span is None else span[1]
+
+
+def ink_span(metadata: Dict[str, Any], sheets: List[Any], glyph: int) -> Optional[Tuple[int, int]]:
+    """(first inked column in the cell, ink width) of a glyph; None when the cell is empty."""
     box = _cell_box(metadata, glyph)
     if box is None:
         return None
@@ -47,7 +54,7 @@ def ink_width(metadata: Dict[str, Any], sheets: List[Any], glyph: int) -> Option
     columns = [x for x in range(cw) if any(alpha.getpixel((x, y)) >= INK_THRESHOLD for y in range(ch))]
     if not columns:
         return None
-    return columns[-1] - columns[0] + 1
+    return columns[0], columns[-1] - columns[0] + 1
 
 
 def _packets(metadata: Dict[str, Any]) -> List[Dict[str, int]]:
@@ -64,7 +71,7 @@ def _glyph_widths(metadata: Dict[str, Any]) -> List[int]:
 def latin_right_bearing(metadata: Dict[str, Any], sheets: List[Any]) -> float:
     """Median right side bearing of the font's Latin letters and digits: advance - (left bearing + ink width).
 
-    The left bearing of a glyph is -kerning; the right bearing is what the advance adds after the ink.
+    The left bearing of a glyph is its first inked column - kerning; the right bearing is what the advance adds after the ink.
     """
     cmap = char_map(metadata)
     packets = _packets(metadata)
@@ -73,18 +80,19 @@ def latin_right_bearing(metadata: Dict[str, Any], sheets: List[Any]) -> float:
         glyph = cmap.get(char)
         if glyph is None or glyph >= len(packets):
             continue
-        ink = ink_width(metadata, sheets, glyph)
-        if ink is None:
+        span = ink_span(metadata, sheets, glyph)
+        if span is None:
             continue
-        bearings.append(packets[glyph]["width"] + packets[glyph]["kerning"] - ink)
+        bearings.append(packets[glyph]["width"] + packets[glyph]["kerning"] - span[0] - span[1])
     if len(bearings) < 2:
         raise ValueError("the font has too few Latin glyphs to take the side bearings from")
     return statistics.median(bearings)
 
 
-def suggested_advance(ink: int, kerning: int, right_bearing: float, cell_width: int) -> int:
-    """Advance of a glyph with ink ``ink`` and left bearing -kerning, followed by the Latin right bearing."""
-    return max(0, min(cell_width, round(ink - kerning + right_bearing)))
+def suggested_advance(ink: int, kerning: int, right_bearing: float, cell_width: int, first: int = 0) -> int:
+    """Advance of a glyph with ink ``ink`` from cell column ``first`` (left bearing first - kerning), followed by the
+    Latin right bearing."""
+    return max(0, min(cell_width, round(first + ink - kerning + right_bearing)))
 
 
 def remeasure(metadata: Dict[str, Any], sheets: List[Any], glyphs: Iterable[int]) -> List[Tuple[int, int, int]]:
@@ -97,11 +105,12 @@ def remeasure(metadata: Dict[str, Any], sheets: List[Any], glyphs: Iterable[int]
     for glyph in sorted(set(glyphs)):
         if glyph >= len(packets):
             continue
-        ink = ink_width(metadata, sheets, glyph)
-        if ink is None:
+        span = ink_span(metadata, sheets, glyph)
+        if span is None:
             continue
+        first, ink = span
         old = packets[glyph]["width"]
-        packets[glyph]["width"] = suggested_advance(ink, packets[glyph]["kerning"], right, cell_width)
+        packets[glyph]["width"] = suggested_advance(ink, packets[glyph]["kerning"], right, cell_width, first)
         widths[glyph] = ink
         if packets[glyph]["width"] != old:
             changes.append((glyph, old, packets[glyph]["width"]))
