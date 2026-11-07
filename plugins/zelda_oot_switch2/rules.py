@@ -105,7 +105,9 @@ class GameRules(TotkRules):
                      progress, is_cancelled) -> str:
         if target_id != BUILD_TARGET:
             return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
-        return build.build_nup(source_dir, translation_dir, output_dir, progress, is_cancelled)
+        # core.project_library.build keeps the last result in build/<target id>, beside this new output folder
+        previous = str(Path(output_dir).resolve().parent / BUILD_TARGET)
+        return build.build_nup(source_dir, translation_dir, output_dir, progress, is_cancelled, previous)
 
     # -- glossary ----------------------------------------------------------------
 

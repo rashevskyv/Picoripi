@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import copy
 import json
+import time
 from PyQt6.QtWidgets import QMessageBox
 from utils.logging_utils import log_info, log_error
 from core.plugin_call import safe_call
@@ -17,6 +18,12 @@ def _detection_settings_changed(previous, current, problem_ids):
         previous.get(problem_id, True) != current.get(problem_id, True)
         for problem_id in relevant_ids
     )
+
+
+def _minutes(seconds: float) -> str:
+    """``m:ss`` for a build's progress line."""
+    seconds = int(seconds)
+    return f"{seconds // 60}:{seconds % 60:02d}"
 
 
 class MainWindowSettingsActionsMixin:
@@ -520,17 +527,26 @@ class MainWindowSettingsActionsMixin:
         dialog.setAutoReset(False)
         dialog.setMinimumDuration(0)
         dialog.canceled.connect(on_cancel)
+        self._build_started = time.monotonic()
         hint = dialog.sizeHint()
         dialog.setFixedSize(max(460, hint.width()), hint.height())
         dialog.show()
         return dialog
 
     def _build_progress(self, percent, text):
-        self.mw.statusBar.showMessage(f"{text} ({percent} %)")
+        percent = max(0, min(100, int(percent)))
+        now = time.monotonic()
+        passed = now - getattr(self, '_build_started', now)
+        if 0 < percent < 100:
+            timing = tr('{0} passed, about {1} left', _minutes(passed), _minutes(passed * (100 - percent) / percent))
+        else:
+            timing = tr('{0} passed', _minutes(passed))
+        label = f"{text or tr('Building...')} · {timing}"
+        self.mw.statusBar.showMessage(f"{label} ({percent} %)")
         dialog = getattr(self, '_build_dialog', None)
         if dialog is not None:
-            dialog.setLabelText(text)
-            dialog.setValue(max(0, min(100, int(percent))))
+            dialog.setLabelText(label)
+            dialog.setValue(percent)
 
     def _build_done(self, path):
         from PyQt6.QtCore import QUrl

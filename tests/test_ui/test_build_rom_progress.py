@@ -21,11 +21,15 @@ def _actions(qtbot):
     return actions
 
 
-def test_progress_reaches_the_dialog(qtbot):
+def test_progress_reaches_the_dialog_with_the_time_passed_and_left(qtbot, monkeypatch):
     actions = _actions(qtbot)
-    actions._build_progress(42, "Writing the package")
-    assert actions._build_dialog.value() == 42
-    assert actions._build_dialog.labelText() == "Writing the package"
+    clock = iter([100.0, 160.0])
+    monkeypatch.setattr(settings_mixin.time, "monotonic", lambda: next(clock))
+    actions._build_progress_dialog("Build ROM", lambda: None).close()
+    actions._build_dialog = QProgressDialog("", "Cancel", 0, 100, actions.mw)
+    actions._build_progress(25, "Writing the package")
+    assert actions._build_dialog.value() == 25
+    assert actions._build_dialog.labelText() == "Writing the package · 1:00 passed, about 3:00 left"
 
 
 def test_done_opens_the_folder_and_closes_the_dialog(qtbot, tmp_path, monkeypatch):

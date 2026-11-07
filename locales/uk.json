@@ -3451,5 +3451,8 @@
   "Typed line break": "Введений розрив рядка",
   "Word does not fit its box": "Слово не вміщується в рамку",
   "{count} cases": "випадків: {count}",
-  "{count} sublines": "підрядків: {count}"
+  "{count} sublines": "підрядків: {count}",
+  "{0} passed, about {1} left": "Минуло {0}, лишилось близько {1}",
+  "{0} passed": "Минуло {0}",
+  "The NUP package was not built from this source; build it again from the start.": "Пакет NUP зібрано не з цього джерела; зберіть його заново з початку."
 }

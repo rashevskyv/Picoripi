@@ -275,6 +275,34 @@ def test_a_cancelled_write_leaves_nothing(tmp_path):
     assert list(target.parent.iterdir()) == []
 
 
+def test_an_update_in_place_gives_the_same_bytes_as_a_new_package(tmp_path):
+    source = write_package(tmp_path)
+    built, fresh = tmp_path / "built" / "game.nup", tmp_path / "fresh" / "game.nup"
+    first = {"romfs/Model/Link.bfres.zs": b"a new model, longer than before", "exefs/main": b"NSO0 patched"}
+    nup.write(source, built, first, ignore, lambda: False)
+
+    for changes in ({"exefs/main": b"NSO0 patched again, and longer"}, {}, first):
+        assert nup.is_update_of(source, built)
+        assert nup.update(source, built, changes, ignore) == str(built)
+        nup.write(source, fresh, changes, ignore, lambda: False)
+        assert built.read_bytes() == fresh.read_bytes()
+
+
+def test_an_update_refuses_a_package_not_made_from_this_source(tmp_path):
+    source = write_package(tmp_path)
+    (tmp_path / "other").mkdir()
+    other = write_package(tmp_path / "other", title=0x0400000000001000)
+    built = tmp_path / "built" / "game.nup"
+    nup.write(other, built, {}, ignore, lambda: False)
+    assert not nup.is_update_of(source, built)
+    with pytest.raises(ValueError, match="not built from this source"):
+        nup.update(source, built, {}, ignore)
+
+    nup.write(source, built, {}, ignore, lambda: False)
+    built.write_bytes(built.read_bytes() + b"changed by hand")
+    assert not nup.is_update_of(source, built)
+
+
 # -- the build ---------------------------------------------------------------------
 
 
@@ -320,6 +348,38 @@ def test_the_build_writes_a_package_with_the_translation_in_the_russian_slot(tmp
     assert first_texts(rebuilt["romfs/Mals/EUru.Product.110.sarc.zs"])[0] == "Саріа"
     assert {path: data for path, data in rebuilt.items() if "EUru" not in path} == {
         path: data for path, data in files.items() if "EUru" not in path}
+
+
+def test_a_second_build_updates_the_first_package_in_place(tmp_path, monkeypatch):
+    from core.project_library import build as project_build
+    files = {**FILES, "romfs/Mals/USen.Product.110.sarc.zs": npc_archive("Saria"),
+             "romfs/Mals/EUru.Product.110.sarc.zs": npc_archive("Slot-RU Saria"),
+             "romfs/Pack/ZsDic.pack.zs": samples.zsdic_pack(samples.dictionary())}
+    image = tmp_path / "game.nup"
+    image.write_bytes(package(files))
+    unpacked = tmp_path / "unpacked"
+    GameRules().unpack_sources({"base": str(image)}, str(unpacked), ignore, lambda: False)
+    translation = tmp_path / "translation"
+    translation.mkdir()
+    (translation / "USen.Product.110.sarc.zs").write_bytes(npc_archive("Саріа"))
+    project = tmp_path / "project"
+
+    def run():
+        return project_build.run_build(GameRules(), "nup", project, str(unpacked / "romfs/Mals"), str(translation),
+                                       ignore, lambda: False)
+
+    first = run()
+    (translation / "USen.Product.110.sarc.zs").write_bytes(npc_archive("Навi"))
+
+    def no_copy(*_args):
+        raise AssertionError("the second build copied the whole package")
+
+    monkeypatch.setattr(nup, "write", no_copy)
+    second = run()
+
+    assert second == first
+    assert first_texts(read_all(second)["romfs/Mals/EUru.Product.110.sarc.zs"])[0] == "Навi"
+    assert nup.is_update_of(image, second)
 
 
 def test_a_build_without_translated_text_is_refused(tmp_path):

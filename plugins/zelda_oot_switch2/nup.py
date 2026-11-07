@@ -20,11 +20,13 @@ Layout, little-endian, measured on The Legend of Zelda: Ocarina of Time (title 0
 
 No keys: nothing is encrypted. ``python -m plugins.zelda_oot_switch2.nup <package.nup>`` lists the files (path,
 size, offset, stored size, zstd flag) without unpacking anything. ``write`` makes a new package with some files
-replaced.
+replaced; ``update`` rewrites such a package in place (only the bytes after the source's data), so a rebuild does
+not copy the whole package again.
 """
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import struct
 import sys
@@ -43,6 +45,7 @@ FILE_SIZE = 80
 FLAG_ZSTD = 1
 ALIGN = 16
 CHUNK = 64 << 20
+SOURCE_RECORD = ".source.json"   # beside a written package: the source and package it was made from
 
 
 @dataclass(frozen=True)
@@ -139,12 +142,7 @@ def write(source: str | os.PathLike, target: str | os.PathLike, changes: Dict[st
     target.parent.mkdir(parents=True, exist_ok=True)
     with open(source, "rb") as stream:
         package = Nup(stream)
-        by_path = {entry.path: entry for entry in package.entries}
-        unknown = sorted(set(changes) - set(by_path))
-        if unknown:
-            raise ValueError(tr("{0}: not in the NUP package (new files are not written)", unknown[0]))
-        changes = {path: data for path, data in changes.items()
-                   if hashlib.sha256(data).digest() != by_path[path].sha256}
+        changes = _changed(package, changes)
         total = package.trailer_offset + sum(len(data) for data in changes.values())
         try:
             with open(tmp, "wb") as out:
@@ -152,30 +150,7 @@ def write(source: str | os.PathLike, target: str | os.PathLike, changes: Dict[st
                     out.close()
                     tmp.unlink()
                     return None
-                stream.seek(0)
-                meta = bytearray(stream.read(package.data_start))
-                position = package.trailer_offset
-                for path in sorted(changes):
-                    entry, data = by_path[path], changes[path]
-                    if entry.compressed:
-                        from compression import zstd   # Python 3.14+
-                        stored = zstd.compress(data)
-                    else:
-                        stored = data
-                    position = _pad(out, position)
-                    out.write(stored)
-                    struct.pack_into("<QQQ32s", meta, package.record_at(entry.index) + 8, len(data), position,
-                                     len(stored), hashlib.sha256(data).digest())
-                    position += len(stored)
-                position = _pad(out, position)
-                stream.seek(package.trailer_offset)
-                trailer = stream.read()
-                out.write(trailer)
-                struct.pack_into("<Q", meta, 0xD0, position)
-                struct.pack_into("<Q", meta, 0x40, position + len(trailer))
-                meta[0x18:0x38] = hashlib.sha256(bytes(meta[TOC:package.data_start])).digest()
-                out.seek(0)
-                out.write(meta)
+                _write_tail(stream, out, package, changes)
                 out.flush()
                 os.fsync(out.fileno())
         except BaseException:
@@ -183,8 +158,104 @@ def write(source: str | os.PathLike, target: str | os.PathLike, changes: Dict[st
                 tmp.unlink()
             raise
     os.replace(tmp, target)
+    _remember(source, target)
     progress(100, "")
     return str(target)
+
+
+def update(source: str | os.PathLike, target: str | os.PathLike, changes: Dict[str, bytes],
+           progress: Callable[[int, str], None]) -> str:
+    """Rewrite ``target``, a package ``write`` made from ``source``, with ``changes`` instead; returns ``target``.
+
+    Everything before the source's trailer is the source's own bytes in both, so only the replaced files, the
+    trailer and the header are written: the result has the same bytes as a new ``write``. The source record is
+    removed first and written last, so an update cut short is never taken for a good package (the next build
+    copies everything again). Raises ValueError when ``target`` was not made from this ``source``.
+    """
+    source, target = Path(source), Path(target)
+    if not is_update_of(source, target):
+        raise ValueError(tr("The NUP package was not built from this source; build it again from the start."))
+    _record(target).unlink()
+    with open(source, "rb") as stream, open(target, "r+b") as out:
+        package = Nup(stream)
+        changes = _changed(package, changes)
+        progress(10, "")
+        out.seek(package.trailer_offset)
+        end = _write_tail(stream, out, package, changes)
+        out.truncate(end)
+        out.flush()
+        os.fsync(out.fileno())
+    _remember(source, target)
+    progress(100, "")
+    return str(target)
+
+
+def is_update_of(source: str | os.PathLike, target: str | os.PathLike) -> bool:
+    """True when ``target`` is a package ``write`` or ``update`` made from ``source`` and unchanged since."""
+    try:
+        record = json.loads(_record(Path(target)).read_text(encoding="utf-8"))
+        return record == _facts(Path(source), Path(target))
+    except (OSError, ValueError):
+        return False
+
+
+def _record(target: Path) -> Path:
+    return target.with_name(target.name + SOURCE_RECORD)
+
+
+def _facts(source: Path, target: Path) -> Dict[str, object]:
+    made, used = source.stat(), target.stat()
+    return {"source": str(source.resolve()), "source_size": made.st_size, "source_mtime_ns": made.st_mtime_ns,
+            "size": used.st_size, "mtime_ns": used.st_mtime_ns}
+
+
+def _remember(source: Path, target: Path) -> None:
+    record = _record(target)
+    tmp = record.with_name(record.name + ".tmp")
+    tmp.write_text(json.dumps(_facts(source, target)), encoding="utf-8")
+    os.replace(tmp, record)
+
+
+def _changed(package: Nup, changes: Dict[str, bytes]) -> Dict[str, bytes]:
+    """The changes that differ from the package's own files; a path not in the package is refused."""
+    by_path = {entry.path: entry for entry in package.entries}
+    unknown = sorted(set(changes) - set(by_path))
+    if unknown:
+        raise ValueError(tr("{0}: not in the NUP package (new files are not written)", unknown[0]))
+    return {path: data for path, data in changes.items() if hashlib.sha256(data).digest() != by_path[path].sha256}
+
+
+def _write_tail(stream: BinaryIO, out: BinaryIO, package: Nup, changes: Dict[str, bytes]) -> int:
+    """From the source's trailer offset on (``out`` stands there): the changed files, the trailer, then the header.
+
+    Returns the new package size.
+    """
+    by_path = {entry.path: entry for entry in package.entries}
+    stream.seek(0)
+    meta = bytearray(stream.read(package.data_start))
+    position = package.trailer_offset
+    for path in sorted(changes):
+        entry, data = by_path[path], changes[path]
+        if entry.compressed:
+            from compression import zstd   # Python 3.14+
+            stored = zstd.compress(data)
+        else:
+            stored = data
+        position = _pad(out, position)
+        out.write(stored)
+        struct.pack_into("<QQQ32s", meta, package.record_at(entry.index) + 8, len(data), position,
+                         len(stored), hashlib.sha256(data).digest())
+        position += len(stored)
+    position = _pad(out, position)
+    stream.seek(package.trailer_offset)
+    trailer = stream.read()
+    out.write(trailer)
+    struct.pack_into("<Q", meta, 0xD0, position)
+    struct.pack_into("<Q", meta, 0x40, position + len(trailer))
+    meta[0x18:0x38] = hashlib.sha256(bytes(meta[TOC:package.data_start])).digest()
+    out.seek(0)
+    out.write(meta)
+    return position + len(trailer)
 
 
 def _copy(stream: BinaryIO, out: BinaryIO, length: int, total: int,

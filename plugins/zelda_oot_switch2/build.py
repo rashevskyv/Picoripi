@@ -8,6 +8,7 @@ Russian text. The Russian slot uses the ClarimoUDPE fonts, which hold Є І Ї �
 """
 from __future__ import annotations
 
+import os
 import posixpath
 import shutil
 from pathlib import Path
@@ -65,17 +66,30 @@ def changes_of(root: Path, source_dir: str, translation_dir: str) -> Dict[str, b
 
 
 def build_nup(source_dir: str, translation_dir: str, output_dir: str,
-              progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> Optional[str]:
-    """Write the translated package into ``output_dir`` and return its path (None when cancelled)."""
+              progress: Callable[[int, str], None], is_cancelled: Callable[[], bool],
+              previous_dir: Optional[str] = None) -> Optional[str]:
+    """Write the translated package into ``output_dir`` and return its path (None when cancelled).
+
+    When ``previous_dir`` holds the package an earlier build made from the same disc, that package moves into
+    ``output_dir`` and is updated in place (seconds instead of a copy of the whole disc).
+    """
     root = find_disc_root(source_dir)
     image = disc_of_source(root)
     changes = changes_of(root, source_dir, translation_dir)
     if not changes:
         raise ValueError(tr("The translation has no translated text yet; nothing to build."))
-    need = image.stat().st_size + sum(len(data) for data in changes.values())
+    name = f"{image.stem} (UA).nup"
     Path(output_dir).mkdir(parents=True, exist_ok=True)
+    previous = Path(previous_dir) / name if previous_dir else None
+    if previous is not None and nup.is_update_of(image, previous):
+        target = Path(output_dir) / name
+        record = previous.with_name(previous.name + nup.SOURCE_RECORD)
+        os.replace(record, target.with_name(record.name))
+        os.replace(previous, target)
+        return nup.update(image, target, changes, progress)
+    need = image.stat().st_size + sum(len(data) for data in changes.values())
     free = shutil.disk_usage(output_dir).free
     if free < need:
         raise ValueError(tr("Not enough free space on {0}: the package needs {1} MB, and {2} MB is free.",
                             output_dir, str(-(-need // 2**20)), str(free // 2**20)))
-    return nup.write(image, Path(output_dir) / f"{image.stem} (UA).nup", changes, progress, is_cancelled)
+    return nup.write(image, Path(output_dir) / name, changes, progress, is_cancelled)
