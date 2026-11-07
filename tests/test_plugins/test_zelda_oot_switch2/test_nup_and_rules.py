@@ -405,12 +405,14 @@ def test_the_hookshot_build_writes_the_changed_files_and_a_launcher_that_lays_th
     folder = tmp_path / "project" / "build" / "hookshot"
     assert result == folder / build.HOOKSHOT_LAUNCHER
     assert [path.relative_to(folder).as_posix() for path in folder.rglob("*") if path.is_file()] == [
-        build.HOOKSHOT_LAUNCHER, "romfs/Mals/EUru.Product.110.sarc.zs"]
+        build.HOOKSHOT_LAUNCHER, build.UPDATER, "romfs/Mals/EUru.Product.110.sarc.zs"]
     assert first_texts((folder / "romfs/Mals/EUru.Product.110.sarc.zs").read_bytes())[0] == "Саріа"
     launcher = result.read_bytes()
     assert f'set "HOS_FS_OVERLAY={folder / "romfs"}"\r\n'.encode() in launcher
     assert b'set "HOS_LANGUAGE=ru"\r\n' in launcher and b"hookshot.exe" in launcher
-
+    nup_path = tmp_path / "project" / "build" / "nup" / "game (UA).nup"
+    assert (f'-File "{folder / build.UPDATER}" -Game "%~dp0." -Nup "{nup_path}" '
+            f'-Original "{image.resolve()}"\r\n').encode() in launcher
 
 def test_a_second_build_updates_the_first_package_in_place(tmp_path, monkeypatch):
     from core.project_library import build as project_build

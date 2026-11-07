@@ -11,6 +11,7 @@ Russian text. The Russian slot uses the ClarimoUDPE fonts, which hold Є І Ї �
 Hookshot, the game recompiled for Windows, reads the same files: ``build_hookshot`` writes only the changed ones
 into a ``romfs`` folder, and a launcher starts Hookshot with that folder over the game's own (``HOS_FS_OVERLAY``)
 in the Russian slot (``HOS_LANGUAGE=ru``), so the Hookshot game folder and its ``language.txt`` stay as they are.
+The launcher also keeps Hookshot itself up to date: ``hookshot_update.ps1`` rebuilds it when a newer release is out.
 """
 from __future__ import annotations
 
@@ -28,7 +29,7 @@ from plugins.zelda_totk.restbl import Restbl, grown_like
 from plugins.zelda_totk.tags import to_editor
 
 from . import nup
-from .config import DICTIONARY_PACK, TARGET_LANGUAGE, TEXT_ARCHIVE_PREFIX
+from .config import BUILD_TARGET, DICTIONARY_PACK, TARGET_LANGUAGE, TEXT_ARCHIVE_PREFIX
 
 RESOURCE_TABLE = "romfs/System/Resource/ResourceSizeTable.Product."
 FONT_FOLDER = "Font2"   # a font edit lands in ``<translation>/../Font2``, the mirror of the source's ``../Font2``
@@ -116,23 +117,30 @@ _LAUNCHER = """@echo off
 rem Starts Hookshot with the Ukrainian translation. Copy this file next to hookshot.exe once.
 set "HOS_FS_OVERLAY={romfs}"
 set "HOS_LANGUAGE=ru"
+powershell -NoProfile -ExecutionPolicy Bypass -File "{updater}" -Game "%~dp0." -Nup "{nup}" -Original "{original}"
 start "" /d "%~dp0" "%~dp0hookshot.exe"
 """
+UPDATER = "hookshot_update.ps1"   # rebuilds Hookshot itself when a newer release is out (the launcher runs it first)
 
 
 def build_hookshot(source_dir: str, translation_dir: str, output_dir: str, final_dir: str) -> str:
     """The changed game files in ``output_dir/romfs`` and the launcher; returns the launcher's path.
 
-    ``final_dir`` is where ``output_dir`` ends up (the launcher names the folder there).
+    ``final_dir`` is where ``output_dir`` ends up (the launcher names the folder there). The launcher first runs
+    the updater, which rebuilds Hookshot from the translated package of the ``nup`` target (or the original).
     """
-    _image, changes = _translated(source_dir, translation_dir)
+    image, changes = _translated(source_dir, translation_dir)
     romfs = Path(output_dir) / "romfs"
     for path, data in changes.items():
         target = romfs / path.removeprefix("romfs/")
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
     launcher = Path(output_dir) / HOOKSHOT_LAUNCHER
-    launcher.write_text(_LAUNCHER.format(romfs=Path(final_dir) / "romfs"), encoding="ascii", newline="\r\n")
+    shutil.copyfile(Path(__file__).with_name(UPDATER), Path(output_dir) / UPDATER)
+    final = Path(final_dir)
+    launcher.write_text(_LAUNCHER.format(romfs=final / "romfs", updater=final / UPDATER, original=image,
+                                         nup=final.parent / BUILD_TARGET / f"{image.stem} (UA).nup"),
+                        encoding="ascii", newline="\r\n")
     return str(launcher)
 
 
