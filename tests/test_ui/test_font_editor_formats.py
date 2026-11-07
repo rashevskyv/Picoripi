@@ -587,3 +587,78 @@ def test_a_font_file_opened_from_a_plugin_folder_is_saved_to_the_users_copy(qtbo
     assert _width_of_b(user.read_bytes()) == 5
     editor.open_font_file(str(shipped))                                       # opened again: the user's copy
     assert editor.metadata["WID1"][0]["packets"][1]["width"] == 5
+
+
+def _bmfont(chars: int) -> bytes:
+    """A BMFont of ``chars`` 4x6 letters on one transparent DDS page (1024 cells a sheet in the editor)."""
+    from core.font_formats.sources import join_files, join_pair
+    dds = bytearray(128)                                       # a transparent 16x16 BC1 page
+    dds[0:4] = b"DDS "
+    struct.pack_into("<IIII", dds, 4, 124, 0x1007, 16, 16)
+    struct.pack_into("<II", dds, 76, 32, 4)
+    dds[84:88] = b"DXT1"
+    dds += (bytes(4) + bytes([255]) * 4) * 16
+    lines = ['info face="T" size=8', "common lineHeight=8 base=7 scaleW=16 scaleH=16 pages=1",
+             'page id=0 file="test_00.dds"', f"chars count={chars}"]
+    lines += [f"char id={0x4E00 + i} x=0 y=0 width=4 height=6 xoffset=1 yoffset=1 xadvance=6 page=0 chnl=15"
+              for i in range(chars)]
+    return join_pair(("\r\n".join(lines) + "\r\n").encode("utf-8"), join_files([("test_00.dds", bytes(dds))]))
+
+
+def test_every_plugin_font_is_read_once_and_the_tree_keeps_each_fonts_sheets(qtbot, tmp_path, monkeypatch):
+    from core.font_formats.sources import split_files, split_pair
+    from tools.bfn_editor import io_format_mixin
+    descriptors = []
+    for number, chars in ((0, 1100), (1, 3)):
+        folder = tmp_path / "source" / "Font" / str(number)
+        folder.mkdir(parents=True)
+        fnt, pages = split_pair(_bmfont(chars))
+        (folder / "test.fnt").write_bytes(fnt)
+        for name, data in split_files(pages):
+            (folder / name).write_bytes(data)
+        descriptors.append({"label": f"Font {number}", "format": "bmfont", "path": f"Font/{number}/test.fnt",
+                            "companion": f"Font/{number}/test_*.dds"})
+    decoded = []
+    real_extract = font_formats.extract
+    monkeypatch.setattr(io_format_mixin.font_formats, "extract",
+                        lambda fmt, data, params: decoded.append(fmt) or real_extract(fmt, data, params))
+    window = _MainWindow(tmp_path, descriptors)
+    qtbot.addWidget(window)
+    editor = BfnEditorWindow(parent=window)
+    editor.scan_fonts_directories()                           # reads every font ahead, the source as the original too
+    reads = len(decoded)
+
+    def tree():
+        top = editor.list_sheets
+        return {top.topLevelItem(i).text(0)[:6]: top.topLevelItem(i).childCount() for i in range(top.topLevelItemCount())}
+
+    for label in ("Font 1", "Font 0", "Font 1", "Font 0"):
+        editor.switch_active_bfn_new(label, "", "plugin", "", 0)
+        assert tree() == {"Font 0": 2, "Font 1": 1}
+    assert len(decoded) == reads                               # a switch decodes nothing again
+    assert len(editor.sheet_images) == 2
+
+
+def test_the_editors_right_click_item_opens_the_glyph_table_on_that_glyph(qtbot, tmp_path):
+    folder = tmp_path / "source" / "Font" / "0"
+    folder.mkdir(parents=True)
+    from core.font_formats.sources import split_files, split_pair
+    fnt, pages = split_pair(_bmfont(40))
+    (folder / "test.fnt").write_bytes(fnt)
+    for name, data in split_files(pages):
+        (folder / name).write_bytes(data)
+    window = _MainWindow(tmp_path, [{"label": "Font 0", "format": "bmfont", "path": "Font/0/test.fnt",
+                                     "companion": "Font/0/test_*.dds"}])
+    qtbot.addWidget(window)
+    editor = _open(window, "Font 0")
+    editor.table_search.setText("Sheet 9")                     # a search that hides the glyph
+    editor.populate_glyph_table()
+    assert editor.table_glyphs.rowCount() == 0
+
+    editor.show_glyph_in_table(30)
+    editor.populate_glyph_table()                              # what the cleared search starts after its delay
+    assert editor.tabs.currentWidget() is editor.table_glyphs.parentWidget()
+    assert editor.table_search.text() == ""
+    rows = editor.table_glyphs.selectionModel().selectedRows()
+    assert [editor.table_glyphs.verticalHeaderItem(r.row()).text() for r in rows] == ["30"]
+    assert editor.table_glyphs.item(rows[0].row(), 4).text() == chr(0x4E00 + 30)

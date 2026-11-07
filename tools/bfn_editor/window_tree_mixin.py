@@ -186,6 +186,10 @@ class WindowTreeMixin:
                 is_current = (bfn_name == self.current_bfn_name and not self.archive_name)
                 if is_current:
                     sheet_count = active_sheet_count
+                    if src_type == "plugin":
+                        source_info["sheet_count"] = active_sheet_count
+                elif src_type == "plugin":      # read ahead in the background (io_format_mixin.read_ahead)
+                    sheet_count = source_info.get("sheet_count", 1)
                 else:
                     try:
                         temp_bfn = BfnCore()

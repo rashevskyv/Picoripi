@@ -16,7 +16,8 @@ at most ``LINES_PER_PAGE`` lines. ``{raw:02}`` is a line break in the window (ow
 ``LINE_BREAK_TAGS``). In raw mode ``{raw:04}`` waits for a button, then ``{raw:01}`` opens a new window
 or ``{raw:03}`` closes it (``RAW_WINDOW_TAGS``): the order the Japanese text and the PS1 English raw messages
 share (``{raw:04}{raw:01}`` where the English text has ``{page}``, ``{raw:04}{raw:03}{end}`` at a message end).
-A character the program font lacks takes ``FULL_WIDTH`` when it is a full-width one (the Japanese text) and
+A character the program font lacks takes its width from the font that draws it (``widths``, the Remastered font in
+``lunar_sssc_remastered``), else ``FULL_WIDTH`` when it is a full-width one (the Japanese text) and
 ``LETTER_WIDTH`` when it is a letter (Cyrillic before the font has it).
 
 A portrait is 8-bit indexed (``FACE_nnn.TIZ``: five 64x64 frames after a 32-byte header whose ID bytes name
@@ -167,7 +168,7 @@ def _window_slots(pieces: Sequence[_Piece]) -> Dict[int, Tuple[int, int]]:
     return slots
 
 
-def parse_pages(text: str) -> Layout:
+def parse_pages(text: str, widths: Optional[Dict[str, int]] = None) -> Layout:
     """Split an editor text into pages (the windows of ``_pieces``) and name the layout problems."""
     pieces = _pieces(text)
     slots = _window_slots(pieces)
@@ -180,7 +181,7 @@ def parse_pages(text: str) -> Layout:
     for number, page in enumerate(pages, 1):
         if len(page) > LINES_PER_PAGE:
             problems.append(f"page {number}: {len(page)} lines, the window shows {LINES_PER_PAGE}")
-        if any(line.over for line in measure_page(page)):
+        if any(line.over for line in measure_page(page, widths)):
             problems.append(f"page {number}: a line is wider than the window")
     return Layout(pages, problems)
 
@@ -196,7 +197,7 @@ def room(left: int, right: int) -> Tuple[int, int]:
     return start, end - start
 
 
-def line_rights(text: str) -> List[int]:
+def line_rights(text: str, widths: Optional[Dict[str, int]] = None) -> List[int]:
     """Per ``\\n`` line of an editor text, the box x where its widest piece ends, each piece in its own window.
 
     A piece is measured with the room of its window only (a ``{page}`` inside the line starts a new window).
@@ -207,7 +208,7 @@ def line_rights(text: str) -> List[int]:
     rights = [0] * (text.count("\n") + 1)
     for piece in pieces:
         start, _ = room(*slots[piece.window])
-        end = start + text_width(piece.text)
+        end = start + text_width(piece.text, widths)
         rights[piece.segment] = max(rights[piece.segment], end)
     return rights
 
@@ -216,7 +217,7 @@ _TOKEN = re.compile(r"\{[^{}]*\}|\n|[ \t]+|[^\s{}]+")
 _PAGE_TAG_TOKENS = {"{page}", "{clear}", "{close}", "{end}"}
 
 
-def fit_lines(text: str) -> str:
+def fit_lines(text: str, widths: Optional[Dict[str, int]] = None) -> str:
     """``text`` re-wrapped so every line of each window stays inside its room (greedy, word by word).
 
     The model's line breaks are kept. A word that does not fit starts the next line. After LINES_PER_PAGE lines
@@ -269,7 +270,7 @@ def fit_lines(text: str) -> str:
                 open_window = True
                 limit = room(left, right)[1]
             candidate = plain + sep + token
-            if plain and text_width(candidate) > limit:
+            if plain and text_width(candidate, widths) > limit:
                 if lines + 1 >= LINES_PER_PAGE:
                     out.append(line + "{page}")
                     lines, open_window = 0, True
@@ -288,14 +289,16 @@ def fit_lines(text: str) -> str:
     return "".join(out)
 
 
-def advance(ch: str) -> int:
+def advance(ch: str, widths: Optional[Dict[str, int]] = None) -> int:
     """Pen advance of one character in game pixels (``lunar_font.json``).
 
-    A character the table lacks is a full cell from U+2000 up (Japanese text, symbols), a typical letter when
+    A character the table lacks takes its width from ``widths`` (the font that draws it), else it is a full cell from U+2000 up (Japanese text, symbols), a typical letter when
     it is a letter, else a space.
     """
     if ch in WIDTHS:
         return WIDTHS[ch]["width"]
+    if widths and ch in widths:
+        return widths[ch]
     if ch >= " ":
         return FULL_WIDTH
     return LETTER_WIDTH if ch.isalpha() else SPACE_WIDTH
@@ -325,24 +328,24 @@ class MeasuredLine:
         return self.start + self.width
 
 
-def measure_page(page: Sequence[Line]) -> List[MeasuredLine]:
+def measure_page(page: Sequence[Line], widths: Optional[Dict[str, int]] = None) -> List[MeasuredLine]:
     """Every line of a window measured with the same advances and room the preview draws it with.
 
     The window's slots (the first line's) set the text start and the room. Pure: no Qt, no glyph bitmaps.
     """
     left, right = (page[0].left, page[0].right) if page else (0, 0)
     start, limit = room(left, right)
-    return [MeasuredLine(line.text, start, text_width(line.text), limit) for line in page]
+    return [MeasuredLine(line.text, start, text_width(line.text, widths), limit) for line in page]
 
 
-def measure(text: str) -> List[MeasuredLine]:
+def measure(text: str, widths: Optional[Dict[str, int]] = None) -> List[MeasuredLine]:
     """Every line of an editor text, window by window (see ``measure_page``)."""
-    return [m for page in parse_pages(text).pages for m in measure_page(page)]
+    return [m for page in parse_pages(text, widths).pages for m in measure_page(page, widths)]
 
 
-def text_width(text: str) -> int:
+def text_width(text: str, widths: Optional[Dict[str, int]] = None) -> int:
     """Pen width of a line in game pixels: the sum of the character advances the preview uses."""
-    return sum(advance(ch) for ch in text)
+    return sum(advance(ch, widths) for ch in text)
 
 
 def decode_glyphs(slus: bytes) -> Dict[str, List[int]]:
@@ -414,7 +417,7 @@ def face_picture(files: Dict[str, bytes], index: Dict[int, Tuple[str, int]], fac
 
 
 def render_page(page: Sequence[Line], glyphs: Dict[str, List[int]], left_picture: Optional[Image.Image],
-                right_picture: Optional[Image.Image] = None) -> Image.Image:
+                right_picture: Optional[Image.Image] = None, widths: Optional[Dict[str, int]] = None) -> Image.Image:
     """The PICTURE_W x PICTURE_H picture of one page: the window, its portraits and the text, at the measured places.
 
     The game's band is a translucent dark strip over the scene: about half the scene's brightness (row means of
@@ -437,7 +440,7 @@ def render_page(page: Sequence[Line], glyphs: Dict[str, List[int]], left_picture
         for ch in line.text:
             if ch in glyphs:
                 _blit(canvas, glyphs[ch], x, top)
-            x += advance(ch)
+            x += advance(ch, widths)
     return canvas
 
 

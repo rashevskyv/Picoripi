@@ -95,6 +95,7 @@ class BfnEditorWindow(
         self.font_write_path = ""
         self._font_job = None
         self._font_job_queue = []
+        self._extract_cache = {}         # io_format_mixin.extract_cached
 
         self.undo_stack = QtGui.QUndoStack(self)
         self.undo_stack.cleanChanged.connect(lambda clean: self._set_dirty(not clean))

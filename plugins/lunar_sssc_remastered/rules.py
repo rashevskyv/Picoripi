@@ -84,13 +84,21 @@ class GameRules(BaseGameRules):
 
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 6) -> Optional[int]:
         """The rightmost pixel a line reaches in the PS1 window (``dialogue_preview.measure``)."""
-        return max((m.right for m in dialogue_preview.measure(text)), default=0)
+        return max((m.right for m in dialogue_preview.measure(text, self._font_widths())), default=0)
 
     def line_widths(self, text: str, font_map: dict) -> Optional[List[int]]:
-        return dialogue_preview.line_rights(text)
+        return dialogue_preview.line_rights(text, self._font_widths())
 
     def fit_text_to_window(self, text: str, block_idx: Optional[int], string_idx: Optional[int]) -> Optional[str]:
-        return dialogue_preview.fit_lines(text)
+        return dialogue_preview.fit_lines(text, self._font_widths())
+
+    def _font_widths(self) -> Optional[Dict[str, int]]:
+        """The widths of font 0 of the open project (the ones the preview draws with), None without a project."""
+        project_dir = getattr(getattr(self.mw, "project_manager", None), "project_dir", None)
+        if not project_dir:
+            return None
+        from .preview import font_widths
+        return font_widths(str(project_dir))
 
     def is_placeholder_speaker(self, name: str) -> bool:
         return False

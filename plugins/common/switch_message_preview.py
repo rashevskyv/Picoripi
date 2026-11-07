@@ -93,14 +93,16 @@ ZA_FIELD_BOX = BoxSpec("ui/data/msg/msg_body_00.arc", "blyt/msg_00.bflyt", "fcpx
                        label="Field dialogue box")
 
 
-def source_folder(project_dir: str) -> Optional[str]:
-    """The unpacked source folder of a project: ``metadata.source_path`` of its ``.uiproj`` file (None if absent)."""
+def source_folder(project_dir: str, key: str = "source_path") -> Optional[str]:
+    """The unpacked source folder of a project: ``metadata.source_path`` of its ``.uiproj`` file (None if absent).
+
+    ``key`` names another folder of the metadata (``translation_path``)."""
     folder = Path(project_dir)
     project = next(iter(sorted(folder.glob("*.uiproj"))), None)
     if project is None:
         return None
     data = json.loads(project.read_text(encoding="utf-8"))
-    source = str((data.get("metadata") or {}).get("source_path") or "")
+    source = str((data.get("metadata") or {}).get(key) or "")
     if not source:
         return None
     path = Path(source)

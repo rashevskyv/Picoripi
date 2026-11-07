@@ -239,7 +239,8 @@ class LunarDialoguePreview(QWidget):
     def _render(self) -> None:
         if self._sources is None:
             return
-        layout = dp.parse_pages(self._text)
+        widths = self._sources.get("widths")
+        layout = dp.parse_pages(self._text, widths)
         if not layout.pages or not layout.pages[0]:
             self._picture.clear_picture()
             self._speaker.clear()
@@ -252,7 +253,7 @@ class LunarDialoguePreview(QWidget):
         pictures = [dp.face_picture(self._sources["files"], self._sources["index"], number,
                                     self._sources["palette"], self._sources["colours"]) if number else None
                     for number in (page[0].left, page[0].right)]
-        image = dp.render_page(page, self._sources["glyphs"], pictures[0], pictures[1]).convert("RGBA")
+        image = dp.render_page(page, self._sources["glyphs"], pictures[0], pictures[1], widths).convert("RGBA")
         self._picture.set_picture(self._pixmap(image))
         self._page_label.setText(tr("Page {0} of {1}").format(self._page + 1, len(layout.pages)))
         name = dp.speaker_name(face) if face else None

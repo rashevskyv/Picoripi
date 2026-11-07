@@ -30,6 +30,9 @@ The interface in the screenshots is Ukrainian. The labels below are the English 
 2. A file dialog opens. Choose a font file. The dialog lists the formats `.bfn`, `.bffnt`, `.bcfnt`, `.qbf`, `.gzf`, `.g1t`, `.g1n` and `.gz`.
 3. To open a folder instead, press **Cancel**. Choose a folder with `data.json` and `sheet_*.png` files.
 4. The glyphs appear as a grid. Click a glyph to see its values.
+5. To find a glyph in **Glyph Table**, right-click it and press **Show in Glyph Table**. The table opens on the row of this glyph. If the table search hides the glyph, the editor clears the search.
+
+The editor reads all fonts of the project once, right after it opens. Switching between fonts and sheets does not decode a font again. The tree shows all sheets of each font.
 
 The fonts of a project come from the game plugin. The Font Editor can also open a font file that you choose yourself. The editor reads many game font formats. Examples are BFN, BFFNT, NFTR, G1T and TTF.
 

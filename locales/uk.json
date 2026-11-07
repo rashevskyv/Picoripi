@@ -2415,6 +2415,7 @@
         "Connect": "Підключитися",
         "Forget": "Забути",
     "Suggest Advance Width From Drawn Pixels": "Запропонувати ширину кроку за намальованими пікселями",
+    "Show in Glyph Table": "Показати в таблиці гліфів",
     "Linked font": "Пов’язаний шрифт",
     "This font has an identical one ({0}). Copy glyph changes between them?": "Цей шрифт має ідентичний ({0}). Копіювати зміни гліфів між ними?",
     "Yes": "Так",

@@ -3,11 +3,14 @@
 The plugin's ``get_font_sources()`` names the game's font files; they appear in the font tree and
 open from the project (the translation copy when there is one). Reading, decoding, encoding and
 writing run in a worker thread, one job after another, so a save is on disk before the next read
-of the same file; headless runs do the job inline. After a save the font's widths, with the
+of the same file; headless runs do the job inline. Every plugin font is read once in the background after the
+fonts are listed (``extract_cached`` keeps the decoded sheets per file content), so switching fonts takes no
+decoding; a load jumps ahead of these background reads, never ahead of a save. After a save the font's widths, with the
 translation map, are written to ``<project>/font_maps/<font map>.json`` for the width checks; a G1T
 whose widths are the game executable's table also writes them as an exefs patch (``core.font_formats.g1t``).
 """
 import copy
+import hashlib
 import json
 import os
 import tempfile
@@ -82,6 +85,23 @@ def pil_to_qimage(image: Image.Image) -> QtGui.QImage:
     return qimage.convertToFormat(QtGui.QImage.Format.Format_ARGB32)
 
 
+EXTRACT_CACHE_SIZE = 6           # decoded fonts kept per window: every plugin font plus a few saved versions
+
+
+def extract_cached(cache, fmt, data, params):
+    """``font_formats.extract`` with the sheets as QImages, kept in ``cache`` per format, parameters and file
+    content; returns copies, so edits never reach the cache."""
+    key = (fmt, json.dumps(params or {}, sort_keys=True, default=str), hashlib.sha1(bytes(data)).digest())
+    hit = cache.get(key)
+    if hit is None:
+        metadata, sheets = font_formats.extract(fmt, data, params)
+        hit = metadata, [pil_to_qimage(sheet) for sheet in sheets]
+        cache[key] = hit
+        while len(cache) > EXTRACT_CACHE_SIZE:
+            cache.pop(next(iter(cache)))
+    return copy.deepcopy(hit[0]), [image.copy() for image in hit[1]]
+
+
 OPEN_COPIES = weakref.WeakValueDictionary()     # font label -> the editor window that has it open
 
 
@@ -151,8 +171,10 @@ class IoFormatMixin:
         self.status.addPermanentWidget(self._font_cancel_button)
         self.status.showMessage(tr('Ready. Open a BFN file or extracted folder.'))
 
-    def run_font_job(self, work, on_done):
-        """Run ``work()`` off the UI thread, then ``on_done(result, error)`` on it; jobs queue up."""
+    def run_font_job(self, work, on_done, background=False):
+        """Run ``work()`` off the UI thread, then ``on_done(result, error)`` on it; jobs queue up.
+
+        A ``background`` job (a font read ahead) waits behind the others: a new job goes before the first queued one."""
         if getattr(self, "_font_closed", False):
             return
         if app_mode.headless:
@@ -163,7 +185,9 @@ class IoFormatMixin:
                 result, error = None, str(exc)
             on_done(result, error)
             return
-        self._font_job_queue.append((work, on_done))
+        queue = self._font_job_queue
+        at = len(queue) if background else next((i for i, job in enumerate(queue) if job[2]), len(queue))
+        queue.insert(at, (work, on_done, background))
         if self._font_job is None:
             self._start_next_font_job()
 
@@ -171,7 +195,7 @@ class IoFormatMixin:
         if not self._font_job_queue:
             self._font_job = None
             return
-        work, self._font_job_done = self._font_job_queue.pop(0)
+        work, self._font_job_done, _background = self._font_job_queue.pop(0)
         self._font_job = FontJob(work)
         self._font_job.done.connect(self._on_font_job_done)
         self._font_job.start()
@@ -226,7 +250,7 @@ class IoFormatMixin:
         from utils.thread_utils import safe_shutdown_thread
         self._font_closed = True
         self.cancel_font_load()
-        queued = [work for work, _callback in self._font_job_queue]
+        queued = [work for work, _callback, background in self._font_job_queue if not background]
         self._font_job_queue.clear()
         current = self._font_job
         if queued:
@@ -263,8 +287,39 @@ class IoFormatMixin:
                 })
             if found and self.isVisible():
                 self.rebuild_tree_widget()
+            for source in found:
+                self.read_ahead(source)
 
         self.run_font_job(lambda: resolve(rules.get_font_sources(), metadata), done)
+
+    def read_ahead(self, source, data=None):
+        """Decode a plugin font (its current file, or ``data`` just saved) in a background job, so opening it later
+        takes no decoding; the tree then lists all its sheets."""
+        if source.format == "bfn":
+            return
+        cache = self._extract_cache
+
+        def work():
+            current = source.read_current() if data is None else data
+            sheets = extract_cached(cache, source.format, current, source.params)[1]
+            if data is None:
+                original = source.read_original()
+                if original != current:
+                    extract_cached(cache, source.format, original, source.params)
+            return len(sheets)
+
+        def done(count, error):
+            info = self.font_sources.get(source.label)
+            if error or info is None or getattr(self, "_font_closed", False):
+                return
+            if info.get("sheet_count") != count and source.label != self.current_bfn_name:
+                info["sheet_count"] = count
+                if self.isVisible():
+                    self.rebuild_tree_widget(len(self.sheet_images))
+                    if self.current_bfn_name:
+                        self.set_current_sheet_row(self.current_sheet_index)
+
+        self.run_font_job(work, done, background=True)
 
     def project_font_map_path(self, source=None):
         """``<project>/font_maps/<name>.json`` for a plugin's font, or None outside a project."""
@@ -447,7 +502,7 @@ class IoFormatMixin:
         def work():
             if cancel.is_set():
                 return None
-            metadata, sheets = font_formats.extract(fmt, data, params)
+            metadata, sheet_images = extract_cached(self._extract_cache, fmt, data, params)
             if cancel.is_set():
                 return None
             patch = b""
@@ -460,11 +515,10 @@ class IoFormatMixin:
             elif saved_map_path and os.path.isfile(saved_map_path):
                 with open(saved_map_path, encoding="utf-8") as stream:
                     apply_saved_widths(metadata, json.load(stream))
-            prepared = metadata, [pil_to_qimage(sheet) for sheet in sheets]
+            prepared = metadata, sheet_images
             original_model = None
             if original is not None and (original != data or patch):
-                original_metadata, original_sheets = font_formats.extract(fmt, original, params)
-                original_model = original_metadata, [pil_to_qimage(sheet) for sheet in original_sheets]
+                original_model = extract_cached(self._extract_cache, fmt, original, params)
             if cancel.is_set():
                 return None
             return prepared, original_model
@@ -531,6 +585,8 @@ class IoFormatMixin:
                 return
             self.font_original = data
             log_info(f"Font editor: saved {fmt} font ({len(data)} bytes).")
+            if source is not None:
+                self.read_ahead(source, data)
             self._mark_saved(silent)
             self.status.showMessage(tr("Saved font: {0}", source.label if source else os.path.basename(write_path)))
 

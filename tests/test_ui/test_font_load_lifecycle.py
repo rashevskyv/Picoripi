@@ -101,8 +101,7 @@ def test_close_during_decode_discards_result_but_finishes_queued_write(qtbot, tm
         assert editor.temp_dir == ""
         release.set()
         qtbot.waitUntil(finished.is_set, timeout=5000)
-        qtbot.waitUntil(saved.exists, timeout=5000)
-        assert saved.read_text(encoding="utf-8") == "Saved"
+        qtbot.waitUntil(lambda: saved.exists() and saved.read_text(encoding="utf-8") == "Saved", timeout=5000)
         assert callbacks == []
         assert editor.metadata == {}
         assert editor.temp_dir == ""

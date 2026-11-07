@@ -222,58 +222,53 @@ class GlyphTableMixin:
             rows_data.append((idx, char_val, font_char_val, sheet_idx, gx, gy, kerning, width, orig_char_data))
         return rows_data
 
-    def _populate_single_glyph_row(self, r_idx: int, data: tuple) -> None:
-        idx, char_val, font_char_val, sheet_idx, gx, gy, kerning, width, orig_char_data = data
+    def _glyph_row_templates(self) -> dict[int, QtWidgets.QTableWidgetItem]:
+        """One styled item per column; rows are clones of them (styling every item one by one was most of a fill)."""
+        read_only = QtWidgets.QTableWidgetItem().flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable
+        templates = {col: QtWidgets.QTableWidgetItem() for col in range(9)}
+        for col in (0, 2):
+            templates[col].setFlags(read_only)
+            templates[col].setBackground(QtGui.QBrush(_GLYPH_PREVIEW_BG))
+            templates[col].setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        for col in (1, 5, 6):
+            templates[col].setFlags(read_only)
+        self._style_font_char_item(templates[4])
+        return templates
 
-        header_item = self.table_glyphs.verticalHeaderItem(r_idx)
+    def _populate_single_glyph_row(self, r_idx: int, data: tuple, templates=None) -> None:
+        idx, char_val, font_char_val, sheet_idx, gx, gy, kerning, width, orig_char_data = data
+        templates = templates or self._glyph_row_templates()
+        table = self.table_glyphs
+
+        header_item = table.verticalHeaderItem(r_idx)
         if header_item is None:
             header_item = QtWidgets.QTableWidgetItem()
-            self.table_glyphs.setVerticalHeaderItem(r_idx, header_item)
+            table.setVerticalHeaderItem(r_idx, header_item)
         header_item.setText(str(idx))
 
-        item_orig_char = self._ensure_table_item(r_idx, 1)
-        item_char = self._ensure_table_item(r_idx, 3)
-        item_font_char = self._ensure_table_item(r_idx, 4)
-        item_sheet = self._ensure_table_item(r_idx, 5)
-        item_tile = self._ensure_table_item(r_idx, 6)
-        item_kern = self._ensure_table_item(r_idx, 7)
-        item_width = self._ensure_table_item(r_idx, 8)
-
-        item_orig_char.setText(orig_char_data)
-        item_char.setText(char_val)
-        item_font_char.setText(font_char_val)
-        item_sheet.setText(f"Sheet {sheet_idx}")
-        item_tile.setText(f"Row {gy}, Col {gx}")
-        item_kern.setText(str(kerning))
-        item_width.setText(str(width))
-
-        not_editable = ~QtCore.Qt.ItemFlag.ItemIsEditable
-        for item in (item_orig_char, item_sheet, item_tile):
-            item.setFlags(item.flags() & not_editable)
-
-        self._style_font_char_item(item_font_char)
-
-        editable = QtCore.Qt.ItemFlag.ItemIsEditable
-        item_char.setFlags(item_char.flags() | editable)
-        item_kern.setFlags(item_kern.flags() | editable)
-        item_width.setFlags(item_width.flags() | editable)
-
-        self._set_glyph_preview_item(
-            r_idx, 0, self._glyph_preview_icon(self.original_sheet_images, sheet_idx, gx, gy)
-        )
-        self._set_glyph_preview_item(
-            r_idx, 2, self._glyph_preview_icon(self.sheet_images, sheet_idx, gx, gy)
-        )
+        texts = {1: orig_char_data, 3: char_val, 4: font_char_val, 5: f"Sheet {sheet_idx}",
+                 6: f"Row {gy}, Col {gx}", 7: str(kerning), 8: str(width)}
+        icons = {0: self._glyph_preview_icon(self.original_sheet_images, sheet_idx, gx, gy),
+                 2: self._glyph_preview_icon(self.sheet_images, sheet_idx, gx, gy)}
+        for col, template in templates.items():
+            item = template.clone()
+            if col in icons:
+                item.setIcon(icons[col])
+            else:
+                item.setText(texts[col])
+            table.setItem(r_idx, col, item)
 
     def _fill_glyph_table(self, rows_data: list[tuple]) -> None:
         self._glyph_table_generation = getattr(self, "_glyph_table_generation", 0) + 1
         generation = self._glyph_table_generation
         self.table_glyphs.setRowCount(len(rows_data))
+        templates = self._glyph_row_templates()
         if app_mode.headless:
             for r_idx, data in enumerate(rows_data):
-                self._populate_single_glyph_row(r_idx, data)
+                self._populate_single_glyph_row(r_idx, data, templates)
             if getattr(self, "_font_loading", False):
                 self._set_font_loading(False)
+            self._select_pending_table_glyph()
             return
         self._set_font_loading(True)
         self._glyph_table_populating = True
@@ -287,7 +282,7 @@ class GlyphTableMixin:
             self.table_glyphs.blockSignals(True)
             try:
                 while position < len(rows_data):
-                    self._populate_single_glyph_row(position, rows_data[position])
+                    self._populate_single_glyph_row(position, rows_data[position], templates)
                     position += 1
                     if time.monotonic() - started >= 0.008:
                         break
@@ -301,6 +296,7 @@ class GlyphTableMixin:
                 self._restore_glyph_table_column_widths()
                 self._set_font_loading(False)
                 self.status.showMessage(tr("Font ready."))
+                self._select_pending_table_glyph()
 
         single_shot(0, self, fill)
 
@@ -351,6 +347,28 @@ class GlyphTableMixin:
         finally:
             table.blockSignals(False)
             table.setUpdatesEnabled(True)
+
+    def show_glyph_in_table(self, glyph_idx: int) -> None:
+        """Open the glyph table on ``glyph_idx`` (the font editor's right-click menu)."""
+        self.tabs.setCurrentWidget(self.table_glyphs.parentWidget())
+        self._pending_table_glyph = glyph_idx
+        if not self._select_pending_table_glyph() and self.table_search.text():
+            self.table_search.clear()  # the search hides the glyph; the refilled table selects it
+
+    def _select_pending_table_glyph(self) -> bool:
+        glyph_idx = getattr(self, "_pending_table_glyph", None)
+        if glyph_idx is None or getattr(self, "_glyph_table_populating", False):
+            return False
+        table = self.table_glyphs
+        text = str(glyph_idx)
+        row = next((r for r in range(table.rowCount())
+                    if (header := table.verticalHeaderItem(r)) and header.text() == text), -1)
+        if row < 0:
+            return False
+        self._pending_table_glyph = None
+        table.selectRow(row)
+        table.scrollToItem(table.item(row, 3), QtWidgets.QAbstractItemView.ScrollHint.PositionAtCenter)
+        return True
 
     def refresh_table_row(self, glyph_idx):
         if not self.sheet_images:
