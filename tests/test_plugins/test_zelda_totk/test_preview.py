@@ -75,7 +75,20 @@ def test_widget_without_the_font_says_so_and_shuts_down(qtbot, tmp_path):
     qtbot.addWidget(widget)
     qtbot.waitUntil(lambda: widget._note == "The game font is not in this project's unpacked game.", timeout=5000)
     widget.update_preview_text("text")
-    assert widget._images == []
+    assert widget._pages == [] and widget._bar.label.text() == ""
+    widget.shutdown()
+
+
+def test_a_widget_built_before_the_project_opens_loads_the_font_on_refresh(qtbot, tmp_path):
+    window = SimpleNamespace(project_manager=SimpleNamespace(project_dir=None))
+    widget = pv.TalkWindowPreview(window, pv.OOT_SWITCH2_BOX)
+    qtbot.addWidget(widget)
+    assert widget._note == "No project folder: the talk window needs the unpacked game."
+    (tmp_path / "p.uiproj").write_text(json.dumps({"metadata": {"source_path": str(tmp_path / "romfs" / "Mals")}}),
+                                       encoding="utf-8")
+    window.project_manager.project_dir = str(tmp_path)
+    widget.refresh()
+    qtbot.waitUntil(lambda: widget._note == "The game font is not in this project's unpacked game.", timeout=5000)
     widget.shutdown()
 
 
@@ -88,7 +101,11 @@ def test_real_oot_widget_draws_cyrillic_pages(qtbot, monkeypatch):
     qtbot.addWidget(widget)
     qtbot.waitUntil(lambda: widget._chain is not None, timeout=10000)
     widget.update_preview_text("Привіт, Лінку! Їжак ґанок.{pageBreak}{color:0}Духовний камінь{color:-1}.")
-    assert len(widget._images) == 2
+    assert len(widget._pages) == 2 and widget._page == 0
+    assert widget._bar.label.text() == "Page 1 of 2"
+    assert not widget._bar.prev.isEnabled() and widget._bar.next.isEnabled()
+    widget._bar.next.click()
+    assert widget._page == 1 and widget._bar.label.text() == "Page 2 of 2" and not widget._bar.next.isEnabled()
     assert widget._note == ""
     assert all(face.has("ї") and face.has("ґ") for face in widget._chain.faces[:1])
     widget.shutdown()

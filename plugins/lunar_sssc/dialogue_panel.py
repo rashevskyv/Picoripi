@@ -11,9 +11,10 @@ from typing import Any, Callable, Dict, Optional
 
 from PyQt6.QtCore import QSize, Qt, pyqtSignal
 from PyQt6.QtGui import QImage, QPixmap
-from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from core.i18n import tr
+from plugins.common.preview_chrome import BAR_STYLE, ScaledPicture
 from plugins.common.switch_message_preview import source_folder
 from ui.components.bfn_preview.helpers import _preview_icon
 from utils.thread_utils import WorkerThread, safe_shutdown_thread
@@ -24,51 +25,6 @@ from . import portrait_colours as pc
 WORKER_STOP_MS = 2000
 PALETTE_FILE = "PEO.PAL"
 STRIP_HEIGHT = 28
-# The dark strip and bar of the BFN preview (ui/components/bfn_preview/chrome.py, BfnPreviewWindowBar).
-BAR_STYLE = (
-    "QFrame {"
-    "  background: #181818;"
-    "  border: 1px solid #2a2a2a;"
-    "  border-radius: 4px;"
-    "}"
-    "QPushButton {"
-    "  background: #1e1e1e;"
-    "  color: #cccccc;"
-    "  border: 1px solid #3a3a3a;"
-    "  border-radius: 4px;"
-    "}"
-    "QPushButton:hover { background: #2d2d2d; color: #ffffff; }"
-    "QLabel { color: #c8c8c8; font-size: 11px; border: none; background: transparent; }"
-)
-
-
-class ScaledPicture(QLabel):
-    """A picture that fills its space, scaled both ways with its aspect kept and the pixels kept sharp."""
-
-    def __init__(self, parent: Optional[QWidget] = None):
-        super().__init__(parent)
-        self._source = QPixmap()
-        self.setMinimumSize(1, 1)
-        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
-        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-    def set_picture(self, pixmap: QPixmap) -> None:
-        self._source = pixmap
-        self._fit()
-
-    def clear_picture(self) -> None:
-        self._source = QPixmap()
-        self.clear()
-
-    def resizeEvent(self, event) -> None:
-        super().resizeEvent(event)
-        self._fit()
-
-    def _fit(self) -> None:
-        if self._source.isNull():
-            return
-        self.setPixmap(self._source.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio,
-                                           Qt.TransformationMode.FastTransformation))
 
 
 def load_sources(project_dir: str) -> Dict[str, Any]:

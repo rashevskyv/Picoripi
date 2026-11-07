@@ -25,12 +25,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from PIL import Image, ImageDraw
-from PyQt6.QtCore import QRectF, pyqtSignal
-from PyQt6.QtGui import QColor, QImage, QPainter
-from PyQt6.QtWidgets import QWidget
+from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtGui import QImage, QPixmap
+from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from core.i18n import tr
 from plugins.common import flyt_message as fm
+from plugins.common.preview_chrome import PageBar, ScaledPicture
 from plugins.common.switch_message_preview import source_folder
 from utils.logging_utils import log_debug
 from utils.thread_utils import WorkerThread, safe_shutdown_thread
@@ -45,7 +46,6 @@ COLOURS: Dict[int, RGBA] = {   # APPROXIMATED: Breath of the Wild's colour ids, 
 BOX_COLOUR: RGBA = (16, 16, 16, 215)
 PADDING = 28.0
 PITCH = 1.3                    # APPROXIMATED line pitch in glyph sizes
-MAX_PAGES = 6
 WORKER_STOP_MS = 2000
 _TAG = re.compile(r"\{(/?)([^{}:]*)(?::([^{}]*))?\}")
 
@@ -179,35 +179,47 @@ class FontLoader(WorkerThread):
 
 
 class TalkWindowPreview(QWidget):
-    """The pages of the current text in the talk window (see GameRules.get_custom_preview_widget)."""
+    """The talk window of the current text, one page at a time (see GameRules.get_custom_preview_widget).
+
+    The page bar is the BFN preview's (plugins/common/preview_chrome.py). The project folder is read on every
+    refresh: the widget can be built before a project is open.
+    """
 
     def __init__(self, main_window: Any, facts: BoxFacts, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self._mw = main_window
         self._facts = facts
         self._text = ""
+        self._page = 0
+        self._pages: List[List[Line]] = []
         self._chain: Optional[fm.FontChain] = None
-        self._images: List[QImage] = []
         self._note = ""
         self._loader: Optional[FontLoader] = None
-        self._source = str(getattr(getattr(main_window, "project_manager", None), "project_dir", None) or "")
+        self._source = ""
+        self._picture = ScaledPicture(self)
+        self._bar = PageBar(self)
+        self._bar.turned.connect(self._turn)
+        self._status = QLabel(self)
+        self._status.setWordWrap(True)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)
+        layout.addWidget(self._picture, 1)
+        layout.addWidget(self._bar)
+        layout.addWidget(self._status)
         self.setMinimumHeight(160)
-        if not self._source:
-            self._note = tr("No project folder: the talk window needs the unpacked game.")
-            return
-        self._loader = FontLoader(self._source, facts)
-        self._loader.loaded.connect(self._on_loaded)
-        self._loader.start()
-        self._note = tr("Reading the game font...")
+        self._start_load()
 
     # -- host interface -------------------------------------------------------------------
 
     def refresh(self) -> None:
+        self._start_load()
         self._render()
 
     def update_preview_text(self, text: object = None, original: object = None) -> None:
         self._text = text if isinstance(text, str) else ""
-        self._render()
+        self._page = 0
+        self.refresh()
 
     def shutdown(self) -> None:
         if self._loader is not None:
@@ -216,39 +228,57 @@ class TalkWindowPreview(QWidget):
             self._loader = None
         self._chain = None
 
-    # -- drawing --------------------------------------------------------------------------
+    # -- loading --------------------------------------------------------------------------
+
+    def _start_load(self) -> None:
+        project_dir = str(getattr(getattr(self._mw, "project_manager", None), "project_dir", None) or "")
+        if not project_dir:
+            self._show_note(tr("No project folder: the talk window needs the unpacked game."))
+            return
+        if project_dir == self._source:
+            return
+        if self._loader is not None:
+            self._loader.cancel()
+        self._source = project_dir
+        self._chain = None
+        self._loader = FontLoader(project_dir, self._facts)
+        self._loader.loaded.connect(self._on_loaded)
+        self._loader.start()
+        self._show_note(tr("Reading the game font..."))
 
     def _on_loaded(self, payload: object) -> None:
         project_dir, chain = payload
         if project_dir != self._source:
             return
         if chain is None:
-            self._note = tr("The game font is not in this project's unpacked game.")
-            self.update()
+            self._show_note(tr("The game font is not in this project's unpacked game."))
             return
         self._chain = chain
         self._render()
 
-    def _render(self) -> None:
-        if self._chain is not None:
-            pages = parse_pages(self._text)
-            self._images = [_to_qimage(render_page(page, self._chain, self._facts)) for page in pages[:MAX_PAGES]]
-            self._note = " ".join(problems(pages, self._chain, self._facts))
-        self.update()
+    # -- drawing --------------------------------------------------------------------------
 
-    def paintEvent(self, event: Any) -> None:  # noqa: N802 - Qt name
-        painter = QPainter(self)
-        painter.fillRect(self.rect(), QColor(40, 40, 40))
-        y = 6.0
-        for image in self._images:
-            scale = min(1.0, (self.width() - 12) / max(1, image.width()))
-            target = QRectF(6, y, image.width() * scale, image.height() * scale)
-            painter.drawImage(target, image)
-            y += target.height() + 6
-        if self._note:
-            painter.setPen(QColor(230, 230, 230))
-            painter.drawText(8, self.height() - 10, self._note)
-        painter.end()
+    def _show_note(self, text: str) -> None:
+        self._note = text
+        self._status.setText(text)
+        self._status.setVisible(bool(text))
+
+    def _turn(self, step: int) -> None:
+        self._page += step
+        self._render()
+
+    def _render(self) -> None:
+        if self._chain is None:
+            self._pages = []
+            self._picture.clear_picture()
+            self._bar.show_page(0, 0)
+            return
+        self._pages = parse_pages(self._text)
+        self._page = min(max(self._page, 0), len(self._pages) - 1)
+        image = _to_qimage(render_page(self._pages[self._page], self._chain, self._facts))
+        self._picture.set_picture(QPixmap.fromImage(image))
+        self._bar.show_page(self._page, len(self._pages))
+        self._show_note(" ".join(problems(self._pages, self._chain, self._facts)))
 
 
 def _to_qimage(image: Image.Image) -> QImage:
