@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 - Font Editor: external image editors (**External Editors...**, YY-CHR found by default). Double-click a glyph or a sheet, or right-click a sheet → **Send to External Editor**; the cell or sheet goes out as a BMP (indexed for 256 colours or fewer), and each save in the editor comes back as one undoable edit
+- Zelda: Ocarina of Time (Switch 2): the Hookshot updater reads the builder of new Hookshot releases, which come as parts listed in `hookshot-setup.txt` (each checked against its sha256) instead of one zip, and unpacks with Windows' own tar.
 - MCP server: `list_fonts`, `export_font` and `import_font` give an agent a project's bitmap fonts as PNG sheets and write an edited sheet back into the translation font file (the game's own file stays as it is).
 - Editor: `Alt+Enter` inserts the same as `Shift+Enter`; a page break that ends with a line break (Zelda: TotK, Ocarina of Time on Switch 2) ends its editor line, and the page lines follow page breaks as well as the page size. Ocarina of Time (Switch 2) reads its voice, expression and inserted-value tags by name instead of raw bytes. The plugin declares the PC platform its Hookshot target names.
 - Width analysis (Tools → Original Text Width Analysis and the block width calculation): a plugin's own tags (Luigi's Mansion `<COLOR>(3)`) are measured in the editor form and take no width; they were counted letter by letter
