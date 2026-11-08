@@ -3473,5 +3473,6 @@
   "External edit": "Зовнішнє редагування",
   "Took the changes from {0}.": "Зміни з {0} застосовано.",
   "Send to External Editor": "Надіслати в зовнішній редактор",
-  "No external editor yet: add one with External Editors...": "Зовнішнього редактора ще немає: додайте його кнопкою «Зовнішні редактори...»"
+  "No external editor yet: add one with External Editors...": "Зовнішнього редактора ще немає: додайте його кнопкою «Зовнішні редактори...»",
+  "Translated rows in the whole project: {done} of {total}": "Перекладено рядків у всьому проєкті: {done} з {total}"
 }

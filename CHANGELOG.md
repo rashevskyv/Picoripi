@@ -1,6 +1,8 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Blocks tree: a block with no rows (`[0]`, e.g. Luigi's Mansion `text/eventNN`, an event script) and a folder left with only such blocks are no longer shown; an empty folder the user made stays
+- Blocks tree: a bar beside **Blocks:** shows the progress of the whole project (translated rows of the rows that need one), coloured from red through yellow to green
 - Zelda: Ocarina of Time (Switch 2): the wiki tells how NX2navi (another Windows recompilation) reads the same Hookshot build folder as mods, in the Russian slot.
 - Font Editor: external image editors (**External Editors...**, YY-CHR found by default). Double-click a glyph or a sheet, or right-click a sheet → **Send to External Editor**; the cell or sheet goes out as a BMP (indexed for 256 colours or fewer), and each save in the editor comes back as one undoable edit
 - Zelda: Ocarina of Time (Switch 2): the Hookshot updater reads the builder of new Hookshot releases, which come as parts listed in `hookshot-setup.txt` (each checked against its sha256) instead of one zip, and unpacks with Windows' own tar.

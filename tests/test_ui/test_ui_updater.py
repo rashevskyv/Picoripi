@@ -297,7 +297,7 @@ def test_UIUpdater_populate_blocks(updater):
     tree.create_item = lambda text, _idx, _role: QTreeWidgetItem([text])
     updater.mw.block_list_widget = tree
     tree.addTopLevelItem(QTreeWidgetItem(["stale"]))
-    updater.mw.data_store.data = [[]]
+    updater.mw.data_store.data = [["Hello"]]   # a block with no rows is not shown
     updater.mw.data_store.block_names = {"0": "Block 0"}
     updater.mw.current_game_rules = MagicMock()
     updater.mw.project_manager = None

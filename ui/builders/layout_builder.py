@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QFont
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
+from components.blocks_progress_bar import BlocksProgressBar
 from components.custom_tree_widget import CustomTreeWidget
 from components.chapter_picker import HierarchicalChapterComboBox
 from core.i18n import tr
@@ -96,6 +97,8 @@ class LayoutBuilder:
             tr('<b>Blocks</b><br>Double-click a category or block to rename it.')
         )
         block_header_layout.addWidget(self.mw.blocks_header_label)
+        self.mw.blocks_progress_bar = BlocksProgressBar()
+        block_header_layout.addWidget(self.mw.blocks_progress_bar, 1)
         block_header_layout.addStretch()
 
         self.mw.add_folder_button = self._create_header_button(self.style.standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder), ADD_FOLDER_TOOLTIP)

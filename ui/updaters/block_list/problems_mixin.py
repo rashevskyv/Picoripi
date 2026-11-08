@@ -1,6 +1,8 @@
 """Problem aggregation, tooltips, and physical/virtual folder items."""
 from __future__ import annotations
 
+import copy
+
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QTreeWidgetItem, QStyle
 from core.i18n import tr
@@ -153,10 +155,27 @@ class ProblemsMixin:
         item.setData(0, Qt.ItemDataRole.UserRole + 21, bool(unsaved))
         item.setData(0, Qt.ItemDataRole.UserRole + 22, float(percentage))
 
+    def _update_overall_progress(self) -> None:
+        """The bar beside "Blocks:": translated rows of the whole project, from the cached sets the block fills use."""
+        bar = getattr(self.mw, 'blocks_progress_bar', None)
+        if bar is None:
+            return
+        dsp = getattr(self.mw, 'data_processor', None)
+        data = getattr(getattr(self.mw, 'data_store', None), 'data', None)
+        total = done = 0
+        if dsp is not None and isinstance(data, list):
+            for block_idx in range(len(data)):
+                needs = dsp.get_needs_translation_set(block_idx)
+                if needs:
+                    total += len(needs)
+                    done += len(needs & dsp.get_translated_set(block_idx))
+        bar.show_progress(done, total)
+
     def refresh_block_tree_indicators(self, block_idx: int | None = None) -> None:
         """Refresh stars/progress/warnings on existing items without rebuilding the tree."""
         if not hasattr(self.mw, "block_list_widget") or not self.mw.block_list_widget:
             return
+        self._update_overall_progress()
         if block_idx is not None:
             self.update_block_item_text_with_problem_count(block_idx)
             return
@@ -227,6 +246,31 @@ class ProblemsMixin:
         found = sorted(int(data_idx) for data_idx, proj_idx in block_map.items() if int(proj_idx) == project_block_idx)
         return found or [project_block_idx]
 
+    def _data_block_has_text(self, data_idx: int) -> bool:
+        """False only for a loaded block with no rows (an event script, a file with no text table): the tree hides it."""
+        data = getattr(self.mw.data_store, 'data', None)
+        if not isinstance(data, list) or not 0 <= data_idx < len(data):
+            return True
+        return not (isinstance(data[data_idx], list) and not data[data_idx])
+
+    def _project_block_has_text(self, project_block_idx) -> bool:
+        if project_block_idx is None:
+            return True
+        return any(self._data_block_has_text(d) for d in self._data_blocks_of(project_block_idx))
+
+    def _with_text_only(self, folder, id_to_idx: dict):
+        """``folder`` without the blocks that have no rows and without the subfolders left empty by that; None when
+        nothing is left. A folder that was empty before (one the user just made) stays."""
+        block_ids = [b for b in folder.block_ids if self._project_block_has_text(id_to_idx.get(b))]
+        children = [kept for kept in (self._with_text_only(c, id_to_idx) for c in folder.children) if kept is not None]
+        if len(block_ids) == len(folder.block_ids) and len(children) == len(folder.children):
+            return folder
+        if not block_ids and not children:
+            return None
+        pruned = copy.copy(folder)
+        pruned.block_ids, pruned.children = block_ids, children
+        return pruned
+
     def _is_project_block_unsaved(self, project_block_idx: int) -> bool:
         """Check if project block index is unsaved using central FilterQueryAPI."""
         return self.mw.filter_query_api.is_project_block_unsaved(project_block_idx)
@@ -235,13 +279,18 @@ class ProblemsMixin:
         """Helper to recursively check if folder or its children have unsaved blocks using central FilterQueryAPI."""
         return self.mw.filter_query_api.folder_has_unsaved_blocks(folder, project, id_to_idx)
 
-    def _add_virtual_folder_to_tree(self, parent_item, folder, problem_definitions, current_selection_block_idx, pre_aggregated_counts: dict = None, folder_id_to_select=None, id_to_idx=None):
+    def _add_virtual_folder_to_tree(self, parent_item, folder, problem_definitions, current_selection_block_idx, pre_aggregated_counts: dict = None, folder_id_to_select=None, id_to_idx=None, pruned=False):
         """Recursively add virtual folders and their blocks to the tree with folder compaction (GitHub style)."""
         project = self.mw.project_manager.project
         if not project: return
 
         if id_to_idx is None:
             id_to_idx = {b.id: idx for idx, b in enumerate(project.blocks)}
+        if not pruned:
+            # Before the compaction and the [folders | blocks] counter, so both see only blocks with text.
+            folder = self._with_text_only(folder, id_to_idx)
+            if folder is None:
+                return
         if getattr(self.mw.data_store, 'show_unsaved_blocks_only', False) is True:
             if not self._folder_has_unsaved_blocks(folder, project, id_to_idx):
                 return
@@ -275,7 +324,7 @@ class ProblemsMixin:
         if len(curr_for_children.children) == 0 and len(curr_for_children.block_ids) == 1:
             b_id = curr_for_children.block_ids[0]
             idx = id_to_idx.get(b_id)
-            data_blocks = self._data_blocks_of(idx) if idx is not None else []
+            data_blocks = [d for d in self._data_blocks_of(idx) if self._data_block_has_text(d)] if idx is not None else []
             # a file that opens into several blocks keeps them as children; a block with categories keeps its own
             # item (its categories are that item's children)
             if len(data_blocks) == 1 and not project.blocks[idx].categories:
@@ -347,7 +396,7 @@ class ProblemsMixin:
             for child in curr_for_children.children:
                 self._add_virtual_folder_to_tree(
                     folder_item, child, problem_definitions, current_selection_block_idx,
-                    pre_aggregated_counts, folder_id_to_select=folder_id_to_select, id_to_idx=id_to_idx,
+                    pre_aggregated_counts, folder_id_to_select=folder_id_to_select, id_to_idx=id_to_idx, pruned=True,
                 )
 
             for b_id in curr_for_children.block_ids:
@@ -355,7 +404,7 @@ class ProblemsMixin:
                 if idx is not None:
                     if (getattr(self.mw.data_store, 'show_unsaved_blocks_only', False) is not True or
                             self._is_project_block_unsaved(idx)):
-                        for data_idx in self._data_blocks_of(idx):
+                        for data_idx in filter(self._data_block_has_text, self._data_blocks_of(idx)):
                             block_item = self._create_block_tree_item(data_idx, problem_definitions, pre_aggregated_counts)
                             folder_item.addChild(block_item)
                             if data_idx == current_selection_block_idx:

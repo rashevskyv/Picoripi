@@ -140,6 +140,7 @@ class PopulateMixin:
             # The rebuilt tree gets its scroll range on the next layout; without it the value clamps to 0.
             self.mw.block_list_widget.doItemsLayout()
         scroll_bar.setValue(v_scroll)
+        self._update_overall_progress()
         if filled:
             self.mw.block_list_widget.viewport().update()
             if not isinstance(self._story_projection_cache, StoryVirtualProjection):
@@ -268,6 +269,8 @@ class PopulateMixin:
         for i in range(len(self.mw.data_store.data)):
             if (getattr(self.mw.data_store, 'show_unsaved_blocks_only', False) is True and
                     i not in self.mw.data_store.unsaved_block_indices):
+                continue
+            if not self._data_block_has_text(i):
                 continue
             block_item = self._create_block_tree_item(i, problem_definitions, pre_aggregated_counts)
 

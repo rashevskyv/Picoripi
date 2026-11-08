@@ -52,6 +52,8 @@ A block is one part of the game text, usually one game file. Folders group block
 
 **Show Unsaved Only** above the tree shows only blocks and folders with unsaved changes. It is off after a restart.
 
+The tree does not show blocks with no rows, or folders that only hold such blocks. The bar beside **Blocks:** shows how much of the whole project is translated.
+
 **Right-click a block** for **Rename Block**, **Remove Block**, **Reveal in Explorer**, **Rescan Issues**, **Calculate Line Widths**, **Spellcheck**, **Set Default Font**, **Revert to Original**, **Restore Translations** and **Properties...**. A virtual block, a folder and empty space have their own short menus. Empty space has **Create Folder** and **AI Batch Translation...**.
 
 **Markers:**

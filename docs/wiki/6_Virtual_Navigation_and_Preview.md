@@ -19,6 +19,8 @@ The left **Blocks** tree mixes physical files with derived views. Built in `ui/u
 - Warning ticks (coloured gutter) and `(N)` issue counts on files and compacted rows. Tick data is stored on the item (UserRole+20) so labels are not doubled as `Name (1) (1)`.
 - Unsaved `*` on files and parents.
 - Green progress fill: translation completion. Empty / whitespace / tag-only originals do not count.
+- A block with no rows (`[0]`, for example an event script that is not a text table) is not shown. A folder left with no blocks is not shown. A folder you made yourself stays while it is empty.
+- The bar beside **Blocks:** shows the progress of the whole project: translated rows of the rows that need a translation. Its colour goes from red through yellow to green.
 - **Show Unsaved Only** above the tree hides files with no unsaved edits. Session-only: a restart always unchecks it (`AppDataStore.from_snapshot` forces both unsaved filters off).
 
 Expanding or collapsing a **physical** folder only stores open/closed state. It does **not** rebuild the whole tree or re-populate every block.
