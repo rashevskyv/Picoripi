@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-21
 owns: ui/builders/menu_builder.py
-tokens: 2.2k
+tokens: 2.3k
 purpose: Every keyboard shortcut and modifier click of the main window and its separate windows, grouped by task, with menu paths
 ---
 # Keyboard shortcuts

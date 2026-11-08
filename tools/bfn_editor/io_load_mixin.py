@@ -234,6 +234,7 @@ class IoLoadMixin:
 
     def clear_temp(self):
         self._table_headers_resized = False
+        self.stop_external_edits()      # the font closes: its sheets in external editors are no longer watched
         if hasattr(self, 'auto_sync_timer') and self.auto_sync_timer:
             try:
                 self.auto_sync_timer.stop()

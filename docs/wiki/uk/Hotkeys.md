@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-21
 owns: ui/builders/menu_builder.py
-tokens: 3.3k
+tokens: 3.4k
 ---
 # Клавіатурні скорочення
 

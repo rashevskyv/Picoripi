@@ -18,6 +18,7 @@ from tools.bfn_editor.window_tree_mixin import (
     WindowTreeMixin,
 )
 from tools.bfn_editor.window_sync_mixin import WindowSyncMixin
+from tools.bfn_editor.external_edit import ExternalEditMixin
 from core.i18n import tr
 
 VERSION = "1.0.21"
@@ -37,6 +38,7 @@ class BfnEditorWindow(
     WindowUiMixin,
     WindowTreeMixin,
     WindowSyncMixin,
+    ExternalEditMixin,
     BfnIoMixin,
     BfnSimMixin,
     BfnNavigationMixin,

@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-21
+updated: 2026-11-08
 owns: tools/bfn_editor/ and ui/texture_window.py
-tokens: 1.8k
+tokens: 2.4k
 purpose: Edit game fonts and textures, add Ukrainian letters, and set the fonts folders and default font of a project
 ---
 # Fonts and textures
@@ -43,11 +43,24 @@ A letter needs a glyph. Find a free glyph for it or draw over an unused one.
 1. Open the font in the Font Editor. Find the glyph in **Glyph Table**.
 2. Draw the letter. Use one of these ways:
    - Right-click the glyph and press **Render Font to Selected Glyph...**. Choose the **Font File...**, the **Font Size (px):** and the style. The editor draws the letter from a system font.
+   - Double-click the glyph. It opens in your external image editor (see below). Draw and save there (`Ctrl+S`).
    - Right-click the glyph and press **Export Selected Glyph PNG...**. Draw in an image editor. Then press **Import Selected Glyph PNG...**. The PNG must have the same size as the glyph. Otherwise the editor refuses it.
 3. Press **Auto-detect Width** to set the width of the letter.
 4. Press **Save Changes** (`Ctrl+S`).
 
 After saving, the editor writes `translation_map.json` into the project folder. Picoripi also reloads the font widths. It checks the text again by itself.
+
+## Edit in an external image editor
+
+Press **External Editors...** under the sheet list. Add one or more editors: a name, the program and its arguments. `{file}` in the arguments is the image path. The first editor is the default one. When YY-CHR is found, it is the first entry.
+
+- Double-click a glyph: the editor opens this one glyph cell.
+- Double-click the sheet background or a sheet in the list: the editor opens the whole sheet.
+- Right-click a sheet in the list and press **Send to External Editor**. Choose the editor.
+
+The editor gets a BMP file. It is 8-bit indexed when the sheet has 256 colours or fewer, so tile editors such as YY-CHR can open it. Otherwise it is 24-bit. A BMP has no transparency: each colour is shown as it looks over black, and Picoripi maps it back to the exact colour of the font.
+
+Save in the external editor (`Ctrl+S`). Picoripi takes the change at once. It is one step of **Undo**. A file of another size is not applied; the status bar says so. Then press **Save Changes** in the Font Editor as usual. The BMP files are deleted when the font closes.
 
 ## What is saved and where
 

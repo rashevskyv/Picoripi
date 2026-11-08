@@ -230,6 +230,27 @@ class ImageView(QtWidgets.QGraphicsView):
             
         super().mouseReleaseEvent(event)
 
+    def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent):
+        """A glyph cell opens that cell in the default external editor; the background opens the whole sheet."""
+        if event.button() != QtCore.Qt.MouseButton.LeftButton:
+            super().mouseDoubleClickEvent(event)
+            return
+        v = self.parent()
+        while v and not hasattr(v, 'selected_cell'):
+            v = v.parent()
+        if not v or not v.sheet_images or v.current_sheet_index < 0:
+            return
+        scene_pos = self.mapToScene(event.pos())
+        gx = int(scene_pos.x() // v.real_w)
+        gy = int(scene_pos.y() // v.real_h)
+        cell = None
+        if scene_pos.x() >= 0 and scene_pos.y() >= 0 and gx < v.rows and gy < v.cols:
+            v.selected_cell = (gx, gy)
+            if v.get_selected_glyph_index() != -1:
+                cell = (gx, gy)
+        v.send_to_external_editor(v.current_sheet_index, cell)
+        event.accept()
+
     def wheelEvent(self, event: QtGui.QWheelEvent):
         delta = event.angleDelta().y()
         if delta == 0:
