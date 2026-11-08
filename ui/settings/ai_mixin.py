@@ -1,11 +1,12 @@
-"""Settings dialog: AI Translation and AI Glossary tabs."""
+"""Settings dialog: AI Translation, AI Glossary and Image AI tabs."""
 from PyQt6.QtWidgets import (
     QVBoxLayout, QFormLayout, QLineEdit, QHBoxLayout, QComboBox, 
     QPushButton, QGroupBox, QDoubleSpinBox, QSpinBox, QStackedWidget,
-    QCheckBox, QWidget
+    QCheckBox, QWidget, QPlainTextEdit
 )
 from PyQt6.QtCore import Qt
 from core.i18n import tr
+from core.texture_formats import image_ai
 
 class SettingsAiMixin:
     """Mixin class for AI Translation and AI Glossary tabs in settings dialog."""
@@ -303,3 +304,59 @@ class SettingsAiMixin:
             return
         provider = self.glossary_provider_combo.currentText()
         self._glossary_manual_api_keys[provider] = text.strip()
+
+    def setup_image_ai_tab(self):
+        """Image AI tab: the image model the Textures window sends a texture to (``image_ai`` settings)."""
+        layout = QFormLayout(self.image_ai_tab)
+        self.image_ai_provider_combo = QComboBox(self)
+        for provider in image_ai.PROVIDERS:
+            self.image_ai_provider_combo.addItem({"openai": "OpenAI"}.get(provider, provider), provider)
+        layout.addRow(tr('Provider:'), self.image_ai_provider_combo)
+        self.image_ai_model_edit = QLineEdit(self)
+        self.image_ai_model_edit.setPlaceholderText(image_ai.DEFAULTS["model"])
+        layout.addRow(tr('Model:'), self.image_ai_model_edit)
+        self.image_ai_endpoint_edit = QLineEdit(self)
+        self.image_ai_endpoint_edit.setPlaceholderText('https://api.openai.com/v1')
+        layout.addRow(tr('Endpoint:'), self.image_ai_endpoint_edit)
+        self.image_ai_use_translation_key_checkbox = QCheckBox(tr('Use API key from AI Translation'), self)
+        layout.addRow(tr(''), self.image_ai_use_translation_key_checkbox)
+        self.image_ai_key_env_edit = QLineEdit(self)
+        self.image_ai_key_env_edit.setPlaceholderText('OPENAI_API_KEY')
+        self.image_ai_key_env_edit.setToolTip(
+            tr('The environment variable that holds the key. It is used when the AI Translation key is off or empty; the key itself is not saved in the settings.'))
+        layout.addRow(tr('API Key Env Var:'), self.image_ai_key_env_edit)
+        self.image_ai_prompt_edit = QPlainTextEdit(self)
+        layout.addRow(tr('Default prompt:'), self.image_ai_prompt_edit)
+        self.image_ai_size_rule_combo = QComboBox(self)
+        self.image_ai_size_rule_combo.addItem(tr('Fit: keep the shape, pad with transparency'), 'fit')
+        self.image_ai_size_rule_combo.addItem(tr('Stretch over the whole canvas'), 'stretch')
+        self.image_ai_size_rule_combo.setToolTip(
+            tr('Image models answer on a few fixed canvases. The texture is put on the closest one, and the answer is scaled back to the texture size.'))
+        layout.addRow(tr('Output size rule:'), self.image_ai_size_rule_combo)
+        self.image_ai_timeout_spin = QSpinBox(self)
+        self.image_ai_timeout_spin.setRange(10, 900)
+        self.image_ai_timeout_spin.setSuffix(" s")
+        layout.addRow(tr('Request Timeout:'), self.image_ai_timeout_spin)
+
+    def load_image_ai_settings(self, saved) -> None:
+        config = image_ai.settings(saved)
+        self.image_ai_provider_combo.setCurrentIndex(max(0, self.image_ai_provider_combo.findData(config['provider'])))
+        self.image_ai_model_edit.setText(config['model'])
+        self.image_ai_endpoint_edit.setText(config['endpoint'])
+        self.image_ai_use_translation_key_checkbox.setChecked(bool(config['use_translation_api_key']))
+        self.image_ai_key_env_edit.setText(config['api_key_env'])
+        self.image_ai_prompt_edit.setPlainText(config['prompt'])
+        self.image_ai_size_rule_combo.setCurrentIndex(max(0, self.image_ai_size_rule_combo.findData(config['size_rule'])))
+        self.image_ai_timeout_spin.setValue(int(config['timeout']))
+
+    def get_image_ai_settings(self) -> dict:
+        return {
+            'provider': self.image_ai_provider_combo.currentData(),
+            'model': self.image_ai_model_edit.text().strip() or image_ai.DEFAULTS['model'],
+            'endpoint': self.image_ai_endpoint_edit.text().strip(),
+            'use_translation_api_key': self.image_ai_use_translation_key_checkbox.isChecked(),
+            'api_key_env': self.image_ai_key_env_edit.text().strip(),
+            'prompt': self.image_ai_prompt_edit.toPlainText().strip() or image_ai.DEFAULT_PROMPT,
+            'size_rule': self.image_ai_size_rule_combo.currentData(),
+            'timeout': self.image_ai_timeout_spin.value(),
+        }

@@ -7,6 +7,7 @@ from typing import Dict, Any, Union
 from PyQt6.QtGui import QFont
 from utils.logging_utils import log_debug, log_error, log_warning
 from core.translation.config import build_default_translation_config, merge_translation_config
+from core.texture_formats import image_ai
 
 class GlobalSettings:
     """Global settings implementation."""
@@ -77,6 +78,7 @@ class GlobalSettings:
                 # named no Retry-After of its own.
                 "retry_delay": 60
             },
+            "image_ai": dict(image_ai.DEFAULTS),
             "bfn_glyph_table_column_widths": [],
             "bfn_auto_sync_enabled": False,
             "preview_bg_image_path": "",
@@ -257,6 +259,7 @@ class GlobalSettings:
             "translation_presets": getattr(self.mw, 'translation_presets', {}) if isinstance(getattr(self.mw, 'translation_presets', {}), dict) else {},
             "current_translation_preset": getattr(self.mw, 'current_translation_preset', 'default') if isinstance(getattr(self.mw, 'current_translation_preset', 'default'), str) else 'default',
             "glossary_ai": getattr(self.mw, 'glossary_ai', {}),
+            "image_ai": getattr(self.mw, 'image_ai', {}),
             "spellchecker_enabled": getattr(self.mw, 'spellchecker_enabled', False),
             "spellchecker_language": getattr(self.mw, 'spellchecker_language', 'uk'),
             "preview_enabled": getattr(self.mw, 'preview_enabled', True),

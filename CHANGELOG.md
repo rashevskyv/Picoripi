@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Textures window: right-click a texture → **Send to Image AI...** sends it with a prompt to an image model (OpenAI image edits; **Settings → Image AI** sets the provider, model, key source, default prompt and output size rule); **Accept** writes the answer like an imported PNG, at the texture's size and format
 - Blocks tree: a block with no rows (`[0]`, e.g. Luigi's Mansion `text/eventNN`, an event script) and a folder left with only such blocks are no longer shown; an empty folder the user made stays
 - Blocks tree: a bar beside **Blocks:** shows the progress of the whole project (translated rows of the rows that need one), coloured from red through yellow to green
 - Zelda: Ocarina of Time (Switch 2): the wiki tells how NX2navi (another Windows recompilation) reads the same Hookshot build folder as mods, in the Russian slot.

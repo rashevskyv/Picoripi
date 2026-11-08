@@ -2,7 +2,7 @@
 status: current
 updated: 2026-11-08
 owns: tools/bfn_editor/ and ui/texture_window.py
-tokens: 2.4k
+tokens: 2.6k
 purpose: Edit game fonts and textures, add Ukrainian letters, and set the fonts folders and default font of a project
 ---
 # Fonts and textures
@@ -92,6 +92,17 @@ The other buttons:
 **File → Reload Project Textures** (`F5`) reloads the list. The statuses are kept in the file `textures/status.json` in the project folder.
 
 To edit one texture file without a plugin, press **File → Open Texture File...**. Picoripi then changes that file in place. Make a copy of it first.
+
+### Redraw a texture with an image AI
+
+1. Set the image model in **Settings → Image AI** (see [Configuration](4_Configuration_Guide.md#image-ai)).
+2. Right-click a texture in the list and press **Send to Image AI...**.
+3. Check the prompt. It comes from the settings; you can change it for this request.
+4. Press **Send**. The answer appears next to the original. Each request costs money at the provider.
+5. Press **Accept** to write the answer into the texture. Picoripi writes it the same way as **Import PNG...**: it keeps the texture's size and format. Press **Send** again for another try, or **Cancel**.
+6. Press **Revert** to put the game's original back.
+
+Image models answer on a few fixed canvases (square, wide, tall). Picoripi puts the texture on the closest canvas and scales the answer back to the texture's size. **Cancel** drops an answer that is still on its way; the request itself ends at the latest after the timeout.
 
 ## Fonts folders and the default font
 
