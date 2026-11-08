@@ -2,6 +2,7 @@
 import datetime
 from typing import List, Tuple
 
+from core.progress_stats import is_kept_original
 from core.tag_utils import needs_translation
 from utils.logging_utils import log_debug
 
@@ -57,10 +58,13 @@ class QueryMixin:
         """
         Checks whether a string has a valid translation.
         A string is considered translated if its original text needs translation
-        and its current edited translation is non-empty and differs from the original source text.
+        and its current edited translation is non-empty and differs from the original source text,
+        or the row is marked "Keep original" (a game title or a name that stays as it is).
         """
         if not self.string_needs_translation(block_idx, string_idx):
             return False
+        if is_kept_original(getattr(self.mw, 'string_metadata', None), block_idx, string_idx):
+            return True
 
         original_text = str(self.mw.data_store.data[block_idx][string_idx])
         current_text, source = self.get_current_string_text(block_idx, string_idx)

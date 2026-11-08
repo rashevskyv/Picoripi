@@ -8,6 +8,7 @@ from ui.ui_utils import prettify_standard_context_menu
 from utils.logging_utils import log_debug
 from utils.utils import is_control_modifier_pressed
 from core.i18n import tr
+from core.progress_stats import is_kept_original
 
 class LNETContextMenuLogic:
     """L n e t context menu logic implementation."""
@@ -413,6 +414,15 @@ class LNETContextMenuLogic:
 
                 real_indices = [main_window.data_store.displayed_string_indices[i] for i in selected_lines if i < len(main_window.data_store.displayed_string_indices)]
                 if real_indices:
+                    block_idx = main_window.data_store.physical_block_idx
+                    meta = getattr(main_window, 'string_metadata', {})
+                    kept = all(is_kept_original(meta, block_idx, idx) for idx in real_indices)
+                    keep_action = menu.addAction(tr('Keep original'))
+                    keep_action.setCheckable(True)
+                    keep_action.setChecked(kept)
+                    keep_action.setToolTip(tr('The translation is the original as it is (a game title, a name): the row counts as translated.'))
+                    keep_action.triggered.connect(lambda _checked=False, rows=real_indices, keep=not kept:
+                                                  main_window.string_settings_handler.set_keep_original(rows, keep))
                     menu.addSeparator()
                     autofix_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), f"AutoFix {num_selected} Line(s)...")
                     autofix_action.triggered.connect(lambda: main_window.editor_operation_handler.fix_all_strings(

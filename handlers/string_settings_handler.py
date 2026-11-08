@@ -2,6 +2,7 @@
 # handlers/string_settings_handler.py
 from typing import Any, List, Optional, Tuple, Dict
 from .base_handler import BaseHandler
+from core.progress_stats import KEEP_ORIGINAL
 from utils.width import max_line_width
 from utils.logging_utils import log_debug
 
@@ -167,6 +168,26 @@ class StringSettingsHandler(BaseHandler):
         if hasattr(self.mw, 'list_selection_handler'):
             self.mw.list_selection_handler.select_string_by_absolute_index(current_string_idx_before_rescan)
 
+
+    def set_keep_original(self, line_indices: List[int], keep: bool) -> None:
+        """Mark rows whose translation is the original as it is (game titles, names): they count as translated."""
+        block_idx: int = self.mw.data_store.physical_block_idx
+        if block_idx == -1:
+            return
+        for line_idx in line_indices:
+            key: Tuple[int, int] = (block_idx, line_idx)
+            meta = self.mw.string_metadata.setdefault(key, {})
+            if keep:
+                meta[KEEP_ORIGINAL] = True
+            else:
+                meta.pop(KEEP_ORIGINAL, None)
+            if not meta:
+                del self.mw.string_metadata[key]
+        self.mw.data_store.clear_indexes(block_idx)
+        if hasattr(self.mw, 'settings_manager'):
+            self.mw.settings_manager.save_settings()
+        self._apply_and_rescan()
+        self.mw.ui_updater.refresh_block_tree_indicators()
 
     def apply_font_to_range(self, start_line: int, end_line: int, font_file: str) -> None:
         """Apply font to range."""

@@ -2,7 +2,8 @@
 
 Pure functions: ``summarize`` counts a snapshot of the project (the same rule as the
 editor: a row needs translation when its source has a letter besides tags; it is done
-when its current text is not empty and differs from the source); ``record_day``
+when its current text is not empty and differs from the source, or the row is marked
+"Keep original"); ``record_day``
 keeps one entry per day in ``progress_history.json``; ``render_html`` draws the page
 the app opens and the room server serves at ``/stats``.
 """
@@ -13,7 +14,7 @@ import html
 import json
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
+from typing import Any, Collection, Dict, Iterable, List, Mapping, Optional, Sequence
 
 from core.i18n import tr
 from core.tag_utils import needs_translation, strip_tags
@@ -21,6 +22,19 @@ from utils.atomic_io import atomic_write_json
 
 HISTORY_NAME = "progress_history.json"
 MILESTONES = (100, 500, 1000, 2500, 5000, 10000, 25000)
+# string_metadata key of a row whose translation is the original as it is (a game title, a name).
+KEEP_ORIGINAL = "keep_original"
+
+
+def is_kept_original(string_metadata: Optional[Mapping[tuple, Mapping[str, Any]]], block_idx: int, string_idx: int) -> bool:
+    """True when the row is marked "Keep original": it counts as translated with its original text."""
+    meta = string_metadata.get((block_idx, string_idx)) if isinstance(string_metadata, Mapping) else None
+    return isinstance(meta, Mapping) and bool(meta.get(KEEP_ORIGINAL))
+
+
+def kept_original_rows(string_metadata: Optional[Mapping[tuple, Mapping[str, Any]]]) -> set:
+    """The (block, string) keys marked "Keep original"."""
+    return {key for key, meta in (string_metadata or {}).items() if isinstance(meta, Mapping) and meta.get(KEEP_ORIGINAL)}
 
 
 def _words(text: str) -> int:
@@ -28,8 +42,9 @@ def _words(text: str) -> int:
 
 
 def summarize(data: Sequence[Any], edited_file_data: Sequence[Any], edited_data: Mapping[tuple, str],
-              block_names: Mapping[str, str], project: str = "") -> Dict[str, Any]:
-    """Counts of a project snapshot: rows and source words, total and done, per block."""
+              block_names: Mapping[str, str], project: str = "", kept: Collection[tuple] = ()) -> Dict[str, Any]:
+    """Counts of a project snapshot: rows and source words, total and done, per block (``kept``: rows
+    marked "Keep original", done as they are)."""
     blocks, totals = [], {"rows_total": 0, "rows_done": 0, "words_total": 0, "words_done": 0}
     for block_idx, block in enumerate(data or []):
         if not isinstance(block, list):
@@ -46,7 +61,8 @@ def summarize(data: Sequence[Any], edited_file_data: Sequence[Any], edited_data:
             current = edited_data.get((block_idx, string_idx))
             if current is None and isinstance(saved, list) and string_idx < len(saved):
                 current = saved[string_idx]
-            if current is not None and str(current).strip() and str(current).strip() != source.strip():
+            if (block_idx, string_idx) in kept or (
+                    current is not None and str(current).strip() and str(current).strip() != source.strip()):
                 row["done"] += 1
                 totals["words_done"] += words
         if row["total"]:

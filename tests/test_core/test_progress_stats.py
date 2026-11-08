@@ -89,3 +89,29 @@ class TestRoom:
         room.stop()
         saved = json.loads(room.room.journal.read_text(encoding="utf-8"))
         assert saved["stats"]["Olena"] == room.room.stats["Olena"]
+
+
+class TestKeepOriginal:
+    """A row marked "Keep original" (a game title such as "Super Mario World") counts as translated as it is."""
+
+    def test_summarize_counts_a_kept_row_as_done(self):
+        data = [["Super Mario World", "Bye now"]]
+        summary = ps.summarize(data, [["Super Mario World", "Bye now"]], {}, {}, "LM", kept={(0, 0)})
+        assert (summary["rows_total"], summary["rows_done"]) == (2, 1)
+
+    def test_the_editor_counts_a_kept_row_as_translated(self):
+        from types import SimpleNamespace
+
+        from core.data_processor.query_mixin import QueryMixin
+        from core.data_processor.ui_msg_mixin import UiMsgMixin
+
+        class DataProcessor(QueryMixin, UiMsgMixin):
+            pass
+
+        store = SimpleNamespace(edited_data={}, edited_file_data=[["Super Mario World"]], data=[["Super Mario World"]])
+        processor = DataProcessor()
+        processor.mw = SimpleNamespace(data_store=store, string_metadata={})
+        assert not processor.is_string_translated(0, 0)
+        processor.mw.string_metadata[(0, 0)] = {ps.KEEP_ORIGINAL: True}
+        assert processor.is_string_translated(0, 0)
+        assert ps.kept_original_rows(processor.mw.string_metadata) == {(0, 0)}

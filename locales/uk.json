@@ -3474,5 +3474,7 @@
   "Took the changes from {0}.": "Зміни з {0} застосовано.",
   "Send to External Editor": "Надіслати в зовнішній редактор",
   "No external editor yet: add one with External Editors...": "Зовнішнього редактора ще немає: додайте його кнопкою «Зовнішні редактори...»",
-  "Translated rows in the whole project: {done} of {total}": "Перекладено рядків у всьому проєкті: {done} з {total}"
+  "Translated rows in the whole project: {done} of {total}": "Перекладено рядків у всьому проєкті: {done} з {total}",
+  "Keep original": "Лишити як в оригіналі",
+  "The translation is the original as it is (a game title, a name): the row counts as translated.": "Переклад — це оригінал без змін (назва гри, ім'я): рядок рахується перекладеним."
 }

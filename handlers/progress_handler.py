@@ -22,9 +22,9 @@ class ProgressWorker(WorkerThread):
     done = pyqtSignal(dict, dict)
 
     def __init__(self, data, edited_file_data, edited_data, block_names, project: str, project_dir: Optional[Path],
-                 page: Optional[Path] = None):
+                 page: Optional[Path] = None, kept: Optional[set] = None):
         super().__init__()
-        self.args = (data, edited_file_data, edited_data, block_names, project)
+        self.args = (data, edited_file_data, edited_data, block_names, project, kept or set())
         self.project_dir = project_dir
         self.page = page
 
@@ -54,7 +54,8 @@ def start_progress_worker(mw: Any, on_done: Callable[[dict, dict], None], page: 
     project = getattr(getattr(getattr(mw, "project_manager", None), "project", None), "name", "") or ""
     worker = ProgressWorker(list(store.data), list(getattr(store, "edited_file_data", None) or []),
                             dict(getattr(store, "edited_data", None) or {}),
-                            dict(getattr(store, "block_names", None) or {}), project, project_dir_of(mw), page)
+                            dict(getattr(store, "block_names", None) or {}), project, project_dir_of(mw), page,
+                            progress_stats.kept_original_rows(getattr(mw, "string_metadata", None)))
     worker.done.connect(on_done)
     worker.start()
     return worker
