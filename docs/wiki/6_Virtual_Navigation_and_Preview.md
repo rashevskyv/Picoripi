@@ -2,7 +2,7 @@
 status: current
 updated: 2026-09-26
 owns: ui/updaters/block_list
-tokens: 1.6k
+tokens: 1.7k
 purpose: Virtual folders, story and speaker views, preview
 ---
 # Virtual Navigation and Preview

@@ -2,7 +2,7 @@
 status: current
 updated: 2026-09-26
 owns: ui/updaters/block_list
-tokens: 2.2k
+tokens: 2.3k
 ---
 # Віртуальна навігація і прев’ю
 

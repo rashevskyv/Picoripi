@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-25
 owns: ui/builders/
-tokens: 2.5k
+tokens: 2.6k
 purpose: Main window map, Blocks tree, Strings list, editors, status bar, and how to translate one line
 ---
 # Translating in the editor

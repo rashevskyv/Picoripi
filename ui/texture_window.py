@@ -4,7 +4,9 @@ The active plugin's ``get_texture_sources()`` names the textures; a file can als
 (File > Open, for games without a plugin -- it is then edited in place). The translator exports PNGs,
 redraws them in any image editor and imports them back; the window encodes them into the game's own
 format and writes the translation copy (``core.texture_formats.sources``). A status per texture (not
-started / redrawn / checked in game) is kept in ``<project>/textures/status.json``.
+started / redrawn / checked in game) is kept in ``<project>/textures/status.json``. The texture list's
+context menu can also send a texture to an image AI (``core.texture_formats.image_ai``); an accepted
+answer is written the way an imported PNG is.
 
 Every disk, decode and encode step runs in a worker thread, one job after another, and can be
 cancelled between textures; closing the window cancels and waits a bounded time. Headless runs do the
@@ -20,6 +22,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 from core.i18n import tr
 from core.texture_formats import cache as texture_cache
+from core.texture_formats import image_ai
 from core.texture_formats import sources as texture_sources
 from core.texture_formats.sources import TextureSource
 from utils import app_mode, package_check
@@ -108,6 +111,88 @@ class _Preview(QtWidgets.QLabel):
         painter.drawImage(target, self._image)
 
 
+class ImageAIDialog(QtWidgets.QDialog):
+    """Send one texture to the image AI with a prompt; ``result`` holds the answer at the texture's size.
+
+    The request runs as a job of the Textures window (``run_job``); Cancel drops its answer. A request
+    cannot be cut off mid-way, so it ends at the latest after the timeout of the Image AI settings."""
+
+    def __init__(self, window: "TextureWindow", source: TextureSource, preview: Optional[QtGui.QImage],
+                 config: Dict, key: str):
+        super().__init__(window)
+        self.window_ = window
+        self.source, self.config, self.key = source, config, key
+        self.result: Optional[Image.Image] = None
+        self._waiting = False
+        self._request = 0
+        self.setWindowTitle(tr("Send to Image AI: {0}", source.label))
+        self.resize(900, 560)
+        self.original_view = _Preview(tr("Original"))
+        self.original_view.set_image(preview)
+        self.result_view = _Preview(tr("Image AI"))
+        previews = QtWidgets.QHBoxLayout()
+        previews.addWidget(self.original_view)
+        previews.addWidget(self.result_view)
+        self.prompt_edit = QtWidgets.QPlainTextEdit(config.get("prompt", ""))
+        self.prompt_edit.setAccessibleName(tr("Prompt"))
+        self.prompt_edit.setMaximumHeight(90)
+        self.info = QtWidgets.QLabel(tr("Provider: {0}, model: {1}, size rule: {2}",
+                                        config.get("provider"), config.get("model"), config.get("size_rule")))
+        self.info.setWordWrap(True)
+        self.send_button = QtWidgets.QPushButton(tr("&Send"))
+        self.send_button.clicked.connect(self.send)
+        self.accept_button = QtWidgets.QPushButton(tr("&Accept"))
+        self.accept_button.setToolTip(tr("Write the answer into the texture, as Import PNG does (Revert puts the original back)"))
+        self.accept_button.setEnabled(False)
+        self.accept_button.clicked.connect(self.accept)
+        cancel = QtWidgets.QPushButton(tr("Cancel"))
+        cancel.clicked.connect(self.reject)
+        buttons = QtWidgets.QHBoxLayout()
+        buttons.addWidget(self.info, 1)
+        for button in (self.send_button, self.accept_button, cancel):
+            buttons.addWidget(button)
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addLayout(previews, 1)
+        layout.addWidget(QtWidgets.QLabel(tr("Prompt:")))
+        layout.addWidget(self.prompt_edit)
+        layout.addLayout(buttons)
+
+    def send(self) -> None:
+        if self._waiting:
+            return
+        self._waiting = True
+        self._request += 1
+        request = self._request
+        self.send_button.setEnabled(False)
+        self.accept_button.setEnabled(False)
+        self.info.setText(tr("Waiting for the image AI..."))
+        source, config, key, prompt = self.source, dict(self.config), self.key, self.prompt_edit.toPlainText()
+
+        def work(progress, cancelled):
+            return image_ai.edit(source.read_current().image, prompt, config, key,
+                                 lambda: cancelled() or request != self._request)
+
+        self.window_.run_job(work, None, lambda image, error: self._answered(request, image, error))
+
+    def _answered(self, request: int, image: Optional[Image.Image], error: str) -> None:
+        if request != self._request:
+            return
+        self._waiting = False
+        self.send_button.setEnabled(True)
+        if error or image is None:
+            self.info.setText(tr("Error: {0}", error or tr("No answer")))
+            return
+        self.result = image
+        self.result_view.set_image(pil_to_qimage(image))
+        self.accept_button.setEnabled(True)
+        self.info.setText(tr("Answer received. Accept writes it into the texture; Send asks again."))
+
+    def done(self, code: int) -> None:
+        self._request += 1  # a late answer is dropped
+        self._waiting = False
+        super().done(code)
+
+
 class TextureWindow(QtWidgets.QMainWindow):
     """The Textures window. ``main_window`` gives the plugin and the project (``None``: files only)."""
 
@@ -158,6 +243,8 @@ class TextureWindow(QtWidgets.QMainWindow):
         self.tree.currentItemChanged.connect(self._show_current)
         self.tree.setColumnWidth(0, 320)
         self.tree.setColumnWidth(1, 260)
+        self.tree.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tree.customContextMenuRequested.connect(self._tree_menu)
 
         self.original_view = _Preview(tr("Original"))
         self.translated_view = _Preview(tr("Translated"))
@@ -452,6 +539,35 @@ class TextureWindow(QtWidgets.QMainWindow):
                 return
             image = image.resize(source.size, Image.Resampling.LANCZOS)
         self.write_images([(source, image)], "redrawn")
+
+    def _tree_menu(self, pos) -> None:
+        menu = QtWidgets.QMenu(self)
+        menu.addAction(tr("Send to &Image AI..."), self.send_to_image_ai)
+        menu.addSeparator()
+        menu.addAction(tr("&Import PNG..."), self.import_png)
+        menu.addAction(tr("&Export PNG..."), self.export_selected)
+        menu.addAction(tr("Re&vert"), self.revert_selected)
+        menu.exec(self.tree.viewport().mapToGlobal(pos))
+
+    def image_ai_dialog(self) -> Optional[ImageAIDialog]:
+        """The Image AI dialog for the current texture, set from Settings > Image AI (``None``: no texture)."""
+        source = self._source(self.tree.currentItem())
+        if source is None:
+            self.statusBar().showMessage(tr("Choose a texture first."))
+            return None
+        config = image_ai.settings(getattr(self.mw, "image_ai", None))
+        key = image_ai.api_key(config, getattr(self.mw, "translation_config", None))
+        pair = self.images.get(source.key)
+        dialog = ImageAIDialog(self, source, pair[1] if pair else None, config, key)
+        dialog.accepted.connect(lambda: dialog.result is not None and
+                                self.write_images([(source, dialog.result)], "redrawn"))
+        return dialog
+
+    def send_to_image_ai(self) -> None:
+        dialog = self.image_ai_dialog()
+        if dialog is not None:
+            dialog.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+            dialog.open()
 
     def import_folder(self) -> None:
         folder = self._choose_folder(tr("Import PNG Folder"))

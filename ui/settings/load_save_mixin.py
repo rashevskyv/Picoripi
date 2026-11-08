@@ -205,6 +205,8 @@ class SettingsLoadSaveMixin:
         self.glossary_workers_spin.setValue(int(glossary_ai_cfg.get('workers', DEFAULT_WORKERS) or DEFAULT_WORKERS))
         self.glossary_retry_delay_spin.setValue(int(glossary_ai_cfg.get('retry_delay', DEFAULT_RETRY_DELAY)))
         
+        self.load_image_ai_settings(getattr(self.mw, 'image_ai', None))
+
         # Load Spellchecker settings
         self.spellcheck_enabled_checkbox.setChecked(getattr(self.mw, 'spellchecker_enabled', False))
         current_lang = getattr(self.mw, 'spellchecker_language', 'uk')
@@ -341,6 +343,7 @@ class SettingsLoadSaveMixin:
             'current_translation_preset': self.translation_preset_combo.currentData(),
             'detection_enabled': detection_settings,
             'glossary_ai': glossary_ai_settings,
+            'image_ai': self.get_image_ai_settings(),
             'spellchecker_enabled': self.spellcheck_enabled_checkbox.isChecked(),
             'spellchecker_language': self.spellcheck_language_combo.currentData(),
             'settings_window_width': self.width(),

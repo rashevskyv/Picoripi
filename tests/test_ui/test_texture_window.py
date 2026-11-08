@@ -1,5 +1,7 @@
 """The Textures window end to end: list a project's textures in a real worker thread, export, import,
-revert, the status file, opening a file directly, and closing while a job runs."""
+revert, the status file, opening a file directly, closing while a job runs, and Image AI (a fake provider:
+the canvas rule, the key, Accept writing like an imported PNG, Cancel dropping a late answer, an error)."""
+import io
 import json
 import struct
 import sys
@@ -11,7 +13,7 @@ from PIL import Image, ImageDraw
 from PyQt6 import QtWidgets
 
 from core import texture_formats
-from core.texture_formats import pixels, sources
+from core.texture_formats import image_ai, pixels, sources
 from ui import texture_window as texture_window_module
 from ui.texture_window import TextureWindow
 from utils import app_mode
@@ -218,3 +220,98 @@ def test_decoded_pairs_and_the_list_are_cached_and_follow_file_changes(project, 
     assert cache._pair_base(found[0], cache_dir) != cache._pair_base(found[1], cache_dir)
     with pytest.raises(pytest.fail.Exception):
         cache.read_pair(found[0], cache_dir)
+
+
+def _green_answer(config, key, png, prompt, canvas):
+    """A fake image model: the canvas it was sent, painted green where the texture is not transparent."""
+    with Image.open(io.BytesIO(png)) as sent:
+        assert sent.size == canvas
+        answer = Image.new("RGBA", canvas, (0, 200, 0, 255))
+        answer.putalpha(sent.getchannel("A"))
+    buffer = io.BytesIO()
+    answer.save(buffer, "PNG")
+    return buffer.getvalue()
+
+
+def test_fit_puts_a_wide_texture_on_the_wide_canvas_and_cuts_it_back():
+    texture = Image.new("RGBA", (64, 8), (255, 0, 0, 255))
+    sheet, box = image_ai.to_canvas(texture, "fit")
+    assert sheet.size == (1536, 1024) and box == (0, 416, 1536, 608)
+    assert sheet.getpixel((10, 10))[3] == 0 and sheet.getpixel((10, 500)) == (255, 0, 0, 255)
+    back = image_ai.from_canvas(sheet.resize((768, 512)), sheet.size, box, texture.size)
+    assert back.size == (64, 8) and back.getpixel((30, 4))[0] > 240
+    assert image_ai.to_canvas(Image.new("RGBA", (16, 64)), "stretch")[1] == (0, 0, 1024, 1536)
+
+
+def test_the_key_comes_from_ai_translation_or_the_variable(monkeypatch):
+    monkeypatch.setenv("PICORIPI_TEST_IMAGE_KEY", "from-env")
+    config = image_ai.settings({"api_key_env": "PICORIPI_TEST_IMAGE_KEY"})
+    translation = {"providers": {"openai": {"api_key": "from-translation"}}}
+    assert image_ai.api_key(config, translation) == "from-translation"
+    assert image_ai.api_key(config, {"providers": {"openai": {}}}) == "from-env"
+    assert image_ai.api_key({**config, "use_translation_api_key": False}, translation) == "from-env"
+
+
+def test_an_openai_call_without_a_key_names_the_variable():
+    with pytest.raises(image_ai.ImageAIError, match="OPENAI_API_KEY"):
+        image_ai.edit(Image.new("RGBA", (8, 8)), "x", image_ai.settings({}), "")
+
+
+def _window(qtbot, project):
+    project.mw.image_ai = {"model": "fake-model", "prompt": "Make it Ukrainian"}
+    project.mw.translation_config = {"providers": {"openai": {"api_key": "k"}}}
+    window = TextureWindow(project.mw)
+    qtbot.addWidget(window)
+    window.load_project()
+    _settle(qtbot, window)
+    window.tree.setCurrentItem(window._item("a_title.bti"))
+    return window
+
+
+def test_send_in_a_worker_thread_then_accept_writes_the_texture(qtbot, project, monkeypatch):
+    monkeypatch.setattr(app_mode, "headless", False)
+    calls = []
+    monkeypatch.setitem(image_ai.PROVIDERS, "openai",
+                        lambda *args: calls.append((args[1], args[3])) or _green_answer(*args))
+    window = _window(qtbot, project)
+    dialog = window.image_ai_dialog()
+    qtbot.addWidget(dialog)
+    assert dialog.prompt_edit.toPlainText() == "Make it Ukrainian"
+    dialog.send()
+    assert not dialog.send_button.isEnabled()
+    qtbot.waitUntil(lambda: dialog.result is not None, timeout=20000)
+    assert calls == [("k", "Make it Ukrainian")]
+    assert dialog.result.size == (32, 8) and dialog.accept_button.isEnabled()
+    dialog.accept()
+    _settle(qtbot, window)
+    title = next(s for s in window.sources if s.key == "a_title.bti")
+    red, green, _blue, _alpha = title.read_current().image.getpixel((5, 5))
+    assert green > 150 and red < 30
+    assert window.status == {"a_title.bti": "redrawn"}
+
+
+def test_cancel_drops_a_late_answer(qtbot, project, monkeypatch):
+    monkeypatch.setattr(app_mode, "headless", False)
+    release = threading.Event()
+    monkeypatch.setitem(image_ai.PROVIDERS, "openai", lambda *args: release.wait(10) and _green_answer(*args))
+    window = _window(qtbot, project)
+    dialog = window.image_ai_dialog()
+    qtbot.addWidget(dialog)
+    dialog.send()
+    dialog.reject()
+    release.set()
+    _settle(qtbot, window)
+    assert dialog.result is None and not (project.translation / "a_title.bti").exists()
+
+
+def test_a_provider_error_is_shown_in_the_dialog(qtbot, project, monkeypatch):
+    def fail(*args):
+        raise image_ai.ImageAIError("HTTP 400: bad model")
+
+    monkeypatch.setitem(image_ai.PROVIDERS, "openai", fail)
+    window = _window(qtbot, project)
+    dialog = window.image_ai_dialog()
+    qtbot.addWidget(dialog)
+    dialog.send()
+    assert "HTTP 400: bad model" in dialog.info.text()
+    assert not dialog.accept_button.isEnabled() and dialog.send_button.isEnabled()

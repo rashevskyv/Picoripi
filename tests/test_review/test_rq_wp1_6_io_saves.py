@@ -13,6 +13,8 @@ import pytest
 from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
+from core.texture_formats import image_ai
+
 from test_review._rq_wp1_6_helpers import main_window, make_plain_project, open_project  # noqa: F401
 
 GOLDEN_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "review_queue" / "wp1_6"
@@ -84,6 +86,8 @@ def test_translation_archive_glossary_settings_and_session_are_written_as_before
         **{k: v for k, v in old.items() if k not in geometry}, "translation_config": new["translation_config"],
         # 2026-11-03: the Recent Projects menu shows the project name, kept for each path in the list.
         "recent_projects_names": dict.fromkeys(old["recent_projects"], new["recent_projects_names"].get(old["recent_projects"][0])),
+        # 2026-11-08: Settings > Image AI, saved with its defaults.
+        "image_ai": image_ai.DEFAULTS,
     }
     assert new["recent_projects_names"][old["recent_projects"][0]].startswith("RQ")
     assert settings == dump(new)

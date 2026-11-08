@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-25
 owns: ui/settings
-tokens: 5.3k
+tokens: 5.6k
 purpose: Map of every Settings tab and control, defaults, restart needs, and where each value is stored
 ---
 # Configuration
@@ -168,6 +168,23 @@ Keys stay in these fields or in `.env`. Do not put keys in a project you share. 
 | Text Chunk Size | Characters of game text per request. | 8000 |
 | Parallel Requests | Glossary requests at once. Match this to the number of accounts a proxy rotates. | 6 |
 | Retry Delay | Seconds before a failed entry is retried. A `Retry-After` from the server wins. | 60 s |
+
+Restart: no.
+
+## Image AI
+
+The image model that **Send to Image AI...** in the Textures window uses ([Fonts and textures](Fonts_and_Textures.md)).
+
+| Control | What it does | Default |
+|---|---|---|
+| Provider | Image provider. Now OpenAI image edits. | OpenAI |
+| Model | Image model name. `gpt-image-2` has no transparent background. | `gpt-image-1.5` |
+| Endpoint | Base URL of the API. | `https://api.openai.com/v1` |
+| Use API key from AI Translation | Takes the key of the OpenAI Compatible provider of AI Translation. | On |
+| API Key Env Var | Environment variable with the key, used when the AI Translation key is off or empty. The key itself is not saved. | `OPENAI_API_KEY` |
+| Default prompt | The prompt the dialog starts with. | Translate all text into Ukrainian, keep the style |
+| Output size rule | **Fit** keeps the texture's shape and pads it with transparency on the model's canvas; **Stretch** stretches it over the canvas. The answer is scaled back to the texture size. | Fit |
+| Request Timeout | Seconds to wait for the answer. | 180 s |
 
 Restart: no.
 

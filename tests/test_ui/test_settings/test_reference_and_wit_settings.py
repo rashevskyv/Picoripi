@@ -7,6 +7,7 @@ from ui.settings_dialog import SettingsDialog
 from ui.builders.menu_builder import MenuBuilder
 from plugins.zelda_bmg.reference import _try_extract_iso_messages
 from core.translation.config import build_default_translation_config
+from core.texture_formats import image_ai
 
 
 class MockMainWindow(QMainWindow):
@@ -155,6 +156,22 @@ def test_settings_dialog_initializes_and_saves_reference_patch_path(fake_main_wi
     dialog.reference_path_edit.setText("/games/zelda/Zelda_PAL.iso")
     settings = dialog.get_settings()
     assert settings.get("reference_patch_path") == "/games/zelda/Zelda_PAL.iso"
+
+
+def test_image_ai_settings_round_trip(fake_main_window, qtbot):
+    """The Image AI tab shows the saved settings and gives them back; empty fields take the defaults."""
+    fake_main_window.image_ai = {"model": "gpt-image-2", "size_rule": "stretch", "use_translation_api_key": False,
+                                 "api_key_env": "MY_KEY", "prompt": "Ukrainian, please", "timeout": 60}
+    dialog = SettingsDialog(fake_main_window)
+    qtbot.addWidget(dialog)
+    assert dialog.get_settings()["image_ai"] == {
+        "provider": "openai", "model": "gpt-image-2", "endpoint": "", "use_translation_api_key": False,
+        "api_key_env": "MY_KEY", "prompt": "Ukrainian, please", "size_rule": "stretch", "timeout": 60}
+    dialog.image_ai_model_edit.clear()
+    dialog.image_ai_prompt_edit.clear()
+    saved = dialog.get_settings()["image_ai"]
+    assert (saved["model"], saved["prompt"]) == ("gpt-image-1.5", image_ai.DEFAULT_PROMPT)
+    assert "api_key" not in saved
 
 
 def test_try_extract_iso_messages_uses_configured_wit_tool(tmp_path):
