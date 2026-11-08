@@ -259,7 +259,7 @@ class GlobalSettings:
             "translation_presets": getattr(self.mw, 'translation_presets', {}) if isinstance(getattr(self.mw, 'translation_presets', {}), dict) else {},
             "current_translation_preset": getattr(self.mw, 'current_translation_preset', 'default') if isinstance(getattr(self.mw, 'current_translation_preset', 'default'), str) else 'default',
             "glossary_ai": getattr(self.mw, 'glossary_ai', {}),
-            "image_ai": getattr(self.mw, 'image_ai', {}),
+            "image_ai": getattr(self.mw, 'image_ai', {}) if isinstance(getattr(self.mw, 'image_ai', {}), dict) else {},
             "spellchecker_enabled": getattr(self.mw, 'spellchecker_enabled', False),
             "spellchecker_language": getattr(self.mw, 'spellchecker_language', 'uk'),
             "preview_enabled": getattr(self.mw, 'preview_enabled', True),
