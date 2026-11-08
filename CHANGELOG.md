@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Zelda: Ocarina of Time (Switch 2): the wiki tells how NX2navi (another Windows recompilation) reads the same Hookshot build folder as mods, in the Russian slot.
 - Font Editor: external image editors (**External Editors...**, YY-CHR found by default). Double-click a glyph or a sheet, or right-click a sheet → **Send to External Editor**; the cell or sheet goes out as a BMP (indexed for 256 colours or fewer), and each save in the editor comes back as one undoable edit
 - Zelda: Ocarina of Time (Switch 2): the Hookshot updater reads the builder of new Hookshot releases, which come as parts listed in `hookshot-setup.txt` (each checked against its sha256) instead of one zip, and unpacks with Windows' own tar.
 - MCP server: `list_fonts`, `export_font` and `import_font` give an agent a project's bitmap fonts as PNG sheets and write an edited sheet back into the translation font file (the game's own file stays as it is).
