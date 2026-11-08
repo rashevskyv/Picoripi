@@ -2,7 +2,7 @@
 import datetime
 from typing import List, Tuple
 
-from core.tag_utils import strip_tags
+from core.tag_utils import needs_translation
 from utils.logging_utils import log_debug
 
 
@@ -41,8 +41,8 @@ class QueryMixin:
     def string_needs_translation(self, block_idx: int, string_idx: int) -> bool:
         """
         Checks whether a string needs manual translation.
-        A string does not need translation if its original source text is empty
-        or contains only tags and whitespace.
+        A string does not need translation if its original source text has no letter
+        besides its tags (empty, whitespace, "???", "...").
         """
         if not self.mw.data_store.data or not (0 <= block_idx < len(self.mw.data_store.data)):
             return False
@@ -51,9 +51,7 @@ class QueryMixin:
         if not isinstance(block_original, list) or not (0 <= string_idx < len(block_original)):
             return False
 
-        original_text = str(block_original[string_idx])
-        cleaned_original = strip_tags(original_text).strip()
-        return bool(cleaned_original)
+        return needs_translation(str(block_original[string_idx]))
 
     def is_string_translated(self, block_idx: int, string_idx: int) -> bool:
         """

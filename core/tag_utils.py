@@ -24,6 +24,10 @@ def strip_tags(text: str) -> str:
         return ""
     return ANY_TAG_PATTERN.sub("", text)
 
+def needs_translation(text: str) -> bool:
+    """A source needs a translation when, without its tags, it has a letter: "???", "..." and "100" stay as they are."""
+    return any(ch.isalpha() for ch in strip_tags(text))
+
 def mask_tags(text: str) -> str:
     """Mask tags by replacing them with space."""
     if not text:

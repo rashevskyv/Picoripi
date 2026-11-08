@@ -3,6 +3,7 @@ from core.tag_utils import (
     CURLY_TAG_PATTERN,
     BRACKET_TAG_PATTERN,
     strip_tags,
+    needs_translation,
     mask_tags,
     split_keeping_tags,
     mask_all_tags_including_visual_markers,
@@ -77,3 +78,9 @@ def test_iter_all_strings():
     assert list(iter_all_strings([])) == []
     assert list(iter_all_strings(None)) == []
 
+
+
+def test_a_source_without_a_letter_needs_no_translation():
+    """Luigi's Mansion "???" and "......!" stay as they are, so the progress fill can reach the end."""
+    assert [needs_translation(t) for t in ("???", "......!", "{COLOR(3)}100", "", "Hi", "{COLOR(3)}Гадд", "дай")] == \
+        [False, False, False, False, True, True, True]

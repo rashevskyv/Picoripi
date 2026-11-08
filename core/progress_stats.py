@@ -1,7 +1,7 @@
 """Translation progress: the numbers, the daily history, the leaderboard of a room, and one HTML page for all of it.
 
 Pure functions: ``summarize`` counts a snapshot of the project (the same rule as the
-editor: a row needs translation when its source has text besides tags; it is done
+editor: a row needs translation when its source has a letter besides tags; it is done
 when its current text is not empty and differs from the source); ``record_day``
 keeps one entry per day in ``progress_history.json``; ``render_html`` draws the page
 the app opens and the room server serves at ``/stats``.
@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
 from core.i18n import tr
-from core.tag_utils import strip_tags
+from core.tag_utils import needs_translation, strip_tags
 from utils.atomic_io import atomic_write_json
 
 HISTORY_NAME = "progress_history.json"
@@ -38,7 +38,7 @@ def summarize(data: Sequence[Any], edited_file_data: Sequence[Any], edited_data:
         row = {"name": block_names.get(str(block_idx), f"#{block_idx}"), "total": 0, "done": 0, "words": 0}
         for string_idx, source in enumerate(block):
             source = str(source or "")
-            if not strip_tags(source).strip():
+            if not needs_translation(source):
                 continue
             words = _words(source)
             row["total"] += 1

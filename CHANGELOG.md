@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Translation progress: a row whose original has no letter besides its tags (`???`, `...`, `100`) needs no translation, so a block or project whose only untouched rows are such rows shows a full progress fill
 - Blocks tree: a block with no rows (`[0]`, e.g. Luigi's Mansion `text/eventNN`, an event script) and a folder left with only such blocks are no longer shown; an empty folder the user made stays
 - Blocks tree: a bar beside **Blocks:** shows the progress of the whole project (translated rows of the rows that need one), coloured from red through yellow to green
 - Zelda: Ocarina of Time (Switch 2): the wiki tells how NX2navi (another Windows recompilation) reads the same Hookshot build folder as mods, in the Russian slot.
