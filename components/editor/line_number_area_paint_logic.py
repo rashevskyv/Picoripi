@@ -2,7 +2,8 @@
 from PyQt6.QtGui import QPainter, QColor, QPen
 from PyQt6.QtCore import Qt, QRect
 from PyQt6.QtWidgets import QMainWindow
-from utils.utils import calculate_string_width, convert_dots_to_spaces_from_editor
+from utils.utils import convert_dots_to_spaces_from_editor
+from utils.width import measure_width
 from .constants import PAIR_SEPARATOR_LINE_COLOR, PAIR_SEPARATOR_LINE_STYLE, PAIR_SEPARATOR_LINE_THICKNESS
 
 class LNETLineNumberAreaPaintLogic:
@@ -276,15 +277,9 @@ class LNETLineNumberAreaPaintLogic:
                         if is_editor and hasattr(main_window_ref, 'font_map') and main_window_ref.font_map:
                             font_map = main_window_ref.helper.get_font_map_for_string(current_block_idx_data_mw, current_string_idx_data_mw)
                             default_tag_mappings = getattr(main_window_ref, 'default_tag_mappings', {}) if main_window_ref else {}
-                            pixel_width = None
-                            if game_rules and hasattr(game_rules, 'calculate_string_width_override'):
-                                override_val = game_rules.calculate_string_width_override(
-                                    convert_dots_to_spaces_from_editor(current_q_block.text()).rstrip(), font_map
-                                )
-                                if isinstance(override_val, (int, float)):
-                                    pixel_width = override_val
-                            if pixel_width is None:
-                                pixel_width = calculate_string_width(convert_dots_to_spaces_from_editor(current_q_block.text()).rstrip(), font_map, icon_sequences=getattr(main_window_ref, 'icon_sequences', []), default_tag_mappings=default_tag_mappings)
+                            pixel_width = measure_width(
+                                game_rules, convert_dots_to_spaces_from_editor(current_q_block.text()).rstrip(), font_map,
+                                getattr(main_window_ref, 'icon_sequences', []), default_tag_mappings)
                             painter.setPen(QColor(Qt.GlobalColor.darkGray) if theme == 'light' else QColor(Qt.GlobalColor.darkGray).darker(120))
                             painter.drawText(QRect(number_part_width, top, extra_part_width - 3, line_height), Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, str(pixel_width))
                         elif is_preview:

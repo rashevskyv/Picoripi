@@ -109,14 +109,10 @@ class GenericProblemAnalyzer:
             closing_color_tags = ["[/C]", "{COLOR_WHITE}"]
 
         def custom_width_calc(t, fm):
-            default_w = 8 if tag_style == "square" else 6
-            if hasattr(self, 'game_rules') and self.game_rules:
-                if hasattr(self.game_rules, 'calculate_string_width_override'):
-                    return self.game_rules.calculate_string_width_override(t, fm, default_w)
-            if main_window_ref and hasattr(main_window_ref, 'current_game_rules') and main_window_ref.current_game_rules:
-                if hasattr(main_window_ref.current_game_rules, 'calculate_string_width_override'):
-                    return main_window_ref.current_game_rules.calculate_string_width_override(t, fm, default_w)
-            return None
+            # The override gets no letter width of ours: the plugin's own default is what the editor's markers use.
+            rules = getattr(self, 'game_rules', None) or getattr(main_window_ref, 'current_game_rules', None)
+            override = getattr(rules, 'calculate_string_width_override', None)
+            return override(t, fm) if callable(override) else None
 
         self.profile = GameProblemProfile(
             problem_ids=logical_map,

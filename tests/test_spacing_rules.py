@@ -677,31 +677,27 @@ def test_get_line_words_and_visible_tags_width_tags(bmg_rules):
 
 
 def test_punctuation_wrap_prevention(plain_rules):
-    # Characters are 8px wide by default in plain_rules
-    # "aaaaa bbbbbb, cccc"
-    # "aaaaa bbbbbb," is 13 chars = 104px
-    # "aaaaa bbbbbb" is 12 chars = 96px
-    # "bbbbbb, cccc" is 12 chars = 96px
-    # "aaaaa" is 5 chars = 40px
-    # If threshold is 100px:
+    # plain_text measures 6 px a letter by default, as the editor's width marks draw it
+    # "aaaaa bbbbbb," is 13 chars = 78px; "aaaaa bbbbbb" is 12 chars = 72px; "aaaaa" is 30px
+    # If threshold is 75px:
     # - "aaaaa bbbbbb," does not fit.
     # - "aaaaa bbbbbb" fits.
     # Normally, it would split as "aaaaa bbbbbb" and ", cccc".
     # With punctuation wrap prevention, it splits as "aaaaa" and "bbbbbb, cccc".
     text = "aaaaa bbbbbb, cccc"
-    fixed, changed = plain_rules.text_fixer._fix_width_exceeded_generic(text, {}, 100)
+    fixed, changed = plain_rules.text_fixer._fix_width_exceeded_generic(text, {}, 75)
     assert changed is True
     assert fixed == "aaaaa\nbbbbbb, cccc"
 
     # Test em-dash (—) wrap prevention
     text_em = "aaaaa — cccc"
-    fixed_em, changed_em = plain_rules.text_fixer._fix_width_exceeded_generic(text_em, {}, 80)
+    fixed_em, changed_em = plain_rules.text_fixer._fix_width_exceeded_generic(text_em, {}, 60)
     assert changed_em is True
     assert fixed_em == "aaaaa —\ncccc"
 
     # Test en-dash (–) wrap prevention
     text_en = "aaaaa – cccc"
-    fixed_en, changed_en = plain_rules.text_fixer._fix_width_exceeded_generic(text_en, {}, 80)
+    fixed_en, changed_en = plain_rules.text_fixer._fix_width_exceeded_generic(text_en, {}, 60)
     assert changed_en is True
     assert fixed_en == "aaaaa –\ncccc"
 

@@ -22,11 +22,10 @@ class GenericTextFixer:
 
         icon_sequences = getattr(self.mw, 'icon_sequences', []) if self.mw else []
         default_tag_mappings = getattr(self.mw, 'default_tag_mappings', None) if self.mw else None
-        default_w = 8 if self.problem_analyzer.profile.tag_style == "square" else 6
+        # The generic default letter width, as the editor's markers measure.
         return calculate_string_width(
             text,
             font_map,
-            default_char_width=default_w,
             icon_sequences=icon_sequences,
             default_tag_mappings=default_tag_mappings
         )

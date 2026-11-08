@@ -274,6 +274,27 @@ def calculate_strict_string_width(text: str, font_map: dict, icon_sequences: Opt
     """Calculate strict string width."""
     return _calculate_string_width_impl(text, font_map, 8, icon_sequences, strict=True, default_tag_mappings=default_tag_mappings)
 
+def measure_width(rules, text: str, font_map: dict, icon_sequences: Optional[List[str]] = None,
+                  default_tag_mappings: Optional[dict] = None):
+    """The width the editor's width markers draw: the plugin's override (with the plugin's own default letter
+    width), else the font-map width with the generic default. Auto-fix, the problem rules and the original's
+    width label measure with this too, so they all agree with the markers."""
+    override = getattr(rules, 'calculate_string_width_override', None)
+    if callable(override):
+        value = override(text, font_map)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return value
+    return calculate_string_width(text, font_map, icon_sequences=icon_sequences,
+                                  default_tag_mappings=default_tag_mappings)
+
+
+def max_line_width(rules, text: str, font_map: dict, icon_sequences: Optional[List[str]] = None,
+                   default_tag_mappings: Optional[dict] = None):
+    """The widest line of ``text`` by ``measure_width``; 0 for an empty text."""
+    return max((measure_width(rules, line.rstrip(), font_map, icon_sequences, default_tag_mappings)
+                for line in str(text).split('\n')), default=0)
+
+
 def _positive_int(value) -> Optional[int]:
     """Return value as a positive int, or None if it isn't one."""
     if isinstance(value, bool):

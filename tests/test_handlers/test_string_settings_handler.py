@@ -41,7 +41,7 @@ def test_copy_original_width_to_editor_uses_physical_row(handler):
     handler.mw.default_tag_mappings = {}
 
     with patch(
-        "handlers.string_settings_handler.calculate_string_width",
+        "utils.width.calculate_string_width",
         side_effect=lambda text, *_args, **_kwargs: len(text) * 10,
     ):
         handler.copy_original_width_to_editor()
@@ -163,7 +163,7 @@ def test_StringSettingsHandler_apply_auto_width_from_original_to_lines(handler):
     handler.mw.icon_sequences = []
     handler.mw.default_tag_mappings = {}
     
-    with patch('handlers.string_settings_handler.calculate_string_width', side_effect=lambda text, *args, **kwargs: len(text) * 10), \
+    with patch('utils.width.calculate_string_width', side_effect=lambda text, *args, **kwargs: len(text) * 10), \
          patch.object(handler, '_apply_and_rescan'):
         handler.apply_auto_width_from_original_to_lines([0])
         

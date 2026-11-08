@@ -7,6 +7,7 @@
   (the preview's "empty odd subline" marker); short labels come from the common table; plain text checks
   pasted tags kind by kind.
 """
+import importlib
 import json
 
 import pytest
@@ -16,9 +17,34 @@ from . import _rq_wp5_helpers as h
 GOLDEN = h.FIXTURES / "analyzers"
 
 
+def _pre_audit_letter_width(patch, plugin):
+    """Measure as the pre-audit code did: 8 px a letter for games with square tags, 6 px otherwise, over the
+    plugin's own default. That letter width changed on purpose (2026-11-08: the rules measure like the editor's
+    width marks); the goldens still check the rule logic itself."""
+    import plugins.common.text_fixer as text_fixer
+    import utils.utils as uu
+
+    cls = importlib.import_module(f"plugins.{plugin}.rules").GameRules
+    style = cls(main_window_ref=h._AnalyzerWindow()).problem_analyzer.profile.tag_style
+    width = 8 if style == "square" else 6
+    own, measure = cls.calculate_string_width_override, uu.calculate_string_width
+
+    def pinned(text, font_map, default_char_width=width, *args, **kwargs):
+        return measure(text, font_map, default_char_width, *args, **kwargs)
+
+    patch.setattr(cls, "calculate_string_width_override", lambda self, text, fm, _default=width: own(self, text, fm, width))
+    patch.setattr(text_fixer, "calculate_string_width", pinned)
+    patch.setattr(uu, "calculate_string_width", pinned)
+
+
 @pytest.fixture(scope="module")
 def results(qapp):
-    return {plugin: h.analyze_corpus(plugin, *h.corpus_for(plugin)) for plugin in h.PLUGINS}
+    out = {}
+    for plugin in h.PLUGINS:
+        with pytest.MonkeyPatch.context() as patch:
+            _pre_audit_letter_width(patch, plugin)
+            out[plugin] = h.analyze_corpus(plugin, *h.corpus_for(plugin))
+    return out
 
 
 def _words(fix):

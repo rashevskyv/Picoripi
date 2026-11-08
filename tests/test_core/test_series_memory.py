@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from PyQt6.QtWidgets import QWidget
 
 from core.data_state_processor import DataStateProcessor
 from core.translation.series_memory import (
@@ -209,7 +210,7 @@ class TestBanner:
         banner.refresh(7, 10)
 
         assert not banner.isHidden()
-        assert banner.label.text() == 'Translated in TP HD: "Так (HD)"'
+        assert banner.label.text() == 'Saved translation of this text in TP HD: "Так (HD)"'
         assert banner.apply_all_button.text() == "Apply to places with the same context"
         banner.apply_here()
         assert window.data_processor.get_current_string_text(7, 10)[0] == "Так (HD)"
@@ -220,10 +221,41 @@ class TestBanner:
         window.saved_translations_manager.save_translation(0, 3, "Так")
 
         banner.refresh(7, 10)
-        assert banner.label.text() == 'Translated in this project: "Так"'
+        assert banner.label.text() == 'Saved translation of this text in this project: "Так"'
         banner.apply_everywhere()
 
         assert [window.data_processor.get_current_string_text(b, s)[0] for b, s in ((0, 3), (3, 2), (7, 10))] == ["Так"] * 3
+
+    def test_a_saved_translation_that_differs_only_in_line_breaks_is_not_offered(self, qtbot, handler, window):
+        # Auto-fix rewraps the text: the saved version with other line breaks is the same translation.
+        banner = self._banner(qtbot, window)
+        window.saved_translations_manager.series_memory = {}
+        window.saved_translations_manager.save_translation(0, 3, "Так,\nзвісно")
+        window.data_processor.update_edited_data(7, 10, "Так, звісно")
+
+        banner.refresh(7, 10)
+
+        assert banner._suggestion is None
+
+    def test_the_buttons_keep_their_text_width_in_a_narrow_column(self, qtbot, handler, window):
+        banner = self._banner(qtbot, window)
+        banner.label.setText("Збережений переклад цього тексту в цьому проєкті: «" + "Давно-давно існувала земля " * 3 + "»")
+        banner.apply_button.setText("Застосувати тут")
+        banner.apply_all_button.setText("Застосувати в місцях з тим самим контекстом")
+        # A child of the editor column, so nothing widens it: just room for the two buttons.
+        column = QWidget()
+        qtbot.addWidget(column)
+        banner.setParent(column)
+        narrow = banner.apply_button.sizeHint().width() + banner.apply_all_button.sizeHint().width() + 40
+        banner.setGeometry(0, 0, narrow, 300)
+        column.resize(narrow, 300)
+        column.show()
+        banner.show()
+        qtbot.waitUntil(lambda: banner.apply_button.width() > 0)
+
+        for button in (banner.apply_button, banner.apply_all_button):
+            assert button.width() >= button.sizeHint().width()
+            assert button.geometry().right() < banner.width()
 
     def test_a_translated_text_with_copies_offers_to_spread_its_own_translation(self, qtbot, handler, window):
         banner = self._banner(qtbot, window)

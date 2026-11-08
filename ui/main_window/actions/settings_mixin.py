@@ -477,11 +477,10 @@ class MainWindowSettingsActionsMixin:
 
 
     def build_rom(self):
-        """Build the project's translated game with the plugin's build target (ROM, ISO, mod folder) on a worker."""
-        from PyQt6.QtWidgets import QInputDialog
-        from core.project_library.plugin_facts import default_load_rules
-        from ui.project_manager.tasks import ActionJob
+        """Build every build target of the plugin (ROM, ISO, mod folder...), one after another, on workers.
 
+        One progress window and one result for the whole run. A target that fails is reported and the next one
+        still builds; Cancel stops the run (targets already built stay)."""
         project_file = getattr(self.mw.project_manager, 'project_file_path', None)
         rules = self.mw.current_game_rules
         targets = (rules.get_build_targets() or []) if rules else []
@@ -492,31 +491,72 @@ class MainWindowSettingsActionsMixin:
         if getattr(self, '_build_job', None) is not None:
             self.mw.statusBar.showMessage(tr('A build is already running.'), 3000)
             return
-        target = targets[0]
-        if len(targets) > 1:
-            labels = [t['label'] for t in targets]
-            label, ok = QInputDialog.getItem(self.mw, title, tr('What to build:'), labels, 0, False)
-            if not ok:
-                return
-            target = targets[labels.index(label)]
 
         def start(success=True):
             if success is False:
                 return
-            job = ActionJob(project_file, target['id'], default_load_rules)
-            self._build_job = job
-            self._build_dialog = self._build_progress_dialog(title, job.requestInterruption)
-            job.progress.connect(lambda percent, text: self._build_progress(percent, text))
-            job.done.connect(self._build_done)
-            job.failed.connect(lambda message: self._build_ended(tr('Build failed'), message, True))
-            job.cancelled.connect(lambda: self._build_ended(tr('Build cancelled'), '', False))
+            self._build_run = {'project': project_file, 'targets': list(targets), 'index': 0, 'built': [],
+                               'lines': [], 'failed': False}
+            self._build_dialog = self._build_progress_dialog(title, self._cancel_build)
             self.mw.statusBar.showMessage(tr('Building...'))
-            job.start()
+            self._start_build_target()
 
         if getattr(self.mw.data_store, 'unsaved_changes', False):
             self.mw.app_action_handler.save_data_action(ask_confirmation=False, on_finished_callback=start)
         else:
             start()
+
+    def _start_build_target(self):
+        """Start the worker of the run's current target."""
+        from core.project_library.plugin_facts import default_load_rules
+        from ui.project_manager.tasks import ActionJob
+        run = self._build_run
+        target = run['targets'][run['index']]
+        job = ActionJob(run['project'], target['id'], default_load_rules)
+        self._build_job = job
+        job.progress.connect(self._build_progress)
+        job.done.connect(self._build_done)
+        job.failed.connect(self._build_failed)
+        job.cancelled.connect(lambda: self._build_ended(tr('Build cancelled'), self._build_summary(), False))
+        job.start()
+
+    def _cancel_build(self):
+        job = getattr(self, '_build_job', None)
+        if job is not None:
+            job.requestInterruption()
+
+    def _build_summary(self):
+        """What the run built and what failed so far, in target order."""
+        return '\n'.join((getattr(self, '_build_run', None) or {}).get('lines', []))
+
+    def _build_failed(self, message):
+        run = self._build_run
+        run['failed'] = True
+        run['lines'].append(tr('{0} failed: {1}', run['targets'][run['index']]['label'], message))
+        self._next_build_target()
+
+    def _next_build_target(self):
+        """Start the next target, or end the run with one result for every target."""
+        run = self._build_run
+        run['index'] += 1
+        if run['index'] < len(run['targets']):
+            self._start_build_target()
+            return
+        if run['built']:
+            from PyQt6.QtCore import QUrl
+            from PyQt6.QtGui import QDesktopServices
+            from core.project_library.build import BUILD_DIR_NAME
+            if len(run['targets']) > 1:
+                # Each target builds into build/<target id>: their shared folder opens once.
+                folder = Path(run['project']).parent / BUILD_DIR_NAME
+            else:
+                first = Path(run['built'][0])
+                folder = first if first.is_dir() else first.parent
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
+        if run['failed']:
+            self._build_ended(tr('Build failed'), self._build_summary(), True)
+        else:
+            self._build_ended(self._build_summary(), '', False)
 
     def _build_progress_dialog(self, title, on_cancel):
         """A fixed-size progress window for the build; Cancel calls ``on_cancel``."""
@@ -535,6 +575,12 @@ class MainWindowSettingsActionsMixin:
 
     def _build_progress(self, percent, text):
         percent = max(0, min(100, int(percent)))
+        run = getattr(self, '_build_run', None)
+        if run and len(run['targets']) > 1:
+            # One bar for the run: each target takes its share; the step text names the target.
+            count, index = len(run['targets']), run['index']
+            text = f"{run['targets'][index]['label']} ({index + 1}/{count}): {text or tr('Building...')}"
+            percent = (index * 100 + percent) // count
         now = time.monotonic()
         passed = now - getattr(self, '_build_started', now)
         if 0 < percent < 100:
@@ -549,19 +595,18 @@ class MainWindowSettingsActionsMixin:
             dialog.setValue(percent)
 
     def _build_done(self, path):
-        from PyQt6.QtCore import QUrl
-        from PyQt6.QtGui import QDesktopServices
         from core.project_library import build
         warnings = build.read_warnings(path)
         text = tr('Built: {0}', path)
         if warnings:
-            text += '\n\n' + tr('{0} warnings: {1}', len(warnings), warnings[0])
-        folder = Path(path) if Path(path).is_dir() else Path(path).parent
-        QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
-        self._build_ended(text, '', False)
+            text += '\n' + tr('{0} warnings: {1}', len(warnings), warnings[0])
+        self._build_run['built'].append(path)
+        self._build_run['lines'].append(text)
+        self._next_build_target()
 
     def _build_ended(self, text, detail, error):
         self._build_job = None
+        self._build_run = None
         dialog = getattr(self, '_build_dialog', None)
         self._build_dialog = None
         if dialog is not None:

@@ -65,7 +65,7 @@ class ToolBarBuilder:
         
         self.mw.build_rom_action = QAction(tr('Build ROM'), self.mw)
         self.mw.build_rom_action.setToolTip(
-            tr('<b>Build ROM</b><br>Click — build the changed game (ROM, ISO or mod folder) from this project.')
+            tr('<b>Build ROM</b><br>Click — build the changed game from this project: every build target of the game (ROM, ISO, mod folder...), one after another.')
         )
 
         # Push Help and Script to the far right

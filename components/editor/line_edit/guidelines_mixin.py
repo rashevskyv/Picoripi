@@ -14,7 +14,8 @@ class GuidelinesMixin:
 
     def calculate_block_guidelines(self, block, font_map, sequences, limit_px, default_tag_mappings=None) -> None:
         """Calculate block guidelines."""
-        from utils.utils import calculate_string_width, convert_dots_to_spaces_from_editor
+        from utils.utils import convert_dots_to_spaces_from_editor
+        from utils.width import measure_width
         from PyQt6.QtGui import QTextCursor
 
         if not hasattr(self, 'guideline_positions'):
@@ -36,11 +37,7 @@ class GuidelinesMixin:
 
         def get_width(txt):
             """Get the width."""
-            if rules and hasattr(rules, 'calculate_string_width_override'):
-                override_val = rules.calculate_string_width_override(txt, font_map)
-                if isinstance(override_val, (int, float)):
-                    return override_val
-            return calculate_string_width(txt, font_map, icon_sequences=sequences, default_tag_mappings=default_tag_mappings)
+            return measure_width(rules, txt, font_map, sequences, default_tag_mappings)
 
         block_width_px = get_width(block_text_raw.rstrip())
         is_exceeded = (block_width_px > limit_px)

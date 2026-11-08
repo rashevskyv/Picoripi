@@ -115,7 +115,7 @@ Each project row has two boxes: **Built** and **Verified in game**. Only you set
 
 ## Build ROM button
 
-The **Build ROM** button on the toolbar builds the open project with its game plugin. It saves your edits first. If the game has more than one build target, it asks which one. A progress window shows each step, the time passed and about how long is left; **Cancel** stops the build. When the build is done, the folder with the result opens, and a message gives its path and the first warning.
+The **Build ROM** button on the toolbar builds the open project with its game plugin. It saves your edits first. It builds every build target of the game (ROM, ISO, mod folder...) one after another, in one run. One progress window shows the target, each step, the time passed and about how long is left. **Cancel** stops the run; the targets already built stay. When a target fails, the message names it, and the other targets still build. At the end, one message lists each result and its first warning, and the result folder opens (the project's `build` folder when the game has more than one target).
 
 ## Run External Script
 

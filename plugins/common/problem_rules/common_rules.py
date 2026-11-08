@@ -21,6 +21,10 @@ from utils.utils import (
     ALL_TAGS_PATTERN
 )
 
+# The default letter width of utils.width.calculate_string_width.
+DEFAULT_LETTER_WIDTH = 8
+
+
 # Helper function to calculate width within rules
 def _get_string_width(text: str, context: RuleContext) -> int:
     if context.game_profile and context.game_profile.width_calculator:
@@ -30,12 +34,10 @@ def _get_string_width(text: str, context: RuleContext) -> int:
                 return int(val)
             except (TypeError, ValueError):
                 pass
-    # Fallback to standard
-    default_w = 8 if context.game_profile and context.game_profile.tag_style == "square" else 6
+    # Fallback: the generic measure with its own default letter width, as the editor's markers draw it.
     w = uu.calculate_string_width(
         text,
         context.font_map,
-        default_char_width=default_w,
         icon_sequences=context.icon_sequences,
         default_tag_mappings=context.default_tag_mappings
     )
@@ -43,7 +45,7 @@ def _get_string_width(text: str, context: RuleContext) -> int:
         try:
             return int(w)
         except (TypeError, ValueError):
-            return len(text) * default_w
+            return len(text) * DEFAULT_LETTER_WIDTH
     return w
 
 

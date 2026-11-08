@@ -107,8 +107,8 @@ def test_pokemon_fr_width_fix_preserves_original_page_break_tags(rules):
     fixed, changed = rules.autofix_data_string(
         data_string=dirty,
         editor_font_map={},
-        editor_line_width_threshold=60, # Small threshold to force wrap
-        logical_hard_limit=60
+        editor_line_width_threshold=80, # Small threshold to force wrap (8 px a letter, as the width marks draw)
+        logical_hard_limit=80
     )
     assert changed is True
     assert fixed == "long long\\nlong\\pNext page"
@@ -119,8 +119,8 @@ def test_pokemon_fr_autofix_preserves_original_page_break_tags_full(rules):
     fixed, changed = rules.autofix_data_string(
         data_string=dirty,
         editor_font_map={},
-        editor_line_width_threshold=60,
-        logical_hard_limit=60,
+        editor_line_width_threshold=80,
+        logical_hard_limit=80,
         allowed_problems=None # Full autofix
     )
     assert changed is True

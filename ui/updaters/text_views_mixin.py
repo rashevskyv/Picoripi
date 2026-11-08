@@ -6,10 +6,8 @@ from utils.thread_utils import single_shot
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QTextCursor
 
-from utils.utils import (
-    convert_spaces_to_dots_for_display,
-    calculate_strict_string_width,
-)
+from utils.utils import convert_spaces_to_dots_for_display
+from utils.width import max_line_width
 from ui.components.bfn_preview_widget import _looks_like_bfn_editor
 from ui.components.custom_preview import custom_preview_of
 from core.data_store import store_is_virtual_view
@@ -406,25 +404,12 @@ class TextViewsMixin:
                 font_map_for_string = self.mw.helper.get_font_map_for_string(
                     self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx
                 )
-                icon_sequences = getattr(self.mw, 'icon_sequences', [])
-
-                original_lines = str(original_text_raw).split('\n')
-                widths = []
-                for line in original_lines:
-                    w = calculate_strict_string_width(line, font_map_for_string, icon_sequences=icon_sequences)
-                    if w is None:
-                        widths = None
-                        break
-                    widths.append(w)
-
-                strict_width = max(widths) if widths is not None and widths else None
-
-                if strict_width is not None:
-                    self.mw.original_width_label.setText(f"{strict_width} px")
-                    self.mw.original_width_label.show()
-                else:
-                    self.mw.original_width_label.setText("")
-                    self.mw.original_width_label.hide()
+                # The markers' measure: a font map without some letters still gives a width.
+                width = max_line_width(self.mw.current_game_rules, original_text_raw, font_map_for_string,
+                                       getattr(self.mw, 'icon_sequences', []),
+                                       getattr(self.mw, 'default_tag_mappings', None))
+                self.mw.original_width_label.setText(f"{width} px")
+                self.mw.original_width_label.show()
             else:
                 self.mw.original_width_label.setText("")
                 self.mw.original_width_label.hide()

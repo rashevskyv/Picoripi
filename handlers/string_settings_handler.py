@@ -2,7 +2,7 @@
 # handlers/string_settings_handler.py
 from typing import Any, List, Optional, Tuple, Dict
 from .base_handler import BaseHandler
-from utils.utils import calculate_string_width
+from utils.width import max_line_width
 from utils.logging_utils import log_debug
 
 class StringSettingsHandler(BaseHandler):
@@ -23,6 +23,9 @@ class StringSettingsHandler(BaseHandler):
         )
         return max_width
 
+    def _rules(self) -> Any:
+        return getattr(self.mw, "current_game_rules", None)
+
     def _is_default_width(self, width: int, block_idx: int, string_idx: int) -> bool:
         return width == 0 or width == self.get_default_width_for_string(block_idx, string_idx)
 
@@ -40,18 +43,7 @@ class StringSettingsHandler(BaseHandler):
         font_map = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
         icon_sequences = getattr(self.mw, "icon_sequences", [])
         default_tag_mappings = getattr(self.mw, "default_tag_mappings", None)
-        max_width = max(
-            (
-                calculate_string_width(
-                    line,
-                    font_map,
-                    icon_sequences=icon_sequences,
-                    default_tag_mappings=default_tag_mappings,
-                )
-                for line in str(original_text).split("\n")
-            ),
-            default=0,
-        )
+        max_width = max_line_width(self._rules(), original_text, font_map, icon_sequences, default_tag_mappings)
         if max_width > 0:
             self.mw.width_spinbox.setValue(max_width)
         
@@ -337,12 +329,7 @@ class StringSettingsHandler(BaseHandler):
 
             font_map = self.mw.helper.get_font_map_for_string(block_idx, line_idx)
             
-            lines = str(original_text).split('\n')
-            max_w = 0
-            for line in lines:
-                w = calculate_string_width(line, font_map, icon_sequences=icon_sequences, default_tag_mappings=default_tag_mappings)
-                if w > max_w:
-                    max_w = w
+            max_w = max_line_width(self._rules(), original_text, font_map, icon_sequences, default_tag_mappings)
 
             key: Tuple[int, int] = (block_idx, line_idx)
             is_default_width = self._is_default_width(max_w, block_idx, line_idx)

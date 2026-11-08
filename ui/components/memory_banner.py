@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any, List, Optional, Tuple
 
-from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton
+from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
 from core.i18n import tr
 from core.translation.config import series_reuse_settings
@@ -11,6 +11,11 @@ from core.translation.layout_contract import text_fits_place
 
 # How much of a remembered translation the bar shows.
 PREVIEW_CHARS = 80
+
+
+def _same_words(one: str, other: str) -> bool:
+    """Whether two texts differ only in spaces and line breaks (an Auto-fix rewrap is no other translation)."""
+    return one.split() == other.split()
 
 
 def _short(text: str) -> str:
@@ -34,22 +39,27 @@ class MemoryBanner(QFrame):
         self._suggestion: Optional[str] = None
         self._same_source: List[Tuple[int, int]] = []
 
-        layout = QHBoxLayout(self)
+        # The text on its own row, the buttons under it: a long text never squeezes a button below its text.
+        layout = QVBoxLayout(self)
         layout.setContentsMargins(6, 2, 6, 2)
-        layout.setSpacing(6)
+        layout.setSpacing(2)
         self.label = QLabel(self)
         self.label.setWordWrap(True)
-        layout.addWidget(self.label, 1)
+        layout.addWidget(self.label)
+        buttons = QHBoxLayout()
+        buttons.setSpacing(6)
+        buttons.addStretch(1)
+        layout.addLayout(buttons)
         self.apply_button = QPushButton(tr('Apply here'), self)
         self.apply_button.setToolTip(tr('Put the remembered translation into this string (an unsaved edit you can undo).'))
         self.apply_button.clicked.connect(self.apply_here)
-        layout.addWidget(self.apply_button)
+        buttons.addWidget(self.apply_button)
         self.apply_all_button = QPushButton(self)
         self.apply_all_button.setToolTip(
             tr('Put this translation into every string of the project with the same source text, speaker and window, where it fits (unsaved edits you can undo).')
         )
         self.apply_all_button.clicked.connect(self.apply_everywhere)
-        layout.addWidget(self.apply_all_button)
+        buttons.addWidget(self.apply_all_button)
         self.hide()
 
     # ── state ───────────────────────────────────────────────────────────
@@ -78,24 +88,24 @@ class MemoryBanner(QFrame):
         saved_mgr.configure_series_reuse(*series_reuse_settings(getattr(self.mw, 'translation_config', None)))
         own_rows, series_rows = saved_mgr.acceptable_rows(block_idx, string_idx, source)
         for row in own_rows:
-            if row["translation"].strip() and row["translation"] != current:
+            if row["translation"].strip() and not _same_words(row["translation"], current):
                 self._suggestion, where = row["translation"], tr('this project')
                 break
         mapped = False
         if self._suggestion is None:
             # a doubtful sentence of another game is offered only in the checkbox list (SeriesSentenceDialog, D45)
             for row in series_rows:
-                if row.get("safe") and row["translation"].strip() and row["translation"] != current:
+                if row.get("safe") and row["translation"].strip() and not _same_words(row["translation"], current):
                     self._suggestion, where = row["translation"], row["project"]
                     mapped = row.get("origin") == "series_mapped"
                     break
         blocked = None if self._suggestion is not None else saved_mgr.blocked_series_reason(block_idx, string_idx, source)
         if self._suggestion is not None and mapped:
-            self.label.setText(tr('Translated in {where}, tags converted: "{translation}"', where=where, translation=_short(self._suggestion)))
+            self.label.setText(tr('Saved translation of this text in {where}, tags converted: "{translation}"', where=where, translation=_short(self._suggestion)))
             self.apply_button.show()
         elif self._suggestion is not None:
             self.label.setText(
-                tr('Translated in {where}: "{translation}"', where=where, translation=_short(self._suggestion))
+                tr('Saved translation of this text in {where}: "{translation}"', where=where, translation=_short(self._suggestion))
             )
             self.apply_button.show()
         elif translated and self._same_source:
