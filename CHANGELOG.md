@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 - Textures and font windows: a plugin entry that lists several path candidates no longer stops the load with "_path_splitroot_ex: ... not list" (Luigi's Mansion GameCube)
+- Windows: right-click menus, folder lists and message boxes open faster; the app style now looks up each standard icon (folder, file, message-box, computer, desktop: 1-5 ms each, a shell lookup) once
 - Blocks tree: hovering and scrolling no longer stutter on Windows; folder rows looked up the folder and file icons on every paint (about 9 ms each, 0.6 s per screen), now once per style
 - Luigi's Mansion (GameCube): **Tools → Textures...** lists the English text textures (room names, menus, save and file screens, controls, ghost names, the ending); before, the window found none
 - Luigi's Mansion (GameCube): **Tools → Textures...** also lists the title screen (PRESS START, logo), the pause menu and the item and ghost list, which sit in an archive inside `sys/main.dol`; an edited texture is recompressed (Yay0 with back-references, about 3 s) so the executable keeps its size

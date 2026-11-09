@@ -31,6 +31,7 @@ if __name__ == '__main__':
     if not ensure_data_location_chosen():
         sys.exit(0)
 
+from ui.cached_icon_style import CachedIconStyle
 from ui.ui_setup import setup_main_window_ui
 from ui.ui_event_filters import MainWindowEventFilter, TextEditEventFilter
 from ui.ui_updater import UIUpdater
@@ -771,6 +772,8 @@ if __name__ == '__main__':
     sys.excepthook = global_exception_handler
     log_info("================= Application Start =================")
     app = QApplication.instance() or QApplication(sys.argv)
+    # Before apply_theme: setStyle resets the palette. Caches the standard icons (shell lookups on Windows).
+    app.setStyle(CachedIconStyle())
 
     app_icon_path = app_root() / "assets" / "icon.ico"
     if app_icon_path.exists():
