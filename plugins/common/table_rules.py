@@ -115,7 +115,14 @@ class TableRules(BaseGameRules):
         root = (getattr(getattr(pm, "project", None), "metadata", None) or {}).get("source_path")
         if not root or not Path(root).is_dir():
             return sources
-        return [s for s in sources if any(Path(root).glob(s["path"]))] or sources
+        from core.texture_formats.sources import expand_braces
+
+        def present(entry: Dict[str, Any]) -> bool:
+            paths = entry.get("path")
+            paths = paths if isinstance(paths, (list, tuple)) else [paths] if paths else []   # path candidates
+            return any(next(Path(root).glob(single), None) for path in paths for single in expand_braces(str(path)))
+
+        return [s for s in sources if present(s)] or sources
 
     def get_font_sources(self) -> List[Dict[str, Any]]:
         return self._present("font_sources.json")

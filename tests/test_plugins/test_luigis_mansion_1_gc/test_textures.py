@@ -1,5 +1,6 @@
 """Textures window: the plugin names the English text textures of the unpacked game; an edited one reaches the build."""
 import struct
+from types import SimpleNamespace
 
 from PIL import Image
 
@@ -35,8 +36,12 @@ def test_the_english_text_textures_are_listed_and_an_edited_one_is_built(tmp_pat
     for rel in english + others:
         _write(source, rel, _bti((40, 40, 40, 255)))
 
-    found = texture_sources.resolve(GameRules().get_texture_sources(), {
-        "source_path": str(source), "translation_path": str(translation), "is_directory_mode": True})
+    metadata = {"source_path": str(source), "translation_path": str(translation), "is_directory_mode": True}
+    # As in the app: the rules see the open project, so the list keeps only the entries its folder has.
+    main_window = SimpleNamespace(project_manager=SimpleNamespace(project=SimpleNamespace(metadata=metadata)))
+    descriptors = GameRules(main_window).get_texture_sources()
+    assert all(isinstance(d["path"], list) or d["path"] == "sys/main.dol" for d in descriptors)
+    found = texture_sources.resolve(descriptors, metadata)
     assert sorted(s.key for s in found) == sorted(rel for rel in english)
 
     room = next(s for s in found if s.key.endswith("e_living.bti"))
