@@ -1,4 +1,7 @@
 [
+  {"label": "Title screen (PRESS START, logo, copyright)", "kind": "title_screen", "format": "bti", "path": "sys/main.dol", "member": "resources.arc/res_titl.szp/timg/{start,e_title*,2001n}.bti"},
+  {"label": "Pause menu", "kind": "menu_label", "format": "bti", "path": "sys/main.dol", "member": "resources.arc/res_paus.szp/timg/{e_ptx_*,ptx_ghost_*}.bti"},
+  {"label": "Item and ghost list", "kind": "menu_label", "format": "bti", "path": "sys/main.dol", "member": "resources.arc/res_list.szp/timg/{e_list_title_*,e_gb_font_tx_*}.bti"},
   {"label": "Room names", "kind": "area_card", "format": "bti", "path": ["files/Game/game_usa.szp/kawano/roomname/e_*.bti", "Game/game_usa.szp/kawano/roomname/e_*.bti"]},
   {"label": "Game Boy Horror labels", "kind": "hud", "format": "bti", "path": ["files/Game/game_usa.szp/kawano/base/timg/e_gb_font_tx_*.bti", "Game/game_usa.szp/kawano/base/timg/e_gb_font_tx_*.bti"]},
   {"label": "Game Boy Horror logo", "kind": "logo", "format": "bti", "path": ["files/Game/game_usa.szp/kawano/base/timg/gbf_title.bti", "Game/game_usa.szp/kawano/base/timg/gbf_title.bti"]},

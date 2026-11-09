@@ -1,11 +1,12 @@
-"""Luigi's Mansion (GameCube): the dialogue font inside sys/main.dol, the Ukrainian letters in messages, and the build
-that carries a changed main.dol. Synthetic bytes only; no game file is read."""
+"""Luigi's Mansion (GameCube): the dialogue font and the resource archive inside sys/main.dol, the Ukrainian letters
+in messages, and the build that carries a changed main.dol. Synthetic bytes only; no game file is read."""
 import struct
 
 import pytest
+from rarc_fixture import build_rarc
 
 from plugins.luigis_mansion_1_gc import build, messages
-from plugins.luigis_mansion_1_gc.dol_font import DOL_SIZE, FONT_AT, FONT_MAGIC, MEMBER, DolFont
+from plugins.luigis_mansion_1_gc.dol_font import ARCHIVE_AT, ARCHIVE_MEMBER, DOL_SIZE, FONT_AT, FONT_MAGIC, MEMBER, DolFont
 
 FONT_SIZE = 64
 
@@ -71,3 +72,51 @@ def test_dash_and_guillemets_take_the_nearest_shift_jis_mark():
     table = messages.Table(b"one\r\n")
     raw = table.build(["a \u2014 b \u00abc\u00bb"])
     assert messages.Table(raw).texts() == ["a \u2015 b \u201cc\u201d"]
+
+
+def _dol_with_archive(archive: bytes) -> bytes:
+    data = bytearray(_dol())
+    data[ARCHIVE_AT:ARCHIVE_AT + len(archive)] = archive
+    return bytes(data)
+
+
+def test_resource_archive_is_a_member_with_its_own_room():
+
+    archive = build_rarc({"a.bin": b"\x33" * 40})
+    container = DolFont(_dol_with_archive(archive))
+    assert container.list_files() == [MEMBER, ARCHIVE_MEMBER]
+    assert container.read_file(ARCHIVE_MEMBER) == archive
+    container.write_file(ARCHIVE_MEMBER, archive[:-32])
+    out = container.pack()
+    assert len(out) == DOL_SIZE
+    assert out[ARCHIVE_AT:ARCHIVE_AT + len(archive)] == archive[:-32] + bytes(32)
+    with pytest.raises(ValueError, match="room for"):
+        container.write_file(ARCHIVE_MEMBER, archive + b"\x00")
+
+
+def test_texture_in_a_yay0_archive_inside_main_dol_is_written_in_place(tmp_path):
+    from PIL import Image
+
+    from core.containers import yay0
+    from core.texture_formats import sources
+    from plugins.luigis_mansion_1_gc.rules import GameRules
+    from .test_textures import _bti
+
+    GameRules()   # registers DolFont for .dol
+    inner = yay0.compress_matched(build_rarc({"start.bti": _bti((0, 0, 0, 255))}))
+    dol = _dol_with_archive(build_rarc({"res_titl.szp": inner}))
+    for root in ("src", "trn"):
+        (tmp_path / root / "sys").mkdir(parents=True)
+        (tmp_path / root / "sys" / "main.dol").write_bytes(dol)
+    project = {"source_path": str(tmp_path / "src"), "translation_path": str(tmp_path / "trn"),
+               "is_directory_mode": True}
+    descriptor = [{"label": "Title", "kind": "title_screen", "format": "bti", "path": "sys/main.dol",
+                   "member": "resources.arc/res_titl.szp/start.bti"}]
+    [texture] = sources.resolve(descriptor, project)
+    assert texture.write(Image.new("RGBA", (8, 4), (255, 255, 255, 255)))
+
+    out = (tmp_path / "trn" / "sys" / "main.dol").read_bytes()
+    assert len(out) == DOL_SIZE and out[:ARCHIVE_AT] == dol[:ARCHIVE_AT] and out[FONT_AT:] == dol[FONT_AT:]
+    [again] = sources.resolve(descriptor, project)
+    assert again.read_current().image.convert("RGBA").getpixel((0, 0)) == (255, 255, 255, 255)
+    assert again.read_original().image.convert("RGBA").getpixel((0, 0)) == (0, 0, 0, 255)

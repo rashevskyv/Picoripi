@@ -3,6 +3,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 ## [Unreleased]
 - Blocks tree: hovering and scrolling no longer stutter on Windows; folder rows looked up the folder and file icons on every paint (about 9 ms each, 0.6 s per screen), now once per style
 - Luigi's Mansion (GameCube): **Tools → Textures...** lists the English text textures (room names, menus, save and file screens, controls, ghost names, the ending); before, the window found none
+- Luigi's Mansion (GameCube): **Tools → Textures...** also lists the title screen (PRESS START, logo), the pause menu and the item and ghost list, which sit in an archive inside `sys/main.dol`; an edited texture is recompressed (Yay0 with back-references, about 3 s) so the executable keeps its size
 - Translation progress: **Keep original** in the right-click menu of **Strings in block** marks rows that stay as they are (game titles, names); they count as translated in the tree, the bar beside **Blocks:** and the progress page
 - Translation progress: a row whose original has no letter besides its tags (`???`, `...`, `100`) needs no translation, so a block or project whose only untouched rows are such rows shows a full progress fill
 - Textures window: right-click a texture → **Send to Image AI...** sends it with a prompt to an image model (OpenAI image edits; **Settings → Image AI** sets the provider, model, key source, default prompt and output size rule); **Accept** writes the answer like an imported PNG, at the texture's size and format

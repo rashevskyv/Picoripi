@@ -42,3 +42,14 @@ def test_yay0_literal_compress_round_trips(payload):
     from core.containers.yay0 import compress
 
     assert decompress(compress(payload)) == payload
+
+
+@pytest.mark.parametrize("smallest", [False, True])
+@pytest.mark.parametrize("payload", [b"", b"A", b"abc" * 200 + bytes(range(256)) + b"z" * 300, bytes(range(256)) * 3])
+def test_yay0_matched_compress_round_trips_and_uses_back_references(payload, smallest):
+    from core.containers.yay0 import compress, compress_matched
+
+    packed = compress_matched(payload, smallest=smallest)
+    assert decompress(packed) == payload
+    if len(payload) > 600:
+        assert len(packed) < len(compress(payload)) // 2

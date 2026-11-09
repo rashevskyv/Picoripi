@@ -11,7 +11,7 @@ A plugin describes its textures with ``BaseGameRules.get_texture_sources()`` (or
   walked: ``Layout/Title.szs/timg/*.bflim``. Without a ``/`` the glob matches the file name only.
   An N64 ROM is an archive of its dmadata files, named ``#<index>``;
 - ``params`` -- what the format needs (``pixel_format``, ``offset``...), plus ``compression`` of the
-  file at ``path`` (``zlib``, ``gzip``, ``lz11``; Yaz0, zstd and gzip are found by their magic, also on members),
+  file at ``path`` (``zlib``, ``gzip``, ``lz11``; Yaz0, Yay0, zstd and gzip are found by their magic, also on members),
   ``file_offset`` + ``file_size`` (the texture file is that byte range of the file or member) and ``texture``
   (a glob of texture names, for a file that holds several; ``{2,5,7}`` picks several).
 
@@ -35,7 +35,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 from PIL import Image
 
 from core import texture_formats
-from core.containers import ContainerManager, grezzo, level5, nitro, sarc, tmpk, yaz0
+from core.containers import ContainerManager, grezzo, level5, nitro, sarc, tmpk, yay0, yaz0
 from core.containers.base_container import BaseArchiveContainer
 from utils.atomic_io import atomic_write_bytes
 from utils.logging_utils import log_warning
@@ -117,7 +117,7 @@ def _decompress(data: bytes, scheme: str = "auto") -> Tuple[bytes, Rewrap]:
     """``(plain bytes, plain -> stored bytes)``; an unchanged payload gets its original bytes back."""
     scheme = (scheme or "auto").lower()
     if scheme == "auto":
-        scheme = ("yaz0" if data[:4] == b"Yaz0" else "zstd" if data[:4] == sarc.ZSTD_MAGIC
+        scheme = ("yaz0" if data[:4] == b"Yaz0" else "yay0" if data[:4] == b"Yay0" else "zstd" if data[:4] == sarc.ZSTD_MAGIC
                   else "lzs" if data[:4] == grezzo.LZS_MAGIC
                   else "gzip" if data[:3] == b"\x1f\x8b\x08" else "none")
     if scheme == "none":
@@ -125,6 +125,11 @@ def _decompress(data: bytes, scheme: str = "auto") -> Tuple[bytes, Rewrap]:
     if scheme == "yaz0":
         # Bytes 8-15 of the header stay: Wii U keeps the data alignment there (0x2000 for layouts).
         plain, pack = yaz0.decompress(data), lambda new: (lambda out: out[:8] + data[8:16] + out[16:])(yaz0.compress(new))
+    elif scheme == "yay0":
+        # A member often has no room to grow (an archive inside main.dol): the full search when the fast one is larger.
+        plain = yay0.decompress(data)
+        pack = lambda new: (lambda out: out if len(out) <= len(data) else yay0.compress_matched(new, smallest=True))(  # noqa: E731
+            yay0.compress_matched(new))
     elif scheme == "zstd":
         plain, dict_id = sarc.decompress(data)
         pack = lambda new: sarc.compress(new, dict_id)  # noqa: E731
@@ -144,7 +149,7 @@ def _decompress(data: bytes, scheme: str = "auto") -> Tuple[bytes, Rewrap]:
         from core.containers import lz10
         plain, pack = lz10.decompress(data)[0], lz10.compress
     else:
-        raise ValueError(f"Compression {scheme!r} is not supported (yaz0, zstd, zlib, gzip, yar, lzs, lz11, lz10 are)")
+        raise ValueError(f"Compression {scheme!r} is not supported (yaz0, yay0, zstd, zlib, gzip, yar, lzs, lz11, lz10 are)")
     return plain, lambda new: data if new == plain else pack(new)
 
 
