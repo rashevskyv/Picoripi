@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- AI prompt editor: a **Notes** field for **AI Translate** and **AI Variation** of one string; the notes are sent at the end of the request, saved for the row with the project and filled in again next time (for example after **Refresh** of the variations); the editor's labels and titles are translated
 - Ocarina of Time (Switch 2): a `.nup` that holds the base game and its update as two titles opens, unpacks and builds; the update's tree is the game, and every title's trailer moves behind the replaced files; the header hash covers only the table of contents, not the padding after it, so FreeTC opens the built package
 - Textures window: pictures of textures inside a plugin's own container (Luigi's Mansion `sys/main.dol`) are shown; the decoding worker processes did not know the plugin's container
 - Image AI: a missing key or agent command opens **Set up Image AI** in the Textures window (enter the OpenAI key or pick an agent) instead of an error in the console; a request error also opens a message box

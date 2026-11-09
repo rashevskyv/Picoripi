@@ -13,7 +13,7 @@ from utils.logging_utils import log_debug
 from utils.utils import resolve_target_language_prompt
 
 from .glossary_mixin import SERIES_GLOSSARY_LEAD
-from .instructions import append_engine_rules, single_rules
+from .instructions import append_engine_rules, append_translator_notes, single_rules
 
 # Saved translations of the same source shown in a single-string request.
 TRANSLATION_MEMORY_ROWS = 3
@@ -138,8 +138,9 @@ class MessagesMixin:
         session_state: Optional[TranslationSessionState] = None,
         mode_description: str = 'translation variations',
         selected_text: Optional[str] = None,
+        notes: str = "",
     ) -> Tuple[str, str]:
-        """Compose variation request."""
+        """Compose variation request; ``notes`` are the translator's notes for the row."""
         combined_system, user_content = self.compose_messages(
             system_prompt,
             source_text,
@@ -152,7 +153,7 @@ class MessagesMixin:
             session_state=session_state,
             selected_text=selected_text,
         )
-        return combined_system, user_content
+        return combined_system, append_translator_notes(user_content, notes)
 
     def compose_messages(
         self,

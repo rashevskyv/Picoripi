@@ -262,15 +262,18 @@ class AIVariationsHandler(BaseTranslationHandler):
         }
         combined_system, user_prompt = self.main_handler.prompt_composer.compose_variation_request(**composer_args)
         edited = self.main_handler._maybe_edit_prompt(
-            title="AI Variation Prompt",
+            title=tr("AI Variation Prompt"),
             system_prompt=combined_system,
             user_prompt=user_prompt,
             save_section='translation',
             force_prompt=self.main_handler._is_control_pressed(),
+            notes_key=(block_idx, string_idx),
         )
         if edited is None:
             return
         edited_system, edited_user = edited
+        # A session retry composes the request again from composer_args.
+        composer_args['notes'] = self.main_handler.row_notes((block_idx, string_idx))
 
         self.main_handler.ui_handler.start_ai_operation(
             "AI Variation", 

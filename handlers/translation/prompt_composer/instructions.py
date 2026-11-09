@@ -224,6 +224,18 @@ def strip_engine_rules(system_prompt: str) -> str:
     return system_prompt.split(ENGINE_MARKER, 1)[0].rstrip()
 
 
+# string_metadata key of the translator's notes for one row (prompt editor "Notes" field).
+AI_NOTES = "ai_notes"
+
+
+def append_translator_notes(user_prompt: str, notes: str) -> str:
+    """``user_prompt`` with the translator's notes for this row at the end, when there are any."""
+    notes = (notes or "").strip()
+    if not notes:
+        return user_prompt
+    return f"{user_prompt.rstrip()}\n\nTRANSLATOR NOTES (the translator's own instructions for this row; follow them):\n{notes}"
+
+
 # The reviewer's turn: the same conversation as the translation (rules, glossary, speakers, scene), the draft as
 # the model's own answer, then this. Only real errors are fixed; correct lines are not restyled.
 # The shorten pass: sent after the draft (and the review) with the items Picoripi measured as not fitting.

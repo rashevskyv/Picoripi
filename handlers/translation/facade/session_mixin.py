@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import QDialog, QMessageBox
 
 from core.translation.providers import BaseTranslationProvider, GeminiProvider
 from components.prompt_editor_dialog import PromptEditorDialog
-from handlers.translation.prompt_composer.instructions import strip_engine_rules
+from handlers.translation.prompt_composer.instructions import AI_NOTES, append_translator_notes, strip_engine_rules
 from utils.logging_utils import log_debug
 from utils.utils import is_control_modifier_pressed
 from core.i18n import tr
@@ -60,11 +60,17 @@ class SessionMixin:
         save_section: Optional[str] = None,
         save_field: str = 'system_prompt',
         force_prompt: bool = False,
+        notes_key: Optional[Tuple[int, int]] = None,
     ) -> Optional[Tuple[str, str]]:
-        """Internal helper to maybe edit prompt."""
+        """Show the prompt editor when asked; ``notes_key`` (block, string) adds the row's Notes field.
+
+        The row's notes go at the end of the user prompt whether or not the editor is shown.
+        """
         is_ctrl_pressed = force_prompt or is_control_modifier_pressed()
         enabled = self.mw.prompt_editor_enabled
         if not is_ctrl_pressed and not enabled:
+            if notes_key is not None:
+                user_prompt = append_translator_notes(user_prompt, self.row_notes(notes_key))
             return system_prompt, user_prompt
 
         allow_save = bool(save_section and self.glossary_handler._current_prompts_path)
@@ -74,6 +80,7 @@ class SessionMixin:
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             allow_save=allow_save,
+            notes=self.row_notes(notes_key) if notes_key is not None else None,
         )
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return None
@@ -81,6 +88,9 @@ class SessionMixin:
         edited_system, edited_user, save_requested = dialog.get_user_inputs()
         edited_system = edited_system.rstrip()
         edited_user = edited_user.rstrip()
+        if notes_key is not None:
+            self.set_row_notes(notes_key, dialog.notes())
+            edited_user = append_translator_notes(edited_user, dialog.notes())
 
         if save_requested and allow_save and save_section:
             # Save the user's prompt only: the rules the engine appended for this
@@ -90,6 +100,27 @@ class SessionMixin:
                 if save_section == 'translation' and save_field == 'system_prompt':
                     self._cached_system_prompt = prompt_to_save
         return edited_system, edited_user
+
+    def row_notes(self, key: Tuple[int, int]) -> str:
+        """The translator's notes saved for one row (empty when there are none)."""
+        meta = self.mw.string_metadata.get(key)
+        notes = meta.get(AI_NOTES) if isinstance(meta, dict) else None
+        return notes if isinstance(notes, str) else ""
+
+    def set_row_notes(self, key: Tuple[int, int], notes: str) -> None:
+        """Keep the row's notes in string_metadata and save the settings when they changed."""
+        if notes == self.row_notes(key):
+            return
+        meta = self.mw.string_metadata.setdefault(key, {})
+        if notes:
+            meta[AI_NOTES] = notes
+        else:
+            meta.pop(AI_NOTES, None)
+        if not meta:
+            del self.mw.string_metadata[key]
+        # Same as the other string_metadata edits (Keep original, width): closing the app does not save them.
+        if hasattr(self.mw, 'settings_manager'):
+            self.mw.settings_manager.save_settings()
 
     def _set_notes_dialog_busy(self, dialog_obj, busy: bool) -> None:
         """Internal helper to set the notes dialog busy."""

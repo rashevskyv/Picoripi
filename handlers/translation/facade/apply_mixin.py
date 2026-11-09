@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Tuple
 
+from core.i18n import tr
 from core.translation.providers import BaseTranslationProvider, ProviderResponse
 from utils.logging_utils import log_debug
 
@@ -108,15 +109,18 @@ class ApplyMixin:
         }
         combined_system, user_prompt = self.prompt_composer.compose_variation_request(**composer_args)
         edited = self._maybe_edit_prompt(
-            title="AI Translation Prompt",
+            title=tr("AI Translation Prompt"),
             system_prompt=combined_system,
             user_prompt=user_prompt,
             save_section='translation',
-            force_prompt=force_prompt
+            force_prompt=force_prompt,
+            notes_key=(block_idx, string_idx),
         )
         if edited is None:
             return
         edited_system, edited_user = edited
+        # A session retry composes the request again from composer_args.
+        composer_args['notes'] = self.row_notes((block_idx, string_idx))
  
         precomposed = [
             {"role": "system", "content": edited_system},

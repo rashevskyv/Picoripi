@@ -201,7 +201,7 @@ class GlossaryOccurrenceUpdater:
             edited_system, edited_user = prompt_override
         else:
             edited = self._main_handler._maybe_edit_prompt(
-                title="AI Glossary Update Prompt",
+                title=tr("AI Glossary Update Prompt"),
                 system_prompt=combined_system,
                 user_prompt=user_prompt,
                 save_section="glossary_occurrence_update",
@@ -318,7 +318,7 @@ class GlossaryOccurrenceUpdater:
         )
 
         edited = self._main_handler._maybe_edit_prompt(
-            title="AI Glossary Batch Update Prompt",
+            title=tr("AI Glossary Batch Update Prompt"),
             system_prompt=combined_system, user_prompt=user_prompt,
             save_section="glossary_occurrence_update",
             force_prompt=self._main_handler._is_control_pressed(),
@@ -566,7 +566,7 @@ class GlossaryOccurrenceUpdater:
         }
         combined_system, user_prompt = self._main_handler.prompt_composer.compose_variation_request(**composer_args)
         edited = self._main_handler._maybe_edit_prompt(
-            title="AI Glossary Notes Prompt",
+            title=tr("AI Glossary Notes Prompt"),
             system_prompt=combined_system, user_prompt=user_prompt,
             force_prompt=self._main_handler._is_control_pressed(),
         )

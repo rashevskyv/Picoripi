@@ -1,6 +1,6 @@
 """Reusable prompt editor dialog for AI requests."""
 from __future__ import annotations
-from typing import Tuple
+from typing import Optional, Tuple
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
@@ -27,10 +27,11 @@ class PromptEditorDialog(QDialog):
         system_prompt: str,
         user_prompt: str,
         allow_save: bool = True,
+        notes: Optional[str] = None,
     ) -> None:
-        """Initialize a new instance."""
+        """``notes``: the row's saved notes; ``None`` hides the Notes field (the request is not for one row)."""
         super().__init__(parent)
-        self.setWindowTitle(title or "Prompt Editor")
+        self.setWindowTitle(title or tr("Prompt Editor"))
         self.resize(900, 600)
 
         self._allow_save = allow_save
@@ -46,13 +47,25 @@ class PromptEditorDialog(QDialog):
         self._system_edit = QPlainTextEdit(self)
         self._system_edit.setPlainText(system_prompt or "")
         self._splitter.addWidget(
-            self._labelled("System Prompt:", self._system_edit)
+            self._labelled(tr("System Prompt:"), self._system_edit)
         )
 
         self._user_edit = QPlainTextEdit(self)
         self._user_edit.setPlainText(user_prompt or "")
-        self._splitter.addWidget(self._labelled("User Prompt:", self._user_edit))
-        self._splitter.setSizes([200, 400])
+        self._splitter.addWidget(self._labelled(tr("User Prompt:"), self._user_edit))
+
+        self._notes_edit: Optional[QPlainTextEdit] = None
+        if notes is None:
+            self._splitter.setSizes([200, 400])
+        else:
+            self._notes_edit = QPlainTextEdit(self)
+            self._notes_edit.setPlainText(notes)
+            self._notes_edit.setPlaceholderText(tr(
+                "What to change in the translation of this row. "
+                "Saved with the project and sent with every AI request for this row."
+            ))
+            self._splitter.addWidget(self._labelled(tr("Notes:"), self._notes_edit))
+            self._splitter.setSizes([180, 320, 100])
 
         options_row = QHBoxLayout()
         options_row.addStretch(1)
@@ -82,3 +95,7 @@ class PromptEditorDialog(QDialog):
             self._user_edit.toPlainText(),
             bool(self._save_checkbox.isChecked()) if self._allow_save else False,
         )
+
+    def notes(self) -> str:
+        """The Notes field as typed (empty when the field is hidden)."""
+        return self._notes_edit.toPlainText().strip() if self._notes_edit is not None else ""

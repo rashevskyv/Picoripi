@@ -131,7 +131,7 @@ class EditMixin:
         user_content = "\n".join(user_content_parts)
 
         edited = self.main_handler._maybe_edit_prompt(
-            title="AI Glossary Fill Prompt",
+            title=tr("AI Glossary Fill Prompt"),
             system_prompt=system_prompt,
             user_prompt=user_content,
             save_section="glossary",

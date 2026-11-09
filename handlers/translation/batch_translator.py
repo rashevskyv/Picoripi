@@ -564,13 +564,13 @@ class AIBatchTranslator(BaseTranslationHandler):
                 # in the worker, so there is no reason to build the whole set here.
                 preview_args = dict(composer_args, source_items=context['source_items'][:PREVIEW_ITEMS])
                 preview_system, preview_user, _ = self.main_handler.prompt_composer.compose_batch_request(**preview_args)
-                title = "AI Block Translation Prompt"
+                title = tr("AI Block Translation Prompt")
                 if context.get('mode_description'):
                     desc = context['mode_description']
                     if "block" not in desc.lower() and "chapter" not in desc.lower():
-                        title = f"AI Translation Prompt ({desc})"
+                        title = f"{tr('AI Translation Prompt')} ({desc})"
                     elif "chapter" in desc.lower():
-                        title = "AI Chapter Translation Prompt"
+                        title = tr("AI Chapter Translation Prompt")
 
                 edited = self.main_handler._maybe_edit_prompt(
                     title=title,

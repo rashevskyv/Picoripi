@@ -69,6 +69,8 @@ A single-string request also carries an `Addressee:` line when the plugin knows 
 
 In the editor, the system prompt ends with a line `--- REQUEST RULES (added by Picoripi …) ---` followed by the fixed rules for that kind of request (output format, layout, glossary, tags, optional context fields). They are the same for every chunk of a run, which lets providers cache them; you may edit them for one run, but saving the prompt stores only the part above the line. The user message holds the header and the data: for a block, `layout_defaults` once and one line per string with only what is specific to it.
 
+For **AI Translate** and **AI Variation** of one string, the editor has a **Notes** field under the user prompt. Write what to change in the translation of this row ("the word X sounds wrong, use Y"). The notes go at the end of the user message as `TRANSLATOR NOTES`. They are saved for the row with the project settings: on the next request (for example **Refresh** in **AI Translation Variations**) the field is already filled, and the notes are also sent when the editor is not shown. Empty the field to remove them.
+
 Default config `provider` is `"disabled"` until you pick one.
 
 ---
