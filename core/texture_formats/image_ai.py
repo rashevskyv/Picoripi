@@ -15,6 +15,7 @@ Blocking code only -- call it off the UI thread.
 from __future__ import annotations
 
 import base64
+import glob
 import io
 import math
 import os
@@ -43,10 +44,18 @@ DEFAULTS = {
 }
 # Local CLI agents: the task arrives on standard input (Hermes reads the task file).
 AGENT_PRESETS = {
-    "codex": 'codex exec --full-auto --skip-git-repo-check -i "{input}" -',
+    "codex": 'codex exec --skip-git-repo-check --ephemeral -s workspace-write -i "{input}"',
     "claude": 'claude -p --permission-mode acceptEdits --allowedTools "Read,Write,Bash"',
     "gemini": "gemini --yolo",
     "hermes": 'hermes chat --query-file "{prompt_file}" --image "{input}" --oneshot --yolo -Q',
+}
+# Earlier preset commands -> the preset that replaces them (a saved old preset would fail with the current CLI).
+RETIRED_PRESETS = {
+    'codex exec --full-auto --skip-git-repo-check -i "{input}" -': "codex",
+}
+# Where agent apps put their CLI when it is not on PATH (globs; environment variables expanded; newest wins).
+AGENT_LOCATIONS = {
+    "codex": (r"%LOCALAPPDATA%\OpenAI\Codex\bin\*\codex.exe",),   # the Codex desktop app
 }
 AGENT_TASK = ("{prompt}\n\nThe image to edit is {input} ({width}x{height} pixels). Write the edited image as a PNG "
               "of the same size to {output}. Do not ask questions; the task is done when {output} exists.")
@@ -60,7 +69,10 @@ class ImageAIError(Exception):
 
 
 def settings(saved: Optional[Dict]) -> Dict:
-    return {**DEFAULTS, **(saved if isinstance(saved, dict) else {})}
+    config = {**DEFAULTS, **(saved if isinstance(saved, dict) else {})}
+    if config.get("command") in RETIRED_PRESETS:
+        config["command"] = AGENT_PRESETS[RETIRED_PRESETS[config["command"]]]
+    return config
 
 
 def api_key(config: Dict, translation_config: Optional[Dict]) -> str:
@@ -101,6 +113,20 @@ def from_canvas(answer: Image.Image, canvas: Tuple[int, int], box: Box, size: Tu
     return answer.crop(box).resize(size, Image.Resampling.LANCZOS)
 
 
+def find_program(program: str) -> str:
+    """The full path of ``program``: on PATH, or where its app puts it (``AGENT_LOCATIONS``); "" when absent."""
+    found = shutil.which(program)
+    if found:
+        return found
+    candidates = [path for pattern in AGENT_LOCATIONS.get(os.path.splitext(os.path.basename(program))[0].lower(), ())
+                  for path in glob.glob(os.path.expandvars(pattern))]
+    return max(candidates, key=os.path.getmtime, default="")
+
+
+def _program(command: str) -> str:
+    return shlex.split(command, posix=False)[0].strip('"')
+
+
 def missing(config: Dict, key: str) -> str:
     """What ``config`` lacks to send a request ("" when nothing): no key, no command, a command not installed."""
     provider = config.get("provider")
@@ -110,9 +136,8 @@ def missing(config: Dict, key: str) -> str:
         command = str(config.get("command") or "").strip()
         if not command:
             return "No agent command."
-        program = shlex.split(command, posix=False)[0].strip('"')
-        if not shutil.which(program):
-            return f"{program} is not installed or not on PATH."
+        if not find_program(_program(command)):
+            return f"{_program(command)} is not installed or not on PATH."
     return ""
 
 
@@ -161,6 +186,9 @@ def _edit_command(config: Dict, key: str, png: bytes, prompt: str, canvas: Tuple
         with open(paths["prompt_file"], "w", encoding="utf-8") as stream:
             stream.write(AGENT_TASK.format(prompt=prompt, input=paths["input"], output=paths["output"],
                                            width=canvas[0], height=canvas[1]))
+        if not shutil.which(_program(command)) and find_program(_program(command)):   # an app's CLI outside PATH
+            first = shlex.split(command, posix=False)[0]
+            command = f'"{find_program(_program(command))}"' + command[len(first):]
         for name, path in paths.items():
             command = command.replace("{" + name + "}", path)
         log_path = os.path.join(folder, "agent.log")

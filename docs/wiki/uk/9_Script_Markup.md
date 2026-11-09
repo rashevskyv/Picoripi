@@ -49,6 +49,8 @@ tokens: 2.5k
 
 **File ▾:** Open script..., Open project..., Save, Save As..., Close. **Auto-fill ▾:** Join selected structures; Continue from marked examples... (локально, без AI); AI mark missing.... **Advanced ▾:** Template, Export (**Preview result…**, **Export game_script.md…**), Change Type Color..., Legacy tools.
 
+Студія зберігає роботу через дві секунди після кожної зміни й відновлює її під час відкриття. Кожен проєкт має власну сесію студії, тому інший проєкт ніколи не показує скрипт цього проєкту. Коли жоден проєкт не відкритий, студія використовує одну спільну сесію.
+
 **Ctrl+M** у **головному вікні** — MemePalace Context Builder. **Ctrl+M всередині Studio** мітить виділення (або зберігає правку вузла). Це різні команди.
 
 ---

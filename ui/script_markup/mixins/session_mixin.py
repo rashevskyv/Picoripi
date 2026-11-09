@@ -1,6 +1,7 @@
 """Window geometry, autosave session, and close/shutdown lifecycle."""
 from __future__ import annotations
 
+import hashlib
 import os
 import json
 from pathlib import Path
@@ -121,7 +122,16 @@ class SessionMixin:
             path = self._path_from_value(sm.get("script_markup_studio_autosave_path"))
             if path is not None:
                 return path
-        return constants.SETTINGS_DIR / "script_markup_studio_autosave.json"
+        project = self._studio_project_file()
+        if project:   # each project keeps its own studio session
+            digest = hashlib.sha1(os.path.normcase(os.path.abspath(project)).encode("utf-8")).hexdigest()[:16]
+            return constants.SETTINGS_DIR / "script_markup_sessions" / f"{digest}.json"
+        return constants.SETTINGS_DIR / "script_markup_studio_autosave.json"   # no project open
+
+    def _studio_project_file(self) -> str:
+        project_manager = getattr(self.mw, "project_manager", None)
+        path = getattr(project_manager, "project_file_path", None) if project_manager is not None else None
+        return str(path) if isinstance(path, (str, os.PathLike)) and str(path) else ""
 
     def _session_view_payload(self) -> dict:
         cursor = self.raw_edit.textCursor()
@@ -149,6 +159,7 @@ class SessionMixin:
         payload = {
             "format": _STUDIO_SESSION_FORMAT,
             "version": _HIERARCHY_FORMAT_VERSION,
+            "project": self._studio_project_file(),
             "state": self._history_snapshot(),
             "view": self._session_view_payload(),
         }

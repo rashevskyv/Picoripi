@@ -50,6 +50,8 @@ The window is staged **1. Source — 2. Markup — 3. Review — 4. MemPalace**.
 
 **File ▾:** Open script..., Open project..., Save, Save As..., Close. **Auto-fill ▾:** Join selected structures; Continue from marked examples... (local, no AI); AI mark missing.... **Advanced ▾:** Template, Export (**Preview result…**, **Export game_script.md…**), Change Type Color..., Legacy tools.
 
+Studio saves its work two seconds after each edit and restores it when it opens. Each project keeps its own Studio session, so another project never shows this project's script. With no project open, Studio uses one shared session.
+
 **Ctrl+M** in the **main window** is MemePalace Context Builder. **Ctrl+M inside Studio** marks the selection (or saves an in-progress edit). They are not the same command.
 
 ---

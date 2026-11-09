@@ -124,6 +124,7 @@ class ImageAISetupDialog(QtWidgets.QDialog):
         self.resize(640, 0)
         self.problem = QtWidgets.QLabel(tr("Image AI cannot send yet: {0}", problem))
         self.problem.setWordWrap(True)
+        self.problem.setVisible(bool(problem))
         self.provider = image_ai_widgets.provider_combo(self)
         self.provider.setCurrentIndex(max(0, self.provider.findData(config.get("provider"))))
         self.key = QtWidgets.QLineEdit(self)
@@ -153,6 +154,19 @@ class ImageAISetupDialog(QtWidgets.QDialog):
         form = self.layout().itemAt(1).layout()
         form.setRowVisible(self.key, not agent)
         form.setRowVisible(self.agent, agent)
+
+    def accept(self) -> None:
+        """OK closes only when the fields are enough to send; otherwise the problem stays on screen."""
+        config = image_ai.settings({**self.config, "provider": self.provider.currentData(),
+                                    "command": self.agent.command()})
+        key = self.key.text().strip() or image_ai.api_key(config, getattr(self.mw, "translation_config", None))
+        problem = image_ai.missing(config, key)
+        if problem:
+            self.problem.setText(tr("Image AI cannot send yet: {0}", problem))
+            self.problem.setStyleSheet("color: #d04040;")
+            self.problem.show()
+            return
+        super().accept()
 
     def apply(self) -> Dict:
         """Store the fields in the main window's settings (and save them); the new ``image_ai`` settings."""
@@ -197,9 +211,12 @@ class ImageAIDialog(QtWidgets.QDialog):
         self.prompt_edit = QtWidgets.QPlainTextEdit(config.get("prompt", ""))
         self.prompt_edit.setAccessibleName(tr("Prompt"))
         self.prompt_edit.setMaximumHeight(90)
-        self.info = QtWidgets.QLabel(tr("Provider: {0}, model: {1}, size rule: {2}",
-                                        config.get("provider"), config.get("model"), config.get("size_rule")))
+        self.info = QtWidgets.QLabel()
         self.info.setWordWrap(True)
+        self._show_config()
+        self.setup_button = QtWidgets.QPushButton(tr("Se&ttings..."))
+        self.setup_button.setToolTip(tr("Choose the provider, the OpenAI key or the agent command"))
+        self.setup_button.clicked.connect(lambda: self._setup(""))
         self.send_button = QtWidgets.QPushButton(tr("&Send"))
         self.send_button.clicked.connect(self.send)
         self.accept_button = QtWidgets.QPushButton(tr("&Accept"))
@@ -210,13 +227,34 @@ class ImageAIDialog(QtWidgets.QDialog):
         cancel.clicked.connect(self.reject)
         buttons = QtWidgets.QHBoxLayout()
         buttons.addWidget(self.info, 1)
-        for button in (self.send_button, self.accept_button, cancel):
+        for button in (self.setup_button, self.send_button, self.accept_button, cancel):
             buttons.addWidget(button)
         layout = QtWidgets.QVBoxLayout(self)
         layout.addLayout(previews, 1)
         layout.addWidget(QtWidgets.QLabel(tr("Prompt:")))
         layout.addWidget(self.prompt_edit)
+        self.busy = QtWidgets.QProgressBar(self)
+        self.busy.setRange(0, 0)               # no steps to count: it moves while the request runs
+        self.busy.setAccessibleName(tr("Waiting for the image AI"))
+        self.busy.hide()
+        layout.addWidget(self.busy)
         layout.addLayout(buttons)
+        self._started = QtCore.QElapsedTimer()
+        self._clock = QtCore.QTimer(self)
+        self._clock.setInterval(1000)
+        self._clock.timeout.connect(self._tick)
+
+    def _tick(self) -> None:
+        self.info.setText(tr("Waiting for the answer... {0} s", self._started.elapsed() // 1000))
+
+    def _waiting_shown(self, waiting: bool) -> None:
+        self.busy.setVisible(waiting)
+        if waiting:
+            self._started.start()
+            self._tick()
+            self._clock.start()
+        else:
+            self._clock.stop()
 
     def send(self) -> None:
         if self._waiting:
@@ -230,7 +268,7 @@ class ImageAIDialog(QtWidgets.QDialog):
         request = self._request
         self.send_button.setEnabled(False)
         self.accept_button.setEnabled(False)
-        self.info.setText(tr("Waiting for the image AI..."))
+        self._waiting_shown(True)
         source, config, key, prompt = self.source, dict(self.config), self.key, self.prompt_edit.toPlainText()
 
         def work(progress, cancelled):
@@ -239,8 +277,15 @@ class ImageAIDialog(QtWidgets.QDialog):
 
         self.window_.run_job(work, None, lambda image, error: self._answered(request, image, error))
 
+    def _show_config(self) -> None:
+        if self.config.get("provider") == "command":
+            self.info.setText(tr("Agent: {0}", self.config.get("command") or tr("none")))
+        else:
+            self.info.setText(tr("Provider: {0}, model: {1}, size rule: {2}", self.config.get("provider"),
+                                 self.config.get("model"), self.config.get("size_rule")))
+
     def _setup(self, problem: str) -> None:
-        """Ask for what is missing; with it, send."""
+        """The provider, key and command; with a ``problem`` (send was refused), OK also sends."""
         setup = ImageAISetupDialog(self, getattr(self.window_, "mw", None), self.config, problem)
         setup.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
 
@@ -248,9 +293,8 @@ class ImageAIDialog(QtWidgets.QDialog):
             self.config = image_ai.settings(setup.apply())
             self.key = image_ai.api_key(self.config, getattr(getattr(self.window_, "mw", None),
                                                              "translation_config", None))
-            self.info.setText(tr("Provider: {0}, model: {1}, size rule: {2}", self.config.get("provider"),
-                                 self.config.get("model"), self.config.get("size_rule")))
-            if not image_ai.missing(self.config, self.key):
+            self._show_config()
+            if problem:
                 self.send()
 
         setup.accepted.connect(chosen)
@@ -260,12 +304,14 @@ class ImageAIDialog(QtWidgets.QDialog):
         if request != self._request:
             return
         self._waiting = False
+        self._waiting_shown(False)
         self.send_button.setEnabled(True)
+        self._show_config()
         if error or image is None:
-            text = tr("Error: {0}", error or tr("No answer"))
-            self.info.setText(text)
-            box = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, tr("Image AI"), text,
-                                        QtWidgets.QMessageBox.StandardButton.Ok, self)
+            box = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, tr("Image AI"),
+                                        error or tr("No answer"), QtWidgets.QMessageBox.StandardButton.Ok, self)
+            settings = box.addButton(tr("Se&ttings..."), QtWidgets.QMessageBox.ButtonRole.ActionRole)
+            settings.clicked.connect(lambda: self._setup(""))
             box.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
             box.open()
             return
@@ -277,6 +323,7 @@ class ImageAIDialog(QtWidgets.QDialog):
     def done(self, code: int) -> None:
         self._request += 1  # a late answer is dropped
         self._waiting = False
+        self._clock.stop()
         super().done(code)
 
 
@@ -336,8 +383,10 @@ class TextureWindow(QtWidgets.QMainWindow):
         self.original_view = _Preview(tr("Original"))
         self.translated_view = _Preview(tr("Translated"))
         previews = QtWidgets.QHBoxLayout()
-        previews.addWidget(self.original_view)
-        previews.addWidget(self.translated_view)
+        for view in (self.original_view, self.translated_view):
+            view.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+            view.customContextMenuRequested.connect(lambda pos, view=view: self._texture_menu(view.mapToGlobal(pos)))
+            previews.addWidget(view)
 
         self.status_combo = QtWidgets.QComboBox()
         for value, label in _STATUS_LABELS.items():
@@ -355,6 +404,8 @@ class TextureWindow(QtWidgets.QMainWindow):
                                        tr("Replace the current texture with a redrawn PNG (Ctrl+I)"), "Ctrl+I"))
         buttons.addWidget(self._button(tr("Import &Folder..."), self.import_folder,
                                        tr("Import every PNG of a folder whose name matches a texture")))
+        buttons.addWidget(self._button(tr("Ima&ge AI..."), self.send_to_image_ai,
+                                       tr("Send the current texture to Image AI with a prompt")))
         buttons.addWidget(self._button(tr("Re&vert"), self.revert_selected,
                                        tr("Put the game's original back into the selected textures")))
         buttons.addWidget(self._button(tr("Open Fol&der"), self.open_folder,
@@ -628,13 +679,17 @@ class TextureWindow(QtWidgets.QMainWindow):
         self.write_images([(source, image)], "redrawn")
 
     def _tree_menu(self, pos) -> None:
+        self._texture_menu(self.tree.viewport().mapToGlobal(pos))
+
+    def _texture_menu(self, at: QtCore.QPoint) -> None:
+        """The actions on the current texture: the list and both pictures show this menu."""
         menu = QtWidgets.QMenu(self)
         menu.addAction(tr("Send to &Image AI..."), self.send_to_image_ai)
         menu.addSeparator()
         menu.addAction(tr("&Import PNG..."), self.import_png)
         menu.addAction(tr("&Export PNG..."), self.export_selected)
         menu.addAction(tr("Re&vert"), self.revert_selected)
-        menu.exec(self.tree.viewport().mapToGlobal(pos))
+        menu.exec(at)
 
     def image_ai_dialog(self) -> Optional[ImageAIDialog]:
         """The Image AI dialog for the current texture, set from Settings > Image AI (``None``: no texture)."""

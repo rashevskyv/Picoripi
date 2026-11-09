@@ -3,7 +3,9 @@
 The real preview widget and its "Auto / forced window" bar render every window kind (dialogue, signs, item
 window, location plate, subtitles, boss, howl, credits, Midna, light spirit) and then message 0 with every
 forced preset. Pixels, bar labels and the bar width must equal what the pre-audit code produced
-(``tests/fixtures/review_queue/wp5/make_golden.py``; tolerance 0). Then Settings -> "limits by window type":
+(``tests/fixtures/review_queue/wp5/make_golden.py``; tolerance 0). Intended change: the item windows
+(``forced_05_11`` and the dump digests of ``auto_03_item``, ``auto_04_item_no``, ``forced_05_11``) come from
+2c845ea1, which draws the ItemExplain panel at its BLO size and keeps icons on their line. Then Settings -> "limits by window type":
 edit, OK, reopen keeps the value, and the file is written exactly as the old dialog wrote it.
 
 The pixel goldens reproduce only where Qt finds the same font families. ``preview/render_environment.json`` records

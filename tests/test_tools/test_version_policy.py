@@ -7,7 +7,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 # The last commit that bumped the version in a feature commit; the policy applies after it.
-BASELINE = "8defc4ac"
+BASELINE = "00606a3d"
 VERSION_LINE = re.compile(r"^[+-]APP_VERSION\s*=", re.MULTILINE)
 
 

@@ -10,7 +10,7 @@ from types import SimpleNamespace
 
 import pytest
 from PIL import Image, ImageDraw
-from PyQt6 import QtWidgets
+from PyQt6 import QtCore, QtWidgets
 
 from core import texture_formats
 from core.texture_formats import image_ai, pixels, sources
@@ -313,8 +313,34 @@ def test_a_provider_error_is_shown_in_the_dialog(qtbot, project, monkeypatch):
     dialog = window.image_ai_dialog()
     qtbot.addWidget(dialog)
     dialog.send()
-    assert "HTTP 400: bad model" in dialog.info.text()
+    box = dialog.findChild(QtWidgets.QMessageBox)
+    assert box is not None and box.text() == "HTTP 400: bad model"
+    assert "HTTP 400" not in dialog.info.text()          # the error is shown once, in the message box
     assert not dialog.accept_button.isEnabled() and dialog.send_button.isEnabled()
+
+
+def test_settings_changes_the_agent_command_without_sending(qtbot, project, monkeypatch):
+    calls = []
+    monkeypatch.setitem(image_ai.PROVIDERS, "command", lambda *args: calls.append(args) or b"")
+    window = _window(qtbot, project)
+    dialog = window.image_ai_dialog()
+    qtbot.addWidget(dialog)
+    dialog.setup_button.click()
+    setup = dialog.findChild(ImageAISetupDialog)
+    assert setup is not None and not setup.problem.isVisible()
+    setup.provider.setCurrentIndex(setup.provider.findData("command"))
+    setup.agent.set_command(_copy_agent())
+    setup.accept()
+    assert dialog.config["command"] == _copy_agent() and project.mw.image_ai["command"] == _copy_agent()
+    assert _copy_agent() in dialog.info.text() and not calls
+
+
+def test_the_pictures_and_the_buttons_offer_image_ai(qtbot, project):
+    window = _window(qtbot, project)
+    buttons = {button.text() for button in window.findChildren(QtWidgets.QPushButton)}
+    assert "Ima&ge AI..." in buttons
+    for view in (window.original_view, window.translated_view):
+        assert view.contextMenuPolicy() == QtCore.Qt.ContextMenuPolicy.CustomContextMenu
 
 
 def _copy_agent(script: str = "shutil.copy(sys.argv[1], sys.argv[2])") -> str:
@@ -362,6 +388,55 @@ def test_send_without_a_key_asks_for_it_then_sends(qtbot, project, monkeypatch):
     _settle(qtbot, window)
     assert project.mw.translation_config["providers"]["openai"]["api_key"] == "new-key"
     assert calls == ["new-key"] and dialog.result is not None
+
+
+def test_a_saved_retired_preset_becomes_the_current_one():
+    """The first Codex preset passed --full-auto, which the current Codex CLI rejects (exit code 2)."""
+    for old, agent in image_ai.RETIRED_PRESETS.items():
+        assert image_ai.settings({"provider": "command", "command": old})["command"] == image_ai.AGENT_PRESETS[agent]
+    assert image_ai.settings({"command": "my-agent --x"})["command"] == "my-agent --x"
+
+
+def test_an_app_cli_outside_path_is_found_and_run(tmp_path, monkeypatch):
+    """The Codex desktop app keeps codex.exe in a versioned folder, not on PATH."""
+    folder = tmp_path / "OpenAI" / "Codex" / "bin" / "f71a721e"
+    folder.mkdir(parents=True)
+    agent = folder / "fakeagent.cmd"
+    agent.write_text(f'@"{sys.executable}" -c "import shutil, sys; shutil.copy(sys.argv[1], sys.argv[2])" %1 %2\n')
+    monkeypatch.setitem(image_ai.AGENT_LOCATIONS, "fakeagent", (str(tmp_path / "OpenAI/Codex/bin/*/fakeagent.cmd"),))
+    config = image_ai.settings({"provider": "command", "command": 'fakeagent "{input}" "{output}"', "timeout": 60})
+
+    assert image_ai.find_program("fakeagent") == str(agent)
+    assert image_ai.missing(config, "") == ""
+    answer = image_ai.edit(Image.new("RGBA", (6, 4), (0, 0, 255, 255)), "x", config, "")
+    assert answer.size == (6, 4) and answer.getpixel((1, 1)) == (0, 0, 255, 255)
+
+
+def test_setup_ok_stays_open_while_the_agent_is_missing(qtbot, project, monkeypatch):
+    window = _window(qtbot, project)
+    dialog = window.image_ai_dialog()
+    qtbot.addWidget(dialog)
+    setup = ImageAISetupDialog(dialog, project.mw, image_ai.settings({}), "No OpenAI API key.")
+    setup.provider.setCurrentIndex(setup.provider.findData("command"))
+    setup.agent.set_command("no-such-agent-xyz -p")
+    setup.accept()
+    assert setup.result() != QtWidgets.QDialog.DialogCode.Accepted
+    assert "no-such-agent-xyz is not installed" in setup.problem.text()
+
+
+def test_a_running_request_shows_a_busy_bar_and_the_seconds(qtbot, project, monkeypatch):
+    monkeypatch.setattr(app_mode, "headless", False)
+    release = threading.Event()
+    monkeypatch.setitem(image_ai.PROVIDERS, "openai", lambda *args: release.wait(30) and _green_answer(*args))
+    window = _window(qtbot, project)
+    dialog = window.image_ai_dialog()
+    qtbot.addWidget(dialog)
+    dialog.show()
+    dialog.send()
+    assert dialog.busy.isVisible() and "0 s" in dialog.info.text()
+    release.set()
+    _settle(qtbot, window)
+    assert not dialog.busy.isVisible() and dialog.result is not None
 
 
 def test_a_provider_error_also_opens_a_message_box(qtbot, project, monkeypatch):

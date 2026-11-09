@@ -98,7 +98,7 @@ To edit one texture file without a plugin, press **File → Open Texture File...
 1. Set the image model in **Settings → Image AI** (see [Configuration](4_Configuration_Guide.md#image-ai)).
 2. Right-click a texture in the list and press **Send to Image AI...**.
 3. Check the prompt. It comes from the settings; you can change it for this request.
-4. Press **Send**. The answer appears next to the original. Each request costs money at the provider. When the key or the agent command is missing, **Set up Image AI** opens: enter the OpenAI key (it is saved as the AI Translation OpenAI key) or pick a local agent, then press **OK**. An error opens a message box.
+4. Press **Send**. The answer appears next to the original. Each request costs money at the provider. When the key or the agent command is missing, **Set up Image AI** opens: enter the OpenAI key (it is saved as the AI Translation OpenAI key) or pick a local agent, then press **OK**. While something is still missing (for example the agent program is not found), **OK** keeps the window open and names it. While the request runs, a busy bar and the seconds show under the prompt. An error opens a message box; its **Settings...** button, and the **Settings...** button of the Send window, change the provider, the key or the agent command. **Image AI...** is also a button under the pictures and an item of the right-click menu of the list and of both pictures.
 5. Press **Accept** to write the answer into the texture. Picoripi writes it the same way as **Import PNG...**: it keeps the texture's size and format. Press **Send** again for another try, or **Cancel**.
 6. Press **Revert** to put the game's original back.
 

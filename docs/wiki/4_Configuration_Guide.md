@@ -178,7 +178,7 @@ The image model that **Send to Image AI...** in the Textures window uses ([Fonts
 | Control | What it does | Default |
 |---|---|---|
 | Provider | **OpenAI (API key)**: OpenAI image edits. **Local CLI agent**: an agent program on this computer (Codex, Claude Code, Gemini CLI, Hermes or any other command) edits the texture. | OpenAI |
-| Agent command | The command for **Local CLI agent**. The list fills it for Codex, Claude Code, Gemini CLI or Hermes; you can type any other command. It runs in a temporary folder and gets the task on standard input. `{input}` is the texture PNG, `{output}` is the PNG the agent must write, `{prompt_file}` is the task as a file. | Empty |
+| Agent command | The command for **Local CLI agent**. The list fills it for Codex, Claude Code, Gemini CLI or Hermes; you can type any other command. It runs in a temporary folder and gets the task on standard input. `{input}` is the texture PNG, `{output}` is the PNG the agent must write, `{prompt_file}` is the task as a file. The program must be on PATH; the CLI of the Codex desktop app is also found in its own folder. | Empty |
 | Model | Image model name. `gpt-image-2` has no transparent background. | `gpt-image-1.5` |
 | Endpoint | Base URL of the API. | `https://api.openai.com/v1` |
 | Use API key from AI Translation | Takes the key of the OpenAI Compatible provider of AI Translation. | On |
