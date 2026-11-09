@@ -424,6 +424,12 @@ class MenuBuilder:
         )
         tools_menu.addAction(self.mw.collab_action)
 
+        self.mw.companion_strings_action = QAction(tr('Sync Translation with &Companion'), self.mw)
+        self.mw.companion_strings_action.setToolTip(
+            tr('Take the translation edits made on the phone into this project, then send every row to the Companion server')
+        )
+        tools_menu.addAction(self.mw.companion_strings_action)
+
         self.mw.progress_action = QAction(tr('&Progress...'), self.mw)
         self.mw.progress_action.setToolTip(
             tr('Open the progress page in the browser: translated and left, by day and by block; in a room, the team board')

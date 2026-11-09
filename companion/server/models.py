@@ -66,3 +66,32 @@ class GlossaryListResponse(BaseModel):
 class TermDetailResponse(BaseModel):
     entry: Dict[str, Any]
     occurrences: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class StringRow(BaseModel):
+    """One translation row as the desktop pushes it."""
+    key: str = Field(..., min_length=1, max_length=1024)
+    block: int = Field(..., ge=0)
+    string: int = Field(..., ge=0)
+    original: str = Field("", max_length=65536)
+    translation: str = Field("", max_length=65536)
+
+
+class StringBlock(BaseModel):
+    block: int = Field(..., ge=0)
+    name: str = Field("", max_length=1024)
+
+
+class StringsPushRequest(BaseModel):
+    project_name: str = Field(..., min_length=1)
+    blocks: List[StringBlock] = Field(default_factory=list)
+    rows: List[StringRow] = Field(default_factory=list)
+    # {row key: the phone text the desktop saw and decided on}: those phone edits are closed.
+    resolved: Dict[str, str] = Field(default_factory=dict)
+
+
+class StringUpdate(BaseModel):
+    """A phone edit; ``base`` is the text the phone showed before the edit."""
+    key: str = Field(..., min_length=1, max_length=1024)
+    translation: str = Field(..., max_length=65536)
+    base: str = Field(..., max_length=65536)

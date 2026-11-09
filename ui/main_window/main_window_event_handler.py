@@ -90,6 +90,8 @@ class MainWindowEventHandler:
             self.mw.address_forms_action.triggered.connect(self.mw.actions.open_address_forms)
         if hasattr(self.mw, 'collab_action'):
             self.mw.collab_action.triggered.connect(self.mw.actions.open_collab)
+        if hasattr(self.mw, 'companion_strings_action'):
+            self.mw.companion_strings_action.triggered.connect(self.mw.actions.sync_translation_with_companion)
         if hasattr(self.mw, 'progress_action'):
             self.mw.progress_action.triggered.connect(self.mw.actions.open_progress)
         if hasattr(self.mw, 'translate_story_action') and self.mw.translate_story_action:

@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-25
 owns: ui/settings
-tokens: 5.6k
+tokens: 5.7k
 purpose: Map of every Settings tab and control, defaults, restart needs, and where each value is stored
 ---
 # Configuration

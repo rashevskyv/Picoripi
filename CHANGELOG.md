@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Companion: the phone page edits the translation itself (**Strings**: blocks, original next to translation, search, Save & Next); **Tools → Sync Translation with Companion** takes the phone edits into the project and sends every row back; a row changed on both sides shows both texts and waits for a choice
 - Ocarina of Time (Switch 2): a `.nup` that holds the base game and its update as two titles opens, unpacks and builds; the update's tree is the game, and every title's trailer moves behind the replaced files
 - Textures window: pictures of textures inside a plugin's own container (Luigi's Mansion `sys/main.dol`) are shown; the decoding worker processes did not know the plugin's container
 - Image AI: a missing key or agent command opens **Set up Image AI** in the Textures window (enter the OpenAI key or pick an agent) instead of an error in the console; a request error also opens a message box

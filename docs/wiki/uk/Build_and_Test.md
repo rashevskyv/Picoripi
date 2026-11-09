@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-25
 owns: core/project_library/build.py
-tokens: 3.2k
+tokens: 3.3k
 purpose: Build a mod from saved files, export it, run it in an emulator, and test it per platform
 ---
 # Зібрати мод і перевірити його в грі

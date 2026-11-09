@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-21
 owns: plugins/
-tokens: 13.5k
+tokens: 13.6k
 purpose: Table of every game plugin with platforms, wizard needs and build targets.
 ---
 # Supported games

@@ -78,6 +78,11 @@ class MainWindowToolsActionsMixin:
         dialog.raise_()
         dialog.activateWindow()
 
+    def sync_translation_with_companion(self):
+        """Phone edits into the project, then every row to the Companion server."""
+        from components.companion.strings_sync import sync_translation_with_companion
+        sync_translation_with_companion(self.mw)
+
     def open_progress(self):
         """The progress page (counted in a worker, opened in the browser)."""
         from handlers.progress_handler import open_progress_page

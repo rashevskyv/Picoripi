@@ -3507,5 +3507,22 @@
   "OpenAI API key": "Ключ OpenAI API",
   "OpenAI API key:": "Ключ OpenAI API:",
   "Saved as the AI Translation OpenAI key.": "Зберігається як ключ OpenAI для AI-перекладу.",
-  "More options: Settings > Image AI.": "Інші параметри: Налаштування > Image AI."
+  "More options: Settings > Image AI.": "Інші параметри: Налаштування > Image AI.",
+  "Authentication failed: invalid token or PIN.": "Помилка автентифікації: неправильний токен або PIN.",
+  "Block {block}, row {row}": "Блок {block}, рядок {row}",
+  "Failed to connect to companion server: {error}": "Не вдалося з'єднатися із сервером Companion: {error}",
+  "Failed to push to companion server: {error}": "Не вдалося надіслати на сервер Companion: {error}",
+  "Fetching phone edits…": "Отримання правок із телефону…",
+  "Keep the PC text:": "Залишити текст із ПК:",
+  "Take the phone text:": "Взяти текст із телефону:",
+  "Sending the translation…": "Надсилання перекладу…",
+  "Server error {code}: {text}": "Помилка сервера {code}: {text}",
+  "Translation Conflicts": "Конфлікти перекладу",
+  "These rows changed on this PC and on the phone. Choose the text to keep for each row. Cancel changes nothing: the phone edits stay on the server.": "Ці рядки змінено і на цьому ПК, і на телефоні. Виберіть текст для кожного рядка. «Скасувати» нічого не змінює: правки з телефону лишаються на сервері.",
+  "Set the server address in Settings → Companion first.": "Спершу вкажіть адресу сервера в «Налаштування → Companion».",
+  "Phone edits taken into the project: {taken}. The rows were not sent: {error}": "Правок із телефону взято в проєкт: {taken}. Рядки не надіслано: {error}",
+  "see the log": "див. журнал",
+  "Phone edits taken into the project: {taken}. Conflicts decided: {chosen}. Rows of other project text skipped: {unknown}. Edits still open on the server: {left}.": "Правок із телефону взято в проєкт: {taken}. Вирішено конфліктів: {chosen}. Пропущено рядків іншого тексту проєкту: {unknown}. Правок, що лишилися на сервері: {left}.",
+  "Sync Translation with &Companion": "Синхронізувати переклад із &Companion",
+  "Take the translation edits made on the phone into this project, then send every row to the Companion server": "Взяти в цей проєкт правки перекладу, зроблені на телефоні, а потім надіслати всі рядки на сервер Companion"
 }

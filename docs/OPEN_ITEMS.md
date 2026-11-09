@@ -17,6 +17,11 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Companion translation rows (2026-11-09, branch `claude/web-translation-companion-82b8dc`)
+
+- Rows sync only by hand (Tools → Sync Translation with Companion); add them to the auto-sync on project open and close if the owner wants it.
+- Every push sends the whole project; send only changed rows when a big project makes the push slow.
+
 ## Quick find follow-ups (2026-10-26)
 
 - `handlers/search_handler.py::_find`: Prev repeats a match at character zero because `-1` also means the end-of-string sentinel; reproduce with two matching strings before changing the reverse-search offset.

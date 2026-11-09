@@ -12,10 +12,12 @@ from companion.server.models import (
     ProjectSummary,
     SyncPullResponse,
     SyncPushRequest,
+    StringsPushRequest,
+    StringUpdate,
     SyncPushResponse,
     TermDetailResponse,
 )
-from companion.server.storage import StorageManager
+from companion.server.storage import StorageManager, StringsStore
 
 
 def get_auth_verifier(expected_token: str):
@@ -45,6 +47,7 @@ def get_auth_verifier(expected_token: str):
 def create_api_router(storage: StorageManager, auth_token: str = AUTH_TOKEN) -> APIRouter:
     router = APIRouter(prefix="/api")
     verify_auth = get_auth_verifier(auth_token)
+    strings = StringsStore(storage)
 
     @router.post("/auth/login", response_model=LoginResponse)
     def login(req: LoginRequest):
@@ -203,5 +206,47 @@ def create_api_router(storage: StorageManager, auth_token: str = AUTH_TOKEN) -> 
                 detail=f"Term '{update.original}' not found in project '{project}'",
             )
         return {"success": True, "entry": updated}
+
+    # ── translation rows (edited on the phone, synced with the desktop) ──
+
+    @router.post("/strings/push", dependencies=[Depends(verify_auth)])
+    def strings_push(payload: StringsPushRequest):
+        # ponytail: the whole project per push, like the glossary; send only changed rows if pushes get slow.
+        counts = strings.push(
+            payload.project_name,
+            [b.model_dump() for b in payload.blocks],
+            [r.model_dump() for r in payload.rows],
+            payload.resolved,
+        )
+        return {"success": True, **counts}
+
+    @router.get("/strings/pull", dependencies=[Depends(verify_auth)])
+    def strings_pull(project: str = Query(..., min_length=1)):
+        return {"project_name": project, "rows": strings.pending(project)}
+
+    @router.get("/strings/blocks", dependencies=[Depends(verify_auth)])
+    def strings_blocks(project: str = Query(..., min_length=1)):
+        return {"project_name": project, "blocks": strings.blocks(project)}
+
+    @router.get("/strings", dependencies=[Depends(verify_auth)])
+    def strings_rows(
+        project: str = Query(..., min_length=1),
+        block: Optional[int] = Query(None, ge=0),
+        search: str = Query("", max_length=200),
+        only: str = Query("", pattern="^(|untranslated|changed)$"),
+        limit: int = Query(500, ge=1, le=2000),
+    ):
+        rows = strings.rows(project, block=block, search=search, only=only)
+        return {"project_name": project, "total": len(rows), "rows": rows[:limit]}
+
+    @router.put("/strings/entry", dependencies=[Depends(verify_auth)])
+    def strings_update(update: StringUpdate, project: str = Query(..., min_length=1)):
+        row, conflict = strings.update(project, update.key, update.translation, update.base)
+        if row is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Row '{update.key}' not found")
+        if conflict:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                                detail={"message": "The text changed on the PC since this page loaded", "row": row})
+        return {"success": True, "row": row}
 
     return router
