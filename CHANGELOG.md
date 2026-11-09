@@ -1,6 +1,7 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Luigi's Mansion (GameCube): **Tools → Textures...** lists the English text textures (room names, menus, save and file screens, controls, ghost names, the ending); before, the window found none
 - Translation progress: **Keep original** in the right-click menu of **Strings in block** marks rows that stay as they are (game titles, names); they count as translated in the tree, the bar beside **Blocks:** and the progress page
 - Translation progress: a row whose original has no letter besides its tags (`???`, `...`, `100`) needs no translation, so a block or project whose only untouched rows are such rows shows a full progress fill
 - Textures window: right-click a texture → **Send to Image AI...** sends it with a prompt to an image model (OpenAI image edits; **Settings → Image AI** sets the provider, model, key source, default prompt and output size rule); **Accept** writes the answer like an imported PNG, at the texture's size and format
