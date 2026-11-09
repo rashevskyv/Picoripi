@@ -3,7 +3,7 @@ r"""Nintendo Switch 2 ``.nup`` packages: an unencrypted exefs + romfs file tree 
 Layout, little-endian, measured on The Legend of Zelda: Ocarina of Time (title 0400486024DEC000, version 131072):
 
 - ``0x00`` ``NUP\x01``; ``0x08`` u64 table of contents offset (``0x80``); ``0x10`` u64 its size; ``0x18`` SHA-256
-  of the table of contents (``0x80`` up to the data); ``0x38`` u64 data offset; ``0x40`` u64 package size;
+  of those ``size`` bytes (zero padding up to the data follows them, unhashed); ``0x38`` u64 data offset; ``0x40`` u64 package size;
   ``0x50`` 16 bytes that no MD5/SHA-1/SHA-256 of the package, its data or its trailer gives (kept as they are).
 - ``0x80`` ``TOC\x01``; ``0x84`` u32 title count; ``0x88`` u64 directory count; ``0x90`` u64 file count; ``0x98``
   u64 offset of the name pool from ``0x80``; ``0xA0`` u64 name pool size.
@@ -276,7 +276,8 @@ def _write_tail(stream: BinaryIO, out: BinaryIO, package: Nup, changes: Dict[str
         struct.pack_into("<Q", meta, TITLES + number * TITLE_SIZE + 0x20,
                          position + title.trailer_offset - package.trailer_offset)
     struct.pack_into("<Q", meta, 0x40, position + len(trailer))
-    meta[0x18:0x38] = hashlib.sha256(bytes(meta[TOC:package.data_start])).digest()
+    toc_size = struct.unpack_from("<Q", meta, 0x10)[0]   # the padding up to the data is not hashed
+    meta[0x18:0x38] = hashlib.sha256(bytes(meta[TOC:TOC + toc_size])).digest()
     out.seek(0)
     out.write(meta)
     return position + len(trailer)

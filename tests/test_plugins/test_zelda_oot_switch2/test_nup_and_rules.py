@@ -77,7 +77,7 @@ def package(files, title=TITLE, compressed=(), base=None):
         children += [kid if kind == "dir" else len(dirs) + kid for kind, kid in kids]
     file_names = [name(path.split("/")[-1]) for path in entries]   # the whole pool comes before the data
     toc_end = header + len(dir_table) + 80 * len(entries) + 4 * len(children) + len(pool)
-    data_start = toc_end + -toc_end % 16
+    data_start = toc_end + -toc_end % 16 + 0x40   # unhashed padding, as in the real two-title dump
     file_table, blob = bytearray(), bytearray()
     for path, file_name, raw in zip(entries, file_names, contents):
         stored = zstd.compress(raw) if path in compressed else raw
@@ -96,11 +96,11 @@ def package(files, title=TITLE, compressed=(), base=None):
         at = nup.TITLES + number * nup.TITLE_SIZE
         struct.pack_into("<QIIII", head, at, title_id, root, root + 1, root + 2, version)
         struct.pack_into("<QQ", head, at + 0x20, data_start + len(blob) + number * len(TRAILER), len(TRAILER))
-    struct.pack_into("<QQ", head, 0x08, nup.TOC, data_start - nup.TOC)
+    struct.pack_into("<QQ", head, 0x08, nup.TOC, toc_end - nup.TOC)
     struct.pack_into("<QQ", head, 0x38, data_start, data_start + len(blob) + len(trailers))
     meta = head + dir_table + file_table + struct.pack(f"<{len(children)}I", *children) + pool
     meta += bytes(data_start - len(meta))
-    meta[0x18:0x38] = hashlib.sha256(bytes(meta[nup.TOC:])).digest()
+    meta[0x18:0x38] = hashlib.sha256(bytes(meta[nup.TOC:toc_end])).digest()
     return bytes(meta + blob + trailers)
 
 
@@ -270,7 +270,9 @@ def test_a_rewritten_file_is_read_back_and_everything_else_stays(tmp_path):
     assert new[package_.data_start:len(old) - len(TRAILER)] == old[package_.data_start:len(old) - len(TRAILER)]
     assert new.endswith(TRAILER) and new[package_.trailer_offset:] == TRAILER
     assert struct.unpack_from("<Q", new, 0x40)[0] == len(new)
-    assert new[0x18:0x38] == hashlib.sha256(new[nup.TOC:package_.data_start]).digest()
+    toc_size = struct.unpack_from("<Q", new, 0x10)[0]
+    assert toc_size < package_.data_start - nup.TOC   # the padding stays out of the hash
+    assert new[0x18:0x38] == hashlib.sha256(new[nup.TOC:nup.TOC + toc_size]).digest()
 
 
 def test_the_writer_refuses_new_files_and_its_own_source(tmp_path):
