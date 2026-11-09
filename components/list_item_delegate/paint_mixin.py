@@ -11,6 +11,17 @@ _ITEM_METADATA_TAIL = re.compile(r'(\s*[\[({].*[\]})]\s*)$')
 class CustomListItemPaintMixin:
     """Paint implementation for list item delegate."""
 
+    def _style_icon(self, style, standard_pixmap) -> QIcon:
+        """A standard icon, cached per style: on Windows each ``standardIcon`` call for a folder or file icon
+        costs about 9 ms (a shell lookup), and ``paint`` runs for every visible row on each hover and scroll step."""
+        cache = getattr(self, "_style_icon_cache", None)
+        if cache is None or cache[0] is not style:
+            cache = self._style_icon_cache = (style, {})
+        icon = cache[1].get(standard_pixmap)
+        if icon is None:
+            icon = cache[1][standard_pixmap] = style.standardIcon(standard_pixmap)
+        return icon
+
     def _project_indices_for_folders(self, pm, folder_ids):
         key = (id(getattr(pm, "project", None)), tuple(folder_ids or ()))
         cache = getattr(self, "_folder_proj_cache", None)
@@ -283,20 +294,21 @@ class CustomListItemPaintMixin:
             icon_obj.paint(p, target_rect)
 
         if compaction_type in [1, 2] and merged_ids:
-            icons_to_draw = []
-            max_icons = 3 
+            max_icons = 3
             subset = merged_ids[:max_icons]
             
             # 1. Add folder icons for the merged chain
-            for f_id in subset:
-                icons_to_draw.append(style.standardIcon(QStyle.StandardPixmap.SP_DirIcon))
-            
+            dir_icon = self._style_icon(style, QStyle.StandardPixmap.SP_DirIcon)
+            icons_to_draw = [dir_icon] * len(subset)
+
             # 2. If it's a folder-block compaction, add the file icon as the top layer
-            if compaction_type == 2 and len(icons_to_draw) < max_icons:
-                icons_to_draw.append(style.standardIcon(QStyle.StandardPixmap.SP_FileIcon))
-            elif compaction_type == 2 and len(icons_to_draw) == max_icons:
-                # Replace the last folder icon with a file icon if we reached the limit
-                icons_to_draw[-1] = style.standardIcon(QStyle.StandardPixmap.SP_FileIcon)
+            if compaction_type == 2:
+                file_icon = self._style_icon(style, QStyle.StandardPixmap.SP_FileIcon)
+                if len(icons_to_draw) < max_icons:
+                    icons_to_draw.append(file_icon)
+                else:
+                    # Replace the last folder icon with a file icon if we reached the limit
+                    icons_to_draw[-1] = file_icon
             
             base_x = status_rect_in_gutter.left() + 2
             # Total shift is (num_icons - 1) * 3
