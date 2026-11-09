@@ -38,6 +38,7 @@
       <select id="projectSelect" class="project-select" aria-label="Select Project"></select>
     </div>
     <div class="header-right">
+      <button id="modeBtn" class="btn btn-xs btn-outline" title="Switch between glossary and translation rows">Strings</button>
       <span id="syncBadge" class="status-dot" title="Connected" aria-label="Connected"></span>
       <button id="refreshBtn" class="icon-btn" title="Refresh data">↻</button>
       <button id="logoutBtn" class="icon-btn" title="Logout">⏻</button>
@@ -177,6 +178,73 @@
     </div>
   </section>
 
+  <!-- Strings View: the project's translation rows, one block at a time -->
+  <main id="stringsView" class="view hidden">
+    <div class="search-bar-container strings-controls">
+      <select id="blockSelect" class="project-select block-select" aria-label="Block"></select>
+      <div class="search-input-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="stringSearchInput" placeholder="Search original or translation..." autocomplete="off">
+      </div>
+    </div>
+    <div class="filter-bar">
+      <div id="stringFilterPills" class="category-pills">
+        <div class="pill active" data-only="">All</div>
+        <div class="pill" data-only="untranslated">Untranslated</div>
+        <div class="pill" data-only="changed">Changed on phone</div>
+      </div>
+    </div>
+    <div id="stringsList" class="terms-list">
+      <div class="loading-state">No rows yet. In Picoripi, run Tools → Sync Translation with Companion.</div>
+    </div>
+    <div class="bottom-stats-bar"><span id="stringsStats"></span></div>
+  </main>
+
+  <!-- String Editor -->
+  <section id="stringEditorView" class="view hidden">
+    <div class="editor-header">
+      <button id="backToStringsBtn" class="btn btn-secondary btn-back">← Back</button>
+      <div class="editor-nav-counters">
+        <button id="prevStringBtn" class="nav-arrow-btn">◀</button>
+        <span id="stringCounter">0 / 0</span>
+        <button id="nextStringBtn" class="nav-arrow-btn">▶</button>
+      </div>
+    </div>
+    <div class="editor-scroll-body">
+      <div class="meta-row">
+        <span id="stringBlockBadge" class="badge badge-category"></span>
+        <span id="stringChangedBadge" class="badge badge-warning hidden">Changed on phone</span>
+      </div>
+      <div class="field-card">
+        <div class="field-header">
+          <span class="field-label-orig">Original</span>
+          <button id="copyStringOrigBtn" class="btn btn-xs btn-ghost" title="Copy original">📋 Copy</button>
+        </div>
+        <div id="stringOriginal" class="field-text-orig string-text"></div>
+      </div>
+      <div class="field-card">
+        <div class="field-header">
+          <label for="stringTranslationInput" class="field-label-trans">Translation</label>
+        </div>
+        <textarea id="stringTranslationInput" class="translation-input string-input" rows="6"></textarea>
+      </div>
+      <div id="stringConflict" class="section-card conflict-card hidden">
+        <div class="section-title"><span>The text changed on the PC after this page loaded</span></div>
+        <label class="sublabel">PC text:</label>
+        <div id="stringConflictPc" class="ai-notes-box string-text"></div>
+        <label class="sublabel">Your text is still in the field above. Choose one:</label>
+        <div class="actions-row">
+          <button id="keepMineBtn" class="btn btn-primary">Save mine</button>
+          <button id="takePcBtn" class="btn btn-secondary">Take PC text</button>
+        </div>
+      </div>
+      <div class="actions-row">
+        <button id="saveNextStringBtn" class="btn btn-confirm btn-lg">✓ Save &amp; Next</button>
+        <button id="saveStringBtn" class="btn btn-primary">💾 Save</button>
+      </div>
+    </div>
+  </section>
+
   <!-- Toast Notification -->
   <div id="toast" class="toast hidden"></div>
 
@@ -184,5 +252,6 @@
   <script src="js/app.js"></script>
   <script src="js/glossary_view.js"></script>
   <script src="js/editor_view.js"></script>
+  <script src="js/strings_view.js"></script>
 </body>
 </html>

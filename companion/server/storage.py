@@ -3,7 +3,8 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 import re
-from typing import Any, Dict, List, Optional
+import threading
+from typing import Any, Dict, List, Optional, Tuple
 
 from companion.server.models import GlossaryEntryUpdate, ProjectSummary
 import logging
@@ -249,3 +250,141 @@ class StorageManager:
             except Exception as exc:
                 logging.getLogger(__name__).debug("storage.StorageManager.get_metadata: ignored %r", exc)
         return {"name": project_name, "updated_at": ""}
+
+
+STRINGS_FILE = "strings.json"
+
+
+class StringsStore:
+    """The project's translation rows, for editing from the phone (``strings.json`` next to ``glossary.json``).
+
+    A row holds ``translation`` (the text on the server) and ``base`` (what the desktop pushed last). A row whose
+    ``translation`` differs from its ``base`` was changed on the phone and waits for the desktop to take it. The state
+    lives here, so nothing new is written into the desktop project or session files.
+    """
+
+    def __init__(self, storage: StorageManager):
+        self.storage = storage
+        self._lock = threading.Lock()
+        # ponytail: the parsed file per path, checked by mtime and size; enough for one process and one owner.
+        self._cache: Dict[Path, Tuple[Tuple[int, int], Dict[str, Any]]] = {}
+
+    def _path(self, project: str) -> Path:
+        return self.storage._get_project_dir(project) / STRINGS_FILE
+
+    def _load(self, project: str) -> Dict[str, Any]:
+        path = self._path(project)
+        try:
+            stat = path.stat()
+        except OSError:
+            return {"blocks": [], "rows": {}}
+        stamp = (stat.st_mtime_ns, stat.st_size)
+        cached = self._cache.get(path)
+        if cached is not None and cached[0] == stamp:
+            return cached[1]
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            logging.getLogger(__name__).warning("strings: %s is unreadable: %r", path, exc)
+            return {"blocks": [], "rows": {}}
+        data.setdefault("blocks", [])
+        data.setdefault("rows", {})
+        self._cache[path] = (stamp, data)
+        return data
+
+    def _save(self, project: str, data: Dict[str, Any]) -> None:
+        path = self._path(project)
+        tmp = path.with_name(STRINGS_FILE + ".tmp")
+        tmp.write_text(json.dumps(data, ensure_ascii=False) + "\n", encoding="utf-8")
+        tmp.replace(path)
+        stat = path.stat()
+        self._cache[path] = ((stat.st_mtime_ns, stat.st_size), data)
+
+    def push(self, project: str, blocks: List[Dict[str, Any]], rows: List[Dict[str, Any]],
+             resolved: Dict[str, str]) -> Dict[str, int]:
+        """The desktop's rows replace the stored ones; a phone edit the desktop has not taken stays.
+
+        ``resolved[key]`` is the phone text the desktop saw and decided on: that edit is closed. An edit made on the
+        phone after the desktop looked does not match it and stays open.
+        """
+        now = datetime.now(timezone.utc).isoformat()
+        with self._lock:
+            old = self._load(project)["rows"]
+            new: Dict[str, Dict[str, Any]] = {}
+            kept = 0
+            for row in rows:
+                key = row["key"]
+                text = row["translation"]
+                prev = old.get(key)
+                item = {"key": key, "block": row["block"], "string": row["string"], "original": row["original"],
+                        "translation": text, "base": text,
+                        "updated_at": prev["updated_at"] if prev and prev["translation"] == text else now}
+                if prev and prev["translation"] != prev["base"] and text != prev["translation"] \
+                        and resolved.get(key) != prev["translation"]:
+                    item.update(translation=prev["translation"], base=prev["base"], updated_at=prev["updated_at"])
+                    kept += 1
+                new[key] = item
+            for key, prev in old.items():                  # a phone edit on a row the desktop no longer has
+                if key not in new and prev["translation"] != prev["base"]:
+                    new[key] = prev
+                    kept += 1
+            self._save(project, {"blocks": blocks, "rows": new, "updated_at": now})
+        return {"rows": len(new), "pending": kept}
+
+    def pending(self, project: str) -> List[Dict[str, Any]]:
+        """The rows changed on the phone and not taken by the desktop yet."""
+        with self._lock:
+            rows = self._load(project)["rows"]
+            return [dict(r) for r in rows.values() if r["translation"] != r["base"]]
+
+    def blocks(self, project: str) -> List[Dict[str, Any]]:
+        """Every block with its row count, untranslated rows and phone edits."""
+        with self._lock:
+            data = self._load(project)
+            counts: Dict[int, Dict[str, int]] = {}
+            for r in data["rows"].values():
+                c = counts.setdefault(r["block"], {"total": 0, "untranslated": 0, "changed": 0})
+                c["total"] += 1
+                c["untranslated"] += r["translation"] == r["original"]
+                c["changed"] += r["translation"] != r["base"]
+            names = {b.get("block"): b.get("name", "") for b in data["blocks"]}
+        return [{"block": idx, "name": names.get(idx) or f"#{idx}", **c} for idx, c in sorted(counts.items())]
+
+    def rows(self, project: str, block: Optional[int] = None, search: str = "", only: str = "") -> List[Dict[str, Any]]:
+        """Rows of one block (or of every block when ``block`` is None), in game order.
+
+        ``only``: ``untranslated`` (the text is still the original) or ``changed`` (edited on the phone).
+        """
+        needle = search.strip().casefold()
+        with self._lock:
+            rows = list(self._load(project)["rows"].values())
+        out = []
+        for r in rows:
+            if block is not None and r["block"] != block:
+                continue
+            if only == "untranslated" and r["translation"] != r["original"]:
+                continue
+            if only == "changed" and r["translation"] == r["base"]:
+                continue
+            if needle and needle not in r["original"].casefold() and needle not in r["translation"].casefold():
+                continue
+            out.append(r)
+        out.sort(key=lambda r: (r["block"], r["string"]))
+        return out
+
+    def update(self, project: str, key: str, translation: str, base: str) -> Tuple[Optional[Dict[str, Any]], bool]:
+        """A phone edit. ``base`` is the text the phone showed; returns ``(row, conflict)``.
+
+        When the text on the server is no longer ``base`` (the desktop pushed a new one meanwhile), nothing is
+        written and the row comes back with ``conflict`` set, so the phone can show both texts.
+        """
+        with self._lock:
+            data = self._load(project)
+            row = data["rows"].get(key)
+            if row is None:
+                return None, False
+            if row["translation"] != base:
+                return dict(row), True
+            row = {**row, "translation": translation, "updated_at": datetime.now(timezone.utc).isoformat()}
+            self._save(project, {**data, "rows": {**data["rows"], key: row}})   # the cache changes only once written
+            return dict(row), False

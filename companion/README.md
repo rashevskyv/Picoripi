@@ -73,3 +73,13 @@ Picoripi Companion is a mobile web companion (PWA) and lightweight synchronizati
 2. In the Glossary Dialog (`Ctrl+G`), click the **`[☁ Companion Sync...]`** button:
    - **⬆ Push Glossary & Context to Mobile Companion**: uploads terms, AI proposed variants, and occurrence quotes to the server.
    - **⬇ Pull Reviewed Glossary from Mobile Companion**: downloads approved terms back to your PC, creates a local `.bak` backup, and updates your project in real-time.
+
+---
+
+## Editing the Translation from the Phone
+
+1. In Picoripi desktop, open the project and run **Tools ➔ Sync Translation with Companion**: every row (original and current text) goes to the server.
+2. On the phone, tap **Strings** in the header, pick a block, tap a row, edit, **Save** / **✓ Save & Next**.
+3. Run **Tools ➔ Sync Translation with Companion** again on the PC: phone edits enter the project as normal (undoable) edits. A row changed on both sides shows both texts and waits for your choice; nothing is lost.
+
+The server keeps the rows in `data/projects/<project>/strings.json`.

@@ -2,7 +2,7 @@
 status: current
 updated: 2026-11-08
 owns: tools/bfn_editor/ and ui/texture_window.py
-tokens: 3.8k
+tokens: 4.0k
 purpose: Edit game fonts and textures, add Ukrainian letters, and set the fonts folders and default font of a project
 ---
 # Шрифти і текстури

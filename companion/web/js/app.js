@@ -34,7 +34,11 @@ const api = {
       }
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.detail || `HTTP Error ${res.status}`);
+        const detail = errorData.detail;
+        const error = new Error((detail && detail.message) || (typeof detail === 'string' && detail) || `HTTP Error ${res.status}`);
+        error.status = res.status;
+        error.detail = detail;
+        throw error;
       }
       return await res.json();
     } catch (err) {
@@ -97,8 +101,14 @@ function switchView(viewName) {
   document.getElementById('appHeader').classList.add('hidden');
   document.getElementById('listView').classList.add('hidden');
   document.getElementById('editorView').classList.add('hidden');
+  document.getElementById('stringsView').classList.add('hidden');
+  document.getElementById('stringEditorView').classList.add('hidden');
+  document.getElementById('modeBtn').textContent = viewName.startsWith('string') ? 'Glossary' : 'Strings';
 
-  if (viewName === 'login') {
+  if (viewName === 'strings' || viewName === 'string-editor') {
+    document.getElementById('appHeader').classList.remove('hidden');
+    document.getElementById(viewName === 'strings' ? 'stringsView' : 'stringEditorView').classList.remove('hidden');
+  } else if (viewName === 'login') {
     document.getElementById('loginScreen').classList.remove('hidden');
   } else if (viewName === 'list') {
     document.getElementById('appHeader').classList.remove('hidden');
@@ -178,13 +188,30 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Logout & Refresh
   document.getElementById('logoutBtn').addEventListener('click', logout);
-  document.getElementById('refreshBtn').addEventListener('click', () => refreshGlossaryList(true));
+  document.getElementById('refreshBtn').addEventListener('click', () => {
+    if (stringsMode()) refreshStrings(true);
+    else refreshGlossaryList(true);
+  });
+  document.getElementById('modeBtn').addEventListener('click', () => {
+    if (stringsMode()) {
+      switchView('list');
+      refreshGlossaryList();
+    } else {
+      switchView('strings');
+      refreshStrings();
+    }
+  });
 
   // Project selector
   document.getElementById('projectSelect').addEventListener('change', (e) => {
     state.currentProject = e.target.value;
     localStorage.setItem('picoripi_project', state.currentProject);
-    refreshGlossaryList();
+    if (stringsMode()) {
+      stringsState.block = null;
+      refreshStrings();
+    } else {
+      refreshGlossaryList();
+    }
   });
 
   // Check existing session

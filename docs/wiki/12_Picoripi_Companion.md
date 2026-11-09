@@ -1,9 +1,9 @@
 ---
 status: current
-updated: 2026-10-02
-owns: core/companion_sync.py, companion/
-tokens: 2.6k
-purpose: Companion server and glossary sync
+updated: 2026-11-09
+owns: core/companion_sync.py, core/companion_strings.py, components/companion/, companion/
+tokens: 3.1k
+purpose: Companion server, glossary sync and translation rows on the phone
 ---
 # Picoripi Companion (Mobile PWA & Sync)
 
@@ -72,6 +72,40 @@ The companion opens in full-screen standalone mode without browser URL bars or n
   - **Proposed AI Variants**: Interactive cards displaying candidate translations and rationales; tapping any variant immediately fills the translation field.
   - **Lore & Context Accordions**: Collapsible cards for dynamic lore descriptions (with real-time `{{TERM}}` substitution), user notes, and dialogue occurrences with English script quotes and reference translations.
   - **Layout Ergonomics**: Protected by `flex-shrink: 0` so bottom accordions never get squashed, native momentum scrolling (`-webkit-overflow-scrolling: touch`), and safe-area inset padding.
+
+---
+
+## 3a. Translation rows on the phone
+
+The Companion also edits the translation itself, not only the glossary.
+
+1. In Picoripi, open the project and choose **Tools → Sync Translation with Companion**. Picoripi sends every row
+   of the project (original and current text) to the server. It uses the server and token from **Settings → Companion**.
+2. On the phone, tap **Strings** in the header. Pick a block, or search the original and translation of every block.
+   The filters are **All**, **Untranslated** (the text is still the original) and **Changed on phone**.
+3. Tap a row, change the translation, then tap **Save** or **✓ Save & Next**.
+4. Back on the PC, run **Tools → Sync Translation with Companion** again. Picoripi takes the phone edits into the
+   project as normal edits (unsaved, undoable with `Ctrl+Z`, shared with a **Work Together** room), then sends every
+   row again. Save the project as usual.
+
+```mermaid
+flowchart LR
+  Phone[Phone: Save] --> Server[(Companion server)]
+  Server -->|Tools → Sync Translation| PC[Picoripi: take phone edits]
+  PC -->|then send every row| Server
+```
+
+**Conflicts.** Nothing is overwritten silently, and neither text is lost:
+
+- The same row changed on the PC and on the phone, to different texts: Picoripi shows the original, the PC text
+  and the phone text. Choose one per row. **Cancel** takes nothing and sends nothing; the phone edits stay on the server.
+- The PC sent a new text after the phone page loaded the row: **Save** on the phone shows the PC text under your
+  text. Tap **Save mine** or **Take PC text**.
+- A phone edit made after Picoripi looked at the server stays open for the next sync.
+- A phone edit for a row this project does not have (other files opened) is skipped and stays on the server.
+
+The server keeps the rows in `strings.json` next to `glossary.json`. Nothing new is written into the project or
+session files.
 
 ---
 

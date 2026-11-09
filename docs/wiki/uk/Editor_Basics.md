@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-25
 owns: ui/builders/
-tokens: 3.8k
+tokens: 3.9k
 ---
 # Переклад у редакторі
 
