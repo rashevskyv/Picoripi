@@ -59,7 +59,7 @@ class GameRules(TotkRules):
     def identify_source(self, path: str) -> Optional[Dict[str, str]]:
         try:
             with open(path, "rb") as stream:
-                head = stream.read(nup.DIRECTORIES)
+                head = stream.read(nup.TITLES + nup.TITLE_SIZE)
         except OSError:
             return None
         if not nup.is_nup(head) or nup.title_of(head)[0] != TITLE_ID:

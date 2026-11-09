@@ -36,22 +36,32 @@ def isolated_registry(monkeypatch):
     monkeypatch.setattr(sarc_module, "_dictionaries", dict(sarc_module._dictionaries))
 
 
-def package(files, title=TITLE, compressed=()):
-    """A .nup with the layout of nup.py: ``files`` maps a path to its bytes; paths in ``compressed`` are zstd."""
-    dirs = [("", [])]
-    index = {"": 0}
-    entries = []
-    for path in files:
-        parent = ""
-        for part in path.split("/")[:-1]:
-            child = parent + part + "/"
-            if child not in index:
-                index[child] = len(dirs)
-                dirs.append((part, []))
-                dirs[index[parent]][1].append(("dir", index[child]))
-            parent = child
-        dirs[index[parent]][1].append(("file", len(entries)))
-        entries.append(path)
+def package(files, title=TITLE, compressed=(), base=None):
+    """A .nup with the layout of nup.py: ``files`` maps a path to its bytes; paths in ``compressed`` are zstd.
+
+    With ``base`` (path -> bytes) the package has two titles, as the 2026-11-09 dump: the base (version 65536),
+    then the update (``files``, version 131072).
+    """
+    trees = [(title, 131072, "", files)] if base is None else [
+        (title, 65536, "base", base), (title | 0x800, 131072, "131072", files)]
+    dirs, entries, contents, roots = [], [], [], []
+    for _title, _version, root_name, tree in trees:
+        roots.append(len(dirs))
+        dirs.append((root_name, []))
+        index = {"": roots[-1]}
+        for path in tree:
+            parent = ""
+            for part in path.split("/")[:-1]:
+                child = parent + part + "/"
+                if child not in index:
+                    index[child] = len(dirs)
+                    dirs.append((part, []))
+                    dirs[index[parent]][1].append(("dir", index[child]))
+                parent = child
+            dirs[index[parent]][1].append(("file", len(entries)))
+            entries.append(path)
+            contents.append(tree[path])
+    header = nup.TITLES + nup.TITLE_SIZE * len(trees)
     pool = bytearray()
     names = {}
 
@@ -66,31 +76,32 @@ def package(files, title=TITLE, compressed=()):
         dir_table += struct.pack("<4I8x", *name(part), len(children), len(kids))
         children += [kid if kind == "dir" else len(dirs) + kid for kind, kid in kids]
     file_names = [name(path.split("/")[-1]) for path in entries]   # the whole pool comes before the data
-    toc_end = nup.DIRECTORIES + len(dir_table) + 80 * len(entries) + 4 * len(children) + len(pool)
+    toc_end = header + len(dir_table) + 80 * len(entries) + 4 * len(children) + len(pool)
     data_start = toc_end + -toc_end % 16
     file_table, blob = bytearray(), bytearray()
-    for path, file_name in zip(entries, file_names):
-        raw = files[path]
+    for path, file_name, raw in zip(entries, file_names, contents):
         stored = zstd.compress(raw) if path in compressed else raw
         blob += bytes(-len(blob) % 16)
         file_table += struct.pack("<IIQQQ32sI12x", *file_name, len(raw), data_start + len(blob),
                                   len(stored), hashlib.sha256(raw).digest(), int(path in compressed))
         blob += stored
     blob += bytes(-len(blob) % 16)
-    pool_offset = nup.DIRECTORIES + len(dir_table) + len(file_table) + 4 * len(children) - nup.TOC
-    head = bytearray(nup.DIRECTORIES)
+    pool_offset = header + len(dir_table) + len(file_table) + 4 * len(children) - nup.TOC
+    head = bytearray(header)
     head[:4] = nup.MAGIC
     head[nup.TOC:nup.TOC + 4] = nup.TOC_MAGIC
-    struct.pack_into("<QQQQ", head, 0x88, len(dirs), len(entries), pool_offset, len(pool))
-    struct.pack_into("<Q", head, 0xB0, title)
-    struct.pack_into("<I", head, 0xC4, 131072)
+    struct.pack_into("<IQQQQ", head, 0x84, len(trees), len(dirs), len(entries), pool_offset, len(pool))
+    trailers = TRAILER * len(trees)
+    for number, ((title_id, version, _name, _tree), root) in enumerate(zip(trees, roots)):
+        at = nup.TITLES + number * nup.TITLE_SIZE
+        struct.pack_into("<QIIII", head, at, title_id, root, root + 1, root + 2, version)
+        struct.pack_into("<QQ", head, at + 0x20, data_start + len(blob) + number * len(TRAILER), len(TRAILER))
     struct.pack_into("<QQ", head, 0x08, nup.TOC, data_start - nup.TOC)
-    struct.pack_into("<QQ", head, 0x38, data_start, data_start + len(blob) + len(TRAILER))
-    struct.pack_into("<QQ", head, 0xD0, data_start + len(blob), len(TRAILER))
+    struct.pack_into("<QQ", head, 0x38, data_start, data_start + len(blob) + len(trailers))
     meta = head + dir_table + file_table + struct.pack(f"<{len(children)}I", *children) + pool
     meta += bytes(data_start - len(meta))
     meta[0x18:0x38] = hashlib.sha256(bytes(meta[nup.TOC:])).digest()
-    return bytes(meta + blob + TRAILER)
+    return bytes(meta + blob + trailers)
 
 
 TRAILER = b"\x01\x00\x00\x00\x04\x00\x00\x00META"
@@ -306,6 +317,44 @@ def test_an_update_refuses_a_package_not_made_from_this_source(tmp_path):
 
 
 # -- the build ---------------------------------------------------------------------
+
+
+BASE = {"exefs/main": b"NSO0 base program", "romfs/Model/Link.bfres.zs": b"base model",
+        "romfs/GameData/GameDataList.Product.100.byml.zs": b"base only"}
+
+
+def write_two_titles(folder):
+    path = folder / "base_and_update.nup"
+    path.write_bytes(package(FILES, compressed={"exefs/main"}, base=BASE))
+    return path
+
+
+def test_a_two_title_package_is_the_updates_tree(tmp_path):
+    with open(write_two_titles(tmp_path), "rb") as stream:
+        package_ = nup.Nup(stream)
+        assert [(title.title_id, title.version) for title in package_.titles] == [
+            ("0400486024DEC000", 65536), ("0400486024DEC800", 131072)]
+        assert (package_.title_id, package_.version) == ("0400486024DEC000", 131072)
+        assert {entry.path: package_.read(entry) for entry in package_.entries} == FILES
+    assert GameRules().identify_source(str(tmp_path / "base_and_update.nup")) == {"role": "base", "platform": "switch2"}
+
+
+def test_a_two_title_package_is_rewritten_with_every_trailer_behind_the_new_data(tmp_path):
+    source = write_two_titles(tmp_path)
+    nup.write(source, tmp_path / "same.nup", {}, ignore, lambda: False)
+    assert (tmp_path / "same.nup").read_bytes() == source.read_bytes()
+
+    changes = {"romfs/Model/Link.bfres.zs": b"a new model, longer than before", "exefs/main": b"NSO0 patched"}
+    target = tmp_path / "out.nup"
+    nup.write(source, target, changes, ignore, lambda: False)
+
+    assert read_all(target) == {**FILES, **changes}
+    new = target.read_bytes()
+    with open(target, "rb") as stream:
+        titles = nup.Nup(stream).titles
+    assert [new[title.trailer_offset:title.trailer_offset + title.trailer_size] for title in titles] == [TRAILER] * 2
+    assert titles[1].trailer_offset == titles[0].trailer_offset + len(TRAILER)
+    assert struct.unpack_from("<Q", new, 0x40)[0] == len(new)
 
 
 def npc_archive(name):

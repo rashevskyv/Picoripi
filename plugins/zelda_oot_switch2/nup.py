@@ -5,17 +5,21 @@ Layout, little-endian, measured on The Legend of Zelda: Ocarina of Time (title 0
 - ``0x00`` ``NUP\x01``; ``0x08`` u64 table of contents offset (``0x80``); ``0x10`` u64 its size; ``0x18`` SHA-256
   of the table of contents (``0x80`` up to the data); ``0x38`` u64 data offset; ``0x40`` u64 package size;
   ``0x50`` 16 bytes that no MD5/SHA-1/SHA-256 of the package, its data or its trailer gives (kept as they are).
-- ``0x80`` ``TOC\x01``; ``0x88`` u64 directory count; ``0x90`` u64 file count; ``0x98`` u64 offset of the name
-  pool from ``0x80``; ``0xA0`` u64 name pool size; ``0xB0`` u64 title id; ``0xC4`` u32 title version; ``0xD0`` u64
-  trailer offset; ``0xD8`` u64 trailer size.
-- ``0xF0`` directories, 24 bytes each: u32 name offset, u32 name length, u32 first child, u32 child count, 8 zero
-  bytes. Directory 0 is the root (``exefs``, ``romfs``).
+- ``0x80`` ``TOC\x01``; ``0x84`` u32 title count; ``0x88`` u64 directory count; ``0x90`` u64 file count; ``0x98``
+  u64 offset of the name pool from ``0x80``; ``0xA0`` u64 name pool size.
+- ``0xB0`` titles, 64 bytes each: u64 title id, u32 root directory, u32 its ``exefs``, u32 its ``romfs``, u32 title
+  version; at ``+0x20`` u64 trailer offset, u64 trailer size. A one-title package holds the game merged with its
+  update; a two-title package holds the base (``base``, version 65536) and then the update (``0400486024DEC800``,
+  root named ``131072``), whose tree is the whole romfs the game runs (2026-11-09 dump: every text and font file
+  equals the merged package's), so the newest title's tree is the package's file list.
+- Directories after the titles, 24 bytes each: u32 name offset, u32 name length, u32 first child, u32 child count,
+  8 zero bytes. Each title's root holds ``exefs`` and ``romfs``.
 - Files, 80 bytes each: u32 name offset, u32 name length, u64 size, u64 data offset (from the package start),
   u64 stored size, SHA-256 of the unpacked data, u32 flags (bit 0: stored as one zstd frame), 12 zero bytes.
 - Children, u32 each: an index below the directory count is a directory, any other is file ``index - count``.
 - The name pool: every name back to back, UTF-8, no separators.
 - The data: each distinct file once, 16-aligned, zero padding; files with the same bytes share one offset.
-- The trailer: typed blocks (u32 type, u32 size): the ``main.npdm`` copy, the JPEG icon, the version string, the
+- The trailers, one per title, back to back after the data: typed blocks (u32 type, u32 size): the ``main.npdm`` copy, the JPEG icon, the version string, the
   title name. Nothing in it signs the package; the npdm's own signature covers only the npdm.
 
 No keys: nothing is encrypted. ``python -m plugins.zelda_oot_switch2.nup <package.nup>`` lists the files (path,
@@ -39,7 +43,8 @@ from core.i18n import tr
 MAGIC = b"NUP\x01"
 TOC_MAGIC = b"TOC\x01"
 TOC = 0x80
-DIRECTORIES = 0xF0
+TITLES = 0xB0
+TITLE_SIZE = 0x40
 DIR_SIZE = 24
 FILE_SIZE = 80
 FLAG_ZSTD = 1
@@ -64,8 +69,17 @@ def is_nup(head: bytes) -> bool:
 
 
 def title_of(head: bytes) -> Tuple[str, int]:
-    """``(title id as 16 hex digits, title version)`` from the first 0xC8 bytes of a package."""
-    return f"{struct.unpack_from('<Q', head, 0xB0)[0]:016X}", struct.unpack_from("<I", head, 0xC4)[0]
+    """``(title id as 16 hex digits, title version)`` of the first title, from the first 0xC8 bytes of a package."""
+    return f"{struct.unpack_from('<Q', head, TITLES)[0]:016X}", struct.unpack_from("<I", head, TITLES + 0x14)[0]
+
+
+@dataclass(frozen=True)
+class Title:
+    title_id: str
+    root: int
+    version: int
+    trailer_offset: int
+    trailer_size: int
 
 
 class Nup:
@@ -74,19 +88,27 @@ class Nup:
     def __init__(self, stream: BinaryIO):
         self._stream = stream
         stream.seek(0)
-        head = stream.read(DIRECTORIES)
-        if len(head) < DIRECTORIES or not is_nup(head):
+        head = stream.read(TITLES)
+        if len(head) < TITLES or not is_nup(head):
             raise ValueError(tr("This file is not a NUP package."))
-        self.title_id, self.version = title_of(head)
+        title_count = struct.unpack_from("<I", head, 0x84)[0]
         dirs, files, pool_offset, pool_size = struct.unpack_from("<QQQQ", head, 0x88)
+        self.directories_at = TITLES + title_count * TITLE_SIZE
+        end = TOC + pool_offset + pool_size
+        meta = head + stream.read(end - TITLES)
+        children_at = self.directories_at + dirs * DIR_SIZE + files * FILE_SIZE
+        if not title_count or len(meta) != end or children_at > TOC + pool_offset:
+            raise ValueError(tr("The table of contents of this NUP package is cut short."))
+        self.titles: List[Title] = []
+        for at in range(TITLES, self.directories_at, TITLE_SIZE):
+            title, root, _exefs, _romfs, version = struct.unpack_from("<QIIII", meta, at)
+            self.titles.append(Title(f"{title:016X}", root, version, *struct.unpack_from("<QQ", meta, at + 0x20)))
+        newest = max(self.titles, key=lambda title: title.version)
+        self.title_id, self.version = self.titles[0].title_id, newest.version
         self.directory_count = dirs
         self.data_start = struct.unpack_from("<Q", head, 0x38)[0]
-        self.trailer_offset, self.trailer_size = struct.unpack_from("<QQ", head, 0xD0)
-        end = TOC + pool_offset + pool_size
-        meta = head + stream.read(end - DIRECTORIES)
-        children_at = DIRECTORIES + dirs * DIR_SIZE + files * FILE_SIZE
-        if len(meta) != end or children_at > TOC + pool_offset:
-            raise ValueError(tr("The table of contents of this NUP package is cut short."))
+        self.trailer_offset = min(title.trailer_offset for title in self.titles)
+        self.trailer_size = sum(title.trailer_size for title in self.titles)
         pool = meta[TOC + pool_offset:end]
         children = struct.unpack_from(f"<{(TOC + pool_offset - children_at) // 4}I", meta, children_at)
 
@@ -94,13 +116,13 @@ class Nup:
             return pool[offset:offset + length].decode("utf-8")
 
         self.entries: List[Entry] = []
-        stack = [(0, "")]
+        stack = [(newest.root, "")]
         while stack:
             index, prefix = stack.pop()
-            _no, _nl, first, count = struct.unpack_from("<4I", meta, DIRECTORIES + index * DIR_SIZE)
+            _no, _nl, first, count = struct.unpack_from("<4I", meta, self.directories_at + index * DIR_SIZE)
             for child in reversed(children[first:first + count]):
                 if child < dirs:
-                    no, nl = struct.unpack_from("<2I", meta, DIRECTORIES + child * DIR_SIZE)
+                    no, nl = struct.unpack_from("<2I", meta, self.directories_at + child * DIR_SIZE)
                     stack.append((child, prefix + name(no, nl) + "/"))
                     continue
                 no, nl, size, offset, stored, digest, flags = struct.unpack_from(
@@ -111,7 +133,7 @@ class Nup:
 
     def record_at(self, index: int) -> int:
         """Where file record ``index`` starts in the package."""
-        return DIRECTORIES + self.directory_count * DIR_SIZE + index * FILE_SIZE
+        return self.directories_at + self.directory_count * DIR_SIZE + index * FILE_SIZE
 
     def read(self, entry: Entry) -> bytes:
         """The unpacked bytes of one file, checked against its SHA-256."""
@@ -250,7 +272,9 @@ def _write_tail(stream: BinaryIO, out: BinaryIO, package: Nup, changes: Dict[str
     stream.seek(package.trailer_offset)
     trailer = stream.read()
     out.write(trailer)
-    struct.pack_into("<Q", meta, 0xD0, position)
+    for number, title in enumerate(package.titles):   # the trailers move together, each keeps its place
+        struct.pack_into("<Q", meta, TITLES + number * TITLE_SIZE + 0x20,
+                         position + title.trailer_offset - package.trailer_offset)
     struct.pack_into("<Q", meta, 0x40, position + len(trailer))
     meta[0x18:0x38] = hashlib.sha256(bytes(meta[TOC:package.data_start])).digest()
     out.seek(0)
