@@ -1,6 +1,9 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
+- Textures window: pictures of textures inside a plugin's own container (Luigi's Mansion `sys/main.dol`) are shown; the decoding worker processes did not know the plugin's container
+- Image AI: a missing key or agent command opens **Set up Image AI** in the Textures window (enter the OpenAI key or pick an agent) instead of an error in the console; a request error also opens a message box
+- Image AI: new provider **Local CLI agent** runs an agent on this computer (presets for Codex, Claude Code, Gemini CLI and Hermes, or any command with `{input}`, `{output}`, `{prompt_file}`)
 - Textures and font windows: a plugin entry that lists several path candidates no longer stops the load with "_path_splitroot_ex: ... not list" (Luigi's Mansion GameCube)
 - Windows: right-click menus, folder lists and message boxes open faster; the app style now looks up each standard icon (folder, file, message-box, computer, desktop: 1-5 ms each, a shell lookup) once
 - Blocks tree: hovering and scrolling no longer stutter on Windows; folder rows looked up the folder and file icons on every paint (about 9 ms each, 0.6 s per screen), now once per style

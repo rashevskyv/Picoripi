@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from core.i18n import tr
 from core.texture_formats import image_ai
+from ui import image_ai_widgets
 
 class SettingsAiMixin:
     """Mixin class for AI Translation and AI Glossary tabs in settings dialog."""
@@ -308,10 +309,10 @@ class SettingsAiMixin:
     def setup_image_ai_tab(self):
         """Image AI tab: the image model the Textures window sends a texture to (``image_ai`` settings)."""
         layout = QFormLayout(self.image_ai_tab)
-        self.image_ai_provider_combo = QComboBox(self)
-        for provider in image_ai.PROVIDERS:
-            self.image_ai_provider_combo.addItem({"openai": "OpenAI"}.get(provider, provider), provider)
+        self.image_ai_provider_combo = image_ai_widgets.provider_combo(self)
         layout.addRow(tr('Provider:'), self.image_ai_provider_combo)
+        self.image_ai_agent = image_ai_widgets.AgentCommand(self)
+        layout.addRow(tr('Agent command:'), self.image_ai_agent)
         self.image_ai_model_edit = QLineEdit(self)
         self.image_ai_model_edit.setPlaceholderText(image_ai.DEFAULTS["model"])
         layout.addRow(tr('Model:'), self.image_ai_model_edit)
@@ -348,6 +349,7 @@ class SettingsAiMixin:
         self.image_ai_prompt_edit.setPlainText(config['prompt'])
         self.image_ai_size_rule_combo.setCurrentIndex(max(0, self.image_ai_size_rule_combo.findData(config['size_rule'])))
         self.image_ai_timeout_spin.setValue(int(config['timeout']))
+        self.image_ai_agent.set_command(config['command'])
 
     def get_image_ai_settings(self) -> dict:
         return {
@@ -359,4 +361,5 @@ class SettingsAiMixin:
             'prompt': self.image_ai_prompt_edit.toPlainText().strip() or image_ai.DEFAULT_PROMPT,
             'size_rule': self.image_ai_size_rule_combo.currentData(),
             'timeout': self.image_ai_timeout_spin.value(),
+            'command': self.image_ai_agent.command(),
         }

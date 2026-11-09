@@ -166,7 +166,7 @@ def test_image_ai_settings_round_trip(fake_main_window, qtbot):
     qtbot.addWidget(dialog)
     assert dialog.get_settings()["image_ai"] == {
         "provider": "openai", "model": "gpt-image-2", "endpoint": "", "use_translation_api_key": False,
-        "api_key_env": "MY_KEY", "prompt": "Ukrainian, please", "size_rule": "stretch", "timeout": 60}
+        "api_key_env": "MY_KEY", "prompt": "Ukrainian, please", "size_rule": "stretch", "timeout": 60, "command": ""}
     dialog.image_ai_model_edit.clear()
     dialog.image_ai_prompt_edit.clear()
     saved = dialog.get_settings()["image_ai"]
@@ -205,3 +205,15 @@ def test_provider_ids_stay_english_in_a_translated_interface(fake_main_window, q
     combo = dialog.translation_provider_combo
 
     assert [combo.itemData(i) for i in range(combo.count())] == ["disabled", "openai", "ollama_chat", "gemini", "perplexity"]
+
+
+def test_image_ai_agent_preset_fills_the_command(fake_main_window, qtbot):
+    fake_main_window.image_ai = {"provider": "command", "command": image_ai.AGENT_PRESETS["hermes"]}
+    dialog = SettingsDialog(fake_main_window)
+    qtbot.addWidget(dialog)
+    assert dialog.image_ai_agent.preset.currentText() == "Hermes"
+    codex = dialog.image_ai_agent.preset.findText("Codex")
+    dialog.image_ai_agent.preset.setCurrentIndex(codex)
+    dialog.image_ai_agent.preset.activated.emit(codex)
+    saved = dialog.get_settings()["image_ai"]
+    assert (saved["provider"], saved["command"]) == ("command", image_ai.AGENT_PRESETS["codex"])

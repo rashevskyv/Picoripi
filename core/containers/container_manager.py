@@ -62,6 +62,18 @@ class ContainerManager:
                 _ARCHIVE_EXTENSIONS.append(extension)
 
     @staticmethod
+    def registered() -> tuple[type[BaseArchiveContainer], ...]:
+        """The containers plugins added, oldest first: a worker process registers them again
+        (``ProcessPoolExecutor(initializer=ContainerManager.register_all, initargs=(ContainerManager.registered(),))``)."""
+        return tuple(reversed([cls for cls in _CONTAINER_TYPES if cls not in (RarcContainer, U8Container)]))
+
+    @staticmethod
+    def register_all(classes: tuple[type[BaseArchiveContainer], ...]) -> None:
+        """``register`` each of ``classes`` (the result of ``registered()``) in this process."""
+        for cls in classes:
+            ContainerManager.register(cls)
+
+    @staticmethod
     def extensions() -> tuple[str, ...]:
         """Extensions of the archive files the project scan looks into."""
         return tuple(_ARCHIVE_EXTENSIONS)

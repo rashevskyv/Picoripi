@@ -25,6 +25,7 @@ from core.texture_formats import cache as texture_cache
 from core.texture_formats import image_ai
 from core.texture_formats import sources as texture_sources
 from core.texture_formats.sources import TextureSource
+from ui import image_ai_widgets
 from utils import app_mode, package_check
 from utils.logging_utils import log_error
 from utils.thread_utils import WorkerThread, safe_shutdown_thread
@@ -111,6 +112,66 @@ class _Preview(QtWidgets.QLabel):
         painter.drawImage(target, self._image)
 
 
+class ImageAISetupDialog(QtWidgets.QDialog):
+    """What Image AI lacks (``image_ai.missing``) and the fields that fix it: the provider, the OpenAI key
+    (saved as the AI Translation OpenAI key) or the local agent command. ``apply()`` stores them in the
+    main window's settings."""
+
+    def __init__(self, parent, main_window, config: Dict, problem: str):
+        super().__init__(parent)
+        self.mw, self.config = main_window, dict(config)
+        self.setWindowTitle(tr("Set up Image AI"))
+        self.resize(640, 0)
+        self.problem = QtWidgets.QLabel(tr("Image AI cannot send yet: {0}", problem))
+        self.problem.setWordWrap(True)
+        self.provider = image_ai_widgets.provider_combo(self)
+        self.provider.setCurrentIndex(max(0, self.provider.findData(config.get("provider"))))
+        self.key = QtWidgets.QLineEdit(self)
+        self.key.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
+        self.key.setAccessibleName(tr("OpenAI API key"))
+        self.key.setToolTip(tr("Saved as the AI Translation OpenAI key."))
+        self.agent = image_ai_widgets.AgentCommand(self)
+        self.agent.set_command(config.get("command") or "")
+        form = QtWidgets.QFormLayout()
+        form.addRow(tr("Provider:"), self.provider)
+        form.addRow(tr("OpenAI API key:"), self.key)
+        form.addRow(tr("Agent command:"), self.agent)
+        buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.StandardButton.Ok
+                                             | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(self.problem)
+        layout.addLayout(form)
+        layout.addWidget(QtWidgets.QLabel(tr("More options: Settings > Image AI.")))
+        layout.addWidget(buttons)
+        self.provider.currentIndexChanged.connect(self._show_fields)
+        self._show_fields()
+
+    def _show_fields(self) -> None:
+        agent = self.provider.currentData() == "command"
+        form = self.layout().itemAt(1).layout()
+        form.setRowVisible(self.key, not agent)
+        form.setRowVisible(self.agent, agent)
+
+    def apply(self) -> Dict:
+        """Store the fields in the main window's settings (and save them); the new ``image_ai`` settings."""
+        config = {**self.config, "provider": self.provider.currentData(), "command": self.agent.command()}
+        key = self.key.text().strip()
+        if key and self.mw is not None:
+            translation = getattr(self.mw, "translation_config", None)
+            translation = translation if isinstance(translation, dict) else {}
+            translation.setdefault("providers", {}).setdefault("openai", {})["api_key"] = key
+            self.mw.translation_config = translation
+            config["use_translation_api_key"] = True
+        if self.mw is not None:
+            self.mw.image_ai = config
+            manager = getattr(self.mw, "settings_manager", None)
+            if manager is not None:
+                manager.save_settings()
+        return config
+
+
 class ImageAIDialog(QtWidgets.QDialog):
     """Send one texture to the image AI with a prompt; ``result`` holds the answer at the texture's size.
 
@@ -160,6 +221,10 @@ class ImageAIDialog(QtWidgets.QDialog):
     def send(self) -> None:
         if self._waiting:
             return
+        problem = image_ai.missing(self.config, self.key)
+        if problem:
+            self._setup(problem)
+            return
         self._waiting = True
         self._request += 1
         request = self._request
@@ -174,13 +239,35 @@ class ImageAIDialog(QtWidgets.QDialog):
 
         self.window_.run_job(work, None, lambda image, error: self._answered(request, image, error))
 
+    def _setup(self, problem: str) -> None:
+        """Ask for what is missing; with it, send."""
+        setup = ImageAISetupDialog(self, getattr(self.window_, "mw", None), self.config, problem)
+        setup.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+
+        def chosen() -> None:
+            self.config = image_ai.settings(setup.apply())
+            self.key = image_ai.api_key(self.config, getattr(getattr(self.window_, "mw", None),
+                                                             "translation_config", None))
+            self.info.setText(tr("Provider: {0}, model: {1}, size rule: {2}", self.config.get("provider"),
+                                 self.config.get("model"), self.config.get("size_rule")))
+            if not image_ai.missing(self.config, self.key):
+                self.send()
+
+        setup.accepted.connect(chosen)
+        setup.open()
+
     def _answered(self, request: int, image: Optional[Image.Image], error: str) -> None:
         if request != self._request:
             return
         self._waiting = False
         self.send_button.setEnabled(True)
         if error or image is None:
-            self.info.setText(tr("Error: {0}", error or tr("No answer")))
+            text = tr("Error: {0}", error or tr("No answer"))
+            self.info.setText(text)
+            box = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, tr("Image AI"), text,
+                                        QtWidgets.QMessageBox.StandardButton.Ok, self)
+            box.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+            box.open()
             return
         self.result = image
         self.result_view.set_image(pil_to_qimage(image))

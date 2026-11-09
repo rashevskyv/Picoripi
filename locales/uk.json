@@ -3494,5 +3494,18 @@
   "Fit: keep the shape, pad with transparency": "Вписати: зберегти форму, доповнити прозорістю",
   "Stretch over the whole canvas": "Розтягнути на все полотно",
   "Image models answer on a few fixed canvases. The texture is put on the closest one, and the answer is scaled back to the texture size.": "Моделі зображень відповідають на кількох сталих полотнах. Текстуру кладуть на найближче з них, а відповідь масштабують назад до розміру текстури.",
-  "Output size rule:": "Правило розміру відповіді:"
+  "Output size rule:": "Правило розміру відповіді:",
+  "OpenAI (API key)": "OpenAI (ключ API)",
+  "Local CLI agent (Codex, Claude Code, Hermes...)": "Локальний CLI-агент (Codex, Claude Code, Hermes...)",
+  "Custom command": "Своя команда",
+  "Agent": "Агент",
+  "Agent command": "Команда агента",
+  "Agent command:": "Команда агента:",
+  "Runs in a temporary folder with the task on standard input. {input}: the texture PNG, {output}: the PNG the agent must write, {prompt_file}: the task as a file.": "Запускається в тимчасовій теці, завдання йде на стандартний вхід. {input}: PNG текстури, {output}: PNG, який має записати агент, {prompt_file}: завдання як файл.",
+  "Set up Image AI": "Налаштувати Image AI",
+  "Image AI cannot send yet: {0}": "Image AI ще не може надіслати: {0}",
+  "OpenAI API key": "Ключ OpenAI API",
+  "OpenAI API key:": "Ключ OpenAI API:",
+  "Saved as the AI Translation OpenAI key.": "Зберігається як ключ OpenAI для AI-перекладу.",
+  "More options: Settings > Image AI.": "Інші параметри: Налаштування > Image AI."
 }

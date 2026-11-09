@@ -15,7 +15,7 @@ from PyQt6 import QtWidgets
 from core import texture_formats
 from core.texture_formats import image_ai, pixels, sources
 from ui import texture_window as texture_window_module
-from ui.texture_window import TextureWindow
+from ui.texture_window import ImageAISetupDialog, TextureWindow
 from utils import app_mode
 
 
@@ -222,7 +222,7 @@ def test_decoded_pairs_and_the_list_are_cached_and_follow_file_changes(project, 
         cache.read_pair(found[0], cache_dir)
 
 
-def _green_answer(config, key, png, prompt, canvas):
+def _green_answer(config, key, png, prompt, canvas, cancelled=None):
     """A fake image model: the canvas it was sent, painted green where the texture is not transparent."""
     with Image.open(io.BytesIO(png)) as sent:
         assert sent.size == canvas
@@ -315,3 +315,63 @@ def test_a_provider_error_is_shown_in_the_dialog(qtbot, project, monkeypatch):
     dialog.send()
     assert "HTTP 400: bad model" in dialog.info.text()
     assert not dialog.accept_button.isEnabled() and dialog.send_button.isEnabled()
+
+
+def _copy_agent(script: str = "shutil.copy(sys.argv[1], sys.argv[2])") -> str:
+    """A fake local agent: a Python one-liner run as the agent command."""
+    return f'"{sys.executable}" -c "import shutil, sys; {script}" "{{input}}" "{{output}}"'
+
+
+def test_missing_names_what_each_provider_lacks():
+    assert image_ai.missing(image_ai.settings({}), "") == "No OpenAI API key."
+    assert image_ai.missing(image_ai.settings({}), "k") == ""
+    assert image_ai.missing(image_ai.settings({"provider": "command"}), "") == "No agent command."
+    assert "not installed" in image_ai.missing(image_ai.settings({"provider": "command",
+                                                                  "command": "no-such-agent-xyz -p"}), "")
+    assert image_ai.missing(image_ai.settings({"provider": "command", "command": _copy_agent()}), "") == ""
+
+
+def test_a_local_agent_edits_the_texture_at_its_own_size():
+    texture = Image.new("RGBA", (24, 8), (255, 0, 0, 255))
+    config = image_ai.settings({"provider": "command", "command": _copy_agent(), "timeout": 60})
+    answer = image_ai.edit(texture, "Ukrainian", config, "")
+    assert answer.size == (24, 8) and answer.getpixel((3, 3)) == (255, 0, 0, 255)
+
+
+def test_an_agent_that_writes_no_image_reports_its_output():
+    config = image_ai.settings({"provider": "command", "command": _copy_agent("print('quota exceeded')"),
+                                "timeout": 60})
+    with pytest.raises(image_ai.ImageAIError, match="quota exceeded"):
+        image_ai.edit(Image.new("RGBA", (8, 8)), "x", config, "")
+
+
+def test_send_without_a_key_asks_for_it_then_sends(qtbot, project, monkeypatch):
+    calls = []
+    monkeypatch.setitem(image_ai.PROVIDERS, "openai",
+                        lambda *args: calls.append(args[1]) or _green_answer(*args))
+    window = _window(qtbot, project)
+    project.mw.translation_config = {}
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    dialog = window.image_ai_dialog()
+    qtbot.addWidget(dialog)
+    dialog.send()
+    setup = dialog.findChild(ImageAISetupDialog)
+    assert setup is not None and "No OpenAI API key" in setup.problem.text() and not calls
+    setup.key.setText("new-key")
+    setup.accept()
+    _settle(qtbot, window)
+    assert project.mw.translation_config["providers"]["openai"]["api_key"] == "new-key"
+    assert calls == ["new-key"] and dialog.result is not None
+
+
+def test_a_provider_error_also_opens_a_message_box(qtbot, project, monkeypatch):
+    def fail(*args):
+        raise image_ai.ImageAIError("HTTP 401: bad key")
+
+    monkeypatch.setitem(image_ai.PROVIDERS, "openai", fail)
+    window = _window(qtbot, project)
+    dialog = window.image_ai_dialog()
+    qtbot.addWidget(dialog)
+    dialog.send()
+    box = dialog.findChild(QtWidgets.QMessageBox)
+    assert box is not None and "HTTP 401: bad key" in box.text()

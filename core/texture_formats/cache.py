@@ -15,6 +15,8 @@ from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tupl
 
 from PIL import Image
 
+from core.containers import ContainerManager
+
 from core.texture_formats import sources as texture_sources
 from core.texture_formats.sources import TextureSource
 from utils.atomic_io import atomic_write_bytes
@@ -95,7 +97,9 @@ def read_pairs(sources: Iterable[TextureSource], cache_dir: str,
         if cancelled():
             return
         yield source, read_pair(source, cache_dir)
-    with ProcessPoolExecutor(max_workers=max(1, min(8, (os.cpu_count() or 2) - 1))) as pool:
+    # A worker is a fresh process: the containers plugins registered here (main.dol...) are registered there too.
+    with ProcessPoolExecutor(max_workers=max(1, min(8, (os.cpu_count() or 2) - 1)),
+                             initializer=ContainerManager.register_all, initargs=(ContainerManager.registered(),)) as pool:
         futures = {pool.submit(read_pair, s, cache_dir): s for s in uncached}
         try:
             for future in as_completed(futures):

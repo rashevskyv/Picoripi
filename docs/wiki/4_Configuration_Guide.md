@@ -177,14 +177,15 @@ The image model that **Send to Image AI...** in the Textures window uses ([Fonts
 
 | Control | What it does | Default |
 |---|---|---|
-| Provider | Image provider. Now OpenAI image edits. | OpenAI |
+| Provider | **OpenAI (API key)**: OpenAI image edits. **Local CLI agent**: an agent program on this computer (Codex, Claude Code, Gemini CLI, Hermes or any other command) edits the texture. | OpenAI |
+| Agent command | The command for **Local CLI agent**. The list fills it for Codex, Claude Code, Gemini CLI or Hermes; you can type any other command. It runs in a temporary folder and gets the task on standard input. `{input}` is the texture PNG, `{output}` is the PNG the agent must write, `{prompt_file}` is the task as a file. | Empty |
 | Model | Image model name. `gpt-image-2` has no transparent background. | `gpt-image-1.5` |
 | Endpoint | Base URL of the API. | `https://api.openai.com/v1` |
 | Use API key from AI Translation | Takes the key of the OpenAI Compatible provider of AI Translation. | On |
 | API Key Env Var | Environment variable with the key, used when the AI Translation key is off or empty. The key itself is not saved. | `OPENAI_API_KEY` |
 | Default prompt | The prompt the dialog starts with. | Translate all text into Ukrainian, keep the style |
 | Output size rule | **Fit** keeps the texture's shape and pads it with transparency on the model's canvas; **Stretch** stretches it over the canvas. The answer is scaled back to the texture size. | Fit |
-| Request Timeout | Seconds to wait for the answer. | 180 s |
+| Request Timeout | Seconds to wait for the answer (for an agent: until it ends). | 180 s |
 
 Restart: no.
 
