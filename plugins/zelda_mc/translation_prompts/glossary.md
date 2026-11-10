@@ -166,7 +166,7 @@
 | Grimblade Possession technique | Техніка Одержимості Пугача |  |
 | Grip Ring | Чіпкий Перстень |  |
 | Growler | Гаркун |  |
-| Gust Jar | Глек Подиху |  |
+| Gust Jar | Глечик подиху |  |
 | Gustaf, Royal Spirit | Ґустаф, Дух Короля |  |
 | Guts | Ґатс |  |
 | Gyorg Pair | Пара ґйорґ |  |
