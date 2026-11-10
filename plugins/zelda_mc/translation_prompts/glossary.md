@@ -215,7 +215,7 @@
 | life energy | рівень здоров'я, здоров'я |  |
 | Light Arrow | Стріла Світла |  |
 | light force | Світла Сила |  |
-| Like Like | Щітоїд |  |
+| Like Like | Щитоїд |  |
 | Lolly | Лоллі |  |
 | Lon Lon Milk | Молоко Лон Лон |  |
 | Lon Lon Milk (1/2) | Молоко Лон Лон (1/2) |  |
@@ -376,7 +376,7 @@
 | Sword Beam | Промінь Меча |  |
 | Syrup | Сироп |  |
 | Talon | Талон |  |
-| Tektite | Тектайт |  |
+| Tektite | Тектит |  |
 | Temple of Droplets | Храм Крапель |  |
 | The Carpenters | Теслі |  |
 | The Wind Tribe | Плем'я Вітрів |  |
