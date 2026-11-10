@@ -83,7 +83,7 @@
 | Daltus | Далтус |  |
 | Dampé | Дампе |  |
 | Dark Hyrule Castle | Темний Замок Гайрул |  |
-| Dark Nut | Темний Лицар |  |
+| Dark Nut | Латник |  |
 | Dash Attack | Атака Ривком |  |
 | Dash Attack | Атака Ривком |  |
 | David Jr. | Девід Молодший |  |
@@ -299,7 +299,7 @@
 | Quest Status screen | екран Статистики |  |
 | Quiver | колчан |  |
 | Red Bottom Piece | Червона Нижня Частина |  |
-| Red Dark Nut | Червоний Темний Лицар |  |
+| Red Dark Nut | Червоний латник |  |
 | Red Picolyte | Червоний Піколіт |  |
 | Red Potion | Червоне зілля |  |
 | Red Top Piece | Червона Верхня Частина |  |
