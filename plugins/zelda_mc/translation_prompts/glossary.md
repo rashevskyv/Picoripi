@@ -51,8 +51,8 @@
 | Breve | Бреве |  |
 | brioche | булочка |  |
 | Brocco | Брокко |  |
-| Broken Picori Blade | Уламки Меча Пікорі |  |
-| Broken Picori Sword | Уламки Меча Пікорі |  |
+| Broken Picori Blade | Уламки меча пікорі |  |
+| Broken Picori Sword | Уламки меча пікорі |  |
 | Brown Cucco | Коричневий кукко |  |
 | buissness Scrub | Скраб-крамар |  |
 | Business Scrub | Скраб-крамар |  |
@@ -130,7 +130,7 @@
 | Floormaster | Хапач |  |
 | Flurris | Бриза (жінка) |  |
 | Forest Minish | Лісовий Мініш |  |
-| Forest Picori | Лісовий Пікорі |  |
+| Forest Picori | Лісовий пікорі |  |
 | Fortress of Winds | Фортеця Вітрів |  |
 | Four Sword | Меч Чотирьох |  |
 | Funday School | Школа грай(й)моти |  |
@@ -151,9 +151,9 @@
 | graveyard key | ключ від цвинтаря |  |
 | Grayblade | Димчак |  |
 | Grayblade Possession technique | Техніка Одержимості Димчака |  |
-| Great Butterfly Fairy | Велика Фея Метеликів |  |
-| Great Dragonfly Fairy | Велика Фея Бабок |  |
-| Great Mayfly Fairy | Велика Фея Одноденок |  |
+| Great Butterfly Fairy | Велика фея метеликів |  |
+| Great Dragonfly Fairy | Велика фея бабок |  |
+| Great Mayfly Fairy | Велика фея одноденок |  |
 | Great Spin Attack | Велика Обертова Атака |  |
 | Great Spin Attack | Велика Обертова Атака |  |
 | Greatblade | Буревій |  |
@@ -207,7 +207,7 @@
 | Lakeside Cabin | Приозерна Хатина |  |
 | Lakitu | Лакіту |  |
 | Leever | Лівер |  |
-| Legend of the Picori | Легенда про Пікорі |  |
+| Legend of the Picori | Легенда про пікорі |  |
 | Leila | Лейла |  |
 | Librari | Бібларі |  |
 | Library | Бібліотека |  |
@@ -238,7 +238,7 @@
 | Meenie | Беник |  |
 | Melari | Кремінь |  |
 | Melari's Mines | Шахти Меларі |  |
-| Minish Berries | Ягоди Мінішів |  |
+| Minish Berries | Ягоди мінішів |  |
 | Minish Ezlo | Мініш Езло |  |
 | Minish Vaati | Мініш Вааті |  |
 | Minish Village | Селище Мінішів |  |
@@ -252,7 +252,7 @@
 | Monster Lady | Пані-Монстр |  |
 | Monty | Монті |  |
 | Mountain Minish | Гірський Мініш |  |
-| Mountain Picori | Гірський Пікорі |  |
+| Mountain Picori | Гірський пікорі |  |
 | Mt. Crenel | Гора Кренель |  |
 | Mt. Crenel Mineral Water | Кренельська Мінеральна Вода |  |
 | Mt. Crenel's Base | Підніжжя Гори Кренель |  |
@@ -386,7 +386,7 @@
 | Tingle Siblings? | Родичі Тінґла? |  |
 | Tingle Trophy | Трофей Тінґла |  |
 | Town Minish | Міський Мініш |  |
-| Town Picori | Міський Пікорі |  |
+| Town Picori | Міський пікорі |  |
 | Trap | Пастка |  |
 | Trilby Highlands | Пагорби Трілбі |  |
 | Vaati Reborn | Відроджений Вааті |  |
