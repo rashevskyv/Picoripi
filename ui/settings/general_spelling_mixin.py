@@ -38,6 +38,18 @@ class SettingsGeneralSpellingMixin:
         )
         layout.addRow(QLabel(tr('Wiimms ISO Tool (wit.exe) Path:')), self.wit_tool_selector)
 
+        self.publish_telegram_edit = QLineEdit(self)
+        self.publish_telegram_edit.setPlaceholderText(
+            tr('Optional JSON file with telegram_bot_token, telegram_chat_id and telegram_thread_id'))
+        self.publish_telegram_selector = self._create_file_selector(
+            self.publish_telegram_edit,
+            tr('Select the Telegram settings file'),
+            "JSON Files (*.json);;All Files (*)",
+            tr('<b>Browse</b><br>The JSON file with the bot token, chat and thread of the test-builds thread. '
+               'Publish translation posts its message there. The file stays outside Picoripi.')
+        )
+        layout.addRow(QLabel(tr('Telegram settings file (Publish translation):')), self.publish_telegram_selector)
+
         self.data_location_label = QLabel(str(constants.SETTINGS_DIR), self)
         self.data_location_label.setWordWrap(True)
         self.data_location_button = QPushButton(tr('Data location…'), self)

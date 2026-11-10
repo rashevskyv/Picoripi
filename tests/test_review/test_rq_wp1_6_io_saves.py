@@ -88,6 +88,8 @@ def test_translation_archive_glossary_settings_and_session_are_written_as_before
         "recent_projects_names": dict.fromkeys(old["recent_projects"], new["recent_projects_names"].get(old["recent_projects"][0])),
         # 2026-11-08: Settings > Image AI, saved with its defaults.
         "image_ai": image_ai.DEFAULTS,
+        # 2026-11-10: Settings > Telegram settings file of Publish translation (empty: no message).
+        "publish_telegram_config_path": "",
     }
     assert new["recent_projects_names"][old["recent_projects"][0]].startswith("RQ")
     assert settings == dump(new)

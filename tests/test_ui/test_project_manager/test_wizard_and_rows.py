@@ -412,7 +412,7 @@ def test_build_runs_the_plugin_target_into_the_project_build_folder(qtbot, tmp_p
     qtbot.addWidget(dialog)
     qtbot.waitUntil(lambda: dialog._loaded and key in dialog._items, timeout=5000)
 
-    dialog._start_action(project, "patch", "build")
+    dialog._start_action(project, {"id": "patch", "label": "Patch", "platforms": [], "kind": "patch"}, "build")
 
     qtbot.waitUntil(lambda: dialog._action_text.get(key, "").startswith("Built:"), timeout=10000)
     built = dialog._action_text[key].split("Built: ", 1)[1]

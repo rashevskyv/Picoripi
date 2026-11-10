@@ -117,7 +117,8 @@ class GlobalSettings:
             "companion_server_url": "",
             "companion_api_token": "picoripi",
             "companion_auto_sync": True,
-            "wit_tool_path": ""
+            "wit_tool_path": "",
+            "publish_telegram_config_path": ""
         }
 
     def load(self, settings_dict: Dict[str, Any]) -> None:
@@ -312,6 +313,8 @@ class GlobalSettings:
             "companion_api_token": str(getattr(self.mw, 'companion_api_token', 'picoripi') or settings_dict.get('companion_api_token', 'picoripi') or 'picoripi'),
             "companion_auto_sync": bool(getattr(self.mw, 'companion_auto_sync', settings_dict.get('companion_auto_sync', True))),
             "wit_tool_path": str(getattr(self.mw, 'wit_tool_path', '') or settings_dict.get('wit_tool_path', '') or ''),
+            "publish_telegram_config_path": str(getattr(self.mw, 'publish_telegram_config_path', '')
+                                                or settings_dict.get('publish_telegram_config_path', '') or ''),
         })
 
         global_data.pop("bookmarks", None)

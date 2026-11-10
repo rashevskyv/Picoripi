@@ -5,6 +5,7 @@ file the FST names). The image is written from scratch, in this order: the heade
 fst.bin with new file offsets, then every file in FST order, each on a 0x800 boundary. A translated file replaces
 the source file of the same name. Unlike the workspace's ``gc.py``, no original ``.iso`` is needed.
 """
+import json
 import shutil
 import struct
 from pathlib import Path
@@ -140,3 +141,39 @@ def _pad_to(stream, offset: int) -> None:
 def _copy(stream, path: Path) -> None:
     with open(path, "rb") as source:
         shutil.copyfileobj(source, stream, COPY_BUFFER)
+
+
+def changed_runs(old: bytes, new: bytes) -> List[list]:
+    """``[[offset, old hex, new hex], ...]``: the differing byte runs of two files of the same size (runs closer
+    than 8 bytes merge)."""
+    if len(old) != len(new):
+        raise ValueError("sys/main.dol changed its size; such a file cannot be built into the disc")
+    runs, index = [], 0
+    while index < len(old):
+        if old[index] == new[index]:
+            index += 1
+            continue
+        end = index
+        while end < len(old) and (old[end] != new[end] or old[end:end + 8] != new[end:end + 8]):
+            end += 1
+        runs.append([index, old[index:end].hex(), new[index:end].hex()])
+        index = end
+    return runs
+
+
+def publish_files(source: Path, translation: Path, work: Path) -> Dict[str, Path]:
+    """``{path in the translation repository: file}``: the translated disc files under ``patcher/files/`` (the
+    patcher's disc root), and ``sys/main.dol`` as a byte-run patch (``main.dol.dolpatch.json``), never the DOL itself."""
+    found: Dict[str, Path] = {}
+    for path in sorted(translation.rglob("*")):
+        rel = path.relative_to(translation).as_posix()
+        if not path.is_file():
+            continue
+        if rel == "sys/main.dol":
+            patch = work / "main.dol.dolpatch.json"
+            work.mkdir(parents=True, exist_ok=True)
+            patch.write_text(json.dumps(changed_runs((source / rel).read_bytes(), path.read_bytes())), encoding="utf-8")
+            found["patcher/files/sys/main.dol.dolpatch.json"] = patch
+        elif rel.startswith("files/"):
+            found["patcher/files/" + rel.removeprefix("files/")] = path
+    return found

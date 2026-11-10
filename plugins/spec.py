@@ -249,9 +249,15 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
              "asks for a key file only for an encrypted file of a listed console. Default: none.",
              call=(), returns=list, optional=True),
         Hook("get_build_targets", "What the game can build: [{id, label, platforms, kind}] with kind files, patch "
-             "or layeredfs. Empty: the Build, Export and Run buttons stay off.", call=(), returns=list),
+             "or layeredfs. Empty: the Build, Export and Run buttons stay off. A target with a publish entry "
+             "(core.project_library.publish.spec: repository, branch, game name, patcher post link) offers to publish "
+             "the built files to that translation-only repository after the build.", call=(), returns=list),
         Hook("build_target", "Write one build target into an empty output folder and return the result path. "
              "Gets source_dir, translation_dir, output_dir, progress and is_cancelled.", call=None, returns=str),
+        Hook("publish_files", "{path in the repository: built file} of a target that publishes; every key is under the "
+             "files_root of its publish entry. Gets target_id, source_dir, translation_dir, build_path (what build_target "
+             "returned) and work_dir (an empty folder for files made first). Default: none.", call=None, returns=dict,
+             optional=True),
         Hook("project_icon", "A picture of the game for the Project Manager list (PNG or JPEG bytes) for the project folder, or None. Runs on the scan process. The user's icon.png wins.", call=None, returns=bytes, optional=True),
         Hook("classify_resource", "Kind of one source file in the Project Manager's file counts: text, font, texture or other. None keeps the extension rule. Gets the file path; runs on a worker and may read the file.", call=None, returns=str, optional=True),
     )),

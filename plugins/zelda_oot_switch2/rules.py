@@ -19,6 +19,7 @@ from typing import Any, Callable, Dict, List, Optional, Set
 
 from core.containers import sarc
 from core.i18n import tr
+from core.project_library import publish
 from plugins.common.disc_source import write_source_mark
 from plugins.zelda_totk.preview import OOT_SWITCH2_BOX
 from plugins.zelda_totk.rules import GameRules as TotkRules
@@ -28,6 +29,9 @@ from utils.atomic_io import atomic_write_bytes
 from utils.constants import SETTINGS_DIR
 
 from . import build, nup, tags
+
+PUBLISH = publish.spec("https://github.com/rashevskyv/ZeldaOoT-Switch2-Ukrainian-translation.git", "main",
+                       "Zelda Ocarina of Time (Switch 2)", "https://t.me/zelda_ukr/3228/4896")
 from .config import (BUILD_TARGET, HOOKSHOT_TARGET, PLUGIN_PREFIX, REFERENCE_LANGUAGES, PROBLEM_DEFINITIONS, SOURCE_SUBFOLDER, TEXT_ARCHIVE_PREFIX, TITLE_ID,
                      UNPACKED_PREFIXES)
 
@@ -100,9 +104,16 @@ class GameRules(TotkRules):
 
     def get_build_targets(self) -> List[Dict[str, Any]]:
         return [{"id": BUILD_TARGET, "label": tr("Switch 2 package (.nup), Ukrainian in the Russian slot"),
-                 "platforms": ["switch2"], "kind": "patch"},
+                 "platforms": ["switch2"], "kind": "patch", "publish": PUBLISH},
                 {"id": HOOKSHOT_TARGET, "label": tr("Hookshot (Windows): changed game files and a launcher"),
-                 "platforms": ["pc"], "kind": "files"}]
+                 "platforms": ["pc"], "kind": "files", "publish": PUBLISH}]
+        # Both targets change the same romfs files, so either build publishes them to the patcher's repository.
+
+    def publish_files(self, target_id: str, source_dir: str, translation_dir: str, build_path: str,
+                      work_dir: str) -> Dict[str, Path]:
+        """The changed romfs files, written again into work_dir (the .nup build leaves no loose files)."""
+        build.build_hookshot(source_dir, translation_dir, work_dir, work_dir)
+        return publish.files_under(Path(work_dir) / "romfs", "files/romfs/")
 
     def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
                      progress, is_cancelled) -> str:

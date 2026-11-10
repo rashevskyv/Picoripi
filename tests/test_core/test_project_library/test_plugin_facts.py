@@ -3,6 +3,7 @@
 The plugin is replaced by an explicit fake passed as ``load_rules``; no plugin module is imported here.
 """
 import json
+from types import SimpleNamespace
 
 import pytest
 
@@ -58,6 +59,13 @@ def test_roles_platforms_and_targets_are_normalised():
     assert plugin_facts.platforms_of(rules) == [{"id": "3ds", "label": "Nintendo 3DS"}]
     assert plugin_facts.targets_of(rules) == [
         {"id": "patch", "label": "Patch", "platforms": ["3ds"], "kind": "patch"}]
+
+
+def test_a_publish_entry_of_a_target_is_kept():
+    entry = {"repo": "https://example.invalid/r.git", "branch": "main", "game": "G", "post": "p", "files_root": "files"}
+    rules = SimpleNamespace(get_build_targets=lambda: [{"id": "iso", "publish": entry}, {"id": "x", "publish": "no"}])
+    targets = plugin_facts.targets_of(rules)
+    assert targets[0]["publish"] == entry and "publish" not in targets[1]
 
 
 def test_every_game_offers_base_update_and_many_dlc():

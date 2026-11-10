@@ -66,6 +66,8 @@ class SettingsLoadSaveMixin:
             self.companion_auto_sync_check.setChecked(getattr(self.mw, 'companion_auto_sync', True))
         if hasattr(self, 'wit_tool_path_edit'):
             self.wit_tool_path_edit.setText(getattr(self.mw, 'wit_tool_path', ''))
+        if hasattr(self, 'publish_telegram_edit'):
+            self.publish_telegram_edit.setText(getattr(self.mw, 'publish_telegram_config_path', ''))
 
         enabled_cats = getattr(self.mw, 'enabled_log_categories', ["general", "lifecycle", "file_ops", "settings", "ui_action", "ai", "scanner", "plugins"])
         for cat_id, chk in self.log_categories_checkboxes.items():
@@ -358,6 +360,7 @@ class SettingsLoadSaveMixin:
             'companion_api_token': self.companion_token_edit.text().strip() if hasattr(self, 'companion_token_edit') else getattr(self.mw, 'companion_api_token', 'picoripi'),
             'companion_auto_sync': self.companion_auto_sync_check.isChecked() if hasattr(self, 'companion_auto_sync_check') else getattr(self.mw, 'companion_auto_sync', True),
             'wit_tool_path': self.wit_tool_path_edit.text().strip() if hasattr(self, 'wit_tool_path_edit') else getattr(self.mw, 'wit_tool_path', ''),
+            'publish_telegram_config_path': self.publish_telegram_edit.text().strip() if hasattr(self, 'publish_telegram_edit') else getattr(self.mw, 'publish_telegram_config_path', ''),
             'reference_patch_path': self.reference_path_edit.text().strip() if is_project_active and hasattr(self, 'reference_path_edit') else getattr(self.mw, 'reference_patch_path', ''),
         }
 

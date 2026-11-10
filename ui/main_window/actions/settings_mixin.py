@@ -9,6 +9,8 @@ from utils.logging_utils import log_info, log_error
 from core.plugin_call import safe_call
 from ui.settings_dialog import SettingsDialog
 from core.i18n import tr
+from core.project_library import publish
+from dialogs.publish_dialog import PublishDialog
 
 
 def _detection_settings_changed(previous, current, problem_ids):
@@ -492,14 +494,26 @@ class MainWindowSettingsActionsMixin:
             self.mw.statusBar.showMessage(tr('A build is already running.'), 3000)
             return
 
-        def start(success=True):
-            if success is False:
-                return
+        def begin(publish_description=None):
             self._build_run = {'project': project_file, 'targets': list(targets), 'index': 0, 'built': [],
-                               'lines': [], 'failed': False}
+                               'lines': [], 'failed': False, 'publish': publish_description}
             self._build_dialog = self._build_progress_dialog(title, self._cancel_build)
             self.mw.statusBar.showMessage(tr('Building...'))
             self._start_build_target()
+
+        def start(success=True):
+            if success is False:
+                return
+            publishing = [t['label'] for t in targets if publish.spec_of(t)]
+            if not publishing:
+                begin()
+                return
+            # A target that publishes: ask first (publish or not, what is new), without blocking the window.
+            dialog = PublishDialog(self.mw, publishing)
+            dialog.accepted.connect(lambda: begin(dialog.publish_description()))
+            dialog.finished.connect(dialog.deleteLater)
+            self._publish_dialog = dialog
+            dialog.open()
 
         if getattr(self.mw.data_store, 'unsaved_changes', False):
             self.mw.app_action_handler.save_data_action(ask_confirmation=False, on_finished_callback=start)
@@ -512,9 +526,10 @@ class MainWindowSettingsActionsMixin:
         from ui.project_manager.tasks import ActionJob
         run = self._build_run
         target = run['targets'][run['index']]
-        job = ActionJob(run['project'], target['id'], default_load_rules)
+        job = ActionJob(run['project'], target['id'], default_load_rules, publish_description=run.get('publish'))
         self._build_job = job
         job.progress.connect(self._build_progress)
+        job.published.connect(lambda text: self._build_run['lines'].append(text))
         job.done.connect(self._build_done)
         job.failed.connect(self._build_failed)
         job.cancelled.connect(lambda: self._build_ended(tr('Build cancelled'), self._build_summary(), False))

@@ -8,7 +8,9 @@ import json
 from typing import Any, Tuple, Dict, List, Set, Optional
 
 from core.i18n import tr
-from core.project_library import images
+from pathlib import Path
+
+from core.project_library import images, publish
 from plugins.base_game_rules import BaseGameRules
 from plugins.common.disc_source import write_source_mark
 from utils.logging_utils import log_info, log_warning, log_debug, log_error
@@ -31,6 +33,9 @@ def _is_hd_title_folder(path: str) -> bool:
         return False
     return bool(HD_PRODUCT_CODE.search(meta)) and any(
         os.path.isdir(os.path.join(path, *folder.split("/"))) for folder in SOURCE_SUBFOLDERS[1:])
+
+HD_PUBLISH = publish.spec("https://github.com/rashevskyv/ZeldaTP-HD-Ukrainian-translation.git", "main",
+                          "Zelda Twilight Princess HD", "https://t.me/zelda_ukr/3228/4894")
 
 from .config import (
     PROBLEM_DEFINITIONS,
@@ -267,8 +272,14 @@ class GameRules(BaseGameRules):
             {"id": "dusk_mod", "label": tr("Dusklight mod (.dusk, needs the original disc)"), "platforms": ["gc"],
              "kind": "patch"},
             {"id": "wiiu_mod", "label": tr("Wii U graphic pack and SDCafiine folder (HD)"), "platforms": ["wiiu"],
-             "kind": "layeredfs"},
+             "kind": "layeredfs", "publish": HD_PUBLISH},
         ]
+
+    def publish_files(self, target_id: str, source_dir: str, translation_dir: str, build_path: str,
+                      work_dir: str) -> Dict[str, Path]:
+        """The HD graphic pack's files into the HD translation repository (the GameCube targets use upload.py)."""
+        from . import hd_pack
+        return publish.files_under(Path(build_path) / "graphicPacks" / hd_pack.PACK_NAME, "files/")
 
     def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
                      progress, is_cancelled) -> str:

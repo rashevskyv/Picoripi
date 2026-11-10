@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import utils.utils as uu
 from core.i18n import tr
+from core.project_library import publish
 from plugins.base_game_rules import BaseGameRules
 from plugins.common.config_factory import problem_ids
 from plugins.common.msbt import Msbt
@@ -28,6 +29,8 @@ from .tags import TAG_RE, describe, from_editor, to_editor
 ProblemIDs = problem_ids(PROBLEM_DEFINITIONS, "ZWW", without=("BROKEN_ICON_HYPHEN",))
 
 CEMU_TARGET = "cemu"
+PUBLISH = publish.spec("https://github.com/rashevskyv/ZeldaWW-HD-Ukrainian-translation.git", "main",
+                       "Zelda Wind Waker HD", "https://t.me/zelda_ukr/3228/4893")
 _DIALOGUE_FILES = ("message", "message2", "message3", "message4")
 _LABEL_MAX_CHARS = 40
 
@@ -80,7 +83,13 @@ class GameRules(BaseGameRules):
         return message_pack.unpack_messages(base, target_dir, progress, is_cancelled)
 
     def get_build_targets(self) -> List[Dict[str, Any]]:
-        return [{"id": CEMU_TARGET, "label": tr("Cemu graphic pack"), "platforms": ["wiiu"], "kind": "layeredfs"}]
+        return [{"id": CEMU_TARGET, "label": tr("Cemu graphic pack"), "platforms": ["wiiu"], "kind": "layeredfs",
+                 "publish": PUBLISH}]
+
+    def publish_files(self, target_id: str, source_dir: str, translation_dir: str, build_path: str,
+                      work_dir: str) -> Dict[str, Path]:
+        """The graphic pack's files into the translation repository."""
+        return publish.files_under(Path(build_path), "files/")
 
     def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
                      progress, is_cancelled) -> str:

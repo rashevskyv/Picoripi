@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PyQt6.QtCore import pyqtSignal
 
-from core.project_library import build, console_keys, game_icon, plugin_facts, resources
+from core.project_library import build, console_keys, game_icon, plugin_facts, publish, resources
 from core.project_library.scan import ICON_FILE_NAME
 from core.project_library.source_folder import validate_source_folder
 from core.containers.console_crypto import KeyFileError
@@ -178,20 +178,26 @@ def _project_paths(project_file: str) -> Tuple[str, str, str]:
 class ActionJob(WorkerThread):
     """Builds one target of a project; with ``export_to`` it then copies the build to that folder.
 
-    The plugin's build runs here, not on the UI thread. Cancel removes the temporary build folder only.
+    ``publish`` (a description, "" for push only; None: do not publish) then puts the built files into the game's
+    translation repository and posts the Telegram message, when the target has a ``publish`` entry; ``published``
+    carries the outcome sentence before ``done``. The plugin's build runs here, not on the UI thread. Cancel
+    removes the temporary build folder only.
     """
 
     progress = pyqtSignal(int, str)
     done = pyqtSignal(str)
+    published = pyqtSignal(str)
     cancelled = pyqtSignal()
     failed = pyqtSignal(str)
 
-    def __init__(self, project_file: str, target_id: str, load_rules: LoadRules, export_to: str = ""):
+    def __init__(self, project_file: str, target_id: str, load_rules: LoadRules, export_to: str = "",
+                 publish_description: Optional[str] = None):
         super().__init__()
         self._project_file = project_file
         self._target = target_id
         self._load_rules = load_rules
         self._export_to = export_to
+        self._publish = publish_description
 
     def run(self) -> None:
         try:
@@ -200,6 +206,10 @@ class ActionJob(WorkerThread):
             rules = self._load_rules(plugin)
             result = build.run_build(rules, self._target, project_dir, source, translation, self._report,
                                      self.isInterruptionRequested)
+            target = next((t for t in plugin_facts.targets_of(rules) if t["id"] == self._target), {})
+            if self._publish is not None and publish.spec_of(target):
+                self.published.emit(publish.publish_build(rules, target, source, translation, result,
+                                                          self._publish, self._report))
             if self._export_to:
                 result = build.export_build(result, self._export_to, self._report, self.isInterruptionRequested)
         except build.Cancel:

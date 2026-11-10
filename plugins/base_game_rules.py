@@ -1238,8 +1238,21 @@ class BaseGameRules:
         ``platforms`` lists platform ids; an empty list means every platform. ``kind`` is ``files`` (a folder
         of separate files), ``patch`` (a file that changes the game) or ``layeredfs`` (a mod folder for a
         loader). The Build, Export and Run buttons stay disabled while a game declares no target. Default: none.
+
+        A target with a ``"publish"`` entry (``core.project_library.publish.spec``: the translation-only Git
+        repository, its branch, the game's name and the patcher post link) offers to publish after its build:
+        the host asks the user for a description, then puts the files of ``publish_files`` into the repository,
+        commits ``vN: description``, pushes and posts a Telegram message. Default: no target publishes.
         """
         return []
+
+    def publish_files(self, target_id: str, source_dir: str, translation_dir: str, build_path: str,
+                      work_dir: str) -> Dict[str, str]:
+        """``{path in the repository: built file}`` for a target that publishes: every key is under the
+        ``files_root`` folder of its ``publish`` entry. ``build_path`` is what ``build_target`` returned;
+        ``work_dir`` is an empty folder for files that must be made first (removed afterwards). Default: none.
+        """
+        return {}
 
     def unpack_key_consoles(self) -> List[str]:
         """The consoles whose key file this game's unpack reads: any of ``"3ds"``, ``"switch"``, ``"wii"``, and

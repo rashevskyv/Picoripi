@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 
 from core.containers import ContainerManager
 from core.i18n import tr
-from core.project_library import images
+from core.project_library import images, publish
 from plugins.common import gc_banner as banner
 from plugins.common.msbt import MAGIC as MSBT_MAGIC, Msbt
 from plugins.zelda_ww.tags import TAG_RE as HD_TAG_RE, from_editor, to_editor
@@ -29,6 +29,8 @@ plugin_dir = os.path.dirname(os.path.abspath(__file__))
 DISC_TARGET = "iso"
 BLUEWAKE_TARGET = "bluewake"
 DISC_NAME = "The Wind Waker (UA).iso"
+PUBLISH = publish.spec("https://github.com/rashevskyv/ZeldaWW-Ukrainian-translation.git", "master",
+                       "Zelda Wind Waker (GameCube)", "https://t.me/zelda_ukr/3228/4892", files_root="patcher/files")
 BLUEWAKE_NAME = "GZLE01.iso"
 # main.dol of GZLE01 USA revision 0. BlueWake checks its SHA-1 before it reads the disc (disc_import.c).
 BLUEWAKE_DOL_SHA1 = "8d28bab68bb5078c38e43f29206f0bd01f7e7a67"
@@ -132,9 +134,16 @@ class GameRules(TwilightPrincessRules):
         BlueWake run (3_run_bluewake.bat): from the BlueWake folder (pushd), ``BlueWake.exe --disc <GZLE01.iso>``. Set the
         BlueWake platform command to ``"<BlueWake folder>\\BlueWake.exe" --disc {path}``; Run starts it in that folder.
         """
-        return [{"id": DISC_TARGET, "label": tr("Disc image (ISO)"), "platforms": ["gc"], "kind": "patch"},
+        # Both discs hold the same translated files, so either build publishes them to the patcher's repository.
+        return [{"id": DISC_TARGET, "label": tr("Disc image (ISO)"), "platforms": ["gc"], "kind": "patch",
+                 "publish": PUBLISH},
                 {"id": BLUEWAKE_TARGET, "label": tr("BlueWake disc (original main.dol)"),
-                 "platforms": ["bluewake"], "kind": "patch"}]
+                 "platforms": ["bluewake"], "kind": "patch", "publish": PUBLISH}]
+
+    def publish_files(self, target_id: str, source_dir: str, translation_dir: str, build_path: str,
+                      work_dir: str) -> Dict[str, Path]:
+        """The translated disc files under patcher/files; main.dol goes as a byte-run patch, never the DOL."""
+        return disc.publish_files(Path(source_dir), Path(translation_dir), Path(work_dir))
 
     def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
                      progress, is_cancelled) -> str:

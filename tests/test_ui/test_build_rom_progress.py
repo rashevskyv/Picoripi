@@ -3,7 +3,7 @@ result's folder opens when the run is done."""
 from types import SimpleNamespace
 
 from PyQt6.QtCore import QObject, QUrl, pyqtSignal
-from PyQt6.QtWidgets import QMainWindow, QProgressDialog, QPushButton, QStatusBar
+from PyQt6.QtWidgets import QLabel, QMainWindow, QProgressDialog, QPushButton, QStatusBar
 
 from ui.main_window.actions import settings_mixin
 from ui.main_window.actions.settings_mixin import MainWindowSettingsActionsMixin
@@ -40,13 +40,15 @@ class _Job(QObject):
     """Stands in for ActionJob: the test emits its signals."""
     progress = pyqtSignal(int, str)
     done = pyqtSignal(str)
+    published = pyqtSignal(str)
     cancelled = pyqtSignal()
     failed = pyqtSignal(str)
     started = []
 
-    def __init__(self, project_file, target_id, load_rules, export_to=""):
+    def __init__(self, project_file, target_id, load_rules, export_to="", publish_description=None):
         super().__init__()
         self.target = target_id
+        self.publish = publish_description
         self.interrupted = False
 
     def start(self):
@@ -56,8 +58,10 @@ class _Job(QObject):
         self.interrupted = True
 
 
-def _run(qtbot, tmp_path, monkeypatch, targets):
-    """A main window with a project of ``targets``; Build ROM pressed. Returns (actions, opened, shown)."""
+def _run(qtbot, tmp_path, monkeypatch, targets, publish=None):
+    """A main window with a project of ``targets``; Build ROM pressed. Returns (actions, opened, shown).
+
+    ``publish`` names the targets that carry a publish entry."""
     opened, shown = [], []
     for name in ("information", "critical"):
         monkeypatch.setattr(settings_mixin.QMessageBox, name, lambda *args, n=name: shown.append((n, args[2])))
@@ -68,10 +72,44 @@ def _run(qtbot, tmp_path, monkeypatch, targets):
     actions._build_job = None
     mw = actions.mw
     mw.project_manager = SimpleNamespace(project_file_path=str(tmp_path / "project.uiproj"))
-    mw.current_game_rules = SimpleNamespace(get_build_targets=lambda: [{"id": t, "label": t.upper()} for t in targets])
+    entry = {"repo": "https://example.invalid/r.git", "branch": "main", "game": "G", "post": "p", "files_root": "files"}
+    mw.current_game_rules = SimpleNamespace(get_build_targets=lambda: [
+        {"id": t, "label": t.upper(), **({"publish": entry} if t in (publish or ()) else {})} for t in targets])
     mw.data_store = SimpleNamespace(unsaved_changes=False)
     actions.build_rom()
     return actions, opened, shown
+
+
+def test_a_target_that_publishes_asks_first_and_the_jobs_get_the_description(qtbot, tmp_path, monkeypatch):
+    actions, opened, shown = _run(qtbot, tmp_path, monkeypatch, ["iso", "bluewake"], publish=["iso"])
+    assert _Job.started == []                       # nothing builds until the question is answered
+    dialog = actions._publish_dialog
+    qtbot.addWidget(dialog)
+    assert any("ISO" in label.text() for label in dialog.findChildren(QLabel))   # names what publishes
+    dialog.description_edit.setPlainText("New dialogues")
+    dialog.accept()
+    assert [(job.target, job.publish) for job in _Job.started] == [("iso", "New dialogues")]
+    _Job.started[0].published.emit("Published v3 (abc1234) to r. The Telegram message was sent.")
+    _Job.started[0].done.emit(str(tmp_path / "build" / "iso" / "game.iso"))
+    _Job.started[1].done.emit(str(tmp_path / "build" / "bluewake" / "GZLE01.iso"))
+    assert len(shown) == 1 and "Published v3" in shown[0][1] and "game.iso" in shown[0][1]
+
+
+def test_an_unchecked_publish_box_builds_without_publishing(qtbot, tmp_path, monkeypatch):
+    actions, opened, shown = _run(qtbot, tmp_path, monkeypatch, ["iso"], publish=["iso"])
+    dialog = actions._publish_dialog
+    qtbot.addWidget(dialog)
+    dialog.publish_check.setChecked(False)
+    dialog.accept()
+    assert [(job.target, job.publish) for job in _Job.started] == [("iso", None)]
+
+
+def test_cancelling_the_question_builds_nothing(qtbot, tmp_path, monkeypatch):
+    actions, opened, shown = _run(qtbot, tmp_path, monkeypatch, ["iso"], publish=["iso"])
+    dialog = actions._publish_dialog
+    qtbot.addWidget(dialog)
+    dialog.reject()
+    assert _Job.started == [] and getattr(actions, "_build_run", None) is None
 
 
 def test_build_rom_builds_every_target_one_after_another_without_asking(qtbot, tmp_path, monkeypatch):

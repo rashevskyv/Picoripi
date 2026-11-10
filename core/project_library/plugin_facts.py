@@ -197,12 +197,15 @@ def targets_of(rules: Any) -> List[Dict[str, Any]]:
         target_id = str(target.get("id") or "").strip()
         if not target_id:
             continue
-        targets.append({
+        entry = {
             "id": target_id,
             "label": str(target.get("label") or target_id),
             "platforms": [str(p) for p in target.get("platforms") or []],
             "kind": str(target.get("kind") or "files"),
-        })
+        }
+        if isinstance(target.get("publish"), dict):   # the target publishes to a translation repository
+            entry["publish"] = dict(target["publish"])
+        targets.append(entry)
     return targets
 
 

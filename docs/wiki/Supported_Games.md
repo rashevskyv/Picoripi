@@ -549,6 +549,22 @@ Each plugin opens the images listed here. When you add an image, the wizard matc
 - Read the **Notes** column before you choose a version.
 
 <!-- wiki-nav -->
+
+## Publishing a translation
+
+Wind Waker (GameCube: the Dolphin and the BlueWake disc), Wind Waker HD, Twilight Princess HD and Ocarina of Time
+(Switch 2: the package and Hookshot) publish from their build targets. Save (Ctrl+S), then press **Build ROM** in
+the main window, or **Build mod** / **Run in emulator** in the Project Manager. A small window asks: publish or not,
+and what is new. The build runs as before; then the changed game files go into the game's translation-only
+repository on GitHub, commit `vN: what is new`, push. The local copy of the repository is in the settings folder,
+under `publish/`; Git uses your own GitHub sign-in. With a description, the bot posts to the Telegram test-builds
+thread: the game, the new version, what is new and the link of the patcher post. An empty description pushes
+without a message. The bot token, chat and thread come from a JSON file (`telegram_bot_token`, `telegram_chat_id`,
+`telegram_thread_id`) named in **Settings → Telegram settings file**; the same file the Twilight Princess uploader
+reads. Players run the patcher from the repository: it downloads the current files and patches their own game dump.
+The repository holds only the changed files, never the game. Twilight Princess (GameCube/Wii) keeps its own
+**Pack and play** tool.
+
 ---
 
 **Previous:** [Configuration](4_Configuration_Guide.md) · [Back to the wiki index](README.md) · **Next:** [Game notes](Game_Notes.md)

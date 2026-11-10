@@ -26,7 +26,8 @@ from core.glossary.series import GROUP_METADATA_KEY, series_dir
 from core.i18n import tr
 from core.project.persist_mixin import next_project_sequence
 from core.project_library import index, registry, resources, views
-from core.project_library import build, share
+from core.project_library import build, publish, share
+from dialogs.publish_dialog import PublishDialog
 from core.project_library.build import emulator_argv, emulator_platform, emulator_template_for
 from core.project_library.cards import fallback_name, percent_translated, read_card
 from core.project_library.discovery import find_projects, platform_from_parts
@@ -415,6 +416,7 @@ class ProjectManagerDialog(QDialog):
         self._action_text: Dict[str, str] = {}
         self._action_jobs: Dict[str, ActionJob] = {}
         self._action_platform: Dict[str, str] = {}  # job key -> platform whose emulator command Run uses
+        self._action_published: Dict[str, str] = {}  # job key -> what the publish step reported
         self._resource_trees: Dict[str, QTreeWidget] = {}  # row key -> the resource tree shown in its details
         self._resource_cache: Dict[str, Dict[str, Dict[str, int]]] = {}  # row key -> counts (kept for this window)
         self._resource_jobs: Dict[str, ResourceJob] = {}
@@ -1289,7 +1291,7 @@ class ProjectManagerDialog(QDialog):
         for target in row["targets"]:
             platform = emulator_platform(target["platforms"], row["platform"])
             action = menu.addAction(str(target["label"]))
-            action.triggered.connect(_call(self._start_action, row["path"], target["id"], mode, platform))
+            action.triggered.connect(_call(self._start_action, row["path"], target, mode, platform))
             if mode == "run" and not self._emulator_template(platform):
                 action.setEnabled(False)
                 action.setToolTip(tr("Set the emulator command for this platform first (Emulator... button)."))
@@ -1375,7 +1377,23 @@ class ProjectManagerDialog(QDialog):
             self._document.setdefault("settings", {})[name] = value
             self._save_setting(name, value)
 
-    def _start_action(self, project_file: str, target_id: str, mode: str, platform: str = "") -> None:
+    def _start_action(self, project_file: str, target: Dict[str, Any], mode: str, platform: str = "") -> None:
+        key = registry.project_key(project_file)
+        if key in self._action_jobs:
+            self._status.setText(tr("This project is already building."))
+            return
+        if mode in ("build", "run") and publish.spec_of(target):
+            # The target publishes: ask first (publish or not, what is new), without blocking the window.
+            dialog = PublishDialog(self, [str(target["label"])])
+            dialog.accepted.connect(lambda: self._launch_action(project_file, target["id"], mode, platform,
+                                                                dialog.publish_description()))
+            dialog.finished.connect(dialog.deleteLater)
+            dialog.open()
+            return
+        self._launch_action(project_file, target["id"], mode, platform)
+
+    def _launch_action(self, project_file: str, target_id: str, mode: str, platform: str,
+                       publish_description: Optional[str] = None) -> None:
         key = registry.project_key(project_file)
         if key in self._action_jobs:
             self._status.setText(tr("This project is already building."))
@@ -1385,11 +1403,13 @@ class ProjectManagerDialog(QDialog):
             export_to = QFileDialog.getExistingDirectory(self, tr("Export mod to folder"), str(Path.home()))
             if not export_to:
                 return
-        job = ActionJob(project_file, target_id, self._load_rules, export_to)
+        job = ActionJob(project_file, target_id, self._load_rules, export_to, publish_description)
         self._action_jobs[key] = job
         self._action_platform[key] = platform
+        self._action_published.pop(key, None)
         self._set_action_text(key, tr("Working..."))
         job.progress.connect(lambda percent, text, k=key: self._set_action_text(k, f"{text} ({percent} %)"))
+        job.published.connect(lambda text, k=key: self._action_published.__setitem__(k, text))
         job.done.connect(lambda path, k=key, m=mode: self._on_action_done(k, m, path))
         job.cancelled.connect(lambda k=key: self._on_action_ended(k, tr("Cancelled.")))
         job.failed.connect(lambda message, k=key: self._on_action_ended(k, tr("Failed: {0}", message)))
@@ -1399,19 +1419,22 @@ class ProjectManagerDialog(QDialog):
         self._action_jobs.pop(key, None)
         platform = self._action_platform.pop(key, "")
         if mode == "run":
-            self._set_action_text(key, self._launch_emulator(path, platform))
+            text = self._launch_emulator(path, platform)
         elif mode == "export":
-            self._set_action_text(key, tr("Exported to {0}", path))
+            text = tr("Exported to {0}", path)
         else:
             warnings = build.read_warnings(path)
             if warnings:
-                self._set_action_text(key, tr("Built: {0} ({1} warnings: {2})", path, len(warnings), warnings[0]))
+                text = tr("Built: {0} ({1} warnings: {2})", path, len(warnings), warnings[0])
             else:
-                self._set_action_text(key, tr("Built: {0}", path))
+                text = tr("Built: {0}", path)
+        published = self._action_published.pop(key, "")
+        self._set_action_text(key, f"{text}\n{published}" if published else text)
 
     def _on_action_ended(self, key: str, text: str) -> None:
         self._action_jobs.pop(key, None)
         self._action_platform.pop(key, None)
+        self._action_published.pop(key, None)
         self._set_action_text(key, text)
 
     def _set_action_text(self, key: str, text: str) -> None:
