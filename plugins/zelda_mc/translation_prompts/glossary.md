@@ -5,7 +5,7 @@
 | A History of Masks | Історія Масок |  |
 | A Hyrulean Bestiary | Гайрульський Бестіарій |  |
 | abbey | абатство |  |
-| Acro-Bandits | Акро-Банда |  |
+| Acro-Bandits | Акро-банда |  |
 | adventurer's spring | джерело авантюристів. |  |
 | Anju | Анджу |  |
 | Ankle | Дінґл |  |
@@ -19,18 +19,18 @@
 | Beetle | Жук |  |
 | Belari | Іскрик |  |
 | Berry | Беррі |  |
-| Big Blue Chuchu | Великий Синій Чучу |  |
+| Big Blue Chuchu | Великий синій чучу |  |
 | Big Bomb Bag | Велика сумка для бомб |  |
 | Big Bomb Bag (Increased Size) | Велика сумка для бомб (Збільшена) |  |
-| Big Green Chuchu | Великий Зелений Чучу |  |
+| Big Green Chuchu | Великий зелений чучу |  |
 | Big Key | Великий Ключ |  |
-| Big Octorok | Великий Окторок |  |
+| Big Octorok | Великий окторок |  |
 | Big Quiver | Великий колчан |  |
 | Big Wallet | Великий гаманець |  |
 | Big Wallet (Increased Size) | Великий гаманець (Збільшений) |  |
 | Biggoron | Біґґорон |  |
 | Bindle | Біндл |  |
-| Black Knight | Чорний Лицар |  |
+| Black Knight | Чорний лицар |  |
 | Blade Brothers | Брати-Мечники |  |
 | Blue Bottom Piece | Синя Нижня Частина |  |
 | Blue Picolyte | Синій Піколіт |  |
@@ -45,7 +45,7 @@
 | bottle | банка |  |
 | Boulder | Валун |  |
 | Bow | Лук |  |
-| Bow Moblin | Моблін-Лучник |  |
+| Bow Moblin | Моблін-лучник |  |
 | Bremor | Бремор |  |
 | Brent | Брент |  |
 | Breve | Бреве |  |
@@ -53,7 +53,7 @@
 | Brocco | Брокко |  |
 | Broken Picori Blade | Уламки Меча Пікорі |  |
 | Broken Picori Sword | Уламки Меча Пікорі |  |
-| Brown Cucco | Коричневий Кукко |  |
+| Brown Cucco | Коричневий кукко |  |
 | buissness Scrub | Скраб-крамар |  |
 | Business Scrub | Скраб-крамар |  |
 | Butter | Масло |  |
@@ -69,15 +69,15 @@
 | Chai | Чай |  |
 | Chaser | Шукач |  |
 | Chuchu | Чучу |  |
-| Cloud Piranha | Небесна Піранья |  |
+| Cloud Piranha | Небесна піранья |  |
 | Cloud Tops | Вершини Хмар |  |
 | compass | компас |  |
 | Crenel Hermit | Пустельник |  |
 | Crenel Mines | Шахти Кренель |  |
 | Croissant | круасан |  |
-| Crow /0F/0D Takkuri | Ворона та Таккурі |  |
+| Crow /0F/0D Takkuri | Ворона та таккурі |  |
 | Cucco | Кукко |  |
-| Cucco Chick | Курча Кукко |  |
+| Cucco Chick | Курча кукко |  |
 | Cucco! | Кукко! |  |
 | curse | прокляття |  |
 | Daltus | Далтус |  |
@@ -92,7 +92,7 @@
 | Din's Charm | Зілля Дін |  |
 | Dina | Діна |  |
 | Dog Food | Собачий корм |  |
-| Door Mimic | Двері-Мімік |  |
+| Door Mimic | Двері-мімік |  |
 | Dottie | Дотті |  |
 | Down Thrust | Удар Згори |  |
 | Down Thrust | Удар Згори |  |
@@ -113,7 +113,7 @@
 | Epona | Епона |  |
 | Erik | Ерік |  |
 | Eyegore | Окоґор |  |
-| Eyegore Statue | Статуя Окоґора |  |
+| Eyegore Statue | Статуя окоґора |  |
 | Ezlo (Cap) | Езло (Капелюх) |  |
 | Ezlo and Link | Езло та [green]Лінк[/c] |  |
 | fairy | фея |  |
@@ -124,7 +124,7 @@
 | Figurine Ticket | Квиток на Фігурку |  |
 | Fire Element | Елемент Вогню |  |
 | Fire Rod | Вогняний Жезл |  |
-| Fire Wizzrobe | Вогняний Чаромант |  |
+| Fire Wizzrobe | Вогняний чаромант |  |
 | Flame Lantern | Масляний Ліхтар |  |
 | flippers | ласти |  |
 | Floormaster | Хапач |  |
@@ -142,12 +142,12 @@
 | Gina | Джина |  |
 | Gleerok | Ґліскель |  |
 | Golden Bomb | Золота Бомба |  |
-| Golden Octorok | Золотий Восьмініс |  |
-| Golden Rope | Золотий Мотуз |  |
-| Golden Tektite | Золотий Тектит |  |
+| Golden Octorok | Золотий восьмініс |  |
+| Golden Rope | Золотий мотуз |  |
+| Golden Tektite | Золотий тектит |  |
 | Gorman | Ґорман |  |
 | Goron | Ґорон |  |
-| Goron Merchant | Ґорон-Крамар |  |
+| Goron Merchant | Ґорон-крамар |  |
 | graveyard key | ключ від цвинтаря |  |
 | Grayblade | Димчак |  |
 | Grayblade Possession technique | Техніка Одержимості Димчака |  |
@@ -169,7 +169,7 @@
 | Gust Jar | Глек Подиху |  |
 | Gustaf, Royal Spirit | Ґустаф, Дух Короля |  |
 | Guts | Ґатс |  |
-| Gyorg Pair | Пара Ґйорґ |  |
+| Gyorg Pair | Пара ґйорґ |  |
 | Hagen | Гаґен |  |
 | Hailey | Зливка (дівчина) |  |
 | Happy Hearth Inn | Корчма "Біля Вогнища" |  |
@@ -181,7 +181,7 @@
 | Hurdy-Gurdy Man | Шарманщик |  |
 | Hyrule | Гайрул |  |
 | Hyrule Castle Garden | Сад Замку Гайрул |  |
-| Ice Wizzrobe | Крижаний Чаромант |  |
+| Ice Wizzrobe | Крижаний чаромант |  |
 | Jabber Nut | Горіх-тлумач |  |
 | Jasmine | Жасмін |  |
 | Jim | Джим |  |
@@ -221,7 +221,7 @@
 | Lon Lon Milk (1/2) | Молоко Лон Лон (1/2) |  |
 | Lon Lon Ranch key | ключ від Ранчо Лон Лон |  |
 | Mack | Мак |  |
-| Madderpillar | Люта Гусінь |  |
+| Madderpillar | Люта гусінь |  |
 | Maggie | Меґґі |  |
 | Magical Boomerang | Магічний Бумеранг |  |
 | Malon | Малон |  |
@@ -247,7 +247,7 @@
 | Mirror Shield | Дзеркальний Щит |  |
 | Moblin | Моблін |  |
 | Moldorm | Вихурка |  |
-| Moldworm | Піщаний Черв'як |  |
+| Moldworm | Піщаний черв'як |  |
 | Mole Mitts | Кротові Кігті |  |
 | Monster Lady | Пані-Монстр |  |
 | Monty | Монті |  |
@@ -309,7 +309,7 @@
 | Roc's Cape | Плащ Рух |  |
 | Rock Breaker | Каменелом |  |
 | Rock Breaker | Ломання Каменів |  |
-| Rock Chuchu | Броньований Чучу |  |
+| Rock Chuchu | Броньований чучу |  |
 | Rolf | Рольф |  |
 | Roll Attack | Атака Перекидом |  |
 | Roll Attack | Атака Перекидом |  |
@@ -322,7 +322,7 @@
 | Rupee/Rupees | Рупія/Рупій |  |
 | Satchel | Сатчел |  |
 | Scarblade | Терновик |  |
-| Scissors Beetle | Жук-Ножиці |  |
+| Scissors Beetle | Жук-ножиці |  |
 | Scratcher | Дряпун |  |
 | Sheila | Шейла |  |
 | shells | мушлі |  |
@@ -349,10 +349,10 @@
 | Spark | Іскра |  |
 | Spear Moblin | Моблін зі списом |  |
 | Spekter | Хрипун |  |
-| Spiked Beetle | Шипастий Жук |  |
+| Spiked Beetle | Шипастий жук |  |
 | Spin Attack | Обертова Атака |  |
-| Spiny Beetle | Колючий Жук |  |
-| Spiny Chuchu | Колючий Чучу |  |
+| Spiny Beetle | Колючий жук |  |
+| Spiny Chuchu | Колючий чучу |  |
 | Split Gauge | Шкала Роздвоєння |  |
 | Split Gauge | Шкала Роздвоєння |  |
 | Splitblade | Розсікач |  |
